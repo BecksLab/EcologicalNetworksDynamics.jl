@@ -9,14 +9,28 @@ This package implements Yodzis and Innès (1992) bio-energetic consumer-resource
 
 1. Install the package 
 
+- clone the repository
+- open the newly created folder with you preferred code editor
+- run the following lines:
 ```julia-repl
-import Pkg 
-Pkg.add("https://github.com/evadelmas/BEFWM2")
-using BEFWM2
+julia> import Pkg 
+julia> Pkg.activate(.)
+Activating environment at `~/.../BEFWM2/Project.toml`
+julia> using BEFWM2
+[ Info: Precompiling BEFWM2 [2fd9189a-c387-4076-88b7-22b33b5a4388]
 ```
 
-2. Generate a food web
+1. Generate a food web
 
-3. Generate the model parameters 
+See the help function `?FoodWeb` and the documentation in `docs/src/man/foodwebs.md` for more details. 
 
-4. Simulate 
+```julia-repl
+julia> using EcologicalNetworks
+julia> fw = FoodWeb(nichemodel, 10, C = 0.2, Z = 10)
+10 species - 13 links. 
+ Method: nichemodel
+```
+
+2. Generate the model parameters 
+
+3. Simulate 
