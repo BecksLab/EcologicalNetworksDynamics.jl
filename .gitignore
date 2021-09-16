@@ -1,0 +1,5 @@
+testing_grounds/*
+Manifest.toml
+docs/Manifest.toml
+docs/build/
+.DS_Store

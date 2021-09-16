@@ -1,0 +1,9 @@
+name = "BEFWM2"
+uuid = "2fd9189a-c387-4076-88b7-22b33b5a4388"
+authors = ["Eva Delmas <eva.delmas@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+EcologicalNetworks = "f03a62fe-f8ab-5b77-a061-bb599b765229"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
