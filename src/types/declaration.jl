@@ -66,8 +66,8 @@ mutable struct FunctionalResponse
     functional_response::Function
     hill_exponent::Real
     ω::SparseMatrixCSC{Float64,Int64}
-    c::Vector{Real}
-    B0::Union{Real, Vector{Real}}
+    c::Vector{T} where {T <: Real}
+    B0::Union{T, Vector{T}} where {T <: Real}
     function FunctionalResponse(functional_response, hill_exponent, ω, c, B0) 
         new(functional_response, hill_exponent, ω, c,  B0)
     end
