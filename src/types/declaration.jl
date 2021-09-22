@@ -34,6 +34,45 @@ end
 """
 abstract type AbstractParameters end
 
+mutable struct BEFWMParameters <: AbstractParameters
+    A::SparseMatrixCSC{Bool,Int64}
+    species::Vector{String}
+    M::Vector{Real}
+    metabolic_class::Vector{String}
+    method::String
+    r::Vector{Real}
+    x::Vector{Real}
+    y::Vector{Real}
+    B0::Vector{Real}
+    hill_exponent::Real
+    functional_response::Function
+    scale_mass::Bool
+    scale_biologicalrates::Bool
+    function BEFWMParameters(A, species, M, metabolic_class, method, r, x, y, B0, hill_exponent, functional_response, scale_mass, scale_biologicalrates) 
+        S = size(A, 1)
+        isequal(S)(length(r)) || throw(ArgumentError("The vector of species growth rates (r) should have the same length as there are species in the food web"))
+        isequal(S)(length(x)) || throw(ArgumentError("The vector of species metabolic rates (x) should have the same length as there are species in the food web"))
+        isequal(S)(length(y)) || throw(ArgumentError("The vector of species max. consumption rates (y) should have the same length as there are species in the food web"))
+        isequal(S)(length(B0)) || throw(ArgumentError("The vector of species half saturation densities (B0) should have the same length as there are species in the food web"))
+        new(A, species, M, metabolic_class, method, r, x, y, B0, hill_exponent, functional_response, scale_mass, scale_biologicalrates)
+    end
+end
+
+"""
+Functional response
+"""
+
+mutable struct FunctionalResponse
+    functional_response::Function
+    hill_exponent::Real
+    ω::SparseMatrixCSC{Float64,Int64}
+    c::Vector{Real}
+    B0::Union{Real, Vector{Real}}
+    function FunctionalResponse(functional_response, hill_exponent, ω, c, B0) 
+        new(functional_response, hill_exponent, ω, c,  B0)
+    end
+end
+
 """
     Outputs
 """

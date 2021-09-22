@@ -9,6 +9,7 @@ include(joinpath(".", "types/declaration.jl"))
 include(joinpath(".", "types/typedisplay.jl"))
 include(joinpath(".", "inputs/foodwebs.jl"))
 include(joinpath(".", "measures/structure.jl"))
+include(joinpath(".", "inputs/functional_response.jl"))
 
 export FoodWeb, BEFWMParameters, FunctionalResponse
 export homogeneous_preference, originalFR
