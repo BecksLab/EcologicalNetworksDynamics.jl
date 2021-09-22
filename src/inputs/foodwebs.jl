@@ -39,17 +39,6 @@ function _cleanmetabolicclass!(metabolic_class, A)
     all(is_valid_class) || @warn "No default methods for metabolic classes outside of producers, invertebrates and ectotherm vertebrates, proceed with caution"
 end
 
-function _gettrophiclevels(A::AbstractMatrix)
-    if isa(A, AbstractMatrix{Int64}) 
-        A = Bool.(A)
-    end
-    tl = trophic_level(UnipartiteNetwork(A))
-    tl_val = collect(values(tl))
-    tl_keys = keys(tl)
-    tl_species = parse.(Int64, [split(t, "s")[2] for t in tl_keys])
-    return tl_val[tl_species]
-end
-
 function _masscalculation(A, M, Z)
     if isa(M, Nothing)
         if isa(Z, Nothing)
