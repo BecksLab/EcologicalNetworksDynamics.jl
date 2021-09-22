@@ -33,4 +33,11 @@ julia> fw = FoodWeb(nichemodel, 10, C = 0.2, Z = 10)
 
 2. Generate the model parameters 
 
-3. Simulate 
+2a - If needed, you can control all parameter values
+
+```julia-repl
+julia> #change the functional response
+julia> fr = originalFR(fw, B0 = 0.6, hill_exponent = 1.2)
+```
+
+1. Simulate 
