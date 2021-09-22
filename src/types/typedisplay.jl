@@ -16,7 +16,7 @@ function Base.show(io::IO, f::FunctionalResponse)
     elseif f.hill_exponent == 2.0 
         str2 = "type III"
     else
-        str2 = "$(f.hill_exponent)"
+        str2 = "h = $(f.hill_exponent)"
     end
     print(io, str1 * "\n" * str2)
 
