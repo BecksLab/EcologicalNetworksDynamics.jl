@@ -2,6 +2,18 @@
 Functional response
 =#
 
+"""
+    originalFW(FW; B0, hill_exponent, ω, interference)
+
+Returns an object of type FunctionalResponse where the functional response is the "original" 
+as originally described by Yodzis and Innes.
+
+- FW is a FoodWeb object 
+- B0 (default is 0.5) is the half saturation density, it can be a single value (same for all consumers) or a vector of size S if you'd like consumer-specific values
+- hill_exponent (default is 2 / type III) describes the shape of the functional response (should be between 1 and 2)
+- ω (default is homogeneous preference) is a matrix describing cosnumers relative preference for their resources
+- interference (default is 0) is teh strength of predator interference in the model 
+"""
 function originalFR(FW::FoodWeb,
     ; B0::Union{Vector{T}, T}=0.5
     , hill_exponent::T=2.0
