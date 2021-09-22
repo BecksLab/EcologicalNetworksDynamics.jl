@@ -8,6 +8,9 @@ using SparseArrays
 include(joinpath(".", "types/declaration.jl"))
 include(joinpath(".", "types/typedisplay.jl"))
 include(joinpath(".", "inputs/foodwebs.jl"))
-export FoodWeb
+include(joinpath(".", "measures/structure.jl"))
+
+export FoodWeb, BEFWMParameters, FunctionalResponse
+export homogeneous_preference, originalFR
 
 end 
