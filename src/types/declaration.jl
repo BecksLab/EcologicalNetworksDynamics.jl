@@ -74,6 +74,19 @@ mutable struct FunctionalResponse
 end
 
 """
+Biological Rates
+"""
+
+mutable struct BioRates
+    r::Vector{<:Real}
+    x::Vector{<:Real}
+    y::Vector{<:Real}
+    function BioRates(r,x,y) 
+        new(r,x,y)
+    end
+end
+
+"""
     Outputs
 """
 abstract type AbstractOutputs end

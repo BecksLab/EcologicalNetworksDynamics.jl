@@ -148,7 +148,7 @@ function biologicalrates(FW::FoodWeb
         end
     end
 
-    return (r = r, x = x, y = y)
+    return BioRates(r,x,y)
 
 end
 
