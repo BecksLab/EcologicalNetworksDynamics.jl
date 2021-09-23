@@ -38,3 +38,13 @@ function Base.show(io::IO, b::BioRates)
     print(io, str1 * "\n" * str2 * "\n" * str3)
 
 end
+
+"""
+Environmental context
+"""
+
+function Base.show(io::IO, E::Environment)
+    str1 = "K (carrying capacity): $(E.K[1]), ..., $(E.K[end])"
+    str2 = "T (temperature in Kelvins - 0C = 273.15K): $(E.T) K"
+    print(io, str1 * "\n" * str2)
+end

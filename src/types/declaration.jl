@@ -87,6 +87,18 @@ mutable struct BioRates
 end
 
 """
+Environmental variables
+"""
+
+mutable struct Environment
+    K::Vector{<:Real}
+    T::Union{Int64, Float64}
+    function Environment(K,T)
+        new(K,T)
+    end
+end 
+
+"""
     Outputs
 """
 abstract type AbstractOutputs end

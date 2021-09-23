@@ -12,7 +12,7 @@ include(joinpath(".", "measures/structure.jl"))
 include(joinpath(".", "inputs/functional_response.jl"))
 include(joinpath(".", "inputs/biological_rates.jl"))
 
-export FoodWeb, BEFWMParameters, FunctionalResponse, BioRates
+export FoodWeb, BEFWMParameters, FunctionalResponse, BioRates, Environment
 export homogeneous_preference, originalFR
 export allometricgrowth, allometricmetabolism, allometricmaxconsumption, biologicalrates
 
