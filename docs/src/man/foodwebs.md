@@ -89,6 +89,8 @@ julia> fw.method
 
 `BioEnergeticFoodWebs` is now compatible with `EcologicalNetworks`, so you can directly pass a `UnipartiteNetwork` object to `FoodWeb` without having to convert it first: 
 
+NB: This function is not yet able to attribute a metabolic class, or a mass to species, the following will just pass the adjacency matrix. 
+
 ~~~julia-repl
 julia> using EcologicalNetworks
 julia> N = nz_stream_foodweb()[1]
