@@ -4,6 +4,7 @@ authors = ["Eva Delmas <eva.delmas@gmail.com>"]
 version = "0.1.0"
 
 [deps]
+DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 EcologicalNetworks = "f03a62fe-f8ab-5b77-a061-bb599b765229"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
