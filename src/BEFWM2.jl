@@ -16,6 +16,6 @@ include(joinpath(".", "inputs/environment.jl"))
 
 export FoodWeb, BEFWMParameters, FunctionalResponse, BioRates, Environment
 export homogeneous_preference, originalFR
-export allometricgrowth, allometricmetabolism, allometricmaxconsumption, biologicalrates
+export allometricgrowth, allometricmetabolism, allometricmaxconsumption
 
 end 

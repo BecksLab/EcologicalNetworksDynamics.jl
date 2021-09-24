@@ -94,7 +94,7 @@ end
 """
     TODO
 """
-function biologicalrates(FW::FoodWeb
+function BioRates(FW::FoodWeb
     ; rmodel::Union{Function, Nothing} = allometricgrowth
     , rparameters::Union{NamedTuple, Nothing} = nothing
     , xmodel::Union{Function, Nothing} = allometricmetabolism
