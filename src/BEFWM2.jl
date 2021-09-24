@@ -11,6 +11,8 @@ include(joinpath(".", "inputs/foodwebs.jl"))
 include(joinpath(".", "measures/structure.jl"))
 include(joinpath(".", "inputs/functional_response.jl"))
 include(joinpath(".", "inputs/biological_rates.jl"))
+include(joinpath(".", "inputs/environment.jl"))
+
 
 export FoodWeb, BEFWMParameters, FunctionalResponse, BioRates, Environment
 export homogeneous_preference, originalFR
