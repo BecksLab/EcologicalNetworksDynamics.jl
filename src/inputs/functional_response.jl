@@ -19,6 +19,7 @@ function originalFR(FW::FoodWeb,
     , hill_exponent::T=2.0
     , ω::Union{Nothing, Array{T,2}, SparseMatrixCSC{Float64,Int64}}=nothing
     , interference::Union{T, Vector{Real}}=0.0
+    , efficiency::Union{T, Vector{Real}, Nothing}=nothing
     ) where {T <: Real}
 
     S = richness(FW)
@@ -39,6 +40,7 @@ function originalFR(FW::FoodWeb,
         S = length(FW.species)
         idx = findall(!iszero, FW.A)
         cons = unique([i[1] for i in idx])
+        efficiency = assimilation_efficiency(FW; eff_h, eff_c)
         FR = zeros(S,S)
 
         for c in cons
@@ -56,7 +58,7 @@ function originalFR(FW::FoodWeb,
         return FR
     end
 
-    funcrep = FunctionalResponse(classical, hill_exponent, ω, interference, B0)
+    funcrep = FunctionalResponse(classical, hill_exponent, ω, interference, B0, efficiency)
     return funcrep
 end
 
@@ -73,3 +75,22 @@ function homogeneous_preference(FW::FoodWeb)
 
     return ω
 end
+
+function assimilation_efficiency(FW::FoodWeb; eff_h = 0.45, eff_c = 0.85)
+    S = richness(FW)
+    efficiency = zeros(Float64,(S, S))
+    idp = _idproducers(FW.A)
+    for consumer in 1:S
+        for resource in 1:S
+          if FW.A
+            if idp[resource]
+              efficiency[consumer, resource] = eff_h
+            else
+              efficiency[consumer, resource] = eff_c
+            end
+          end
+        end
+      end
+      return sparse(efficiency)
+end
+
