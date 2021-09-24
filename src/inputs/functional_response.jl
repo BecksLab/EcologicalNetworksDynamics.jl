@@ -50,7 +50,7 @@ function originalFR(FW::FoodWeb,
     end
 
     if length(B0) == 1
-        efficiency = repeat([B0], S)
+        B0 = repeat([B0], S)
     else
         isequal(S)(length(B0)) || throw(ArgumentError("The length of the half saturation vector should be richness(FoodWeb). Alternatively, you can provide a single value."))
     end
