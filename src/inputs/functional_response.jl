@@ -19,7 +19,9 @@ function originalFR(FW::FoodWeb,
     , hill_exponent::T=2.0
     , ω::Union{Nothing, Array{T,2}, SparseMatrixCSC{Float64,Int64}}=nothing
     , interference::Union{T, Vector{Real}}=0.0
-    , efficiency::Union{T, Vector{Real}, Nothing}=nothing
+    , efficiency=nothing
+    , e_herbivore::T=0.45
+    , e_carnivore::T=0.85
     ) where {T <: Real}
 
     S = richness(FW)
@@ -33,14 +35,24 @@ function originalFR(FW::FoodWeb,
     if isnothing(ω)
         ω = homogeneous_preference(FW)
     else
-        isequal(S,S)(size(ω)) || throw(ArgumentError("The dimension of the relative preference matrix should be S*S"))
+        isequal(S,S)(size(ω)) || throw(ArgumentError("The dimension of the relative preference matrix should be richness(FoodWeb)*richness(FoodWeb)"))
+    end
+
+    if isnothing(efficiency)
+        efficiency = assimilation_efficiency(FW, e_herbivore, e_carnivore)
+    else
+        if length(efficiency) == 1
+            efficiency = FW.A .* efficiency
+        else
+            isequal(S,S)(size(efficiency)) || throw(ArgumentError("The dimension of the assimilation efficiency matrix should be richness(FoodWeb)*richness(FoodWeb). Alternatively, you can provide a single value, or specify the e_herbivore and e_carnivore arguments."))
+            efficiency = sparse(efficiency)
+        end
     end
 
     function classical(B::Vector{Float64}, FW, ω, B0, hill_exponent, interference)
         S = length(FW.species)
         idx = findall(!iszero, FW.A)
         cons = unique([i[1] for i in idx])
-        efficiency = assimilation_efficiency(FW; eff_h, eff_c)
         FR = zeros(S,S)
 
         for c in cons
@@ -76,7 +88,7 @@ function homogeneous_preference(FW::FoodWeb)
     return ω
 end
 
-function assimilation_efficiency(FW::FoodWeb; eff_h = 0.45, eff_c = 0.85)
+function assimilation_efficiency(FW::FoodWeb, e_herbivore, e_carnivore)
     S = richness(FW)
     efficiency = zeros(Float64,(S, S))
     idp = _idproducers(FW.A)
@@ -84,9 +96,9 @@ function assimilation_efficiency(FW::FoodWeb; eff_h = 0.45, eff_c = 0.85)
         for resource in 1:S
           if FW.A
             if idp[resource]
-              efficiency[consumer, resource] = eff_h
+              efficiency[consumer, resource] = e_herbivore
             else
-              efficiency[consumer, resource] = eff_c
+              efficiency[consumer, resource] = e_carnivore
             end
           end
         end
