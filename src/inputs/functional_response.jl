@@ -49,6 +49,12 @@ function originalFR(FW::FoodWeb,
         end
     end
 
+    if length(B0) == 1
+        efficiency = repeat([B0], S)
+    else
+        isequal(S)(length(B0)) || throw(ArgumentError("The length of the half saturation vector should be richness(FoodWeb). Alternatively, you can provide a single value."))
+    end
+
     function classical(B::Vector{Float64}, FW, ω, B0, hill_exponent, interference)
         S = length(FW.species)
         idx = findall(!iszero, FW.A)
@@ -94,7 +100,7 @@ function assimilation_efficiency(FW::FoodWeb, e_herbivore, e_carnivore)
     idp = _idproducers(FW.A)
     for consumer in 1:S
         for resource in 1:S
-          if FW.A
+          if FW.A[consumer, resource]
             if idp[resource]
               efficiency[consumer, resource] = e_herbivore
             else
