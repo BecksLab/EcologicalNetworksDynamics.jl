@@ -16,16 +16,16 @@ function simulate(MP::ModelParameters, biomass; start::Int64=0, stop::Int64=500,
     t_keep = collect(start:interval_tkeep:stop)
   
     # Perform the actual integration
-    prob = ODEProblem(dBdt, biomass, tspan, MP)
+    prob = ODEProblem(dBdt!, biomass, tspan, MP)
     
-    sol = solve(prob, alg, saveat=t_keep, dense=false, save_timeseries=false, force_dtmin=false)
+    sol = solve(prob, alg, saveat = t_keep)
   
     B = hcat(sol.u...)'
   
     output = (
         ModelParameters = MP,
-        t => sol.t,
-        B => B
+        t = sol.t,
+        B = B
     )
   
     return output
