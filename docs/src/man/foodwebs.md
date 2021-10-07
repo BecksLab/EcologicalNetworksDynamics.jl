@@ -1,6 +1,6 @@
 # Generating food webs 
 
-The core input for the bio-energetic food-web model is the food web. There are different methods for generating food webs, all return an object of type `FoodWeb` with 5 fields: 
+The basic input for the bio-energetic food-web model is the food web. There are different methods for generating food webs, all return an object of type `FoodWeb` with 5 fields: 
 - `A` is a sparse array of boolean values representing the adjacency matrix, with consumers as rows (`i`) and resources in columns (`j`). `A[i,j] = true` if species `i` eats species `j`;
 - species is a vector describing species identities 
 - `M` is a vector of species body mass 
