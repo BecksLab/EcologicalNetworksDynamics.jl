@@ -4,6 +4,8 @@ module BEFWM2
 using EcologicalNetworks
 using SparseArrays
 using DiffEqBase
+using Statistics
+import DifferentialEquations.Tsit5, DifferentialEquations.Rodas4
 
 # Types
 include(joinpath(".", "types/declaration.jl"))
