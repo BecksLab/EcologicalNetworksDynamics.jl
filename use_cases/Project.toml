@@ -1,0 +1,3 @@
+[deps]
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+EcologicalNetworks = "f03a62fe-f8ab-5b77-a061-bb599b765229"
