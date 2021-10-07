@@ -63,6 +63,10 @@ function _makevertebratevec(A, metabolic_class)
         metabolic_class = repeat(["invertebrate"], size(A,1))
         isP = vec(sum(A, dims = 2) .== 0)
         metabolic_class[isP] .= "producer"
+    elseif isa(metabolic_class, String)
+        metabolic_class = repeat([metabolic_class], size(A,1))
+        isP = vec(sum(A, dims = 2) .== 0)
+        metabolic_class[isP] .= "producer"
     end
     return metabolic_class
 end
@@ -125,7 +129,7 @@ Method: unspecified
 function FoodWeb(A::AbstractMatrix{Bool}
     ; species::Union{Nothing, Vector{String}} = nothing
     , M::Union{Nothing, Vector{T}} = nothing
-    , metabolic_class::Union{Nothing, Vector{String}} = nothing
+    , metabolic_class::Union{Nothing, Vector{String}, String} = nothing
     , method::String = "unspecified"
     , Z::Union{Nothing,T} = nothing) where {T <: Real}
 
@@ -141,7 +145,7 @@ end
 function FoodWeb(A::AbstractMatrix{Int64}
     ; species::Union{Nothing, Vector{String}} = nothing
     , M::Union{Nothing, Vector{T}} = nothing
-    , metabolic_class::Union{Nothing, Vector{String}} = nothing
+    , metabolic_class::Union{Nothing, Vector{String}, String} = nothing
     , method::String = "unspecified"
     , Z::Union{Nothing,Real} = nothing) where {T <: Real}
     
@@ -157,7 +161,7 @@ end
 
 function FoodWeb(A::UnipartiteNetwork
     ; M::Union{Nothing, Vector{T}} = nothing
-    , metabolic_class::Union{Nothing, Vector{String}} = nothing
+    , metabolic_class::Union{Nothing, Vector{String}, String} = nothing
     , method::String = "unspecified"
     , Z::Union{Nothing,Real} = nothing) where {T <: Real}
     
@@ -204,7 +208,7 @@ function FoodWeb(model::Function, S::Int64
     , adbm_parameters::Union{Nothing, NamedTuple, Symbol} = nothing
     , species::Union{Nothing, Vector{String}} = nothing
     , M::Union{Nothing, Vector{T}} = nothing
-    , metabolic_class::Union{Nothing, Vector{String}} = nothing
+    , metabolic_class::Union{Nothing, Vector{String}, String} = nothing
     , method::String = "unspecified"
     , Z::Union{Nothing,Real} = nothing) where {T <: Real}
         
