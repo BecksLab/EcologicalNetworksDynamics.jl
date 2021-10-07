@@ -12,9 +12,17 @@ function ModelParameters(FW::FoodWeb
     , E::Union{Nothing, Environment}=nothing
     , FR::Union{Nothing, FunctionalResponse}=nothing)
 
-    BR = isnothing(BR) && BioRates(FW)
-    E = isnothing(E) && Environment(FW)
-    FR = isnothing(FR) && originalFR(FW)
+    if isnothing(BR)
+        BR = BioRates(FW)
+    end
+
+    if isnothing(E)
+        E = Environment(FW)
+    end
+
+    if isnothing(FR)
+        FR = originalFR(FW)
+    end
 
     return ModelParameters(FW, BR, E, FR)
 end
