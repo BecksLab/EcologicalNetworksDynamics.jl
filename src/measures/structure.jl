@@ -35,3 +35,19 @@ function _gettrophiclevels(A::AbstractMatrix)
     tl_sp = sortperm(tl_species)
     return tl_val[tl_sp]
 end
+
+function massratio(obj::Union{ModelParameters, FoodWeb})
+
+    if isa(obj, ModelParameters)
+        M = obj.FoodWeb.M
+        A = obj.FoodWeb.A
+    else
+        M = obj.M
+        A = obj.A
+    end
+
+    Z = mean((M ./ M')[findall(A)])
+
+    return Z
+
+end
