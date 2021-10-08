@@ -53,12 +53,6 @@ The functional response can be manipulated independently:
 julia> funcrep = originalFR(fw, hill_exponent = 1.0, interference = 1.0, B0 = 0.5, e_herbivore = 0.6, e_carnivore = 0.8)
 functional response: classical
 type II
-
-julia> p = ModelParameters(fw; FR = funcrep)
-FoodWeb - ✅
-BioRates - ✅
-Environment - ✅
-FunctionalResponse - ✅
 ```
 
 *Manipulate the environmental context*
