@@ -104,6 +104,12 @@ x (metabolic rate): 0.0, ..., 0.07234851944815356
 y (max. consumption rate): 8.0, ..., 8.0
 ```
 
+You can also directly pass the models and parameters (as NamedTuple) to BioRates: 
+
+```julia-repl
+br = BioRates(fw, rmodel = allometricgrowth, rparameters = (a = 0.5,))
+```
+
 *Pass the changed parameters to ModelParameters*
 
 ```julia-repl
