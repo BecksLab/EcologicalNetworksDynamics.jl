@@ -55,9 +55,9 @@ Model Parameters
 
 function Base.show(io::IO, MP::ModelParameters)
     str0 = "Model parameters are compiled:"
-    str1 = "FoodWeb - ✅"
-    str2 = "BioRates - ✅"
-    str3 = "Environment - ✅"
-    str4 = "FunctionalResponse - ✅"
+    str1 = "FoodWeb - 🕸"
+    str2 = "BioRates - 📈"
+    str3 = "Environment - 🌄"
+    str4 = "FunctionalResponse - 🍖"
     print(io, str0 * "\n" * str1 * "\n" * str2 * "\n" * str3 * "\n" * str4)
 end

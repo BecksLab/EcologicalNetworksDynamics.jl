@@ -52,7 +52,7 @@ for m in models
                     NB: some simulations may abort due to instabilities
                     =#
                     b0 = rand(richness(fw)) #initial biomass (random)
-                    sim = simulate(p, b0, stop = 3000, use = :stiff)
+                    sim = simulate(p, b0, stop = 3000, use = :nonstiff)
 
                     if sim.t[end] == 3000.0
                         #= Step 4: Generate the outputs 

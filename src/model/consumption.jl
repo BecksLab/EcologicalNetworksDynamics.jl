@@ -8,8 +8,8 @@ function consumption(biomass, FW::FoodWeb, BR::BioRates, FR::FunctionalResponse,
     Fij = FR.functional_response(biomass, FW, FR.ω, FR.B0, FR.hill_exponent, FR.c)
     feeding = xyb .* Fij
     assim = (feeding ./ FR.e) .* FW.A
-    loss = vec(sum(feeding, dims = 1))
-    gain = vec(sum(assim, dims = 2))
+    loss = vec(sum(assim, dims = 1))
+    gain = vec(sum(feeding, dims = 2))
 
     return (gain, loss)
 end

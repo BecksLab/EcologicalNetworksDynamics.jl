@@ -165,7 +165,11 @@ function FoodWeb(A::UnipartiteNetwork
     , method::String = "unspecified"
     , Z::Union{Nothing,Real} = nothing) where {T <: Real}
     
-    species = A.S
+    if isa(A.S, Vector{Mangal.MangalNode})
+        species = [split(string(s), ": ")[2] for s in A.S]
+    else
+        species = A.S
+    end
     A = A.edges
     M = _masscalculation(A, M, Z)
     metabolic_class = _makevertebratevec(A, metabolic_class)
