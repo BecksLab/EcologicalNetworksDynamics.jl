@@ -18,7 +18,7 @@ function originalFR(FW::FoodWeb,
     ; B0::Union{Vector{T}, T}=0.5
     , hill_exponent::T=2.0
     , ω::Union{Nothing, Array{T,2}, SparseMatrixCSC{Float64,Int64}}=nothing
-    , interference::Union{T, Vector{Real}}=0.0
+    , interference::Union{T, Vector{T}}=0.0
     , efficiency=nothing
     , e_herbivore::T=0.45
     , e_carnivore::T=0.85

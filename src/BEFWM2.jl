@@ -25,6 +25,9 @@ include(joinpath(".", "model/dbdt.jl"))
 include(joinpath(".", "model/simulate.jl"))
 
 include(joinpath(".", "measures/structure.jl"))
+include(joinpath(".", "measures/functioning.jl"))
+include(joinpath(".", "measures/stability.jl"))
+
 
 
 export FoodWeb, ModelParameters, FunctionalResponse, BioRates, Environment
