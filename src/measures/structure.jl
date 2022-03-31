@@ -23,6 +23,17 @@ function EcologicalNetworks.richness(FW::FoodWeb)
     return richness(N)
 end
 
+function _ftl(A::AbstractMatrix)
+    if isa(A, AbstractMatrix{Int64}) 
+        A = Bool.(A)
+    end
+    N = UnipartiteNetwork(A)
+    dtp = EcologicalNetworks.fractional_trophic_level(N) #shortest path to producer
+    for s in dtp
+        
+    end
+end
+
 
 function _gettrophiclevels(A::AbstractMatrix)
     if isa(A, AbstractMatrix{Int64}) 

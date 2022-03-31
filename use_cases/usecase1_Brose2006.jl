@@ -6,7 +6,7 @@ using BEFWM2
 using EcologicalNetworks
 using DataFrames
 
-#= STEP 1: Generate varaitaion in communities structure and properties
+#= STEP 1: Generate variation in communities structure and properties
 three structural food web models (cascade, niche and nested hierarchy)
 three levels of diversity (20, 30, 40)
 and eight bodymass ratios whose logs are evenly spaced from -2 to 5 
@@ -64,9 +64,9 @@ for m in models
                         - type of the functional response 
                         - stability ("Population stability is the negative coefficient of variation of the persistent species", from Brose and al, 2006)
                         =#
-                        ppmr = massratio(sim.ModelParameters) 
+                        ppmr = BEFWM2.massratio(sim.ModelParameters) 
                         z0 = z 
-                        out = (z0 = log10(z0), z = log10(ppmr), mc = c, s = s, mdl = string(Symbol(m)), fr = f.type, cv = population_stability(sim, last=500))
+                        out = (z0 = log10(z0), z = log10(ppmr), mc = c, s = s, s_eq = sum(sim.B[end,:] .> 0), mdl = string(Symbol(m)), fr = f.type, cv = BEFWM2.population_stability(sim, last=500))
                         push!(df, out)
                     end
                 end
@@ -84,22 +84,24 @@ Population stability VS size structure for different scenarios of:
 =#
 
 df = DataFrame(df)
+#remove collapsed food webs
+df = df[df.s_eq .> 0,:]
 
 df.z .= round.(df.z)
-using Plots
+using Plots, Statistics
 
-clr = [:black, :grey30, :grey60]
-lst = [:solid, :dash, :dot]
-mks = [:rect, :circle, :utriangle]
+clr = [:grey60, :black, :black]
+lst = [:solid, :dash, :solid]
+mks = [:rect, :rect, :dtriangle]
 
 df1 =  groupby(df, [:z0, :mdl])
 meandf1 = combine(df1, :cv => mean)
 plt1 = plot([NaN], [NaN], label = "", leg = :bottomright)
 for (i, m) in enumerate(string.(Symbol.(models)))
     tmp = meandf1[meandf1.mdl .== m,:]
-    plot!(tmp.z0, tmp.cv_mean
+    plot!(tmp.z0, tmp.cv_mean, ylims = (-1.2,0.02)
         , label = "$m"
-        , markershape = mks[i], mc = clr[i]
+        , markershape = mks[i], mc = clr[i], msw = 0
         , linestyle = lst[i], lc = clr[i])
 end
 plt1
@@ -111,9 +113,9 @@ meandf2 = combine(df2, :cv => mean)
 plt2 = plot([NaN], [NaN], label = "", leg = :bottomright)
 for (i, m) in enumerate(S_levels)
     tmp = meandf2[meandf2.s .== m,:]
-    plot!(tmp.z0, tmp.cv_mean
+    plot!(tmp.z0, tmp.cv_mean, ylims = (-1.2,0.02)
         , label = "$m species"
-        , markershape = mks[i], mc = clr[i]
+        , markershape = mks[i], mc = clr[i], msw = 0
         , linestyle = lst[i], lc = clr[i])
 end
 plt2
@@ -125,9 +127,9 @@ meandf3 = combine(df3, :cv => mean)
 plt3 = plot([NaN], [NaN], label = "", leg = :bottomright)
 for (i, m) in enumerate(metab_classes)
     tmp = meandf3[meandf3.mc .== m,:]
-    plot!(tmp.z0, tmp.cv_mean
+    plot!(tmp.z0, tmp.cv_mean, ylims = (-1.2,0.02)
         , label = "$m"
-        , markershape = mks[i], mc = clr[i]
+        , markershape = mks[i], mc = clr[i], msw = 0
         , linestyle = lst[i], lc = clr[i])
 end
 plt3
@@ -139,9 +141,9 @@ meandf4 = combine(df4, :cv => mean)
 plt4 = plot([NaN], [NaN], label = "", leg = :bottomright)
 for (i, m) in enumerate(unique(df.fr))
     tmp = meandf4[meandf4.fr .== m,:]
-    plot!(tmp.z0, tmp.cv_mean
+    plot!(tmp.z0, tmp.cv_mean, ylims = (-1.2,0.02)
         , label = "$m"
-        , markershape = mks[i], mc = clr[i]
+        , markershape = mks[i], mc = clr[i], msw = 0
         , linestyle = lst[i], lc = clr[i])
 end
 plt4
