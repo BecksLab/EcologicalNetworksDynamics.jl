@@ -5,6 +5,9 @@ This package implements Yodzis and Innès (1992) bio-energetic consumer-resource
 - three different models for adaptive rewiring of trophic interactions following extinctions and/or changes in species biomass;
 - various models for accounting for temperature, either on species mass or on their biological rates (growth, metabolism, consumption).
 
+## TODO
+
+- [ ] Scale the biological rates
 ## First simulation 
 
 1. **Install the package** 
