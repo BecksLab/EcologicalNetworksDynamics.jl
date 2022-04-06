@@ -55,7 +55,7 @@ function originalFR(FW::FoodWeb,
         isequal(S)(length(B0)) || throw(ArgumentError("The length of the half saturation vector should be richness(FoodWeb). Alternatively, you can provide a single value."))
     end
 
-    function classical(B::Vector{Float64}, FW, ω, B0, hill_exponent, interference)
+    function bioenergetic(B::Vector{Float64}, FW, ω, B0, hill_exponent, interference)
         S = length(FW.species)
         idx = findall(!iszero, FW.A)
         cons = unique([i[1] for i in idx])
@@ -76,7 +76,7 @@ function originalFR(FW::FoodWeb,
         return FR
     end
 
-    funcrep = FunctionalResponse(classical, hill_exponent, ω, interference, B0, efficiency)
+    funcrep = FunctionalResponse(bioenergetic, hill_exponent, ω, interference, B0, efficiency)
     return funcrep
 end
 
