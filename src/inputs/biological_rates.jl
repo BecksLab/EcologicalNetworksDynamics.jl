@@ -72,26 +72,20 @@ end
 """
     allometricmetabolism(foodweb)
 
-Calculates species metabolic rates using an allometric equation.
+Calculate species metabolic demands (x) with allometric equation.
 """
-function allometricmetabolism(foodweb::FoodWeb; a=nothing, b=nothing)
+function allometricmetabolism(
+    foodweb::FoodWeb;
+    a=metabolic_param(foodweb, "a"),
+    b=metabolic_param(foodweb, "b")
+)
+
+    # Tests
     S = richness(foodweb)
-    if isnothing(a) & isnothing(b)
-        checkclass = all([m ∈ ["producer", "invertebrate", "ectotherm vertebrate"] for m in foodweb.metabolic_class])
-        checkclass || throw(ArgumentError("By not providing any values, you are using the default allometric parameters, but to do that you need to have only producers, invertebrates and/or ectotherm vertebrates in your metabolic_class vector"))
-        a, b = _defaulparameters_metabolism(foodweb, a_p=a_p, a_ect=a_ect, a_inv=a_inv, b_p=b_p, b_ect=b_ect, b_inv=b_inv)
-    elseif isnothing(a) & !isnothing(b)
-        a = _defaulparameters_metabolism(foodweb, a_p=a_p, a_ect=a_ect, a_inv=a_inv, b_p=b_p, b_ect=b_ect, b_inv=b_inv).a
-        (isequal(length(b))(S)) | (isequal(length(b))(1)) || throw(ArgumentError("b should be either a single value or a vector with as many values as there are species in the food web"))
-    elseif !isnothing(a) & isnothing(b)
-        b = _defaulparameters_metabolism(foodweb, a_p=a_p, a_ect=a_ect, a_inv=a_inv, b_p=b_p, b_ect=b_ect, b_inv=b_inv).b
-        (isequal(length(a))(S)) | (isequal(length(a))(1)) || throw(ArgumentError("a should be either a single value or a vector with as many values as there are species in the food web"))
-    elseif !isnothing(a) & !isnothing(b)
-        (isequal(length(a))(S)) | (isequal(length(a))(1)) || throw(ArgumentError("a should be either a single value or a vector with as many values as there are species in the food web"))
-        (isequal(length(b))(S)) | (isequal(length(b))(1)) || throw(ArgumentError("b should be either a single value or a vector with as many values as there are species in the food web"))
-    end
-    x = a .* (foodweb.M .^ b)
-    return x
+    length(a) ∈ [1, S] || throw(ArgumentError("a should be of length 1 or S."))
+    length(b) ∈ [1, S] || throw(ArgumentError("b should be of length 1 or S."))
+
+    allometricscale.(a, b, foodweb.M)
 end
 
 function _defaulparameters_metabolism(FW; a_p::Real=0, a_ect::Real=0.88, a_inv::Real=0.314, b_p::Real=0, b_ect::Real=-0.25, b_inv::Real=-0.25)
