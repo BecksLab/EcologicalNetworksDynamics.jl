@@ -7,6 +7,10 @@ function whoisproducer(A)
     vec(.!any(A, dims=2))
 end
 
+function whoisproducer(foodweb::FoodWeb)
+    vec(foodweb.metabolic_class .== "producer")
+end
+
 """
     allometricgrowth(FW)
 
