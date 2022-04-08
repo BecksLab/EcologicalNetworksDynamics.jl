@@ -22,3 +22,15 @@ Depth = 2
 ```
 
 
+```@meta
+CurrentModule = BEFWM2
+```
+
+# Reference
+
+```@index
+```
+
+```@autodocs
+Modules = [BEFWM2]
+```
