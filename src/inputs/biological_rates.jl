@@ -27,6 +27,17 @@ end
 """Allometric scaling: parameter expressed as a power law of body-mass (M)."""
 allometricscale(a, b, M) = a * M^b
 
+struct ParamsMetabolism
+    aₚ::Real
+    aₑ::Real
+    aᵢ::Real
+    bₚ::Real
+    bₑ::Real
+    bᵢ::Real
+    ParamsMetabolism(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ) = new(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ) # custom
+    ParamsMetabolism() = new(0, 0.88, 0.314, 0, -0.25, -0.25) # default
+end
+
 """
     allometricmetabolism(FW)
 
