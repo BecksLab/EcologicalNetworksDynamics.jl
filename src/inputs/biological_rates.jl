@@ -88,18 +88,6 @@ function allometricmetabolism(
     allometricscale.(a, b, foodweb.M)
 end
 
-function _defaulparameters_metabolism(FW; a_p::Real=0, a_ect::Real=0.88, a_inv::Real=0.314, b_p::Real=0, b_ect::Real=-0.25, b_inv::Real=-0.25)
-    a = zeros(length(FW.species))
-    a[vec(FW.metabolic_class .== "producer")] .= a_p
-    a[vec(FW.metabolic_class .== "ectotherm vertebrate")] .= a_ect
-    a[vec(FW.metabolic_class .== "invertebrate")] .= a_inv
-    b = zeros(length(FW.species))
-    b[vec(FW.metabolic_class .== "producer")] .= b_p
-    b[vec(FW.metabolic_class .== "ectotherm vertebrate")] .= b_ect
-    b[vec(FW.metabolic_class .== "invertebrate")] .= b_inv
-    return (a=a, b=b)
-end
-
 """
     allometricmaxconsumption(FW)
 
