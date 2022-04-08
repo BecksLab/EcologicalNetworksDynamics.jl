@@ -47,6 +47,28 @@ struct ParamsMetabolism
     ParamsMetabolism() = new(0, 0.88, 0.314, 0, -0.25, -0.25) # default
 end
 
+function metabolic_param(foodweb::FoodWeb, param_name::String)
+
+    param_name ∈ ["a", "b"] || throw(ArgumentError("Wrong param name. Should be a or b."))
+
+    # Set up
+    params = ParamsMetabolism()
+    p = zeros(richness(foodweb))
+
+    # Fill
+    if param_name == "a"
+        p[whoisproducer(foodweb)] .= params.aₚ
+        p[whoisinvertebrate(foodweb)] .= params.aᵢ
+        p[whoisvertebrate(foodweb)] .= params.aₑ
+    else
+        p[whoisproducer(foodweb)] .= params.bₚ
+        p[whoisinvertebrate(foodweb)] .= params.bᵢ
+        p[whoisvertebrate(foodweb)] .= params.bₑ
+    end
+
+    p
+end
+
 """
     allometricmetabolism(FW)
 
