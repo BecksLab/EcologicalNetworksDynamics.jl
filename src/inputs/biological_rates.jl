@@ -2,9 +2,9 @@
 Biological rates
 =#
 
-function _idproducers(A)
-    isprod = (sum(A, dims=2) .== 0)
-    return vec(isprod)
+"""Which species is a producer (1) or not (0)?"""
+function whoisproducer(A)
+    vec(.!any(A, dims=2))
 end
 
 """
@@ -76,7 +76,7 @@ function allometricmaxconsumption(FW::FoodWeb; a::Union{Vector{T},T,Nothing}=not
         (isequal(length(b))(S)) | (isequal(length(b))(1)) || throw(ArgumentError("b should be either a single value or a vector with as many values as there are species in the food web"))
     end
     x = a .* (FW.M .^ b)
-    isp = _idproducers(FW.A)
+    isp = whoisproducer(FW.A)
     x[isp] .= 0.0
     return x
 end
