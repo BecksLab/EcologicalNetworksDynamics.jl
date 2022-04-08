@@ -91,7 +91,7 @@ end
 """
     allometricmaxconsumption(foodweb)
 
-Calculates species metabolic rates using an allometric equation.
+Calculate species metabolic max consumption (y) with allometric equation.
 """
 function allometricmaxconsumption(foodweb::FoodWeb; a::Union{Vector{T},T,Nothing}=nothing, b::Union{Vector{T},T,Nothing}=nothing, a_ect::Real=4.0, a_inv::Real=8.0, b_ect::Real=0, b_inv::Real=0) where {T<:Real}
 
