@@ -7,8 +7,17 @@ function whoisproducer(A)
     vec(.!any(A, dims=2))
 end
 
+function whois(metabolic_class::String, foodweb::FoodWeb)
+    vec(foodweb.metabolic_class .== metabolic_class)
+end
 function whoisproducer(foodweb::FoodWeb)
-    vec(foodweb.metabolic_class .== "producer")
+    whois("producer", foodweb)
+end
+function whoisvertebrate(foodweb::FoodWeb)
+    whois("ectotherm vertebrate", foodweb)
+end
+function whoisinvertebrate(foodweb::FoodWeb)
+    whois("invertebrate", foodweb)
 end
 
 """
@@ -21,7 +30,7 @@ function allometricgrowth(
     a::Union{Vector{T},T}=1,
     b::Union{Vector{T},T}=-0.25
 ) where {T<:Real}
-    allometricscale.(a, b, foodweb.M) .* _whoisproducer(foodweb)
+    allometricscale.(a, b, foodweb.M) .* whoisproducer(foodweb)
 end
 
 """Allometric scaling: parameter expressed as a power law of body-mass (M)."""
@@ -43,7 +52,7 @@ end
 
 Calculates species metabolic rates using an allometric equation.
 """
-function allometricmetabolism(FW::FoodWeb; a::Union{Vector{T},T,Nothing}=nothing, b::Union{Vector{T},T,Nothing}=nothing, a_p::Real=0, a_ect::Real=0.88, a_inv::Real=0.314, b_p::Real=0, b_ect::Real=-0.25, b_inv::Real=-0.25) where {T<:Real}
+function allometricmetabolism(FW::FoodWeb; a=nothing, b=nothing)
     S = richness(FW)
     if isnothing(a) & isnothing(b)
         checkclass = all([m ∈ ["producer", "invertebrate", "ectotherm vertebrate"] for m in FW.metabolic_class])
