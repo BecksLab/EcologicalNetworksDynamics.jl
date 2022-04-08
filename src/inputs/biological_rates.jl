@@ -88,6 +88,17 @@ function allometricmetabolism(
     allometricscale.(a, b, foodweb.M)
 end
 
+struct ParamsMaxConsumption
+    aₚ::Real
+    aₑ::Real
+    aᵢ::Real
+    bₚ::Real
+    bₑ::Real
+    bᵢ::Real
+    ParamsMaxConsumption(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ) = new(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ) # custom
+    ParamsMaxConsumption() = new(0.0, 4.0, 8.0, 0.0, 0.0, 0.0) # default
+end
+
 """
     allometricmaxconsumption(foodweb)
 
