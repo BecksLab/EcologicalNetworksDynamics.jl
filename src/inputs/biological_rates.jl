@@ -12,13 +12,20 @@ function whoisproducer(foodweb::FoodWeb)
 end
 
 """
-    allometricgrowth(FW)
+    allometricgrowth(foodweb)
 
-Calculates basal species (producers) growth rate using an allometric equation.
+Calculate producers (basal species) growth rate with allometric equation.
 """
-function allometricgrowth(FW::FoodWeb; a::Union{Vector{T},T}=1, b::Union{Vector{T},T}=-0.25) where {T<:Real}
-    return a .* (FW.M .^ b) .* vec(FW.metabolic_class .== "producer")
+function allometricgrowth(
+    foodweb::FoodWeb;
+    a::Union{Vector{T},T}=1,
+    b::Union{Vector{T},T}=-0.25
+) where {T<:Real}
+    allometricscale.(a, b, foodweb.M) .* _whoisproducer(foodweb)
 end
+
+"""Allometric scaling: parameter expressed as a power law of body-mass (M)."""
+allometricscale(a, b, M) = a * M^b
 
 """
     allometricmetabolism(FW)
