@@ -70,27 +70,27 @@ function metabolic_param(foodweb::FoodWeb, param_name::String)
 end
 
 """
-    allometricmetabolism(FW)
+    allometricmetabolism(foodweb)
 
 Calculates species metabolic rates using an allometric equation.
 """
-function allometricmetabolism(FW::FoodWeb; a=nothing, b=nothing)
-    S = richness(FW)
+function allometricmetabolism(foodweb::FoodWeb; a=nothing, b=nothing)
+    S = richness(foodweb)
     if isnothing(a) & isnothing(b)
-        checkclass = all([m ∈ ["producer", "invertebrate", "ectotherm vertebrate"] for m in FW.metabolic_class])
+        checkclass = all([m ∈ ["producer", "invertebrate", "ectotherm vertebrate"] for m in foodweb.metabolic_class])
         checkclass || throw(ArgumentError("By not providing any values, you are using the default allometric parameters, but to do that you need to have only producers, invertebrates and/or ectotherm vertebrates in your metabolic_class vector"))
-        a, b = _defaulparameters_metabolism(FW, a_p=a_p, a_ect=a_ect, a_inv=a_inv, b_p=b_p, b_ect=b_ect, b_inv=b_inv)
+        a, b = _defaulparameters_metabolism(foodweb, a_p=a_p, a_ect=a_ect, a_inv=a_inv, b_p=b_p, b_ect=b_ect, b_inv=b_inv)
     elseif isnothing(a) & !isnothing(b)
-        a = _defaulparameters_metabolism(FW, a_p=a_p, a_ect=a_ect, a_inv=a_inv, b_p=b_p, b_ect=b_ect, b_inv=b_inv).a
+        a = _defaulparameters_metabolism(foodweb, a_p=a_p, a_ect=a_ect, a_inv=a_inv, b_p=b_p, b_ect=b_ect, b_inv=b_inv).a
         (isequal(length(b))(S)) | (isequal(length(b))(1)) || throw(ArgumentError("b should be either a single value or a vector with as many values as there are species in the food web"))
     elseif !isnothing(a) & isnothing(b)
-        b = _defaulparameters_metabolism(FW, a_p=a_p, a_ect=a_ect, a_inv=a_inv, b_p=b_p, b_ect=b_ect, b_inv=b_inv).b
+        b = _defaulparameters_metabolism(foodweb, a_p=a_p, a_ect=a_ect, a_inv=a_inv, b_p=b_p, b_ect=b_ect, b_inv=b_inv).b
         (isequal(length(a))(S)) | (isequal(length(a))(1)) || throw(ArgumentError("a should be either a single value or a vector with as many values as there are species in the food web"))
     elseif !isnothing(a) & !isnothing(b)
         (isequal(length(a))(S)) | (isequal(length(a))(1)) || throw(ArgumentError("a should be either a single value or a vector with as many values as there are species in the food web"))
         (isequal(length(b))(S)) | (isequal(length(b))(1)) || throw(ArgumentError("b should be either a single value or a vector with as many values as there are species in the food web"))
     end
-    x = a .* (FW.M .^ b)
+    x = a .* (foodweb.M .^ b)
     return x
 end
 
