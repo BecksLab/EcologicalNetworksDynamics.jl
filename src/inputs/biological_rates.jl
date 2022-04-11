@@ -133,16 +133,6 @@ function allometricmaxconsumption(
     allometric_rate(foodweb, params)
 end
 
-function _defaulparameters_maxconsumption(FW; a_ect::Real=4, a_inv::Real=8, b_ect::Real=0, b_inv::Real=0)
-    a = zeros(length(FW.species))
-    a[vec(FW.metabolic_class .== "ectotherm vertebrate")] .= a_ect
-    a[vec(FW.metabolic_class .== "invertebrate")] .= a_inv
-    b = zeros(length(FW.species))
-    b[vec(FW.metabolic_class .== "ectotherm vertebrate")] .= b_ect
-    b[vec(FW.metabolic_class .== "invertebrate")] .= b_inv
-    return (a=a, b=b)
-end
-
 """
     TODO
 """
