@@ -97,7 +97,7 @@ end
 function assimilation_efficiency(FW::FoodWeb, e_herbivore, e_carnivore)
     S = richness(FW)
     efficiency = zeros(Float64, (S, S))
-    idp = _idproducers(FW.A)
+    idp = whoisproducer(FW.A)
     for consumer in 1:S
         for resource in 1:S
             if FW.A[consumer, resource]
