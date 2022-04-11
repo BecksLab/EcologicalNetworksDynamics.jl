@@ -27,10 +27,9 @@ Calculate producers (basal species) growth rate with allometric equation.
 """
 function allometricgrowth(
     foodweb::FoodWeb;
-    a::Union{Vector{T},T}=1,
-    b::Union{Vector{T},T}=-0.25
-) where {T<:Real}
-    allometricscale.(a, b, foodweb.M) .* whoisproducer(foodweb)
+    params=default_params(foodweb, ParamsGrowth())
+)
+    allometric_rate(foodweb, params)
 end
 
 """Allometric scaling: parameter expressed as a power law of body-mass (M)."""
