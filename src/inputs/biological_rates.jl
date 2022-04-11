@@ -126,27 +126,11 @@ end
 
 Calculate species metabolic max consumption (y) with allometric equation.
 """
-function allometricmaxconsumption(foodweb::FoodWeb; a::Union{Vector{T},T,Nothing}=nothing, b::Union{Vector{T},T,Nothing}=nothing, a_ect::Real=4.0, a_inv::Real=8.0, b_ect::Real=0, b_inv::Real=0) where {T<:Real}
-
-    S = richness(foodweb)
-    if isnothing(a) & isnothing(b)
-        checkclass = all([m ∈ ["producer", "invertebrate", "ectotherm vertebrate"] for m in foodweb.metabolic_class])
-        checkclass || throw(ArgumentError("By not providing any values, you are using the default allometric parameters, but to do that you need to have only producers, invertebrates and/or ectotherm vertebrates in your metabolic_class vector"))
-        a, b = _defaulparameters_maxconsumption(foodweb, a_ect=a_ect, a_inv=a_inv, b_ect=b_ect, b_inv=b_inv)
-    elseif isnothing(a) & !isnothing(b)
-        a = _defaulparameters_maxconsumption(foodweb, a_ect=a_ect, a_inv=a_inv, b_ect=b_ect, b_inv=b_inv).a
-        (isequal(length(b))(S)) | (isequal(length(b))(1)) || throw(ArgumentError("b should be either a single value or a vector with as many values as there are species in the food web"))
-    elseif !isnothing(a) & isnothing(b)
-        b = _defaulparameters_maxconsumption(foodweb, a_ect=a_ect, a_inv=a_inv, b_ect=b_ect, b_inv=b_inv).b
-        (isequal(length(a))(S)) | (isequal(length(a))(1)) || throw(ArgumentError("a should be either a single value or a vector with as many values as there are species in the food web"))
-    elseif !isnothing(a) & !isnothing(b)
-        (isequal(length(a))(S)) | (isequal(length(a))(1)) || throw(ArgumentError("a should be either a single value or a vector with as many values as there are species in the food web"))
-        (isequal(length(b))(S)) | (isequal(length(b))(1)) || throw(ArgumentError("b should be either a single value or a vector with as many values as there are species in the food web"))
-    end
-    x = a .* (foodweb.M .^ b)
-    isp = whoisproducer(foodweb.A)
-    x[isp] .= 0.0
-    return x
+function allometricmaxconsumption(
+    foodweb::FoodWeb;
+    params=default_params(foodweb, ParamsMaxConsumption())
+)
+    allometric_rate(foodweb, params)
 end
 
 function _defaulparameters_maxconsumption(FW; a_ect::Real=4, a_inv::Real=8, b_ect::Real=0, b_inv::Real=0)
