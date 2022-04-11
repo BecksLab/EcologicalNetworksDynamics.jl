@@ -57,26 +57,45 @@ struct ParamsMetabolism
     ParamsMetabolism() = new(0, 0.88, 0.314, 0, -0.25, -0.25) # default
 end
 
-function metabolic_param(foodweb::FoodWeb, param_name::String)
+"""
+Create species parameter vectors for a, b of length S (species richness) given the
+allometric parameters for the different metabolic classes (aₚ,aᵢ,...).
+"""
+function default_params(
+    foodweb::FoodWeb,
+    params
+)
 
-    param_name ∈ ["a", "b"] || throw(ArgumentError("Wrong param name. Should be a or b."))
+    # Test
+    validclasses = ["producer", "invertebrate", "ectotherm vertebrate"]
+    isclassvalid(class) = class ∈ validclasses
+    all(isclassvalid.(foodweb.metabolic_class)) || throw(ArgumentError("Metabolic classes
+        should be in $(validclasses)"))
 
     # Set up
-    params = ParamsMetabolism()
-    p = zeros(richness(foodweb))
+    S = richness(foodweb)
+    a, b = zeros(S), zeros(S)
 
-    # Fill
-    if param_name == "a"
-        p[whoisproducer(foodweb)] .= params.aₚ
-        p[whoisinvertebrate(foodweb)] .= params.aᵢ
-        p[whoisvertebrate(foodweb)] .= params.aₑ
-    else
-        p[whoisproducer(foodweb)] .= params.bₚ
-        p[whoisinvertebrate(foodweb)] .= params.bᵢ
-        p[whoisvertebrate(foodweb)] .= params.bₑ
-    end
+    # Fill a
+    a[whoisproducer(foodweb)] .= params.aₚ
+    a[whoisinvertebrate(foodweb)] .= params.aᵢ
+    a[whoisvertebrate(foodweb)] .= params.aₑ
 
-    p
+    # Fill b
+    b[whoisproducer(foodweb)] .= params.bₚ
+    b[whoisinvertebrate(foodweb)] .= params.bᵢ
+    b[whoisvertebrate(foodweb)] .= params.bₑ
+
+    (a=a, b=b)
+end
+
+"""Internal function to compute vector (one value per species) of a given rate."""
+function allometric_rate(
+    foodweb::FoodWeb,
+    params
+)
+    a, b = params.a, params.b
+    allometricscale.(a, b, foodweb.M)
 end
 
 """
@@ -84,18 +103,12 @@ end
 
 Calculate species metabolic demands (x) with allometric equation.
 """
-function allometricmetabolism(
+function allometric_metabolism(
     foodweb::FoodWeb;
-    a=metabolic_param(foodweb, "a"),
-    b=metabolic_param(foodweb, "b")
+    params=default_params(foodweb, ParamsMetabolism())
 )
 
-    # Tests
-    S = richness(foodweb)
-    length(a) ∈ [1, S] || throw(ArgumentError("a should be of length 1 or S."))
-    length(b) ∈ [1, S] || throw(ArgumentError("b should be of length 1 or S."))
-
-    allometricscale.(a, b, foodweb.M)
+    allometric_rate(foodweb, params)
 end
 
 struct ParamsMaxConsumption
