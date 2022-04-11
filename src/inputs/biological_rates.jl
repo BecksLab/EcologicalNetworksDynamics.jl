@@ -20,7 +20,7 @@ end
 
 Calculate species metabolic demands (x) with allometric equation.
 """
-function allometric_metabolism(
+function allometricmetabolism(
     foodweb::FoodWeb;
     params=default_params(foodweb, ParamsMetabolism())
 )
@@ -143,8 +143,17 @@ end
 """
     TODO
 """
-function BioRates(FW::FoodWeb
-    ; rmodel::Union{Function,Nothing}=allometricgrowth, rparameters::Union{NamedTuple,Nothing}=nothing, xmodel::Union{Function,Nothing}=allometricmetabolism, xparameters::Union{NamedTuple,Nothing}=nothing, ymodel::Union{Function,Nothing}=allometricmaxconsumption, yparameters::Union{NamedTuple,Nothing}=nothing, r::Union{Vector{<:Real},Nothing}=nothing, x::Union{Vector{<:Real},Nothing}=nothing, y::Union{Vector{<:Real},Nothing}=nothing
+function BioRates(
+    FW::FoodWeb;
+    rmodel::Union{Function,Nothing}=allometricgrowth,
+    rparameters::Union{NamedTuple,Nothing}=nothing,
+    xmodel::Union{Function,Nothing}=allometricmetabolism,
+    xparameters::Union{NamedTuple,Nothing}=nothing,
+    ymodel::Union{Function,Nothing}=allometricmaxconsumption,
+    yparameters::Union{NamedTuple,Nothing}=nothing,
+    r::Union{Vector{<:Real},Nothing}=nothing,
+    x::Union{Vector{<:Real},Nothing}=nothing,
+    y::Union{Vector{<:Real},Nothing}=nothing
 )
 
     isnothing(rparameters) || _checkparamtupleR(rparameters)
