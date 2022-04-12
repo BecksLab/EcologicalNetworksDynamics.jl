@@ -144,81 +144,26 @@ end
     TODO
 """
 function BioRates(
-    FW::FoodWeb;
-    rmodel::Union{Function,Nothing}=allometricgrowth,
-    rparameters::Union{NamedTuple,Nothing}=nothing,
-    xmodel::Union{Function,Nothing}=allometricmetabolism,
-    xparameters::Union{NamedTuple,Nothing}=nothing,
-    ymodel::Union{Function,Nothing}=allometricmaxconsumption,
-    yparameters::Union{NamedTuple,Nothing}=nothing,
-    r::Union{Vector{<:Real},Nothing}=nothing,
-    x::Union{Vector{<:Real},Nothing}=nothing,
-    y::Union{Vector{<:Real},Nothing}=nothing
+    foodweb::FoodWeb;
+    r::Union{Vector{<:Real},<:Real}=allometricgrowth(foodweb),
+    x::Union{Vector{<:Real},<:Real}=allometricmetabolism(foodweb),
+    y::Union{Vector{<:Real},<:Real}=allometricmaxconsumption(foodweb)
 )
 
-    isnothing(rparameters) || _checkparamtupleR(rparameters)
-    isnothing(xparameters) || _checkparamtupleX(xparameters)
-    isnothing(yparameters) || _checkparamtupleY(yparameters)
+    # Set up
+    S = richness(foodweb)
+    Rates = [r, x, y]
+    nᵣ = length(Rates)
 
-    S = richness(FW)
-
-    if !isnothing(r)
-        isequal(length(r))(S) || throw(ArgumentError("r should be a vector of length richness(FW)"))
-    else
-        if isnothing(rparameters)
-            r = rmodel(FW)
-        else
-            _checkparamtupleR(rparameters)
-            rp = Dict(map((i, j) -> i => j, keys(rparameters), values(rparameters)))
-            r = rmodel(FW; rp...)
-        end
+    # Test and format rates
+    for i in 1:nᵣ
+        rate = Rates[i]
+        length(rate) ∈ [1, S] || throw(ArgumentError("Rate should be of length 1 or S."))
+        typeof(rate) <: Real && (rate = [rate]) # convert 'rate' to vector
+        length(rate) == S || (Rates[i] = repeat(rate, S)) # length 1 -> length S
     end
 
-    if !isnothing(x)
-        isequal(length(x))(S) || throw(ArgumentError("x should be a vector of length richness(FW)"))
-    else
-        if isnothing(xparameters)
-            x = xmodel(FW)
-        else
-            _checkparamtupleX(xparameters)
-            xp = Dict(map((i, j) -> i => j, keys(xparameters), values(xparameters)))
-            x = rmodel(FW; xp...)
-        end
-    end
-
-    if !isnothing(y)
-        isequal(length(y))(S) || throw(ArgumentError("y should be a vector of length richness(FW)"))
-    else
-        if isnothing(yparameters)
-            y = ymodel(FW)
-        else
-            _checkparamtupleY(yparameters)
-            yp = Dict(map((i, j) -> i => j, keys(yparameters), values(yparameters)))
-            y = rmodel(FW; yp...)
-        end
-    end
-
-    return BioRates(r, x, y)
-
-end
-
-function _checkparamtupleR(nt::NamedTuple)
-    expectednames = ["a", "b"]
-    ntnames = collect(string.(keys(nt)))
-    namesvalid = [n in expectednames for n in ntnames]
-    all(namesvalid) || throw(ArgumentError("The parameters for the growth rate should be specified in a NamedTuple with fields a (constants) and b (exponents). More details in the docs."))
-end
-
-function _checkparamtupleX(nt::NamedTuple)
-    expectednames = ["a", "b", "a_p", "b_p", "a_ect", "b_ect", "a_inv", "b_inv"]
-    ntnames = collect(string.(keys(nt)))
-    namesvalid = [n in expectednames for n in ntnames]
-    all(namesvalid) || throw(ArgumentError("The parameters for the metabolic rate should be specified in a NamedTuple with possible fields: a, b, a_p, b_p, a_inv, b_inv, a_ect, b_ect. More details in the docs."))
-end
-
-function _checkparamtupleY(nt::NamedTuple)
-    expectednames = ["a", "b", "a_ect", "b_ect", "a_inv", "b_inv"]
-    ntnames = collect(string.(keys(nt)))
-    namesvalid = [n in expectednames for n in ntnames]
-    all(namesvalid) || throw(ArgumentError("The parameters for the max. consumption rate should be specified in a NamedTuple with possible fields: a, b, a_inv, b_inv, a_ect, b_ect. More details in the docs."))
+    # Output
+    r, x, y = Rates # recover formated rates
+    BioRates(r, x, y)
 end
