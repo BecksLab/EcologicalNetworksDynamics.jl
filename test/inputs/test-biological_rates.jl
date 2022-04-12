@@ -13,3 +13,9 @@ foodweb.M = [1.0, 1.0, 10.0, 10.0]
     @test BEFWM2.whoisinvertebrate(foodweb) == [0, 0, 1, 0]
     @test BEFWM2.whoisvertebrate(foodweb) == [0, 0, 0, 1]
 end
+
+@testset "Constructors for allometric parameters" begin
+    @test DefaultGrowthParams() == AllometricParams(1.0, 0.0, 0.0, -0.25, 0.0, 0.0)
+    @test DefaultMetabolismParams() == AllometricParams(0, 0.88, 0.314, 0, -0.25, -0.25)
+    @test DefaultMaxConsumptionParams() == AllometricParams(0.0, 4.0, 8.0, 0.0, 0.0, 0.0)
+end
