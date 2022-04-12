@@ -2,6 +2,47 @@
 Biological rates
 =#
 
+#### Main function to compute biological rates ####
+"""
+    BioRates(foodweb)
+
+Compute the biological rates of each species in the system.
+The rates are:
+- the growth rate (r)
+- the metabolic rate or metabolic demand (x)
+- the maximum consumption rate (y)
+If no value are provided for the rates, they take default values assuming an allometric
+scaling. Custom values can be provided for one or several rates by giving a vector of
+length 1 or S (species richness). Moreover, if one want to use allometric scaling
+(rate = aMᵇ) but do not want to use default values for a and b, one can simply call
+`allometricrate` with custom `AllometricParams`.
+"""
+function BioRates(
+    foodweb::FoodWeb;
+    r::Union{Vector{<:Real},<:Real}=allometricgrowth(foodweb),
+    x::Union{Vector{<:Real},<:Real}=allometricmetabolism(foodweb),
+    y::Union{Vector{<:Real},<:Real}=allometricmaxconsumption(foodweb)
+)
+
+    # Set up
+    S = richness(foodweb)
+    Rates = [r, x, y]
+    nᵣ = length(Rates)
+
+    # Test and format rates
+    for i in 1:nᵣ
+        rate = Rates[i]
+        length(rate) ∈ [1, S] || throw(ArgumentError("Rate should be of length 1 or S."))
+        typeof(rate) <: Real && (rate = [rate]) # convert 'rate' to vector
+        length(rate) == S || (Rates[i] = repeat(rate, S)) # length 1 -> length S
+    end
+
+    # Output
+    r, x, y = Rates # recover formated rates
+    BioRates(r, x, y)
+end
+#### end ####
+
 #### Function for rates with allometric scaling ####
 """
     allometricgrowth(foodweb)
@@ -139,42 +180,3 @@ function whoisproducer(A)
     vec(.!any(A, dims=2))
 end
 #### end ####
-
-"""
-    BioRates(foodweb)
-
-Compute the biological rates of each species in the system.
-The rates are:
-- the growth rate (r)
-- the metabolic rate or metabolic demand (x)
-- the maximum consumption rate (y)
-If no value are provided for the rates, they take default values assuming an allometric
-scaling. Custom values can be provided for one or several rates by giving a vector of
-length 1 or S (species richness). Moreover, if one want to use allometric scaling
-(rate = aMᵇ) but do not want to use default values for a and b, one can simply call
-`allometricrate` with custom `AllometricParams`.
-"""
-function BioRates(
-    foodweb::FoodWeb;
-    r::Union{Vector{<:Real},<:Real}=allometricgrowth(foodweb),
-    x::Union{Vector{<:Real},<:Real}=allometricmetabolism(foodweb),
-    y::Union{Vector{<:Real},<:Real}=allometricmaxconsumption(foodweb)
-)
-
-    # Set up
-    S = richness(foodweb)
-    Rates = [r, x, y]
-    nᵣ = length(Rates)
-
-    # Test and format rates
-    for i in 1:nᵣ
-        rate = Rates[i]
-        length(rate) ∈ [1, S] || throw(ArgumentError("Rate should be of length 1 or S."))
-        typeof(rate) <: Real && (rate = [rate]) # convert 'rate' to vector
-        length(rate) == S || (Rates[i] = repeat(rate, S)) # length 1 -> length S
-    end
-
-    # Output
-    r, x, y = Rates # recover formated rates
-    BioRates(r, x, y)
-end
