@@ -141,7 +141,18 @@ end
 #### end ####
 
 """
-    TODO
+    BioRates(foodweb)
+
+Compute the biological rates of each species in the system.
+The rates are:
+- the growth rate (r)
+- the metabolic rate or metabolic demand (x)
+- the maximum consumption rate (y)
+If no value are provided for the rates, they take default values assuming an allometric
+scaling. Custom values can be provided for one or several rates by giving a vector of
+length 1 or S (species richness). Moreover, if one want to use allometric scaling
+(rate = aMᵇ) but do not want to use default values for a and b, one can simply call
+`allometricrate` with custom `AllometricParams`.
 """
 function BioRates(
     foodweb::FoodWeb;
