@@ -81,6 +81,26 @@ function allometricmaxconsumption(
 end
 #### end ####
 
+#### Constructors containing default parameter value for allometric scaled rates ####
+
+ParamsGrowth() = ParamsAllometric(1.0, 0.0, 0.0, -0.25, 0.0, 0.0)
+
+ParamsMetabolism() = ParamsAllometric(0, 0.88, 0.314, 0, -0.25, -0.25)
+
+ParamsMaxConsumption() = ParamsAllometric(0.0, 4.0, 8.0, 0.0, 0.0, 0.0)
+
+struct ParamsAllometric
+    aₚ::Real
+    aₑ::Real
+    aᵢ::Real
+    bₚ::Real
+    bₑ::Real
+    bᵢ::Real
+    ParamsAllometric(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ) = new(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ)
+end
+
+#### end ####
+
 #### Helper functions to compute allometric rates ####
 """Allometric scaling: parameter expressed as a power law of body-mass (M)."""
 allometricscale(a, b, M) = a * M^b
@@ -91,7 +111,7 @@ allometric parameters for the different metabolic classes (aₚ,aᵢ,...).
 """
 function default_params(
     foodweb::FoodWeb,
-    params
+    params::ParamsAllometric
 )
 
     # Test
@@ -124,40 +144,6 @@ function allometric_rate(
 )
     a, b = params.a, params.b
     allometricscale.(a, b, foodweb.M)
-end
-#### end ####
-
-#### Constructors containing default parameter value for allometric scaled rates ####
-struct ParamsGrowth
-    aₚ::Real
-    aₑ::Real
-    aᵢ::Real
-    bₚ::Real
-    bₑ::Real
-    bᵢ::Real
-    ParamsGrowth(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ) = new(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ) # custom
-    ParamsGrowth() = new(1.0, 0.0, 0.0, -0.25, 0.0, 0.0) # default
-end
-struct ParamsMetabolism
-    aₚ::Real
-    aₑ::Real
-    aᵢ::Real
-    bₚ::Real
-    bₑ::Real
-    bᵢ::Real
-    ParamsMetabolism(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ) = new(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ) # custom
-    ParamsMetabolism() = new(0, 0.88, 0.314, 0, -0.25, -0.25) # default
-end
-
-struct ParamsMaxConsumption
-    aₚ::Real
-    aₑ::Real
-    aᵢ::Real
-    bₚ::Real
-    bₑ::Real
-    bᵢ::Real
-    ParamsMaxConsumption(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ) = new(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ) # custom
-    ParamsMaxConsumption() = new(0.0, 4.0, 8.0, 0.0, 0.0, 0.0) # default
 end
 #### end ####
 
