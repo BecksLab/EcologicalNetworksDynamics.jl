@@ -59,7 +59,7 @@ end
 #### end ####
 
 #### Helper functions to compute allometric rates ####
-"""Allometric scaling: parameter expressed as a power law of body-mass (M)."""
+"Allometric scaling: parameter expressed as a power law of body-mass (M)."
 allometricscale(a, b, M) = a * M^b
 
 """
@@ -94,7 +94,7 @@ function allometricparams_to_vec(
     (a=a, b=b)
 end
 
-"""Compute rate vector (one value per species) with allometric scaling."""
+"Compute rate vector (one value per species) with allometric scaling."
 function allometricrate(
     foodweb::FoodWeb,
     allometricparams::AllometricParams
@@ -106,7 +106,7 @@ end
 #### end ####
 
 #### Identifying metabolic classes ####
-"""Which species is a producer (1) or not (0)?"""
+"Which species is a producer (1) or not (0)?"
 function whois(metabolic_class::String, foodweb::FoodWeb)
     vec(foodweb.metabolic_class .== metabolic_class)
 end
