@@ -19,9 +19,9 @@ length 1 or S (species richness). Moreover, if one want to use allometric scalin
 """
 function BioRates(
     foodweb::FoodWeb;
-    r::Union{Vector{<:Real},<:Real}=allometricgrowth(foodweb),
-    x::Union{Vector{<:Real},<:Real}=allometricmetabolism(foodweb),
-    y::Union{Vector{<:Real},<:Real}=allometricmaxconsumption(foodweb)
+    r::Union{Vector{<:Real},<:Real}=allometricrate(foodweb, DefaultGrowthParams()),
+    x::Union{Vector{<:Real},<:Real}=allometricrate(foodweb, DefaultMetabolismParams()),
+    y::Union{Vector{<:Real},<:Real}=allometricrate(foodweb, DefaultMaxConsumptionParams())
 )
 
     # Set up
@@ -43,50 +43,9 @@ function BioRates(
 end
 #### end ####
 
-#### Function for rates with allometric scaling ####
-"""
-    allometricgrowth(foodweb)
-
-Calculate producers (basal species) growth rate with allometric equation.
-"""
-function allometricgrowth(
-    foodweb::FoodWeb;
-    params=allometricparams_to_vec(foodweb, DefaultGrowthParams())
-)
-    allometricrate(foodweb, params)
-end
-
-"""
-    allometricmetabolism(foodweb)
-
-Calculate species metabolic demands (x) with allometric equation.
-"""
-function allometricmetabolism(
-    foodweb::FoodWeb;
-    params=allometricparams_to_vec(foodweb, DefaultMetabolismParams())
-)
-    allometricrate(foodweb, params)
-end
-
-"""
-    allometricmaxconsumption(foodweb)
-
-Calculate species metabolic max consumption (y) with allometric equation.
-"""
-function allometricmaxconsumption(
-    foodweb::FoodWeb;
-    params=allometricparams_to_vec(foodweb, DefaultMaxConsumptionParams())
-)
-    allometricrate(foodweb, params)
-end
-#### end ####
-
 #### Constructors containing default parameter value for allometric scaled rates ####
-
 DefaultGrowthParams() = AllometricParams(1.0, 0.0, 0.0, -0.25, 0.0, 0.0)
-
 DefaultMetabolismParams() = AllometricParams(0, 0.88, 0.314, 0, -0.25, -0.25)
-
 DefaultMaxConsumptionParams() = AllometricParams(0.0, 4.0, 8.0, 0.0, 0.0, 0.0)
 
 struct AllometricParams
@@ -96,9 +55,7 @@ struct AllometricParams
     bₚ::Real
     bₑ::Real
     bᵢ::Real
-    AllometricParams(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ) = new(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ)
 end
-
 #### end ####
 
 #### Helper functions to compute allometric rates ####
@@ -137,11 +94,12 @@ function allometricparams_to_vec(
     (a=a, b=b)
 end
 
-"""Internal function to compute vector (one value per species) of a given rate."""
+"""Compute rate vector (one value per species) with allometric scaling."""
 function allometricrate(
     foodweb::FoodWeb,
-    params
+    allometricparams::AllometricParams
 )
+    params = allometricparams_to_vec(foodweb, allometricparams)
     a, b = params.a, params.b
     allometricscale.(a, b, foodweb.M)
 end
