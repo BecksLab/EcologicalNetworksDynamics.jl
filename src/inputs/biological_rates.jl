@@ -51,9 +51,9 @@ Calculate producers (basal species) growth rate with allometric equation.
 """
 function allometricgrowth(
     foodweb::FoodWeb;
-    params=default_params(foodweb, ParamsGrowth())
+    params=allometricparams_to_vec(foodweb, DefaultGrowthParams())
 )
-    allometric_rate(foodweb, params)
+    allometricrate(foodweb, params)
 end
 
 """
@@ -63,9 +63,9 @@ Calculate species metabolic demands (x) with allometric equation.
 """
 function allometricmetabolism(
     foodweb::FoodWeb;
-    params=default_params(foodweb, ParamsMetabolism())
+    params=allometricparams_to_vec(foodweb, DefaultMetabolismParams())
 )
-    allometric_rate(foodweb, params)
+    allometricrate(foodweb, params)
 end
 
 """
@@ -75,28 +75,28 @@ Calculate species metabolic max consumption (y) with allometric equation.
 """
 function allometricmaxconsumption(
     foodweb::FoodWeb;
-    params=default_params(foodweb, ParamsMaxConsumption())
+    params=allometricparams_to_vec(foodweb, DefaultMaxConsumptionParams())
 )
-    allometric_rate(foodweb, params)
+    allometricrate(foodweb, params)
 end
 #### end ####
 
 #### Constructors containing default parameter value for allometric scaled rates ####
 
-ParamsGrowth() = ParamsAllometric(1.0, 0.0, 0.0, -0.25, 0.0, 0.0)
+DefaultGrowthParams() = AllometricParams(1.0, 0.0, 0.0, -0.25, 0.0, 0.0)
 
-ParamsMetabolism() = ParamsAllometric(0, 0.88, 0.314, 0, -0.25, -0.25)
+DefaultMetabolismParams() = AllometricParams(0, 0.88, 0.314, 0, -0.25, -0.25)
 
-ParamsMaxConsumption() = ParamsAllometric(0.0, 4.0, 8.0, 0.0, 0.0, 0.0)
+DefaultMaxConsumptionParams() = AllometricParams(0.0, 4.0, 8.0, 0.0, 0.0, 0.0)
 
-struct ParamsAllometric
+struct AllometricParams
     aₚ::Real
     aₑ::Real
     aᵢ::Real
     bₚ::Real
     bₑ::Real
     bᵢ::Real
-    ParamsAllometric(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ) = new(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ)
+    AllometricParams(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ) = new(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ)
 end
 
 #### end ####
@@ -109,9 +109,9 @@ allometricscale(a, b, M) = a * M^b
 Create species parameter vectors for a, b of length S (species richness) given the
 allometric parameters for the different metabolic classes (aₚ,aᵢ,...).
 """
-function default_params(
+function allometricparams_to_vec(
     foodweb::FoodWeb,
-    params::ParamsAllometric
+    params::AllometricParams
 )
 
     # Test
@@ -138,7 +138,7 @@ function default_params(
 end
 
 """Internal function to compute vector (one value per species) of a given rate."""
-function allometric_rate(
+function allometricrate(
     foodweb::FoodWeb,
     params
 )
