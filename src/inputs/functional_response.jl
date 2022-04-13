@@ -80,18 +80,22 @@ function originalFR(FW::FoodWeb,
     return funcrep
 end
 
-function homogeneous_preference(FW::FoodWeb)
-    S = length(FW.species)
-    ω = zeros(S, S)
-    idx = findall(!iszero, FW.A)
-    for i in idx
-        c = i[1]
-        nressource_c = sum(FW.A[c, :])
-        ω[i] = 1 / nressource_c
-    end
-    ω = sparse(ω)
+function homogeneous_preference(foodweb::FoodWeb)
 
-    return ω
+    # Set up
+    S = richness(foodweb)
+    ω = spzeros(S, S)
+    consumer, resource = findnz(foodweb.A)
+    num_resources = resourcenumber(consumer, foodweb) # Dict: consumer => number resources
+    n_interactions = length(consumer) # number of interactions
+
+    # Fill preference matrix
+    for n in 1:n_interactions
+        i, j = consumer[n], resource[n]
+        ω[i, j] = 1 / num_resources[i]
+    end
+
+    ω
 end
 
 function assimilation_efficiency(foodweb::FoodWeb, e_herbivore, e_carnivore)
