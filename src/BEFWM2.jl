@@ -28,6 +28,7 @@ include(joinpath(".", "measures/structure.jl"))
 include(joinpath(".", "measures/functioning.jl"))
 include(joinpath(".", "measures/stability.jl"))
 
+include(joinpath(".", "utils.jl"))
 
 
 export FoodWeb, ModelParameters, FunctionalResponse, BioRates, Environment
