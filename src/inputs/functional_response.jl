@@ -3,7 +3,7 @@ Functional response
 =#
 
 """
-    originalFR(foodweb; B0, hill_exponent, ω, interference)
+    BioEnergeticFunctionalResponse(foodweb; B0, hill_exponent, ω, interference)
 
 Returns an object of type FunctionalResponse where the functional response is the "original"
 as originally described by Yodzis and Innes.
@@ -14,7 +14,7 @@ as originally described by Yodzis and Innes.
 - ω (default is homogeneous preference) is a matrix describing cosnumers relative preference for their resources
 - interference (default is 0) is teh strength of predator interference in the model
 """
-function originalFR(
+function BioEnergeticFunctionalResponse(
     foodweb::FoodWeb;
     B0::Union{Vector{T},T}=0.5,
     hill_exponent::T=2.0,
