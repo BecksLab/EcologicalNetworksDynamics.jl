@@ -2,7 +2,22 @@
 Biological rates
 =#
 
-#### Main function to compute biological rates ####
+#### Constructors containing default parameter value for allometric scaled rates ####
+DefaultGrowthParams() = AllometricParams(1.0, 0.0, 0.0, -0.25, 0.0, 0.0)
+DefaultMetabolismParams() = AllometricParams(0, 0.88, 0.314, 0, -0.25, -0.25)
+DefaultMaxConsumptionParams() = AllometricParams(0.0, 4.0, 8.0, 0.0, 0.0, 0.0)
+
+struct AllometricParams
+    aₚ::Real
+    aₑ::Real
+    aᵢ::Real
+    bₚ::Real
+    bₑ::Real
+    bᵢ::Real
+end
+#### end ####
+
+#### Main functions to compute biological rates ####
 """
     BioRates(foodweb)
 
@@ -41,20 +56,15 @@ function BioRates(
     r, x, y = Rates # recover formated rates
     BioRates(r, x, y)
 end
-#### end ####
 
-#### Constructors containing default parameter value for allometric scaled rates ####
-DefaultGrowthParams() = AllometricParams(1.0, 0.0, 0.0, -0.25, 0.0, 0.0)
-DefaultMetabolismParams() = AllometricParams(0, 0.88, 0.314, 0, -0.25, -0.25)
-DefaultMaxConsumptionParams() = AllometricParams(0.0, 4.0, 8.0, 0.0, 0.0, 0.0)
-
-struct AllometricParams
-    aₚ::Real
-    aₑ::Real
-    aᵢ::Real
-    bₚ::Real
-    bₑ::Real
-    bᵢ::Real
+"Compute rate vector (one value per species) with allometric scaling."
+function allometricrate(
+    foodweb::FoodWeb,
+    allometricparams::AllometricParams
+)
+    params = allometricparams_to_vec(foodweb, allometricparams)
+    a, b = params.a, params.b
+    allometricscale.(a, b, foodweb.M)
 end
 #### end ####
 
@@ -92,16 +102,6 @@ function allometricparams_to_vec(
     b[whoisvertebrate(foodweb)] .= params.bₑ
 
     (a=a, b=b)
-end
-
-"Compute rate vector (one value per species) with allometric scaling."
-function allometricrate(
-    foodweb::FoodWeb,
-    allometricparams::AllometricParams
-)
-    params = allometricparams_to_vec(foodweb, allometricparams)
-    a, b = params.a, params.b
-    allometricscale.(a, b, foodweb.M)
 end
 #### end ####
 
