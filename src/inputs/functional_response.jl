@@ -94,20 +94,20 @@ function homogeneous_preference(FW::FoodWeb)
     return ω
 end
 
-function assimilation_efficiency(FW::FoodWeb, e_herbivore, e_carnivore)
-    S = richness(FW)
-    efficiency = zeros(Float64, (S, S))
-    idp = whoisproducer(FW.A)
-    for consumer in 1:S
-        for resource in 1:S
-            if FW.A[consumer, resource]
-                if idp[resource]
-                    efficiency[consumer, resource] = e_herbivore
-                else
-                    efficiency[consumer, resource] = e_carnivore
-                end
-            end
-        end
+function assimilation_efficiency(foodweb::FoodWeb, e_herbivore, e_carnivore)
+
+    # Set up
+    S = richness(foodweb)
+    efficiency = spzeros(Float64, (S, S))
+    isproducer = whoisproducer(foodweb.A)
+    consumer, resource = findnz(foodweb.A) # indexes of trophic interactions
+    n_interactions = length(consumer) # number of trophic interactions
+
+    # Fill efficiency matrix
+    for n in 1:n_interactions
+        i, j = consumer[n], resource[n]
+        efficiency[i, j] = isproducer[j] ? e_herbivore : e_carnivore
     end
-    return sparse(efficiency)
+
+    efficiency
 end
