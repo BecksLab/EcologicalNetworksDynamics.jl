@@ -42,28 +42,28 @@ function BioEnergeticFunctionalResponse(
     length(B0) == S || (B0 = repeat([B0], S))
     efficiency = sparse(efficiency)
 
-    function bioenergetic(B::Vector{Float64}, foodweb, ω, B0, hill_exponent, interference)
-        S = length(foodweb.species)
-        idx = findall(!iszero, foodweb.A)
-        cons = unique([i[1] for i in idx])
-        FR = zeros(S, S)
+    FunctionalResponse(bioenergetic, hill_exponent, ω, interference, B0, efficiency)
+end
 
-        for c in cons
-            idxr = findall(!iszero, foodweb.A[c, :])
-            sumfoodavail = sum(ω[c, :] .* (B .^ hill_exponent))
-            for r in idxr
-                num = ω[c, r] * (B[r]^hill_exponent)
-                interf = interference[c] * B[r] * (B0[c]^hill_exponent)
-                denom = (B0[c]^hill_exponent) + interf + sumfoodavail
-                FR[c, r] = num / denom
-            end
+function bioenergetic(B::Vector{Float64}, foodweb, ω, B0, hill_exponent, interference)
+    S = length(foodweb.species)
+    idx = findall(!iszero, foodweb.A)
+    cons = unique([i[1] for i in idx])
+    FR = zeros(S, S)
+
+    for c in cons
+        idxr = findall(!iszero, foodweb.A[c, :])
+        sumfoodavail = sum(ω[c, :] .* (B .^ hill_exponent))
+        for r in idxr
+            num = ω[c, r] * (B[r]^hill_exponent)
+            interf = interference[c] * B[r] * (B0[c]^hill_exponent)
+            denom = (B0[c]^hill_exponent) + interf + sumfoodavail
+            FR[c, r] = num / denom
         end
-
-        FR = sparse(FR)
-        return FR
     end
 
-    FunctionalResponse(bioenergetic, hill_exponent, ω, interference, B0, efficiency)
+    FR = sparse(FR)
+    return FR
 end
 
 function homogeneous_preference(foodweb::FoodWeb)
