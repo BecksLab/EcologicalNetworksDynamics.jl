@@ -3,10 +3,64 @@ Biological rates
 =#
 
 #### Constructors containing default parameter value for allometric scaled rates ####
+"""
+    DefaultGrowthParams()
+
+Default allometric parameters (a, b) values for growth rate (r).
+
+See also [`AllometricParams`](@ref)
+"""
 DefaultGrowthParams() = AllometricParams(1.0, 0.0, 0.0, -0.25, 0.0, 0.0)
+
+"""
+    DefaultMetabolismParams()
+
+Default allometric parameters (a, b) values for metabolic rate (x).
+
+See also [`AllometricParams`](@ref)
+"""
 DefaultMetabolismParams() = AllometricParams(0, 0.88, 0.314, 0, -0.25, -0.25)
+
+"""
+    DefaultMaxConsumptionParams()
+
+Default allometric parameters (a, b) values for max consumption rate (y).
+
+See also [`AllometricParams`](@ref)
+"""
 DefaultMaxConsumptionParams() = AllometricParams(0.0, 4.0, 8.0, 0.0, 0.0, 0.0)
 
+"""
+    AllometricParams(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ)
+
+Parameters used to compute allometric rates for different metabolic classes.
+
+The rate R is expressed as follow: ``R = aMᵇ``, where a and b can take different values
+depending on the metabolic class of the species. This struct aims at storing these values
+of a and b. Specifically:
+- aₚ: a for producers
+- aₑ: a for ectotherm vertebrates
+- aᵢ: a for invertebrates
+- bₚ: b for producers
+- bₑ: b for ectotherm vertebrates
+- bᵢ: b for invertebrates
+
+Default parameters values taken from the literature for certain rates can be accessed by
+calling the corresponding function, for:
+- growth rate (r) call [`DefaultGrowthParams`](@ref)
+- metabolic rate (x) call [`DefaultMetabolismParams`](@ref)
+- max consumption rate (y) call [`DefaultMaxConsumptionParams`](@ref)
+
+# Example
+```jldoctest
+julia> params = AllometricParams(1, 2, 3, 4, 5, 6)
+AllometricParams(1, 2, 3, 4, 5, 6)
+julia> params.aₚ
+1
+julia> params.aₑ
+2
+```
+"""
 struct AllometricParams
     aₚ::Real
     aₑ::Real
