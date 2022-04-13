@@ -22,3 +22,11 @@ function whoisproducer(A)
     vec(.!any(A, dims=2))
 end
 #### end ####
+
+function resourcenumber(consumer, foodweb::FoodWeb)
+    sum(foodweb.A[consumer, :])
+end
+
+function resourcenumber(consumer::Vector, foodweb::FoodWeb)
+    Dict(i => resourcenumber(i, foodweb) for i in unique(consumer))
+end
