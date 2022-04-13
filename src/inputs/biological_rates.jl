@@ -106,16 +106,19 @@ end
 #### end ####
 
 #### Identifying metabolic classes ####
-"Which species is a producer (1) or not (0)?"
+"Helper function called by `whois...` functions (e.g. `whoisproducer`)."
 function whois(metabolic_class::String, foodweb::FoodWeb)
     vec(foodweb.metabolic_class .== metabolic_class)
 end
+"Which species is a producer or not? Return a BitVector."
 function whoisproducer(foodweb::FoodWeb)
     whois("producer", foodweb)
 end
+"Which species is an vertebrate or not? Return a BitVector."
 function whoisvertebrate(foodweb::FoodWeb)
     whois("ectotherm vertebrate", foodweb)
 end
+"Which species is an invertebrate or not? Return a BitVector."
 function whoisinvertebrate(foodweb::FoodWeb)
     whois("invertebrate", foodweb)
 end
