@@ -73,18 +73,51 @@ end
 
 #### Main functions to compute biological rates ####
 """
-    BioRates(foodweb)
+    BioRates(
+        foodweb;
+        r = allometricrate(foodweb, DefaultGrowthParams()),
+        x = allometricrate(foodweb, DefaultMetabolismParams()),
+        y = allometricrate(foodweb, DefaultMaxConsumptionParams())
+        )
 
-Compute the biological rates of each species in the system.
+Compute the biological rates (r, x and y) of each species in the system.
+
 The rates are:
-- the growth rate (r)
-- the metabolic rate or metabolic demand (x)
-- the maximum consumption rate (y)
+- r: the growth rate
+- x: the metabolic rate or metabolic demand
+- y: the maximum consumption rate
 If no value are provided for the rates, they take default values assuming an allometric
 scaling. Custom values can be provided for one or several rates by giving a vector of
 length 1 or S (species richness). Moreover, if one want to use allometric scaling
-(rate = aMᵇ) but do not want to use default values for a and b, one can simply call
-`allometricrate` with custom `AllometricParams`.
+(``R = aMᵇ``) but do not want to use default values for a and b, one can simply call
+[`allometricrate`](@ref) with custom [`AllometricParams`](@ref).
+
+# Examples
+```jldoctest
+julia> foodweb = FoodWeb([0 1; 0 0]); # sp. 1 "invertebrate", sp. 2 "producer"
+
+julia> BioRates(foodweb) # default
+r (growth rate): 0.0, ..., 1.0
+x (metabolic rate): 0.314, ..., 0.0
+y (max. consumption rate): 8.0, ..., 0.0
+
+julia> BioRates(foodweb; r = [1.0, 1.0]) # specify custom vector for growth rate
+r (growth rate): 1.0, ..., 1.0
+x (metabolic rate): 0.314, ..., 0.0
+y (max. consumption rate): 8.0, ..., 0.0
+
+julia> BioRates(foodweb; x = 2.0) # if single value, fill the rate vector with it
+r (growth rate): 0.0, ..., 1.0
+x (metabolic rate): 2.0, ..., 2.0
+y (max. consumption rate): 8.0, ..., 0.0
+
+julia> custom_params = AllometricParams(3, 0, 0, 0, 0, 0); # use custom allometric params...
+
+julia> BioRates(foodweb; y=allometricrate(foodweb, custom_params)) # ...with allometricrate
+r (growth rate): 0.0, ..., 1.0
+x (metabolic rate): 0.314, ..., 0.0
+y (max. consumption rate): 0.0, ..., 3.0
+```
 """
 function BioRates(
     foodweb::FoodWeb;
