@@ -1,6 +1,7 @@
 using Documenter
 using BEFWM2
 using Test
+using SparseArrays
 
 # Run doctests first.
 DocMeta.setdocmeta!(BEFWM2, :DocTestSetup, :(using BEFWM2); recursive=true)
