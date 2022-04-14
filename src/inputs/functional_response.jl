@@ -110,8 +110,8 @@ end
 
 "Classic functional response for predator i eating prey j, given the species biomass B."
 function (F::ClassicResponse)(B, i, j)
-    num = F.ω[i, j] * F.aᵣ * B[j]^F.h
-    denom = 1 + F.c[i] * B[i] + F.aᵣ * F.hₜ * sum(F.ω[i, :] .* (B .^ F.h))
+    num = F.ω[i, j] * F.aᵣ[i, j] * B[j]^F.h
+    denom = 1 + (F.c[i] * B[i]) + sum(F.aᵣ[i, :] .* F.hₜ[i, :] .* F.ω[i, :] .* (B .^ F.h))
     num / denom
 end
 
@@ -160,7 +160,22 @@ function ClassicResponse(
     ω=homogeneous_preference(foodweb),
     c=0.0
 )
+
+    # Safety checks
     S = richness(foodweb)
+    size(hₜ) ∈ [(), (S, S)] || throw(ArgumentError("hₜ wrong size: should be a scalar or a
+        of size (S, S) with S the species richness."))
+    size(aᵣ) ∈ [(), (S, S)] || throw(ArgumentError("aᵣ wrong size: should be a scalar or a
+        of size (S, S) with S the species richness."))
+    length(c) ∈ [1, S] || throw(ArgumentError("c wrong length: should be of length 1 or S
+        (species richness)."))
+    size(ω) == (S, S) || throw(ArgumentError("ω wrong size: should be of size (S, S)
+        with S the species richness."))
+
+    # Format
+    size(hₜ) == (S, S) || (hₜ = scalar_to_sparsematrix(hₜ, foodweb.A))
+    size(aᵣ) == (S, S) || (aᵣ = scalar_to_sparsematrix(aᵣ, foodweb.A))
     length(c) == S || (c = repeat([c], S))
-    ClassicResponse(Float64(h), Float64.(ω), Float64.(c), Float64(hₜ), Float64(aᵣ))
+
+    ClassicResponse(Float64(h), Float64.(ω), Float64.(c), Float64.(hₜ), Float64.(aᵣ))
 end

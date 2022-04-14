@@ -46,8 +46,8 @@ struct ClassicResponse <: FunctionalResponse
     h::Float64 # hill exponent
     ω::SparseMatrixCSC{Float64} # ressource preferency
     c::Vector{Float64} # intraspecific interference
-    hₜ::Float64 # handling time
-    aᵣ::Float64 # attack rate
+    hₜ::SparseMatrixCSC{Float64} # handling time
+    aᵣ::SparseMatrixCSC{Float64} # attack rate
 end
 
 """
