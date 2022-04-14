@@ -99,3 +99,30 @@ function assimilation_efficiency(foodweb::FoodWeb, e_herbivore, e_carnivore)
 
     efficiency
 end
+
+# Methods to build Classic and Bionergetic structs
+function BioenergeticResponse(
+    foodweb::FoodWeb;
+    B0=0.5,
+    h=2.0,
+    ω=homogeneous_preference(foodweb),
+    c=0.0
+)
+    S = richness(foodweb)
+    length(c) == S || (c = repeat([c], S))
+    length(B0) == S || (B0 = repeat([B0], S))
+    BioenergeticResponse(Float64(h), Float64.(ω), Float64.(c), Float64.(B0))
+end
+
+function ClassicResponse(
+    foodweb::FoodWeb;
+    aᵣ=0.5,
+    hₜ=1.0,
+    h=2.0,
+    ω=homogeneous_preference(foodweb),
+    c=0.0
+)
+    S = richness(foodweb)
+    length(c) == S || (c = repeat([c], S))
+    ClassicResponse(Float64(h), Float64.(ω), Float64.(c), Float64(hₜ), Float64(aᵣ))
+end
