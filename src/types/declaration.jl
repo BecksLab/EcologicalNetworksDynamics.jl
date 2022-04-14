@@ -30,16 +30,24 @@ end
 """
 Functional response
 """
-mutable struct FunctionalResponse
-    functional_response::Function
-    hill_exponent::Real
-    ω::SparseMatrixCSC{Float64,Int64}
-    c::Vector{T} where {T<:Real}
-    B0::Union{T,Vector{T}} where {T<:Real}
-    e::SparseMatrixCSC{Float64,Int64}
-    function FunctionalResponse(functional_response, hill_exponent, ω, c, B0, e)
-        new(functional_response, hill_exponent, ω, c, B0, e)
-    end
+
+abstract type FunctionalResponse end
+#! Children of abstract type FunctionalResponse are all expected to have a .ω member.
+#! Otherwise homogeneous_preference will fail.
+
+struct BioenergeticResponse <: FunctionalResponse
+    h::Float64 # hill exponent
+    ω::SparseMatrixCSC{Float64} # ressource preferency
+    c::Vector{Float64} # intraspecific interference
+    B0::Vector{Float64} # half-saturation
+end
+
+struct ClassicResponse <: FunctionalResponse
+    h::Float64 # hill exponent
+    ω::SparseMatrixCSC{Float64} # ressource preferency
+    c::Vector{Float64} # intraspecific interference
+    hₜ::Float64 # handling time
+    aᵣ::Float64 # attack rate
 end
 
 """
