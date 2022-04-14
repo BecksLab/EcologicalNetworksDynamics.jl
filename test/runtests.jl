@@ -7,3 +7,4 @@ DocMeta.setdocmeta!(BEFWM2, :DocTestSetup, :(using BEFWM2); recursive=true)
 doctest(BEFWM2)
 
 include("inputs/test-biological_rates.jl")
+include("inputs/test-functional_response.jl")
