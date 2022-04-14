@@ -175,6 +175,8 @@ function ClassicResponse(
     # Format
     size(hₜ) == (S, S) || (hₜ = scalar_to_sparsematrix(hₜ, foodweb.A))
     size(aᵣ) == (S, S) || (aᵣ = scalar_to_sparsematrix(aᵣ, foodweb.A))
+    aᵣ = sparse(aᵣ)
+    hₜ = sparse(hₜ)
     length(c) == S || (c = repeat([c], S))
 
     ClassicResponse(Float64(h), Float64.(ω), Float64.(c), Float64.(hₜ), Float64.(aᵣ))
