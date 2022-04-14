@@ -53,3 +53,45 @@ end
     @test Fclassic_1.ω == sparse([0 0; 1 0])
     @test Fclassic_2.ω == sparse([0 0 0; 1 0 0; 0.5 0.5 0])
 end
+
+@testset "Bioenergetic functional response functor" begin
+    # Index by index
+    Fbioenergetic_1 = BioenergeticResponse(foodweb1)
+    @test Fbioenergetic_1([1, 1], 1, 1) == 0 # no interaction
+    @test Fbioenergetic_1([1, 1], 1, 2) == 0 # no interaction
+    @test Fbioenergetic_1([1, 1], 2, 2) == 0 # no interaction
+    @test Fbioenergetic_1([1, 1], 2, 1) == 1^2 / (0.5^2 + 1^2) # interaction
+    @test Fbioenergetic_1([1, 2], 2, 1) == 1^2 / (0.5^2 + 1^2) # don't depend on cons. mass
+    @test Fbioenergetic_1([2, 1], 2, 1) == 2^2 / (0.5^2 + 2^2) # ...but depend on res. mass
+
+    # Matrix
+    F21 = 1^2 / (0.5^2 + 1^2)
+    @test Fbioenergetic_1([1, 1]) == sparse([0 0; F21 0]) # provide biomass vector
+    @test Fbioenergetic_1(1) == sparse([0 0; F21 0]) # or a scalar if same for all species
+
+    # Non-default hill exponent
+    Fbioenergetic_1 = BioenergeticResponse(foodweb1, h=3)
+    F21 = 2^3 / (0.5^3 + 2^3)
+    @test Fbioenergetic_1(2) == sparse([0 0; F21 0])
+
+    # Consumer feeding on several resources
+    Fbioenergetic_2 = BioenergeticResponse(foodweb2)
+    B = [1, 1, 1] # uniform biomass distribution
+    F21 = 1^2 / (0.5^2 + 1^2)
+    F31 = 0.5 * 1^2 / ((0.5^2) + (0.5 * 1^2) + (0.5 * 1^2))
+    F32 = F31
+    @test Fbioenergetic_2(B) == sparse([0 0 0; F21 0 0; F31 F32 0])
+    B = [3, 2, 1] # non-uniform biomass distribution
+    F21 = 3^2 / (0.5^2 + 3^2)
+    F31 = 0.5 * 3^2 / ((0.5^2) + (0.5 * 3^2) + (0.5 * 2^2))
+    F32 = 0.5 * 2^2 / ((0.5^2) + (0.5 * 3^2) + (0.5 * 2^2))
+    @test Fbioenergetic_2(B) == sparse([0 0 0; F21 0 0; F31 F32 0])
+
+    # Adding intraspecific interference
+    Fbioenergetic_2 = BioenergeticResponse(foodweb2, c=1)
+    B = [3, 2, 1] # non-uniform biomass distribution
+    F21 = 3^2 / (0.5^2 + 1 * 2 * 0.5^2 + 3^2)
+    F31 = 0.5 * 3^2 / ((0.5^2) + (1 * 1 * 0.5^2) + (0.5 * 3^2 + 0.5 * 2^2))
+    F32 = 0.5 * 2^2 / ((0.5^2) + (1 * 1 * 0.5^2) + (0.5 * 3^2 + 0.5 * 2^2))
+    @test Fbioenergetic_2(B) == sparse([0 0 0; F21 0 0; F31 F32 0])
+end
