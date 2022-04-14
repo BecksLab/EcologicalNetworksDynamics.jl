@@ -100,6 +100,44 @@ function assimilation_efficiency(foodweb::FoodWeb, e_herbivore, e_carnivore)
     efficiency
 end
 
+# Functional response functors
+"Bionergetic functional response for predator i eating prey j, given the species biomass B."
+function (F::BioenergeticResponse)(B, i, j)
+    num = F.ω[i, j] * B[j]^F.h
+    denom = (F.B0[i]^F.h) + (F.c[i] * B[i] * F.B0[i]^F.h) + (sum(F.ω[i, :] .* (B .^ F.h)))
+    num / denom
+end
+
+"Classic functional response for predator i eating prey j, given the species biomass B."
+function (F::ClassicResponse)(B, i, j)
+    num = F.ω[i, j] * F.aᵣ * B[j]^F.h
+    denom = 1 + F.c[i] * B[i] + F.aᵣ * F.hₜ * sum(F.ω[i, :] .* (B .^ F.h))
+    num / denom
+end
+
+"Compute functional response matrix given the species biomass (B)."
+function (F::FunctionalResponse)(B)
+
+    # Safety checks and format
+    S = size(F.ω, 1) #! Care: your functional response should have a parameter ω
+    length(B) ∈ [1, S] || throw(ArgumentError("B wrong length: should be of length 1 or S
+        (species richness)."))
+    length(B) == S || (B = repeat([B], S))
+
+    # Set up
+    consumer, resource = findnz(F.ω)
+    n_interactions = length(consumer) # number of trophic interactions
+    F_matrix = spzeros(S, S)
+
+    # Fill functional response matrix
+    for n in 1:n_interactions
+        i, j = consumer[n], resource[n]
+        F_matrix[i, j] = F(B, i, j)
+    end
+
+    sparse(F_matrix)
+end
+
 # Methods to build Classic and Bionergetic structs
 function BioenergeticResponse(
     foodweb::FoodWeb;
