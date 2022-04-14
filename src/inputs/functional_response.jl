@@ -45,25 +45,23 @@ function BioEnergeticFunctionalResponse(
     FunctionalResponse(bioenergetic, hill_exponent, ω, interference, B0, efficiency)
 end
 
-function bioenergetic(B::Vector{Float64}, foodweb, ω, B0, hill_exponent, interference)
-    S = length(foodweb.species)
-    idx = findall(!iszero, foodweb.A)
-    cons = unique([i[1] for i in idx])
-    FR = zeros(S, S)
+function bioenergetic(B, foodweb, ω, B₀, h, cᵢ)
 
-    for c in cons
-        idxr = findall(!iszero, foodweb.A[c, :])
-        sumfoodavail = sum(ω[c, :] .* (B .^ hill_exponent))
-        for r in idxr
-            num = ω[c, r] * (B[r]^hill_exponent)
-            interf = interference[c] * B[r] * (B0[c]^hill_exponent)
-            denom = (B0[c]^hill_exponent) + interf + sumfoodavail
-            FR[c, r] = num / denom
-        end
+    # Set up
+    S = richness(foodweb)
+    consumer, resource = findnz(foodweb.A)
+    n_interactions = length(consumer) # number of trophic interactions
+    F = zeros(S, S)
+
+    # Fill functional response matrix
+    for n in 1:n_interactions
+        i, j = consumer[n], resource[n]
+        numerator = ω[i, j] * B[j]^h
+        denominator = (B₀[i]^h) + (cᵢ[i] * B[i] * B₀[i]^h) + (sum(ω[i, :] .* (B .^ h)))
+        F[i, j] = numerator / denominator
     end
 
-    FR = sparse(FR)
-    return FR
+    sparse(F)
 end
 
 function homogeneous_preference(foodweb::FoodWeb)
