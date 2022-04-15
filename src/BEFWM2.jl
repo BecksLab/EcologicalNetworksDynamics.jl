@@ -32,7 +32,7 @@ include(joinpath(".", "measures/stability.jl"))
 
 export FoodWeb, ModelParameters, FunctionalResponse, BioRates, Environment
 export homogeneous_preference, originalFR
-export allometricrate, AllometricParams
+export allometric_rate, AllometricParams
 export DefaultGrowthParams, DefaultMaxConsumptionParams, DefaultMetabolismParams
 export simulate
 
