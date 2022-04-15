@@ -2,7 +2,7 @@
 Productivity
 =#
 
-function basalgrowth(B, foodweb::FoodWeb, biorates::BioRates, Environment::Environment)
+function logisticgrowth(B, foodweb::FoodWeb, biorates::BioRates, Environment::Environment)
 
     # Set up
     isproducer = whoisproducer(foodweb)

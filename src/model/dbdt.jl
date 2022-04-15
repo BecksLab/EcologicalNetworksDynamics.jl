@@ -11,7 +11,7 @@ function dBdt!(dB, B, Parameters::ModelParameters, t)
     environment = Parameters.Environment
     F = Parameters.FunctionalResponse
 
-    growth = basalgrowth(B, foodweb, biorates, environment)
+    growth = logisticgrowth(B, foodweb, biorates, environment)
     eating, being_eaten = consumption(B, foodweb, biorates, F, environment)
     metabolic_loss = metaboliclosses(B, biorates)
 
