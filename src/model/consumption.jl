@@ -2,14 +2,20 @@
 Consumption
 =#
 
-function consumption(biomass, FW::FoodWeb, BR::BioRates, FR::FunctionalResponse, E::Environment)
+function consumption(
+    B,
+    foodweb::FoodWeb,
+    biorates::BioRates,
+    F::BioenergeticResponse,
+    Environment::Environment
+)
 
-    xyb = BR.x .* BR.y .* biomass
-    Fij = FR.functional_response(biomass, FW, FR.ω, FR.B0, FR.hill_exponent, FR.c)
-    feeding = xyb .* Fij
-    assim = (feeding ./ FR.e) .* FW.A
-    loss = vec(sum(assim, dims = 1))
-    gain = vec(sum(feeding, dims = 2))
+    x, y, e = biorates.x, biorates.y, F.Efficiency
+    Fᵢⱼ = F(B)
+    eating = x .* y .* B .* Fᵢⱼ
+    being_eaten = (eating ./ e) .* foodweb.A
 
-    return (gain, loss)
+    eating = vec(sum(eating, dims=2))
+    being_eaten = vec(sum(being_eaten, dims=1))
+    eating, being_eaten
 end
