@@ -22,7 +22,7 @@ function BioEnergeticFunctionalResponse(
     interference::Union{T,Vector{Real}}=0.0,
     e_herbivore::T=0.45,
     e_carnivore::T=0.85,
-    efficiency=assimilation_efficiency(foodweb, e_herbivore, e_carnivore)
+    efficiency=assimilation_efficiency(foodweb; e_herbivore, e_carnivore)
 ) where {T<:Real}
 
     S = richness(foodweb)
@@ -82,7 +82,7 @@ function homogeneous_preference(foodweb::FoodWeb)
     ω
 end
 
-function assimilation_efficiency(foodweb::FoodWeb, e_herbivore, e_carnivore)
+function assimilation_efficiency(foodweb::FoodWeb; e_herbivore=0.45, e_carnivore=0.85)
 
     # Set up
     S = richness(foodweb)

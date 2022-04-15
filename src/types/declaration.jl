@@ -57,9 +57,7 @@ mutable struct BioRates
     r::Vector{<:Real}
     x::Vector{<:Real}
     y::Vector{<:Real}
-    function BioRates(r, x, y)
-        new(r, x, y)
-    end
+    e::SparseMatrixCSC{Float64,Int64}
 end
 
 """
