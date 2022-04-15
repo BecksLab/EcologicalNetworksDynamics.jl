@@ -75,9 +75,9 @@ end
 """
     BioRates(
         foodweb;
-        r = allometricrate(foodweb, DefaultGrowthParams()),
-        x = allometricrate(foodweb, DefaultMetabolismParams()),
-        y = allometricrate(foodweb, DefaultMaxConsumptionParams())
+        r = allometric_rate(foodweb, DefaultGrowthParams()),
+        x = allometric_rate(foodweb, DefaultMetabolismParams()),
+        y = allometric_rate(foodweb, DefaultMaxConsumptionParams())
         )
 
 Compute the biological rates (r, x and y) of each species in the system.
@@ -90,7 +90,7 @@ If no value are provided for the rates, they take default values assuming an all
 scaling. Custom values can be provided for one or several rates by giving a vector of
 length 1 or S (species richness). Moreover, if one want to use allometric scaling
 (``R = aMᵇ``) but do not want to use default values for a and b, one can simply call
-[`allometricrate`](@ref) with custom [`AllometricParams`](@ref).
+[`allometric_rate`](@ref) with custom [`AllometricParams`](@ref).
 
 # Examples
 ```jldoctest
@@ -113,7 +113,7 @@ y (max. consumption rate): 8.0, ..., 0.0
 
 julia> custom_params = AllometricParams(3, 0, 0, 0, 0, 0); # use custom allometric params...
 
-julia> BioRates(foodweb; y=allometricrate(foodweb, custom_params)) # ...with allometricrate
+julia> BioRates(foodweb; y=allometric_rate(foodweb, custom_params)) # ...with allometric_rate
 r (growth rate): 0.0, ..., 1.0
 x (metabolic rate): 0.314, ..., 0.0
 y (max. consumption rate): 0.0, ..., 3.0
@@ -121,9 +121,9 @@ y (max. consumption rate): 0.0, ..., 3.0
 """
 function BioRates(
     foodweb::FoodWeb;
-    r::Union{Vector{<:Real},<:Real}=allometricrate(foodweb, DefaultGrowthParams()),
-    x::Union{Vector{<:Real},<:Real}=allometricrate(foodweb, DefaultMetabolismParams()),
-    y::Union{Vector{<:Real},<:Real}=allometricrate(foodweb, DefaultMaxConsumptionParams())
+    r::Union{Vector{<:Real},<:Real}=allometric_rate(foodweb, DefaultGrowthParams()),
+    x::Union{Vector{<:Real},<:Real}=allometric_rate(foodweb, DefaultMetabolismParams()),
+    y::Union{Vector{<:Real},<:Real}=allometric_rate(foodweb, DefaultMaxConsumptionParams())
 )
 
     # Set up
@@ -145,7 +145,7 @@ function BioRates(
 end
 
 "Compute rate vector (one value per species) with allometric scaling."
-function allometricrate(
+function allometric_rate(
     foodweb::FoodWeb,
     allometricparams::AllometricParams
 )
