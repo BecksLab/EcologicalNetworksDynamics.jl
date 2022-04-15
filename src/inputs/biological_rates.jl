@@ -123,7 +123,8 @@ function BioRates(
     foodweb::FoodWeb;
     r::Union{Vector{<:Real},<:Real}=allometric_rate(foodweb, DefaultGrowthParams()),
     x::Union{Vector{<:Real},<:Real}=allometric_rate(foodweb, DefaultMetabolismParams()),
-    y::Union{Vector{<:Real},<:Real}=allometric_rate(foodweb, DefaultMaxConsumptionParams())
+    y::Union{Vector{<:Real},<:Real}=allometric_rate(foodweb, DefaultMaxConsumptionParams()),
+    e=assimilation_efficiency(foodweb)
 )
 
     # Set up
@@ -138,10 +139,13 @@ function BioRates(
         typeof(rate) <: Real && (rate = [rate]) # convert 'rate' to vector
         length(rate) == S || (Rates[i] = repeat(rate, S)) # length 1 -> length S
     end
+    size(e) == (S, S) || throw(ArgumentError("e should be of size (S, S) with S the species
+        richness"))
+    e = sparse(e)
 
     # Output
     r, x, y = Rates # recover formated rates
-    BioRates(r, x, y)
+    BioRates(r, x, y, e)
 end
 
 "Compute rate vector (one value per species) with allometric scaling."
