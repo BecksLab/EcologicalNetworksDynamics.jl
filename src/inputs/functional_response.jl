@@ -39,21 +39,129 @@ function assimilation_efficiency(foodweb::FoodWeb; e_herbivore=0.45, e_carnivore
 end
 
 # Functional response functors
-"Bionergetic functional response for predator i eating prey j, given the species biomass B."
+"""
+    BioenergeticResponse(B, i, j)
+
+Compute the bionergetic functional response for predator `i` eating prey `j`, given the
+species biomass `B`.
+The bionergetic functional response is written:
+```math
+F_{ij} = \\frac{\\omega_{ij} B_j^h}{B_0^h + c_i B_i B_0^h + \\sum_k \\omega_{ik} B_k^h}
+```
+With:
+- ``\\omega`` the preferency, by default we assume that predators split their time equally
+    among their preys, i.e. ∀j ``\\omega_{ij} = \\omega_{i} = \\frac{1}{n_{i,preys}}``
+    where ``n_{i,preys}`` is the number of preys of predator i.
+- ``h`` the hill exponent, if ``h = 1`` the functional response is of type II, and of type
+    III if ``h = 2``
+- ``c_i`` the intensity of predator intraspecific inteference
+- ``B_0`` the half-saturation density.
+
+# Examples
+```jldoctest
+julia> foodweb = FoodWeb([0 0; 1 0]);
+
+julia> F = BioenergeticResponse(foodweb)
+Bioenergetic functional response
+hill exponent = 2.0
+
+julia> F([1, 1], 1, 2) # no interaction, 1 does not eat 2
+0.0
+
+julia> F([1, 1], 2, 1) # interaction, 2 eats 1
+0.8
+
+julia> F([1.5, 1], 2, 1) # increases with resource biomass
+0.9
+```
+
+See also [`ClassicResponse`](@ref) and [`FunctionalResponse`](@ref).
+"""
 function (F::BioenergeticResponse)(B, i, j)
     num = F.ω[i, j] * B[j]^F.h
     denom = (F.B0[i]^F.h) + (F.c[i] * B[i] * F.B0[i]^F.h) + (sum(F.ω[i, :] .* (B .^ F.h)))
     num / denom
 end
 
-"Classic functional response for predator i eating prey j, given the species biomass B."
+"""
+    ClassicResponse(B, i, j)
+
+Compute the classic functional response for predator `i` eating prey `j`, given the
+species biomass `B`.
+The classic functional response is written:
+```math
+F_{ij} = \\frac{\\omega_{ij} a_{r,ij} B_j^h}{1 + c_i B_i + h_t \\sum_k \\omega_{ik} a_{r,ik} B_k^h}
+```
+With:
+- ``\\omega`` the preferency, by default we assume that predators split their time equally
+    among their preys, i.e. ∀j ``\\omega_{ij} = \\omega_{i} = \\frac{1}{n_{i,preys}}``
+    where ``n_{i,preys}`` is the number of preys of predator i.
+- ``h`` the hill exponent, if ``h = 1`` the functional response is of type II, and of type
+    III if ``h = 2``
+- ``c_i`` the intensity of predator intraspecific inteference
+- ``a_{r,ij}`` the attack rate of predator i on prey j
+- ``h_t`` the handling time of predators.
+
+# Examples
+```jldoctest
+julia> foodweb = FoodWeb([0 0; 1 0]);
+
+julia> F = ClassicResponse(foodweb)
+Classic functional response
+hill exponent = 2.0
+
+julia> F([1, 1], 1, 2) # no interaction, 1 does not eat 2
+0.0
+
+julia> round(F([1, 1], 2, 1), digits = 2) # interaction, 2 eats 1
+0.33
+
+julia> round(F([1.5, 1], 2, 1), digits = 2) # increases with resource biomass
+0.53
+```
+
+See also [`BioenergeticResponse`](@ref) and [`FunctionalResponse`](@ref).
+"""
 function (F::ClassicResponse)(B, i, j)
     num = F.ω[i, j] * F.aᵣ[i, j] * B[j]^F.h
     denom = 1 + (F.c[i] * B[i]) + sum(F.aᵣ[i, :] .* F.hₜ[i, :] .* F.ω[i, :] .* (B .^ F.h))
     num / denom
 end
 
-"Compute functional response matrix given the species biomass (B)."
+"""
+    FunctionalResponse(B)
+
+Compute functional response matrix given the species biomass `B`.
+If `B` is a scalar, all species are assumed to have the same biomass `B`.
+Otherwise provide a vector s.t. `B[i]` = biomass of species i.
+
+# Examples
+
+```jldoctest
+julia> foodweb = FoodWeb([0 0; 1 0]);
+
+julia> F = BioenergeticResponse(foodweb)
+Bioenergetic functional response
+hill exponent = 2.0
+
+julia> F([1, 1]) # providing a species biomass vector
+2×2 SparseArrays.SparseMatrixCSC{Float64, Int64} with 1 stored entry:
+  ⋅    ⋅
+ 0.8   ⋅
+
+julia> F(1) # or a scalar if homogeneous
+2×2 SparseArrays.SparseMatrixCSC{Float64, Int64} with 1 stored entry:
+  ⋅    ⋅
+ 0.8   ⋅
+
+julia> F([1.5, 1]) # response increases with resource biomass
+2×2 SparseArrays.SparseMatrixCSC{Float64, Int64} with 1 stored entry:
+  ⋅    ⋅
+ 0.9   ⋅
+```
+
+See also [`BioenergeticResponse`](@ref) and [`ClassicResponse`](@ref).
+"""
 function (F::FunctionalResponse)(B)
 
     # Safety checks and format
