@@ -95,3 +95,69 @@ end
     F32 = 0.5 * 2^2 / ((0.5^2) + (1 * 1 * 0.5^2) + (0.5 * 3^2 + 0.5 * 2^2))
     @test Fbioenergetic_2(B) == sparse([0 0 0; F21 0 0; F31 F32 0])
 end
+
+@testset "Classic functional response functor" begin
+    # Index by index
+    Fclassic_1 = ClassicResponse(foodweb1)
+    @test Fclassic_1([1, 1], 1, 1) == 0 # no interaction
+    @test Fclassic_1([1, 1], 1, 2) == 0 # no interaction
+    @test Fclassic_1([1, 1], 2, 2) == 0 # no interaction
+    F21 = (1 * 0.5 * 1^2) / (1 + 0.5 * 1 * 1^2)
+    @test Fclassic_1([1, 1], 2, 1) == F21 # interaction
+    @test Fclassic_1([1, 2], 2, 1) == F21 # don't depend on cons. mass
+    F21_new = (1 * 0.5 * 2^2) / (1 + 0.5 * 1 * 2^2)
+    @test Fclassic_1([2, 1], 2, 1) == F21_new # ...but depend on res. mass
+
+    # Matrix
+    @test Fclassic_1([1, 1]) == sparse([0 0; F21 0]) # provide biomass vector
+    @test Fclassic_1(1) == sparse([0 0; F21 0]) # or a scalar if same for all species
+
+    # Non-default hill exponent
+    Fclassic_1 = ClassicResponse(foodweb1, h=3)
+    F21 = (1 * 0.5 * 2^3) / (1 + 0.5 * 1 * 2^3)
+    @test Fclassic_1(2) == sparse([0 0; F21 0])
+
+    # Non-default attack rate
+    Fclassic_1 = ClassicResponse(foodweb1, aᵣ=0.2)
+    F21 = (1 * 0.2 * 2^2) / (1 + 0.2 * 1 * 2^2)
+    @test Fclassic_1(2) == sparse([0 0; F21 0])
+
+    # Non-default handling time
+    Fclassic_1 = ClassicResponse(foodweb1, hₜ=2)
+    F21 = (1 * 0.5 * 2^2) / (1 + 0.5 * 2 * 2^2)
+    @test Fclassic_1(2) == sparse([0 0; F21 0])
+
+
+    # Consumer feeding on several resources
+    Fclassic_2 = ClassicResponse(foodweb2)
+    B = [1, 1, 1] # uniform biomass distribution
+    F21 = (1 * 0.5 * 1^2) / (1 + 0.5 * 1 * 1^2)
+    F31 = (0.5 * 0.5 * 1^2) / (1 + 0.5 * 0.5 * 1 * 1^2 + 0.5 * 0.5 * 1 * 1^2)
+    F32 = F31
+    @test Fclassic_2(B) == sparse([0 0 0; F21 0 0; F31 F32 0])
+    B = [3, 2, 1] # non-uniform biomass distribution
+    F21 = (1 * 0.5 * 3^2) / (1 + 0.5 * 1 * 3^2)
+    F31 = (0.5 * 0.5 * 3^2) / (1 + 0.5 * 0.5 * 1 * 3^2 + 0.5 * 0.5 * 1 * 2^2)
+    F32 = (0.5 * 0.5 * 2^2) / (1 + 0.5 * 0.5 * 1 * 3^2 + 0.5 * 0.5 * 1 * 2^2)
+    @test Fclassic_2(B) == sparse([0 0 0; F21 0 0; F31 F32 0])
+    B, aᵣ = [3, 2, 1], [0 0 0; 0.5 0 0; 0.5 0.2 0] # non-uniform biomass...
+    Fclassic_2 = ClassicResponse(foodweb2, aᵣ=aᵣ) #...and non-uniform attack rate
+    F21 = (1 * 0.5 * 3^2) / (1 + 0.5 * 1 * 3^2)
+    F31 = (0.5 * 0.5 * 3^2) / (1 + 0.5 * 0.5 * 1 * 3^2 + 0.5 * 0.2 * 1 * 2^2)
+    F32 = (0.5 * 0.2 * 2^2) / (1 + 0.5 * 0.5 * 1 * 3^2 + 0.5 * 0.2 * 1 * 2^2)
+    @test Fclassic_2(B) == sparse([0 0 0; F21 0 0; F31 F32 0])
+    B, hₜ = [3, 2, 1], [0 0 0; 0.9 0 0; 0.7 0.2 0] # non-uniform biomass...
+    Fclassic_2 = ClassicResponse(foodweb2, hₜ=hₜ) #...and non-uniform handling time
+    F21 = (1 * 0.5 * 3^2) / (1 + 0.5 * 0.9 * 3^2)
+    F31 = (0.5 * 0.5 * 3^2) / (1 + 0.5 * 0.5 * 0.7 * 3^2 + 0.5 * 0.5 * 0.2 * 2^2)
+    F32 = (0.5 * 0.5 * 2^2) / (1 + 0.5 * 0.5 * 0.7 * 3^2 + 0.5 * 0.5 * 0.2 * 2^2)
+    @test Fclassic_2(B) ≈ sparse([0 0 0; F21 0 0; F31 F32 0]) atol = 1e-5
+
+    # Adding intraspecific interference
+    Fclassic_2 = ClassicResponse(foodweb2, c=1)
+    B = [3, 2, 1] # non-uniform biomass distribution
+    F21 = (1 * 0.5 * 3^2) / (1 + 1 * 2 + 0.5 * 1 * 3^2)
+    F31 = (0.5 * 0.5 * 3^2) / (1 + 1 * 1 + 0.5 * 0.5 * 1 * 3^2 + 0.5 * 0.5 * 1 * 2^2)
+    F32 = (0.5 * 0.5 * 2^2) / (1 + 1 * 1 + 0.5 * 0.5 * 1 * 3^2 + 0.5 * 0.5 * 1 * 2^2)
+    @test Fclassic_2(B) == sparse([0 0 0; F21 0 0; F31 F32 0])
+end
