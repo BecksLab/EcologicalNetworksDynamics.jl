@@ -2,8 +2,14 @@
 Productivity
 =#
 
-function basalgrowth(biomass, FW::FoodWeb, BR::BioRates, E::Environment)
-    idp = whoisproducer(FW.A)
-    G = (1 .- biomass ./ E.K) .* idp
-    return BR.r .* G .* biomass
+function basalgrowth(B, foodweb::FoodWeb, biorates::BioRates, Environment::Environment)
+
+    # Set up
+    isproducer = whoisproducer(foodweb)
+    r = biorates.r # intrinsic growth rate
+    K = Environment.K # carrying capacity
+
+    # Compute logistic growth
+    growth = r .* B .* (1 .- (B ./ K))
+    growth .* isproducer # non-producer have null growth
 end
