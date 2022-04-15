@@ -7,20 +7,12 @@ Model parameters
 
 Generates the parameters needed to run the bio-energetic food web model. If default values are used, the parameters are as presented in Brose et al., 2006.
 """
-function ModelParameters(FW::FoodWeb
-    ; BR::Union{Nothing,BioRates}=nothing, E::Union{Nothing,Environment}=nothing, FR::Union{Nothing,FunctionalResponse}=nothing)
+function ModelParameters(
+    FoodWeb::FoodWeb;
+    BioRates::BioRates=BioRates(foodweb),
+    Environment::Environment=Environment(foodweb),
+    FunctionalResponse::FunctionalResponse=BioenergeticResponse(foodweb)
+)
 
-    if isnothing(BR)
-        BR = BioRates(FW)
-    end
-
-    if isnothing(E)
-        E = Environment(FW)
-    end
-
-    if isnothing(FR)
-        FR = BioEnergeticFunctionalResponse(FW)
-    end
-
-    return ModelParameters(FW, BR, E, FR)
+    ModelParameters(FoodWeb, BioRates, Environment, FunctionalResponse)
 end
