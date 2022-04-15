@@ -18,5 +18,8 @@ function dBdt!(dB, B, Parameters::ModelParameters, t)
     metabolic_loss = metabolic_loss(B, biorates)
 
     # Update dB/dt
-    dB = growth .+ eating .- being_eaten .- metabolic_loss
+    S = richness(foodweb)
+    for i in 1:S
+        dB[i] = growth[i] + eating[i] - being_eaten[i] - metabolic_loss[i]
+    end
 end
