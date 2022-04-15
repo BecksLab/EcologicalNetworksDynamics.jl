@@ -19,3 +19,21 @@ function consumption(
     being_eaten = vec(sum(being_eaten, dims=1)) # sum on predators (i.e. rows)
     eating, being_eaten
 end
+
+function consumption(
+    B,
+    foodweb::FoodWeb,
+    biorates::BioRates,
+    F::ClassicResponse,
+    Environment::Environment
+)
+
+    e = biorates.e
+    Fᵢⱼ = F(B)
+    being_eaten = B .* Fᵢⱼ
+    eating = e .* being_eaten
+
+    eating = vec(sum(eating, dims=2)) # sum on prey (i.e. columns)
+    being_eaten = vec(sum(being_eaten, dims=1)) # sum on predators (i.e. rows)
+    eating, being_eaten
+end
