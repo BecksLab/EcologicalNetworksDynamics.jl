@@ -4,9 +4,7 @@ Core functions of the model
 
 function dBdt!(du, B, Parameters::ModelParameters, t)
 
-    for i in 1:length(B)
-        B[i] = B[i] <= 0 ? 0.0 : B[i]
-    end
+    B[B.<=0] .= 0 # ensuring non-negative biomass
 
     foodweb = Parameters.FoodWeb
     biorates = Parameters.BioRates
