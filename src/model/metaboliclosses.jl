@@ -2,7 +2,6 @@
 Metabolic losses
 =#
 
-function metaboliclosses(biomass, BR::BioRates)
-    losses = biomass .* BR.x
-    return losses
+function metaboliclosses(B, biorates::BioRates)
+    B .* biorates.x
 end
