@@ -19,7 +19,7 @@ include(joinpath(".", "inputs/environment.jl"))
 
 include(joinpath(".", "model/productivity.jl"))
 include(joinpath(".", "model/consumption.jl"))
-include(joinpath(".", "model/metaboliclosses.jl"))
+include(joinpath(".", "model/metabolic_loss.jl"))
 include(joinpath(".", "model/model_parameters.jl"))
 include(joinpath(".", "model/dbdt.jl"))
 include(joinpath(".", "model/simulate.jl"))
