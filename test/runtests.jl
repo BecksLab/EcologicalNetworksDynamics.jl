@@ -9,3 +9,4 @@ doctest(BEFWM2)
 
 include("inputs/test-biological_rates.jl")
 include("inputs/test-functional_response.jl")
+include("model/test-productivity.jl")
