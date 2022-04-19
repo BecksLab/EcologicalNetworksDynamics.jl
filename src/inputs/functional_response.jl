@@ -20,6 +20,18 @@ function homogeneous_preference(foodweb::FoodWeb)
     ω
 end
 
+"""
+    assimilation_efficiency(foodweb; e_herbivore=0.45, e_carnivore=0.85)
+
+Create the assimilation efficiency matrix (`Efficiency`).
+`Efficiency[i,j]` is the assimation efficiency of predator i eating prey j.
+A perfect efficiency corresponds to an efficiency of 1.
+The efficiency depends on the metabolic class of the prey:
+- if prey is producter, efficiency is `e_herbivore`
+- otherwise efficiency is `e_carnivore`
+
+Default values are taken from *add ref*.
+"""
 function assimilation_efficiency(foodweb::FoodWeb; e_herbivore=0.45, e_carnivore=0.85)
 
     # Set up
