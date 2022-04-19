@@ -2,6 +2,17 @@
 Functional response
 =#
 
+"""
+    homogeneous_preference(foodweb)
+
+Create the preferency matrix (`ω`) which describes how each predator split its time
+between its different preys.
+`ω[i,j]` is the fraction of time of predator i spent on prey j.
+By definition, ∀i ``\\sum_j \\omega_{ij} = 1``.
+Here we assume an **homogeneous** preference, meaning that each predator split its time
+equally between its preys, i.e. ∀j ``\\omega_{ij} = \\omega_{i} = \\frac{1}{n_{preys,i}}``
+where ``n_{preys,i}`` is the number of prey of predator i.
+"""
 function homogeneous_preference(foodweb::FoodWeb)
 
     # Set up
