@@ -3,12 +3,20 @@
 
 TODO
 """
-function Environment(FW::FoodWeb; K::Union{TP,Vector{TP}}=1, T::TP=293.15) where {TP<:Real}
-    if isa(K, Vector)
-        isequal(length(K))richness(FW) || throw(ArgumentError("K should be either a single value or a vector of length richness(FoodWeb)"))
-    else
-        K = repeat([K], richness(FW))
-        K[.!whoisproducer(FW.A)] .= 0
-    end
-    return Environment(K, T)
+function Environment(
+    foodweb::FoodWeb;
+    K::Union{Tp,Vector{Union{Nothing,Tp}},Vector{Tp}}=1,
+    T::Real=293.15
+) where {Tp<:Real}
+
+    S = richness(foodweb)
+
+    # Test
+    length(K) ∈ [1, S] || throw(ArgumentError("Wrong length: K should be of length 1 or S
+        (species richness)."))
+
+    # Format if needed
+    length(K) == S || (K = [isproducer(foodweb, i) ? K : nothing for i in 1:S])
+
+    Environment(K, T)
 end
