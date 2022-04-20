@@ -15,11 +15,11 @@ function dBdt!(dB, B, Parameters::ModelParameters, t)
     # Compute equation terms
     growth = logisticgrowth(B, foodweb, biorates, environment)
     eating, being_eaten = consumption(B, foodweb, biorates, F, environment)
-    metabolic_loss = metabolic_loss(B, biorates)
+    metabolism_loss = metabolic_loss(B, biorates)
 
     # Update dB/dt
     S = richness(foodweb)
     for i in 1:S
-        dB[i] = growth[i] + eating[i] - being_eaten[i] - metabolic_loss[i]
+        dB[i] = growth[i] + eating[i] - being_eaten[i] - metabolism_loss[i]
     end
 end
