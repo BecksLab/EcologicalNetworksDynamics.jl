@@ -27,6 +27,16 @@ function isproducer(foodweb::FoodWeb, i)
 end
 #### end ####
 
+#### Find consumers and resources of a species ####
+function resource(i, foodweb::FoodWeb)
+    any.(foodweb.A[i, :])
+end
+
+function consumer(i, foodweb::FoodWeb)
+    any.(foodweb.A[:, i])
+end
+#### end #### 
+
 function resourcenumber(consumer, foodweb::FoodWeb)
     sum(foodweb.A[consumer, :])
 end
