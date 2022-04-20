@@ -7,6 +7,7 @@ using SparseArrays
 DocMeta.setdocmeta!(BEFWM2, :DocTestSetup, :(using BEFWM2); recursive=true)
 doctest(BEFWM2)
 
+include("test-utils.jl")
 include("inputs/test-biological_rates.jl")
 include("inputs/test-functional_response.jl")
 include("inputs/test-environment.jl")
