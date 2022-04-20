@@ -64,11 +64,8 @@ end
 Environmental variables
 """
 mutable struct Environment
-    K::Vector{<:Real}
+    K::Vector{Union{Nothing,<:Real}}
     T::Union{Int64,Float64}
-    function Environment(K, T)
-        new(K, T)
-    end
 end
 
 """
