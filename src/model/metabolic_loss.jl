@@ -7,7 +7,3 @@ function metabolic_loss(i, B, params::ModelParameters)
     Bᵢ = B[i] # biomass of species i
     xᵢ * Bᵢ
 end
-
-function metabolic_loss(B, x)
-    B * x
-end
