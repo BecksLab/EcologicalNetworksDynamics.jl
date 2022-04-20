@@ -21,6 +21,10 @@ end
 function whoisproducer(A)
     vec(.!any(A, dims=2))
 end
+
+function isproducer(foodweb::FoodWeb, i)
+    foodweb.metabolic_class[i] == "producer"
+end
 #### end ####
 
 function resourcenumber(consumer, foodweb::FoodWeb)
