@@ -9,6 +9,7 @@ doctest(BEFWM2)
 
 include("inputs/test-biological_rates.jl")
 include("inputs/test-functional_response.jl")
+include("inputs/test-environment.jl")
 include("model/test-productivity.jl")
 include("model/test-metabolic_loss.jl")
 include("model/test-model_parameters.jl")
