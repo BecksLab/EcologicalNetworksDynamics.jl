@@ -71,11 +71,11 @@ end
 """
     Model parameters
 """
-mutable struct ModelParameters
+mutable struct ModelParameters{R<:FunctionalResponse}
     FoodWeb::FoodWeb
     BioRates::BioRates
     Environment::Environment
-    FunctionalResponse::FunctionalResponse
+    FunctionalResponse::R
 end
 
 """
