@@ -2,14 +2,11 @@
 Productivity
 =#
 
-function logisticgrowth(B, foodweb::FoodWeb, biorates::BioRates, Environment::Environment)
-
-    # Set up
-    r = biorates.r # intrinsic growth rate
-    K = Environment.K # carrying capacity
-
-    # Compute logistic growth for all species
-    logisticgrowth.(B, r, K)
+function logisticgrowth(i, B, params::ModelParameters)
+    rᵢ = params.BioRates.r[i] # intrinsic growth rate of species i
+    Kᵢ = params.Environment.K[i] # carrying capacity of species i
+    Bᵢ = B[i] # biomass of species i
+    logisticgrowth(Bᵢ, rᵢ, Kᵢ)
 end
 
 function logisticgrowth(B, r, K)

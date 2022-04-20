@@ -2,6 +2,12 @@
 Metabolic losses
 =#
 
-function metabolic_loss(B, biorates::BioRates)
-    B .* biorates.x
+function metabolic_loss(i, B, params::ModelParameters)
+    xᵢ = params.BioRates.x[i] # metabolic rate of species i
+    Bᵢ = B[i] # biomass of species i
+    xᵢ * Bᵢ
+end
+
+function metabolic_loss(B, x)
+    B * x
 end
