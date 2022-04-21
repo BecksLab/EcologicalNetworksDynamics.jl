@@ -1,29 +1,16 @@
-# BioEnergeticFoodWebs
-## Installation 
-
-- clone the repository
-- open the newly created folder with you preferred code editor
-- run the following lines:
-```julia-repl
-julia> import Pkg 
-
-julia> Pkg.activate(.)
-Activating environment at `~/.../BEFWM2/Project.toml`
-
-julia> using BEFWM2
-[ Info: Precompiling BEFWM2 [2fd9189a-c387-4076-88b7-22b33b5a4388]
+```@meta
+CurrentModule = BEFWM2
 ```
 
-## Table of content
+# BEFWM2
+
+Fresh documentation for
+[BEFWM2](https://github.com/ilajaait/BEFWM2)
+(experiment on forked repo).
 
 ```@contents
 Pages = ["man/foodwebs.md", "man/functionalresponse.md"]
 Depth = 2
-```
-
-
-```@meta
-CurrentModule = BEFWM2
 ```
 
 # Reference
