@@ -1,11 +1,11 @@
 using BEFWM2
 using Documenter
 
-DocMeta.setdocmeta!(BEFWM2, :DocTestSetup, :(using BEFWM2); recursive = true)
+DocMeta.setdocmeta!(BEFWM2, :DocTestSetup, :(using BEFWM2); recursive=true)
 
 makedocs(;
-    modules = [BEFWM2],
-    authors =
+    modules=[BEFWM2],
+    authors=
     "Eva Delmas"
     * ", Hana Mayall"
     * ", Thomas Malpas"
@@ -13,18 +13,26 @@ makedocs(;
     * ", Ismaël Lajaaiti"
     * ", Iago Bonnici"
     * ", Sonia Kéfi",
-    repo = "https://github.com/ilajaait/BEFWM2/blob/{commit}{path}#{line}",
-    sitename = "BEFWM2.jl",
-    format = Documenter.HTML(;
-        prettyurls = get(ENV, "CI", "false") == "true",
-        assets = String[]
+    repo="https://github.com/ilajaait/BEFWM2/blob/{commit}{path}#{line}",
+    sitename="BEFWM2.jl",
+    format=Documenter.HTML(;
+        prettyurls=get(ENV, "CI", "false") == "true",
+        assets=String[]
     ),
-    pages = [
+    pages=[
         "Home" => "index.md",
+        "Manual" => [
+            "Foodwebs" => "man/foodwebs.md",
+            "Functional reponses" => "man/functionalresponse.md"
+        ],
+        "Library" => [
+            "Public" => "lib/public.md",
+            "Internals" => "lib/internals.md"
+        ]
     ]
 )
 
 deploydocs(;
-    repo = "github.com/ilajaait/BEFWM2",
-    devbranch = "doc"
+    repo="github.com/ilajaait/BEFWM2",
+    devbranch="doc"
 )
