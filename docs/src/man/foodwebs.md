@@ -1,154 +1,138 @@
-# Generating food webs 
+# How to generate foodwebs?
 
-The basic input for the bio-energetic food-web model is the food web. There are different methods for generating food webs, all return an object of type `FoodWeb` with 5 fields: 
-- `A` is a sparse array of boolean values representing the adjacency matrix, with consumers as rows (`i`) and resources in columns (`j`). `A[i,j] = true` if species `i` eats species `j`;
-- species is a vector describing species identities 
-- `M` is a vector of species body mass 
-- `metabolic_class` is a vector describing species metabolic class
-- `method` described the method used to build the food web. This is especially useful when using a model (e.g. `nichemodel` from `EcologicalNetworks`) because method will then take automatically take the name of the model, but this can be used to store any information abou the food web (e.g. the source if it is an empirical food web). 
+The key input for the bioenergetic foodweb model is, as indicated by its name, the
+foodweb. Foodwebs can be generated with different methods that all return a
+[`FoodWeb`](@ref) object containing the 5 following fields:
+- `A`: the foodweb adjacency matrix with 0s and 1s indicating respectively the absence and
+    presence of trophic interactions. Rows are consumers and columns resources, thus
+    `A[i,j] = 1` reads "species `i` eats species `j`"
+- `species`: vector containing species identities
+- `M`: vector containing species body-mass
+- `metabolic_class`: vector containing species metabolic class (e.g. "producer")
+- `method`: the method used to build the food web. This is especially useful when using a
+    model (e.g. `nichemodel` from `EcologicalNetworks`) because method will then take
+    automatically take the name of the model, but this can also be used to store the source
+    of empirical foodweb for instance.
 
-## Using a user defined interaction matrix
+## Defining your own adjacency matrix
 
-~~~julia-repl
-julia> #define the adjacency matrix, with consumers as rows. 
-julia> #Can be either a SxS Matrix{Bool} or a SxS Matrix{Int64} with 1s and 0s
-julia> exp_compet = [false true true; false false false; false false false]
-3×3 Matrix{Bool}:
- 0  1  1
- 0  0  0
- 0  0  0
-julia> #use FoodWeb to build the FoodWeb object
-julia> fw = FoodWeb(exp_compet)
-3 species - 2 links. 
-Method: unspecified
-~~~
+The most straightforward way to generate the foodweb is to define your own adjacency matrix
+(`A`) by hand and give it to the [`FoodWeb`](@ref) method that will return you the
+corresponding `FoodWeb` object.
 
-Explore the object created: 
+```@setup befwm2
+using BEFWM2
+```
 
-- field `A` contains the user-defined adjacency matrix
-~~~julia-repl
-julia> fw.A
-3×3 SparseArrays.SparseMatrixCSC{Bool, Int64} with 2 stored entries:
- ⋅  1  1
- ⋅  ⋅  ⋅
- ⋅  ⋅  ⋅
-~~~
+```@repl befwm2
+A = [0 0 0; 1 0 0; 0 1 0] # 1 producer ⋅ 2 eats 1 ⋅ 3 eats 2
+foodweb = FoodWeb(A)
+```
 
-- field `species` has not been modified and as such contains default values:
-~~~julia-repl
-julia> fw.species
-3-element Vector{String}:
- "s1"
- "s2"
- "s3"
-~~~
+We can check that stored adjacency matrix in `foodweb` corresponds to the one we provided.
 
-- we have not specified species masses nor a consumer-resource mass ratio, so default masses are `1.0`:
-~~~julia-repl
-julia> fw.M
-3-element Vector{Real}:
- 1.0
- 1.0
- 1.0
-~~~
+```@repl befwm2
+foodweb.A
+```
 
-- we have not specified species metabolic classes, so default values are used (basal species are producers and other are invertebrates)
-~~~julia-repl
-julia> fw.metabolic_classes
-3-element Vector{String}:
- "invertebrate"
- "producer"
- "producer"
-~~~
+As we did not use a method (e.g. the `nichemodel`) to create the foodweb, the method is said
+`unspecified`.
 
-- the default value for method is `unspecified`
- ~~~julia-repl
-julia> fw.method
-"unspecified"
-~~~
+```@repl befwm2
+foodweb.method
+```
+
+Moreover, by default:
+- the consumers are assumed to be inverterbrates
+
+```@repl befwm2
+foodweb.metabolic_class
+```
+
+- all body-mass are set to 1
+
+```@repl befwm2
+foodweb.M
+```
+
+- the `species` vector stores only species indexes as no identities were provided.
+
+```@repl befwm2
+foodweb.species
+```
+
+Creating a foodweb from your own adjacency matrix is straightforward but is only useful
+for simple and small 'toy systems'. If you want to work with foodwebs with a large size and
+a realistic structure, it is more suited to create the foodweb using structural models.
 
 ## Using a structural model
 
-The `EcologicalNetworks` package implements various structural models to build food webs. You can pass any of those models, with the corresponding arguments, to generate food webs. 
+[EcologicalNetworks.jl](http://docs.ecojulia.org/EcologicalNetworks.jl/stable/) package
+implements various structural models to build foodwebs. You can pass any of those models,
+with the adequate arguments, to generate foodwebs.
 
-~~~julia-repl
-julia> using EcologicalNetworks
-julia> fw = FoodWeb(mpnmodel, 20, C = 0.2, forbidden = 0.1)
-20 species - 93 links. 
- Method: mpnmodel
-~~~
+```@repl befwm2
+using EcologicalNetworks
+S = 20; # number of species
+C = 0.2; # connectance
+foodweb = FoodWeb(nichemodel, S, C=C)
+```
 
-Note that the `method` field has automatically stored the model used to generate the food web: 
+!!! note
+    The `method` field has automatically stored the model used to generate the foodweb.
 
-~~~julia-repl
-julia> fw.method
-"mpnmodel"
-~~~
+    ```julia-repl
+    julia> foodweb.method
+    "nichemodel"
+    ```
 
-## Pass an EcologicalNetwork object 
+## Providing a unipartite network from EcologicalNetworks.jl
 
-`BioEnergeticFoodWebs` is now compatible with `EcologicalNetworks`, so you can directly pass a `UnipartiteNetwork` object to `FoodWeb` without having to convert it first: 
+BioenergeticFoodwebs.jl is compatible with EcologicalNetworks.jl, so you can directly give a
+`UnipartiteNetwork` object to the [`FoodWeb`](@ref) method.
 
-NB: This function is not yet able to attribute a metabolic class, or a mass to species, the following will just pass the adjacency matrix. 
+!!! note
+    This function is not yet able to attribute metabolic classes or a mass to species, it
+    just pass the adjacency matrix.
 
-~~~julia-repl
-julia> using EcologicalNetworks
-julia> N = nz_stream_foodweb()[1]
-85×85 (String) unipartite ecological network (L: 227 - Bool)
-julia> fw = FoodWeb(N, method = "NZ stream")
-85 species - 227 links. 
- Method: NZ stream
-~~~
+```@repl befwm2
+unipartite_network = EcologicalNetworks.nz_stream_foodweb()[1] # load network
+foodweb = FoodWeb(unipartite_network, method="NZ stream")
+```
 
-## Define species mass
+## Specifying species mass
 
-By default, species mass are all 1.0. To change that, you can use either `M` directly, or use a consumer-resource mass ratio `Z`:
+By default all species mass are set to 1. However, you cange that either by giving your own
+body-mass vector (`M`).
 
-- passing known masses: 
-  
-~~~julia-repl
-julia> S = 10 #richness
-10
-julia> mass = rand(10) .* 100 #generate a vector of species masses
-10-element Vector{Float64}:
- 99.56952104238623
- 91.39217423569855
- 62.516199436785726
- 85.86867382077854
-  ⋮
- 74.34820412205818
- 34.29549899551032
- 23.336180216802237
-julia> fw = FoodWeb(nichemodel, 10, C = 0.15, M = mass)
-10 species - 10 links. 
- Method: nichemodel
-julia> fw.M == mass
-true
-~~~
+```@repl befwm2
+A = [0 0 0; 1 0 0; 0 1 0]; # define adjacency matrix
+M = rand(3) # body-mass are drawn randomly in [0,1]
+foodweb = FoodWeb(A, M=M)
+foodweb.M
+```
 
-- when using a consumer-resource mass ratio, body masses are calculated as `M = Z .^ (tl .- 1)`, where `tl` is a vector of species trophic levels:
+Or by using a consumer-resource mass ratio `Z`, then mass will be computed using species
+trophic levels (``t_l``) such that: ``M = Z^{t_l - 1}``.
 
-~~~julia-repl
-julia> S = 10 #richness
-10
-julia> fw = FoodWeb(nestedhierarchymodel, 10, C = 0.15, Z = 10)
-10 species - 15 links. 
- Method: nestedhierarchymodel
-julia> fw.M 
-10-element Vector{Real}:
-   1.0
- 215.44346900318823
- 100.0
-   1.0
-   ⋮
-   1.0
-  10.0
- 215.44346900318823
-~~~
+```@repl befwm2
+A = [0 0 0; 1 0 0; 0 1 0]; # trophic levels are respectively 1, 2 and 3
+foodweb = FoodWeb(A, Z=10)
+foodweb.M
+```
 
-## Define species metabolic classes 
+## Specifying species metabolic classes
 
-Species metabolic classes are important properties in the context of the bio-energetic model because the help define allometric parameter values for calculating the biological rates (driving growth, metabolism and consumption). Informed default values are implemented for producers (basal species), invertebrate consumers and ectotherm vertebrate consumers. If you want to use different classes (such as endotherm vertebrates), you can, but note that you should then provide the corresponding parameters or biological rates when defining the model parameters. 
+!!! warning
+    This subsection has still to be refactored.
+
+Species metabolic classes are important properties in the context of the bioenergetic model
+because the help define allometric parameter values for calculating the biological rates
+(driving growth, metabolism and consumption). Informed default values are implemented for
+producers (basal species), invertebrate consumers and ectotherm vertebrate consumers. If you
+want to use different classes (such as endotherm vertebrates), you can, but note that you
+should then provide the corresponding parameters or biological rates when defining the model
+parameters.
 
 ~~~julia-repl
 julia> N = [
@@ -156,7 +140,7 @@ julia> N = [
  0  0  0  0  0  ;
  1  1  0  0  0  ;
  0  0  1  0  0  ;
- 0  0  1  1  0  
+ 0  0  1  1  0
 ]
 julia> metab = ["producer", "producer", "invertebrate", "ectotherm vertebrate", "ectotherm vertebrate"]
 5-element Vector{String}:
@@ -166,11 +150,12 @@ julia> metab = ["producer", "producer", "invertebrate", "ectotherm vertebrate", 
  "ectotherm vertebrate"
  "ectotherm vertebrate"
 julia> fw = FoodWeb(N, metabolic_class = metab)
-5 species - 5 links. 
+5 species - 5 links.
  Method: unspecified
 ~~~
 
-Note that if you provide a metabolic class other than producer for any basal species, this will automatically be changed to producer (and return a Warning): 
+Note that if you provide a metabolic class other than producer for any basal species,
+this will automatically be changed to producer (and return a Warning):
 
 ~~~julia-repl
 julia> metab = ["producer", "invertebrate", "invertebrate", "ectotherm vertebrate", "ectotherm vertebrate"]
@@ -183,7 +168,7 @@ julia> metab = ["producer", "invertebrate", "invertebrate", "ectotherm vertebrat
 julia> fw = FoodWeb(N, metabolic_class = metab)
 ┌ Warning: You provided a metabolic class for basal species - replaced by producer
 └ @ BEFWM2 ~/projets/BEFWM2/src/inputs/foodwebs.jl:28
-5 species - 5 links. 
+5 species - 5 links.
  Method: unspecified
 julia> fw.metabolic_class
 5-element Vector{String}:
@@ -194,7 +179,8 @@ julia> fw.metabolic_class
  "ectotherm vertebrate"
 ~~~
 
-If you specify "vertebrate" instead of "ectotherm vertebrate", we will ask whether you want to change that to "ectotherm vertebrate", you can decide to change (type y) or not (type n): 
+If you specify "vertebrate" instead of "ectotherm vertebrate", we will ask whether you want
+to change that to "ectotherm vertebrate", you can decide to change (type y) or not (type n):
 
 ~~~julia-repl
 julia> metab = ["producer", "producer", "invertebrate", "vertebrate", "vertebrate"]
@@ -206,7 +192,7 @@ julia> metab = ["producer", "producer", "invertebrate", "vertebrate", "vertebrat
  "vertebrate"
 julia> fw = FoodWeb(N, metabolic_class = metab)
 Do you want to replace vertebrates by ectotherm vertebrates (y or n)?y
-5 species - 5 links. 
+5 species - 5 links.
  Method: unspecified
 julia> fw.metabolic_class
 5-element Vector{String}:
@@ -217,7 +203,8 @@ julia> fw.metabolic_class
  "ectotherm vertebrate"
 ~~~
 
-Finally, if you decide to use classes other than those 3, we will send you a Warning message but will not change anything:
+Finally, if you decide to use classes other than those 3, we will send you a Warning message
+but will not change anything:
 
 ~~~julia-repl
 julia> metab = ["producer", "producer", "invertebrate", "endotherm vertebrate", "endotherm vertebrate"]
@@ -230,7 +217,7 @@ julia> metab = ["producer", "producer", "invertebrate", "endotherm vertebrate", 
 julia> fw = FoodWeb(N, metabolic_class = metab)
 ┌ Warning: No default methods for metabolic classes outside of producers, invertebrates and ectotherm vertebrates, proceed with caution
 └ @ BEFWM2 ~/projets/BEFWM2/src/inputs/foodwebs.jl:39
-5 species - 5 links. 
+5 species - 5 links.
  Method: unspecified
 julia> fw.metabolic_class
 5-element Vector{String}:
@@ -240,5 +227,3 @@ julia> fw.metabolic_class
  "endotherm vertebrate"
  "endotherm vertebrate"
 ~~~
-
-
