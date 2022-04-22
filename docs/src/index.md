@@ -5,8 +5,8 @@ CurrentModule = BEFWM2
 # BioenergeticFoodwebs.jl
 
 This package provides tools to simulate foodweb dynamics and quantify the stability of these
-foodwebs with various metrics, using `julia`. It was thought to generate foodwebs with
-realistic structures and parameters by default, however, each model parameter can be easily
+foodwebs with various metrics, using Julia. It was thought to generate foodwebs with
+realistic structures and parameters by default, however each model parameter can be easily
 customized if wanted.
 
 *Complete the package description and explain in more detail the package features and the
@@ -31,27 +31,4 @@ repository, start working from the `develop` branch, and when ready, submit a pu
 ## Citing
 
 If you use BioenergeticFoodwebs.jl in research, teaching, or other activities, we would be
-grateful if you could mention BioenergeticFoodwebs.jl.
-
-# Tests
-
-Example doctests:
-
-```jldoctest
-a = 5
-b = 8
-a + b
-
-# output
-
-13
-```
-
-```jldoctest
-julia> a = 5
-5
-julia> b = 8
-8
-julia> a + b
-13
-```
+grateful if you could mention it.

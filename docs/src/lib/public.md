@@ -10,13 +10,18 @@ Pages = ["public.md"]
 
 ## Public Interface
 
-```@docs
-BioRates(
-    ::FoodWeb;
-    ::Union{Vector{<:Real},<:Real},
-    ::Union{Vector{<:Real},<:Real},
-    ::Union{Vector{<:Real},<:Real}
-)
+### Functions
 
-ModelParameters
+```@autodocs
+Modules = [BEFWM2]
+Private = false
+Order = [:function]
+```
+
+### Types
+
+```@autodocs
+Modules = [BEFWM2]
+Private = false
+Order = [:type]
 ```
