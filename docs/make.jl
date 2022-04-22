@@ -22,8 +22,15 @@ makedocs(;
     pages=[
         "Home" => "index.md",
         "Manual" => [
-            "Foodwebs" => "man/foodwebs.md",
-            "Functional reponses" => "man/functionalresponse.md"
+            "Generating foodwebs" => "man/foodwebs.md",
+            "Generating model parameters" => "man/modelparameters.md",
+            "Choosing a functional reponse" => "man/functionalresponse.md",
+            "Running simulations" => "man/simulations.md",
+            "Measuring stability" => "man/stability.md"
+        ],
+        "Examples" => [
+            "Paradox of enrichment" => "example/paradox_enrichment.md",
+            "Intraspecific competition and stability" => "example/intracomp_stability.md"
         ],
         "Library" => [
             "Public" => "lib/public.md",
