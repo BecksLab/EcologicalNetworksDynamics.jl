@@ -1,24 +1,28 @@
 # How to generate foodwebs?
 
-The key input for the bioenergetic foodweb model is, as indicated by its name, the
-foodweb. Foodwebs can be generated with different methods that all return a
-[`FoodWeb`](@ref) object containing the 5 following fields:
-- `A`: the foodweb adjacency matrix with 0s and 1s indicating respectively the absence and
-    presence of trophic interactions. Rows are consumers and columns resources, thus
-    `A[i,j] = 1` reads "species `i` eats species `j`"
+As indicated by its name,
+the key input for the bioenergetic foodweb model is the foodweb.
+Foodwebs can be generated with different methods that all return
+a [`FoodWeb`](@ref) object containing the 5 following fields:
+- `A`: the foodweb adjacency matrix with 0s and 1s
+    indicating respectively the absence and presence of trophic interactions.
+    Rows are consumers and columns resources,
+    thus `A[i,j] = 1` reads "species `i` eats species `j`"
 - `species`: vector containing species identities
 - `M`: vector containing species body-mass
 - `metabolic_class`: vector containing species metabolic class (e.g. "producer")
-- `method`: the method used to build the food web. This is especially useful when using a
-    model (e.g. `nichemodel` from `EcologicalNetworks`) because method will then take
-    automatically take the name of the model, but this can also be used to store the source
-    of empirical foodweb for instance.
+- `method`: the method used to build the food web.
+    This is especially useful when using a method
+    (e.g. `nichemodel` from EcologicalNetworks.jl)
+    because method will then take automatically take the name of the model,
+    but this can also be used to store the source of empirical foodweb.
 
-## Defining your own adjacency matrix
+## Define your own adjacency matrix
 
-The most straightforward way to generate the foodweb is to define your own adjacency matrix
-(`A`) by hand and give it to the [`FoodWeb`](@ref) method that will return you the
-corresponding `FoodWeb` object.
+The most straightforward way to generate the foodweb is to
+define your own adjacency matrix (`A`) by hand
+and give it to the [`FoodWeb`](@ref) method
+that will return you the corresponding `FoodWeb` object.
 
 ```@setup befwm2
 using BEFWM2
@@ -29,14 +33,14 @@ A = [0 0 0; 1 0 0; 0 1 0] # 1 producer ⋅ 2 eats 1 ⋅ 3 eats 2
 foodweb = FoodWeb(A)
 ```
 
-We can check that stored adjacency matrix in `foodweb` corresponds to the one we provided.
+We can check that adjacency matrix stored in `foodweb` corresponds to the one we provided.
 
 ```@repl befwm2
 foodweb.A
 ```
 
-As we did not use a method (e.g. the `nichemodel`) to create the foodweb, the method is said
-`unspecified`.
+As we did not use a method (e.g. the `nichemodel`) to create the foodweb,
+the method is said to be `unspecified`.
 
 ```@repl befwm2
 foodweb.method
@@ -61,15 +65,16 @@ foodweb.M
 foodweb.species
 ```
 
-Creating a foodweb from your own adjacency matrix is straightforward but is only useful
-for simple and small 'toy systems'. If you want to work with foodwebs with a large size and
-a realistic structure, it is more suited to create the foodweb using structural models.
+Creating a foodweb from your own adjacency matrix is straightforward
+but is only useful for simple and small 'toy systems'.
+If you want to work with foodwebs with a large size and a realistic structure,
+it is more suited to create the foodweb using structural models.
 
-## Using a structural model
+## Use a structural model
 
 [EcologicalNetworks.jl](http://docs.ecojulia.org/EcologicalNetworks.jl/stable/) package
-implements various structural models to build foodwebs. You can pass any of those models,
-with the adequate arguments, to generate foodwebs.
+implements various structural models to build foodwebs.
+You can pass any of those models, with the adequate arguments, to generate foodwebs.
 
 ```@repl befwm2
 using EcologicalNetworks
@@ -86,24 +91,24 @@ foodweb = FoodWeb(nichemodel, S, C=C)
     "nichemodel"
     ```
 
-## Providing a unipartite network from EcologicalNetworks.jl
+## Provide a unipartite network from EcologicalNetworks.jl
 
-BioenergeticFoodwebs.jl is compatible with EcologicalNetworks.jl, so you can directly give a
-`UnipartiteNetwork` object to the [`FoodWeb`](@ref) method.
+BioenergeticFoodwebs.jl is compatible with EcologicalNetworks.jl,
+so you can directly give a `UnipartiteNetwork` object to the [`FoodWeb`](@ref) method.
 
 !!! note
-    This function is not yet able to attribute metabolic classes or a mass to species, it
-    just pass the adjacency matrix.
+    This function is not yet able to attribute metabolic classes or a mass to species,
+    it just pass the adjacency matrix.
 
 ```@repl befwm2
 unipartite_network = EcologicalNetworks.nz_stream_foodweb()[1] # load network
 foodweb = FoodWeb(unipartite_network, method="NZ stream")
 ```
 
-## Specifying species mass
+## Specify species mass
 
-By default all species mass are set to 1. However, you cange that either by giving your own
-body-mass vector (`M`).
+By default all species mass are set to 1.
+However, you cange that either by giving your own body-mass vector (`M`).
 
 ```@repl befwm2
 A = [0 0 0; 1 0 0; 0 1 0]; # define adjacency matrix
@@ -112,8 +117,9 @@ foodweb = FoodWeb(A, M=M)
 foodweb.M
 ```
 
-Or by using a consumer-resource mass ratio `Z`, then mass will be computed using species
-trophic levels (``t_l``) such that: ``M = Z^{t_l - 1}``.
+Or by using a consumer-resource mass ratio `Z`,
+then mass will be computed using species trophic levels (``t_l``)
+such that: ``M = Z^{t_l - 1}``.
 
 ```@repl befwm2
 A = [0 0 0; 1 0 0; 0 1 0]; # trophic levels are respectively 1, 2 and 3
@@ -121,10 +127,10 @@ foodweb = FoodWeb(A, Z=10)
 foodweb.M
 ```
 
-## Specifying species metabolic classes
+## Specify species metabolic classes
 
-!!! warning
-    This subsection has still to be refactored.
+!!! note "Todo"
+    Update this subsection.
 
 Species metabolic classes are important properties in the context of the bioenergetic model
 because the help define allometric parameter values for calculating the biological rates
