@@ -22,11 +22,11 @@ makedocs(;
     pages=[
         "Home" => "index.md",
         "Manual" => [
-            "Generating foodwebs" => "man/foodwebs.md",
-            "Generating model parameters" => "man/modelparameters.md",
-            "Choosing a functional reponse" => "man/functionalresponse.md",
-            "Running simulations" => "man/simulations.md",
-            "Measuring stability" => "man/stability.md"
+            "Generate foodwebs" => "man/foodwebs.md",
+            "Generate model parameters" => "man/modelparameters.md",
+            "Choose a functional reponse" => "man/functionalresponse.md",
+            "Run simulations" => "man/simulations.md",
+            "Measure stability" => "man/stability.md"
         ],
         "Examples" => [
             "Paradox of enrichment" => "example/paradox_enrichment.md",
