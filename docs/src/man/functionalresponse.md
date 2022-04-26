@@ -1,126 +1,213 @@
-# The functional response 
+# How to choose the functional response?
 
-The type of functional response used during the simulation can drastically change the model dynamics. Here we show how to change the functional response and its parameters. 
+```@setup befwm2
+using BEFWM2
+```
 
-There are 2 main types of implementation for the functional response. One uses the consumers maximum assimilation rates and half saturation densities -- as described in the original description of the model by Yodzis and Innes (1992) -- while the other, more classical formulation, relies on pairwise attack rates and handling times (not implemented yet, work in progress).
+The functional response quantifies the consumption rates of resources by consumers.
+There are different types of functional response (*e.g.*, linear, classic or bioenergetic)
+and changing functional response type can drastically change the model dynamics.
+Below we describe the functional response types implemented in this package
+and how you can change from one functional response to another.
 
-## The original functional response (default setting) 
+The functional responses are ordered by increasing complexity.
+First, we begin with the [Linear response](@ref)
+which is the most simple response we can think of.
+Then, we present two more complex responses,
+the [Bioenergetic response](@ref) and the [Classic response](@ref),
+that both take into account a saturation effect with the resource biomass.
 
-By default, the original formulation of the functional response (Yodzis & Innes, 1992; Williams, Brose and Martinez 2005) is used.
+## Linear response
 
--> TODO: equation
+!!! warning
+    The linear response is not implemented yet.
 
-When calling the `ModelParameters` function with default settings, a Holling type III functional response is implemented ($h = 2$ and $c = 0$): 
+The linear response states that the consumption rate of the consumer is
+proportional to the biomass of the resource.
+Such an assumption is biologically wrong for large resource biomass,
+as there is no saturation effect.
+However, the major advantage of the linear response is that
+it makes theoretical derivations easy.
+For that reason, we find it in many theoretical models (e.g. Lotka-Volterra).
 
-~~~julia-repl
-julia> #define a food web
-julia> using EcologicalNetworks
-julia> fw = FoodWeb(nichemodel, 20, C = 0.2, Z = 10)
-20 species - 87 links. 
- Method: nichemodel
-julia> #call the ModelParameters function with default settings
-julia> p = ModelParameters(fw)
-Model parameters are compiled:
-FoodWeb - ✅
-BioRates - ✅
-Environment - ✅
-FunctionalResponse - ✅
-julia> #inspect the FunctionalResponse object
-julia> p.FunctionalResponse
-functional response: classical
-type III
-~~~
+The linear response for consumer ``i`` eating resource ``j`` writes:
 
-This is equivalent to calling the `originalFW` function with default values and passing that to `ModelParameters`: 
+```math
+F_{ij} = a_{ij} \omega_{ij} B_j
+```
+with:
+- ``B_j`` the biomass of resource ``j``
+- ``a_{ij}`` the attack rate of consumer ``i`` on resource ``j``
+- ``\omega_{ij}`` preferency of consumer ``i`` on resource ``j``
+For more details see `LinearResponse`.
 
-~~~julia-repl
-julia> funcrep = originalFR(fw)
-functional response: classical
-type III
-julia> p = ModelParameters(fw; FR = funcrep)
-Model parameters are compiled:
-FoodWeb - ✅
-BioRates - ✅
-Environment - ✅
-FunctionalResponse - ✅
-~~~
+!!! note "Todo"
+    - Add the link to linear response method when implemented
+    - Add code chunk showing how to call the `LinearResponse` method
 
-## The FunctionalResponse object 
+And the corresponding ODEs system is:
 
-The `FunctionalResponse` object contains 6 fields: 
+```math
+\frac{dB_i}{dt} = g(B_i)
+    + B_i \sum_{j \in \{ \text{res.} \}} e_{ij} F_{ij}
+    - \sum_{j \in \{ \text{cons.} \}} B_j F_{ji}
+    - x_i B_i
+```
+The first term is a growth term (*e.g.* logistic growth)
+that is non-zero only for producers.
+The second term translates the biomass gained by eating resources,
+with ``e_{ij}`` the assimilation efficiency.
+The third term translates the biomass loss by being eaten by consumers.
+The fourth term quantifies the biomass loss due to the species metabolic demand (``x_i``).
 
-- `functional_response` is the function that will be used during the simulations to calculate the functional response 
+If the linear response can be useful in simple cases,
+it is probably better for you to consider one of the two following responses
+which are more biologically realistic
+as they consider a saturation effect with resource biomass.
 
-~~~julia-repl
-julia> p.FunctionalResponse.functional_response
-(::BEFWM2.var"#classical#9") (generic function with 1 method)
-~~~
+## Bioenergetic response
 
-- `hill_exponent` (default is 2) is the hill exponent controlling the shape of the functional response: inverse exponential if 1 (Holling type II) and sigmoid if 2 (Holling type III).
+The bioenergetic response was first introduced by
+[Yodzis and Innes (1992)](https://www.journals.uchicago.edu/doi/abs/10.1086/285380).
+It assumes that the consumption rate saturates for large resource biomass.
 
-~~~julia-repl
-julia> p.FunctionalResponse.hill_exponent
-2.0
-~~~
+Formally, the bioenergetic response is written:
 
-- `c` is either a vector or a single value expressing the strength of the predator interference(between 0 and 1). `hill_exponent = 1` and `c = 1` describe a Beddington-DeAngelis functional response. 
+```math
+F_{ij} = \frac{\omega_{ij} B_j^h}{B_0^h + c_i B_i B_0^h
+    + \sum_{k \in \{ \text{res.} \}} \omega_{ik} B_k^h}
+```
+with:
+- ``\omega_{ij}`` preferency of consumer ``i`` on resource ``j``
+- ``B_0`` the half-saturation density
+- ``c_i`` the intensity of intraspecific predator interference
+- ``h`` the hill-exponent
 
-~~~julia-repl
-julia> p.FunctionalResponse.c
-20-element Vector{Float64}:
- 0.0
- 0.0
- ⋮
- 0.0
- 0.0
-~~~
 
-- `e` is a S*S array of pairwise assimilation efficiencies. By default herbivory links have an efficiency of 0.45 and carnivory links 0.85.
+!!! note
+    - ``\lim_{B_j \to +\infty} F_{ij} = 1``
 
-~~~julia-repl
-julia> p.FunctionalResponse.e
-20×20 SparseArrays.SparseMatrixCSC{Float64, Int64} with 87 stored entries:
-⠢⠤⠀⠀⠀⠀⠀⠀⠀⠀
-⢘⠋⠉⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠶⣉⣁⣀⣀⣀⣀⠀
-⢀⣀⣀⠉⠿⠿⠿⠿⠯⠀
-⢉⣥⣤⣒⡒⠂⠀⠀⠀⠀
-~~~
+    - ``F_{ij}(B_0) = \frac{1}{2}`` if considering a consumer feeding only one resource
+        and no predator interference (``c_i=0``),
+        hence the name 'half-saturation density' for ``B_0``.
 
-- `B0` is the half saturation density (consumer-specific)
-  
-~~~julia-repl
-p.FunctionalResponse.B0
-20-element Vector{Float64}:
- 0.5
- 0.5
- ⋮
- 0.5
- 0.5
-~~~
+The bioenergetic response and its parameters
+can be accessed by calling the [`BioenergeticResponse`](@ref) method
+with the [`FoodWeb`](@ref) as a mandatory argument.
 
-- `ω` is the consumers relative preference for their resources. By default, it is set at $1/n$ where $n$ is the number of resources a consumer has. 
+```@repl befwm2
+foodweb = FoodWeb([0 0 0; 1 0 0; 0 1 0]); # 1 producer ⋅ 2 eats 1 ⋅ 3 eats 2
+f = BioenergeticResponse(foodweb);
+f.ω # preferency
+f.B0 # half-saturation
+f.c # interference intensity
+f.h # hill exponent
+```
 
-~~~julia-repl
-julia> p.FunctionalResponse.ω
-20×20 SparseArrays.SparseMatrixCSC{Float64, Int64} with 87 stored entries:
-⠢⠤⠀⠀⠀⠀⠀⠀⠀⠀
-⢘⠋⠉⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠶⣉⣁⣀⣀⣀⣀⠀
-⢀⣀⣀⠉⠿⠿⠿⠿⠯⠀
-⢉⣥⣤⣒⡒⠂⠀⠀⠀⠀
-~~~
+Above parameters take default values, but you can specify custom values.
+For instance if you want to set the hill exponent (`h`) to 1 instead of 2, you can do:
 
--> Equation for the functional response (and source)
--> consumer-specific rates used (equations, parameter values and sources)
--> simple code example
-## The classical functional response 
+```@repl befwm2
+f = BioenergeticResponse(foodweb, h=1);
+f.h # custom hill exponent
+```
 
--> Equation 
--> Equivalence between the two functional response 
--> pairwise-specific rates used (equations, parameter values and sources)
--> simple code example
+In addition to storing the functional response parameters,
+the [`BioenergeticResponse`](@ref) method can be used as a function
+corresponding to the bioenergetic functional response.
+To do so, you just need to provide the species biomass vector (`B`),
+where `B[i]` is the biomass of species ``i``.
 
-## Change the parameter values 
+```@repl befwm2
+f = BioenergeticResponse(foodweb);
+B = [1, 1, 1]; # defining species biomass
+f(B) # F matrix, F[i,j] = Fᵢⱼ
+```
 
--> How to manipulate arguments
+The corresponding system of ODEs is:
+
+```math
+\frac{dB_i}{dt} = g(B_i)
+    + B_i x_i y_i \sum_{j \in \{ \text{res.} \}} F_{ij}
+    - \sum_{j \in \{ \text{cons.} \}} \frac{B_j x_j y_j F_{ji}}{e_{ij}}
+    - x_i B_i
+```
+
+We have the same terms than for the [Linear response](@ref),
+from left to right: growth, gain by eating, loss by being eaten and metabolic loss.
+The only difference is that we have introduce ``y_i``
+which is the maximum consumption rate of consumer i relative to its metabolic rate ``x_i``.
+
+An alternative to the bioenergetic response,
+when considering a response with a saturation effect,
+is the classic response that we present in the next section.
+
+## Classic response
+
+This functional response is said to be 'classic' as it was the first one
+(excepting the linear response) to be used.
+It was first developed by [Holling in 1959](https://doi.org/10.4039/Ent91385-7).
+Moreover, the classic response is equivalent to the [Bioenergetic response](@ref),
+however the parametrization is slightly different.
+To see how we can go from one to the other,
+see [Williams et al. 2007](https://doi.org/10.1007/978-1-4020-5337-5_2).
+
+Formally the classic response is written:
+
+```math
+F_{ij} = \frac{\omega_{ij} a_{ij} B_j^h}{1 + c_i B_i
+    + h_t \sum_{k \in \{ \text{res.} \}} \omega_{ik} a_{ij} B_k^h}
+```
+with:
+- ``\omega_{ij}`` preferency of consumer ``i`` on resource ``j``
+- ``c_i`` the intensity of intraspecific predator interference
+- ``h`` the hill-exponent
+- ``a_{ij}`` the attack rate of consumer ``i`` on resource ``j``
+- ``h_t`` the handling time
+
+The classic response and its parameters
+can be accessed by calling the [`ClassicResponse`](@ref) method
+with the [`FoodWeb`](@ref) as a mandatory argument.
+
+```@repl befwm2
+foodweb = FoodWeb([0 0 0; 1 0 0; 0 1 0]); # 1 producer ⋅ 2 eats 1 ⋅ 3 eats 2
+f = ClassicResponse(foodweb);
+f.ω # preferency
+f.c # interference intensity
+f.aᵣ # attack rate
+f.h # hill exponent
+f.hₜ # handling time
+```
+
+Above parameters take default values, but you can specify custom values.
+For instance if you want to set the handling time (`h`) to 0.1 instead of 1, you can do:
+
+```@repl befwm2
+f = ClassicResponse(foodweb, hₜ=0.1);
+f.hₜ # custom handling time
+```
+
+In addition to storing the functional response parameters,
+the [`ClassicResponse`](@ref) method can be used as a function
+corresponding to the classic functional response.
+To do so, you just need to provide the species biomass vector (`B`),
+where `B[i]` is the biomass of species ``i``.
+
+```@repl befwm2
+f = ClassicResponse(foodweb);
+B = [1, 1, 1]; # defining species biomass
+f(B) # F matrix, F[i,j] = Fᵢⱼ
+```
+
+The corresponding system of ODEs is:
+
+```math
+\frac{dB_i}{dt} = g(B_i)
+    + B_i \sum_{j \in \{ \text{res.} \}} e_{ij} F_{ij}
+    - \sum_{j \in \{ \text{cons.} \}} B_j F_{ji}
+    - x_i B_i
+```
+
+We have the same terms than for the [Linear response](@ref)
+and the [Classic response](@ref),
+from left to right: growth, gain by eating, loss by being eaten and metabolic loss.
