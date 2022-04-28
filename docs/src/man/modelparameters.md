@@ -170,7 +170,37 @@ environment.K
 ## Functional responses
 
 !!! warning
-    Classic and linear functional response not yet implemented.
+    Linear functional response is not yet implemented.
 
-You can choose between 3 types of functional response: linear, bioenergetic and classic.
-By default the bioenergetic functional response is selected.
+You can choose between 3 functional responses:
+[Linear response](@ref), [Bioenergetic response](@ref) and [Classic response](@ref).
+By default the [Bioenergetic response](@ref) response is selected.
+
+```@repl befwm2
+params = ModelParameters(foodweb);
+params.functional_response
+```
+
+However, if you want you can choose another functional response by giving it as an argument.
+For the classic response, do:
+
+```@repl befwm2
+classic_response = ClassicResponse(foodweb); # define your response
+params = ModelParameters(foodweb, functional_response = classic_response);
+params.functional_response
+```
+
+And for the linear response, do:
+```@repl befwm2
+linear_response = LinearResponse(foodweb); # define your response
+params = ModelParameters(foodweb, functional_response = linear_response);
+params.functional_response
+```
+
+For more information about functional responses,
+see [How to choose the functional response?](@ref)
+or the help for `LinearResponse`, [`BioenergeticResponse`](@ref)
+and [`ClassicResponse`](@ref)
+
+!!! todo
+    Add cross-ref for linear response when implemented.
