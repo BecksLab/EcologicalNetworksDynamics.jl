@@ -1,6 +1,3 @@
-using Test
-using BEFWM2
-
 A = [0 0 0 0; 0 0 0 0; 1 0 0 0; 0 1 0 0]
 foodweb = FoodWeb(A)
 foodweb.metabolic_class = ["producer", "producer", "invertebrate",
