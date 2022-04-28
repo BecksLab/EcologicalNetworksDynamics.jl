@@ -3,8 +3,8 @@ Productivity
 =#
 
 function logisticgrowth(i, B, params::ModelParameters)
-    rᵢ = params.BioRates.r[i] # intrinsic growth rate of species i
-    Kᵢ = params.Environment.K[i] # carrying capacity of species i
+    rᵢ = params.biorates.r[i] # intrinsic growth rate of species i
+    Kᵢ = params.environment.K[i] # carrying capacity of species i
     Bᵢ = B[i] # biomass of species i
     logisticgrowth(Bᵢ, rᵢ, Kᵢ)
 end
