@@ -2,6 +2,26 @@
 Biological rates
 =#
 
+#### Type definiton ####
+mutable struct BioRates
+    r::Vector{<:Real}
+    x::Vector{<:Real}
+    y::Vector{<:Real}
+    e::SparseMatrixCSC{Float64,Int64}
+end
+#### end ####
+
+#### Type display ####
+function Base.show(io::IO, b::BioRates)
+
+    str1 = "r (growth rate): $(b.r[1]), ..., $(b.r[end])"
+    str2 = "x (metabolic rate): $(b.x[1]), ..., $(b.x[end])"
+    str3 = "y (max. consumption rate): $(b.y[1]), ..., $(b.y[end])"
+    print(io, str1 * "\n" * str2 * "\n" * str3)
+
+end
+#### end ####
+
 #### Constructors containing default parameter value for allometric scaled rates ####
 """
     DefaultGrowthParams()
