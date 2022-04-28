@@ -32,29 +32,29 @@ BioRates - 📈
 Environment - 🌄
 FunctionalResponse - 🍖
 
-julia> p.FoodWeb # check that stored foodweb is the same than the one we provided
+julia> p.foodweb # check that stored foodweb is the same than the one we provided
 2 species - 1 links.
  Method: unspecified
 
-julia> p.FunctionalResponse # default is bionergetic
+julia> p.functional_response # default is bionergetic
 Bioenergetic functional response
 hill exponent = 2.0
 
-julia> F_classic = ClassicResponse(foodweb); # choose classic functional response
+julia> classic_response = ClassicResponse(foodweb); # choose classic functional response
 
-julia> p = ModelParameters(foodweb, FunctionalResponse = F_classic);
+julia> p = ModelParameters(foodweb, functional_response = classic_response);
 
-julia> p.FunctionalResponse # check that the functional response is now "classic"
+julia> p.functional_response # check that the functional response is now "classic"
 Classic functional response
 hill exponent = 2.0
 ```
 """
 function ModelParameters(
-    FoodWeb::FoodWeb;
-    BioRates::BioRates=BioRates(FoodWeb),
-    Environment::Environment=Environment(FoodWeb),
-    FunctionalResponse::FunctionalResponse=BioenergeticResponse(FoodWeb)
+    foodweb::FoodWeb;
+    biorates::BioRates=BioRates(foodweb),
+    environment::Environment=Environment(foodweb),
+    functional_response::FunctionalResponse=BioenergeticResponse(foodweb)
 )
 
-    ModelParameters(FoodWeb, BioRates, Environment, FunctionalResponse)
+    ModelParameters(foodweb, biorates, environment, functional_response)
 end
