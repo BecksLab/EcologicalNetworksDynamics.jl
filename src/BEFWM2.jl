@@ -7,9 +7,6 @@ using DiffEqBase
 using Statistics
 import DifferentialEquations.Tsit5, DifferentialEquations.Rodas4
 
-# Types
-include(joinpath(".", "types/declaration.jl"))
-include(joinpath(".", "types/typedisplay.jl"))
 
 include(joinpath(".", "inputs/foodwebs.jl"))
 include(joinpath(".", "inputs/functional_response.jl"))
