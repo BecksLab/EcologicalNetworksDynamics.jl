@@ -2,6 +2,39 @@
 Functional response
 =#
 
+#### Type definition ####
+abstract type FunctionalResponse end
+#! Children of abstract type FunctionalResponse are all expected to have a .ω member.
+#! Otherwise homogeneous_preference will fail.
+
+struct BioenergeticResponse <: FunctionalResponse
+    h::Float64 # hill exponent
+    ω::SparseMatrixCSC{Float64} # ressource preferency
+    c::Vector{Float64} # intraspecific interference
+    B0::Vector{Float64} # half-saturation
+end
+
+struct ClassicResponse <: FunctionalResponse
+    h::Float64 # hill exponent
+    ω::SparseMatrixCSC{Float64} # ressource preferency
+    c::Vector{Float64} # intraspecific interference
+    hₜ::SparseMatrixCSC{Float64} # handling time
+    aᵣ::SparseMatrixCSC{Float64} # attack rate
+end
+#### end ####
+
+#### Type display ####
+function Base.show(io::IO, F::ClassicResponse)
+    println(io, "Classic functional response")
+    print(io, "hill exponent = $(F.h)")
+end
+
+function Base.show(io::IO, F::BioenergeticResponse)
+    println(io, "Bioenergetic functional response")
+    print(io, "hill exponent = $(F.h)")
+end
+#### end ####
+
 """
     homogeneous_preference(foodweb)
 
