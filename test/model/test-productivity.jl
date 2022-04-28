@@ -21,7 +21,7 @@
     @test BEFWM2.logisticgrowth(1, B, p) == 0.25
     @test BEFWM2.logisticgrowth(2, B, p) == 0.25
     @test BEFWM2.logisticgrowth(3, B, p) == 0
-    p = ModelParameters(foodweb, BioRates=BioRates(foodweb, r=2))
+    p = ModelParameters(foodweb, biorates=BioRates(foodweb, r=2))
     @test BEFWM2.logisticgrowth(1, B, p) == 0.5
     @test BEFWM2.logisticgrowth(2, B, p) == 0.5
     @test BEFWM2.logisticgrowth(3, B, p) == 0
