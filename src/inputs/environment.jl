@@ -1,3 +1,18 @@
+#### Type definition ####
+mutable struct Environment
+    K::Vector{Union{Nothing,<:Real}}
+    T::Union{Int64,Float64}
+end
+#### end ####
+
+#### Type display ####
+function Base.show(io::IO, E::Environment)
+    str1 = "K (carrying capacity): $(E.K[1]), ..., $(E.K[end])"
+    str2 = "T (temperature in Kelvins - 0C = 273.15K): $(E.T) K"
+    print(io, str1 * "\n" * str2)
+end
+#### end ####
+
 """
     Environment(foodweb, K=1, T=293.15)
 
