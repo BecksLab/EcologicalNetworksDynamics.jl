@@ -6,10 +6,20 @@ end
 #### end ####
 
 #### Type display ####
+"One line Environment display."
 function Base.show(io::IO, environment::Environment)
     K_str = vector_to_string(environment.K)
     T = environment.T
     print(io, "Environment(K=" * K_str * ", T=$(T)K)")
+end
+
+"Multiline Environment display."
+function Base.show(io::IO, ::MIME"text/plain", environment::Environment)
+
+    # Display output
+    println(io, "Environment:")
+    println(io, "  K: " * vector_to_string(environment.K))
+    print(io, "  T: $(environment.T) Kelvin")
 end
 #### end ####
 
