@@ -6,10 +6,10 @@ end
 #### end ####
 
 #### Type display ####
-function Base.show(io::IO, E::Environment)
-    str1 = "K (carrying capacity): $(E.K[1]), ..., $(E.K[end])"
-    str2 = "T (temperature in Kelvins - 0C = 273.15K): $(E.T) K"
-    print(io, str1 * "\n" * str2)
+function Base.show(io::IO, environment::Environment)
+    K_str = vector_to_string(environment.K)
+    T = environment.T
+    print(io, "Environment(K=" * K_str * ", T=$(T)K)")
 end
 #### end ####
 
