@@ -30,10 +30,54 @@ end
 #### end ####
 
 #### Type display ####
-function Base.show(io::IO, DFW::FoodWeb)
-    N = UnipartiteNetwork(DFW.A, DFW.species)
-    mthd = DFW.method
-    print(io, "$(richness(N; dims=1)) species - $(links(N)) links. \n Method: $mthd")
+"One line FoodWeb display."
+function Base.show(io::IO, foodweb::FoodWeb)
+    S = richness(foodweb)
+    links = count(foodweb.A)
+    print(io, "FoodWeb(S=$S, L=$links)")
+end
+
+"Multiline FoodWeb display."
+function Base.show(io::IO, ::MIME"text/plain", foodweb::FoodWeb)
+
+    # Specify parameters
+    S = richness(foodweb)
+    links = count(foodweb.A)
+    class = foodweb.metabolic_class
+    n_p = count(class .== "producer")
+    n_i = count(class .== "invertebrate")
+    n_v = count(class .== "ectotherm vertebrate")
+
+    # Display output
+    println(io, "FoodWeb of $S species:")
+    println(io, "  A: sparse matrix with $links links")
+    println(io, "  M: " * vector_to_string(foodweb.M))
+    println(io, "  metabolic_class: $n_p producers, $n_i invertebrates, $n_v vertebrates")
+    println(io, "  method: $(foodweb.method)")
+    print(io, "  species: " * vector_to_string(foodweb.species))
+end
+
+function vector_to_string(vector)
+    length(vector) >= 4 ? long_vector_to_string(vector) : short_vector_to_string(vector)
+end
+
+function short_vector_to_string(short_vector)
+    out = "["
+    n = length(short_vector)
+    n <= 4 || throw(ArgumentError("Vector is too long: should be of length 4 or less."))
+
+    for i in 1:(n-1)
+        out *= "$(short_vector[i]), "
+    end
+
+    out *= "$(short_vector[end])]"
+    out
+end
+
+function long_vector_to_string(long_vector)
+    n = length(long_vector)
+    n >= 4 || throw(ArgumentError("Vector is too short: should be of length 4 or more."))
+    "[$(long_vector[1]), $(long_vector[2]), ..., $(long_vector[end-1]), $(long_vector[end])]"
 end
 #### end ####
 
