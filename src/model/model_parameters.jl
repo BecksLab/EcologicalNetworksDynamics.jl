@@ -12,13 +12,23 @@ end
 #### end ####
 
 #### Type display ####
-function Base.show(io::IO, MP::ModelParameters)
-    str0 = "Model parameters are compiled:"
-    str1 = "FoodWeb - 🕸"
-    str2 = "BioRates - 📈"
-    str3 = "Environment - 🌄"
-    str4 = "FunctionalResponse - 🍖"
-    print(io, str0 * "\n" * str1 * "\n" * str2 * "\n" * str3 * "\n" * str4)
+"One line ModelParameters display."
+function Base.show(io::IO, params::ModelParameters)
+    response_type = typeof(params.functional_response)
+    print(io, "ModelParameters{$response_type}")
+    !get(io, :compact, false) && print(io, "(", params.foodweb, ")")
+end
+
+"Multiline ModelParameters display."
+function Base.show(io::IO, ::MIME"text/plain", params::ModelParameters)
+
+    # Display output
+    response_type = typeof(params.functional_response)
+    println(io, "ModelParameters{$response_type}:")
+    println(io, "  foodweb: ", params.foodweb)
+    println(io, "  environment: ", params.environment)
+    println(io, "  biorates: ", params.biorates)
+    print(io, "  functional_response: ", params.functional_response)
 end
 #### end ####
 
