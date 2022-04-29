@@ -24,14 +24,36 @@ end
 #### end ####
 
 #### Type display ####
-function Base.show(io::IO, F::ClassicResponse)
-    println(io, "Classic functional response")
-    print(io, "hill exponent = $(F.h)")
+"One line display FunctionalResponse"
+function Base.show(io::IO, response::FunctionalResponse)
+    print(io, "$(typeof(response))")
 end
 
-function Base.show(io::IO, F::BioenergeticResponse)
-    println(io, "Bioenergetic functional response")
-    print(io, "hill exponent = $(F.h)")
+"Multiline BioenergeticResponse display."
+function Base.show(io::IO, ::MIME"text/plain", response::BioenergeticResponse)
+
+    S = size(response.ω, 1)
+
+    # Display output
+    println(io, "BioenergeticResponse:")
+    println(io, "  B0: " * vector_to_string(response.B0))
+    println(io, "  c: " * vector_to_string(response.c))
+    println(io, "  h: $(response.h)")
+    print(io, "  ω: $(S)x$(S) sparse matrix")
+end
+
+"Multiline ClassicResponse display."
+function Base.show(io::IO, ::MIME"text/plain", response::ClassicResponse)
+
+    S = size(response.ω, 1)
+
+    # Display output
+    println(io, "ClassicResponse:")
+    println(io, "  c: " * vector_to_string(response.c))
+    println(io, "  h: $(response.h)")
+    println(io, "  ω: $(S)x$(S) sparse matrix")
+    println(io, "  hₜ: $(S)x$(S) sparse matrix")
+    print(io, "  aᵣ: $(S)x$(S) sparse matrix")
 end
 #### end ####
 
