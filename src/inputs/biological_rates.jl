@@ -12,13 +12,27 @@ end
 #### end ####
 
 #### Type display ####
+"One line BioRates display."
 function Base.show(io::IO, b::BioRates)
+    print(io, "BioRates(e, r, x, y)")
+end
 
-    str1 = "r (growth rate): $(b.r[1]), ..., $(b.r[end])"
-    str2 = "x (metabolic rate): $(b.x[1]), ..., $(b.x[end])"
-    str3 = "y (max. consumption rate): $(b.y[1]), ..., $(b.y[end])"
-    print(io, str1 * "\n" * str2 * "\n" * str3)
+"Multiline FoodWeb display."
+function Base.show(io::IO, ::MIME"text/plain", biorates::BioRates)
 
+    # Specify parameters
+    e = biorates.e
+    r = biorates.r
+    x = biorates.x
+    y = biorates.y
+    S = size(e, 1)
+
+    # Display output
+    println(io, "BioRates:")
+    println(io, "  e: $(S)x$(S) sparse matrix")
+    println(io, "  r: " * vector_to_string(r))
+    println(io, "  x: " * vector_to_string(x))
+    print(io, "  y: " * vector_to_string(y))
 end
 #### end ####
 
