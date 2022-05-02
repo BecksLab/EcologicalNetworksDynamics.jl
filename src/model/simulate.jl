@@ -17,9 +17,9 @@ function simulate(
     length(B0) ∈ [1, S] || throw(ArgumentError("B0 should be of length 1 or S
         (species richeness)."))
     length(B0) == S || (B0 = repeat([B0], S))
-    start < stop || throw(ArgumentError("\"start\" should be smaller than \"stop\"."))
-    use ∈ vec([:stiff :nonstiff]) || throw(ArgumentError("\"use\"use should be \"::stiff\"
-        or \"::nonstiff\"."))
+    start < stop || throw(ArgumentError("'start' should be smaller than 'stop'."))
+    use ∈ vec([:stiff :nonstiff]) || throw(ArgumentError("'use'use should be '::stiff'
+        or '::nonstiff'."))
     alg = use == :stiff ? Rodas4(autodiff=false) : Tsit5()
 
     # Pre-allocate the timeseries matrix
