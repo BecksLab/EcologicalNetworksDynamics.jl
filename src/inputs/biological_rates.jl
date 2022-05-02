@@ -105,6 +105,14 @@ struct AllometricParams
 end
 #### end ####
 
+#### Type display ####
+function Base.show(io::IO, params::AllometricParams)
+    aₚ, aₑ, aᵢ = params.aₚ, params.aₑ, params.aᵢ
+    bₚ, bₑ, bᵢ = params.bₚ, params.bₑ, params.bᵢ
+    print(io, "AllometricParams(aₚ=$aₚ, aₑ=$aₑ, aᵢ=$aᵢ, bₚ=$bₚ, aₚ=$aₚ, bₑ=$bₑ, bᵢ=$bᵢ)")
+end
+#### end ####
+
 #### Main functions to compute biological rates ####
 """
     BioRates(
