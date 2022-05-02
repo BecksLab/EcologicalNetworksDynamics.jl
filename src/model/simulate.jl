@@ -18,7 +18,7 @@ function simulate(
         (species richeness)."))
     length(B0) == S || (B0 = repeat([B0], S))
     start < stop || throw(ArgumentError("'start' should be smaller than 'stop'."))
-    use ∈ vec([:stiff :nonstiff]) || throw(ArgumentError("'use'use should be '::stiff'
+    use ∈ vec([:stiff :nonstiff]) || throw(ArgumentError("'use' should be '::stiff'
         or '::nonstiff'."))
     algorithm = use == :stiff ? Rodas4(autodiff=false) : Tsit5()
 
