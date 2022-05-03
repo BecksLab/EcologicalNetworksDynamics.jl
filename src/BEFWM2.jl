@@ -6,7 +6,6 @@ using SparseArrays
 using DiffEqBase
 using Statistics
 import DifferentialEquations.Tsit5, DifferentialEquations.Rodas4
-import Mangal
 
 # Types
 include(joinpath(".", "types/declaration.jl"))
