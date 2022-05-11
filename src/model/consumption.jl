@@ -19,7 +19,11 @@ function consumption(i, B, params::ModelParameters{BioenergeticResponse}, fᵣma
     eating, being_eaten
 end
 
-function consumption(i, B, params::ModelParameters{ClassicResponse}, fᵣmatrix)
+function consumption(
+    i,
+    B,
+    params::Union{ModelParameters{ClassicResponse},ModelParameters{LinearResponse}},
+    fᵣmatrix)
 
     # Set up
     foodweb = params.foodweb
