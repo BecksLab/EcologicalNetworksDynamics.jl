@@ -88,7 +88,7 @@ calling the corresponding function, for:
 # Example
 ```jldoctest
 julia> params = AllometricParams(1, 2, 3, 4, 5, 6)
-AllometricParams(1, 2, 3, 4, 5, 6)
+AllometricParams(aₚ=1, aₑ=2, aᵢ=3, bₚ=4, aₚ=1, bₑ=5, bᵢ=6)
 julia> params.aₚ
 1
 julia> params.aₑ
@@ -139,26 +139,34 @@ length 1 or S (species richness). Moreover, if one want to use allometric scalin
 julia> foodweb = FoodWeb([0 1; 0 0]); # sp. 1 "invertebrate", sp. 2 "producer"
 
 julia> BioRates(foodweb) # default
-r (growth rate): 0.0, ..., 1.0
-x (metabolic rate): 0.314, ..., 0.0
-y (max. consumption rate): 8.0, ..., 0.0
+BioRates:
+  e: 2x2 sparse matrix
+  r: [0.0, 1.0]
+  x: [0.314, 0.0]
+  y: [8.0, 0.0]
 
 julia> BioRates(foodweb; r = [1.0, 1.0]) # specify custom vector for growth rate
-r (growth rate): 1.0, ..., 1.0
-x (metabolic rate): 0.314, ..., 0.0
-y (max. consumption rate): 8.0, ..., 0.0
+BioRates:
+  e: 2x2 sparse matrix
+  r: [1.0, 1.0]
+  x: [0.314, 0.0]
+  y: [8.0, 0.0]
 
 julia> BioRates(foodweb; x = 2.0) # if single value, fill the rate vector with it
-r (growth rate): 0.0, ..., 1.0
-x (metabolic rate): 2.0, ..., 2.0
-y (max. consumption rate): 8.0, ..., 0.0
+BioRates:
+  e: 2x2 sparse matrix
+  r: [0.0, 1.0]
+  x: [2.0, 2.0]
+  y: [8.0, 0.0]
 
 julia> custom_params = AllometricParams(3, 0, 0, 0, 0, 0); # use custom allometric params...
 
 julia> BioRates(foodweb; y=allometric_rate(foodweb, custom_params)) # ...with allometric_rate
-r (growth rate): 0.0, ..., 1.0
-x (metabolic rate): 0.314, ..., 0.0
-y (max. consumption rate): 0.0, ..., 3.0
+BioRates:
+  e: 2x2 sparse matrix
+  r: [0.0, 1.0]
+  x: [0.314, 0.0]
+  y: [0.0, 3.0]
 ```
 """
 function BioRates(

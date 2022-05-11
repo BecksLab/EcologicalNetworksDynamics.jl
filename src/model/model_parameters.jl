@@ -56,27 +56,38 @@ The parameters are compartimented in different groups:
 julia> foodweb = FoodWeb([0 1; 0 0]); # create a simple foodweb
 
 julia> p = ModelParameters(foodweb) # default
-Model parameters are compiled:
-FoodWeb - 🕸
-BioRates - 📈
-Environment - 🌄
-FunctionalResponse - 🍖
+ModelParameters{BioenergeticResponse}:
+  foodweb: FoodWeb(S=2, L=1)
+  environment: Environment(K=[nothing, 1], T=293.15K)
+  biorates: BioRates(e, r, x, y)
+  functional_response: BioenergeticResponse
 
 julia> p.foodweb # check that stored foodweb is the same than the one we provided
-2 species - 1 links.
- Method: unspecified
+FoodWeb of 2 species:
+  A: sparse matrix with 1 links
+  M: [1.0, 1.0]
+  metabolic_class: 1 producers, 1 invertebrates, 0 vertebrates
+  method: unspecified
+  species: [s1, s2]
 
 julia> p.functional_response # default is bionergetic
-Bioenergetic functional response
-hill exponent = 2.0
+BioenergeticResponse:
+  B0: [0.5, 0.5]
+  c: [0.0, 0.0]
+  h: 2.0
+  ω: 2x2 sparse matrix
 
 julia> classic_response = ClassicResponse(foodweb); # choose classic functional response
 
 julia> p = ModelParameters(foodweb, functional_response = classic_response);
 
 julia> p.functional_response # check that the functional response is now "classic"
-Classic functional response
-hill exponent = 2.0
+ClassicResponse:
+  c: [0.0, 0.0]
+  h: 2.0
+  ω: 2x2 sparse matrix
+  hₜ: 2x2 sparse matrix
+  aᵣ: 2x2 sparse matrix
 ```
 """
 function ModelParameters(

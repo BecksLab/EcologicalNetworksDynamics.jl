@@ -39,8 +39,9 @@ consumers are assumed to be `nothing` as consumers do not have a growth term.
 julia> foodweb = FoodWeb([0 0 0; 0 0 0; 1 1 0]); # species 1 & 2 producers, 3 consumer
 
 julia> environment = Environment(foodweb) # default behavior
-K (carrying capacity): 1, ..., nothing
-T (temperature in Kelvins - 0C = 273.15K): 293.15 K
+Environment:
+  K: [1, 1, nothing]
+  T: 293.15 Kelvin
 
 julia> environment.K # 1 for producers (1 & 2), nothing for consumers (3)
 3-element Vector{Union{Nothing, Real}}:
