@@ -26,7 +26,7 @@ include(joinpath(".", "utils.jl"))
 # Export public functions
 export FoodWeb, ModelParameters, FunctionalResponse, BioRates, Environment
 export homogeneous_preference, BioEnergeticFunctionalResponse
-export FunctionalResponse, ClassicResponse, BioenergeticResponse
+export FunctionalResponse, ClassicResponse, BioenergeticResponse, LinearResponse
 export allometric_rate, AllometricParams
 export DefaultGrowthParams, DefaultMaxConsumptionParams, DefaultMetabolismParams
 export simulate
