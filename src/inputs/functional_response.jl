@@ -140,8 +140,11 @@ With:
 julia> foodweb = FoodWeb([0 0; 1 0]);
 
 julia> F = BioenergeticResponse(foodweb)
-Bioenergetic functional response
-hill exponent = 2.0
+BioenergeticResponse:
+  B0: [0.5, 0.5]
+  c: [0.0, 0.0]
+  h: 2.0
+  ω: 2x2 sparse matrix
 
 julia> F([1, 1], 1, 2) # no interaction, 1 does not eat 2
 0.0
@@ -185,8 +188,12 @@ With:
 julia> foodweb = FoodWeb([0 0; 1 0]);
 
 julia> F = ClassicResponse(foodweb)
-Classic functional response
-hill exponent = 2.0
+ClassicResponse:
+  c: [0.0, 0.0]
+  h: 2.0
+  ω: 2x2 sparse matrix
+  hₜ: 2x2 sparse matrix
+  aᵣ: 2x2 sparse matrix
 
 julia> F([1, 1], 1, 2) # no interaction, 1 does not eat 2
 0.0
@@ -219,8 +226,11 @@ Otherwise provide a vector s.t. `B[i]` = biomass of species i.
 julia> foodweb = FoodWeb([0 0; 1 0]);
 
 julia> F = BioenergeticResponse(foodweb)
-Bioenergetic functional response
-hill exponent = 2.0
+BioenergeticResponse:
+  B0: [0.5, 0.5]
+  c: [0.0, 0.0]
+  h: 2.0
+  ω: 2x2 sparse matrix
 
 julia> F([1, 1]) # providing a species biomass vector
 2×2 SparseArrays.SparseMatrixCSC{Float64, Int64} with 1 stored entry:
