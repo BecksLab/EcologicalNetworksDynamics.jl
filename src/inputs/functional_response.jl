@@ -230,6 +230,50 @@ function (F::ClassicResponse)(B, i, j)
 end
 
 """
+    LinearResponse(B, i, j)
+
+Compute the linear functional response for predator `i` eating prey `j`, given the
+species biomass `B`.
+The linear functional response is written:
+```math
+F_{ij} = \\omega_{ij} \\alpha_{i} B_j
+```
+With:
+- ``\\omega`` the preferency, by default we assume that predators split their time equally
+    among their preys, i.e. ∀j ``\\omega_{ij} = \\omega_{i} = \\frac{1}{n_{i,preys}}``
+    where ``n_{i,preys}`` is the number of preys of predator i.
+- ``\\alpha_{i}`` the consumption rate of predator i.
+
+# Examples
+```jldoctest
+julia> foodweb = FoodWeb([0 0; 1 0]);
+
+julia> F = LinearResponse(foodweb)
+LinearResponse:
+  α: [1.0, 1.0]
+  ω: 2x2 sparse matrix
+
+julia> F([1, 1], 1, 2) # no interaction, 1 does not eat 2
+0.0
+
+julia> F([1, 1], 2, 1) # interaction, 2 eats 1
+1.0
+
+julia> F([1.5, 1], 2, 1) # increases linearly with resource biomass...
+1.5
+
+julia> F([1, 1.5], 2, 1) # but not with consumer biomass
+1.0
+```
+
+See also [`BioenergeticResponse`](@ref), [`ClassicResponse`](@ref)
+and [`FunctionalResponse`](@ref).
+"""
+function (F::LinearResponse)(B, i, j)
+    F.ω[i, j] * F.α[i] * B[j]
+end
+
+"""
     FunctionalResponse(B)
 
 Compute functional response matrix given the species biomass `B`.
