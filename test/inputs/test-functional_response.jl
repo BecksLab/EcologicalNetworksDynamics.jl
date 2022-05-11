@@ -33,6 +33,23 @@ foodweb2 = FoodWeb(A2)
     @test Fbioenergetic_2.ω == sparse([0 0 0; 1 0 0; 0.5 0.5 0])
 end
 
+@testset "Linear functional response parameters" begin
+    # Default
+    Flinear_1 = LinearResponse(foodweb1)
+    @test Flinear_1.α == sparse([0, 1.0])
+    @test Flinear_1.ω == sparse([0 0; 1.0 0.0])
+
+    # Custom
+    Flinear_1 = LinearResponse(foodweb1, α=[0.0, 2.0])
+    @test Flinear_1.α == sparse([0, 2.0])
+    @test Flinear_1.ω == sparse([0 0; 1.0 0.0])
+
+    # Custom and foodweb2
+    Flinear_2 = LinearResponse(foodweb2, α=3.0)
+    @test Flinear_2.α == sparse([0, 3.0, 3.0])
+    @test Flinear_2.ω == sparse([0 0 0; 1 0 0; 0.5 0.5 0])
+end
+
 @testset "Classic functional response parameters" begin
     # Default
     Fclassic_1 = ClassicResponse(foodweb1)
@@ -94,6 +111,30 @@ end
     F31 = 0.5 * 3^2 / ((0.5^2) + (1 * 1 * 0.5^2) + (0.5 * 3^2 + 0.5 * 2^2))
     F32 = 0.5 * 2^2 / ((0.5^2) + (1 * 1 * 0.5^2) + (0.5 * 3^2 + 0.5 * 2^2))
     @test Fbioenergetic_2(B) == sparse([0 0 0; F21 0 0; F31 F32 0])
+end
+
+@testset "Linear functional response functor" begin
+    # Index by index
+    Flinear_1 = LinearResponse(foodweb1)
+    @test Flinear_1([1, 1], 1, 1) == 0 # no interaction
+    @test Flinear_1([1, 1], 1, 2) == 0 # no interaction
+    @test Flinear_1([1, 1], 2, 2) == 0 # no interaction
+    @test Flinear_1([1, 1], 2, 1) == 1.0 # interaction
+    @test Flinear_1([1, 2], 2, 1) == 1.0 # don't depend on cons. mass
+    @test Flinear_1([2, 1], 2, 1) == 2.0 # ...but depend on res. mass
+
+    # Matrix
+    @test Flinear_1([1, 1]) == sparse([0 0; 1.0 0]) # provide biomass vector
+    @test Flinear_1(1) == sparse([0 0; 1.0 0]) # or a scalar if same for all species
+
+    # Non-default consumption rate
+    Flinearinear_1 = LinearResponse(foodweb1, α=[0, 2.0])
+    @test Flinear_1(2) == sparse([0 0; 2.0 0])
+
+    # Consumer feeding on several resources
+    Flinear_2 = LinearResponse(foodweb2, α=[0, 1, 2])
+    B = [3, 2, 1] # non-uniform biomass distribution
+    @test Flinear_2(B) == sparse([0 0 0; 3 0 0; 3 2 0])
 end
 
 @testset "Classic functional response functor" begin
