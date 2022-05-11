@@ -252,7 +252,7 @@ julia> foodweb = FoodWeb([0 0; 1 0]);
 
 julia> F = LinearResponse(foodweb)
 LinearResponse:
-  α: [1.0, 1.0]
+  α: [⋅, 1.0]
   ω: 2x2 sparse matrix
 
 julia> F([1, 1], 1, 2) # no interaction, 1 does not eat 2
