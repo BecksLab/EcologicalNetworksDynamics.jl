@@ -172,7 +172,8 @@ julia> F([1.5, 1], 2, 1) # increases with resource biomass
 0.9
 ```
 
-See also [`ClassicResponse`](@ref) and [`FunctionalResponse`](@ref).
+See also [`ClassicResponse`](@ref), [`LinearResponse`](@ref)
+and [`FunctionalResponse`](@ref).
 """
 function (F::BioenergeticResponse)(B, i, j)
     num = F.ω[i, j] * B[j]^F.h
@@ -221,7 +222,8 @@ julia> round(F([1.5, 1], 2, 1), digits = 2) # increases with resource biomass
 0.53
 ```
 
-See also [`BioenergeticResponse`](@ref) and [`FunctionalResponse`](@ref).
+See also [`BioenergeticResponse`](@ref), [`LinearResponse`](@ref)
+and [`FunctionalResponse`](@ref).
 """
 function (F::ClassicResponse)(B, i, j)
     num = F.ω[i, j] * F.aᵣ[i, j] * B[j]^F.h
@@ -308,7 +310,8 @@ julia> F([1.5, 1]) # response increases with resource biomass
  0.9   ⋅
 ```
 
-See also [`BioenergeticResponse`](@ref) and [`ClassicResponse`](@ref).
+See also [`BioenergeticResponse`](@ref), [`LinearResponse`](@ref)
+and [`ClassicResponse`](@ref).
 """
 function (F::FunctionalResponse)(B)
 
