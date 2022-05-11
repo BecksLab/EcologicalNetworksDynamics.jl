@@ -21,6 +21,11 @@ struct ClassicResponse <: FunctionalResponse
     hₜ::SparseMatrixCSC{Float64} # handling time
     aᵣ::SparseMatrixCSC{Float64} # attack rate
 end
+
+struct LinearResponse <: FunctionalResponse
+    ω::SparseMatrixCSC{Float64} # resource preferency
+    α::SparseVector{Float64,Int64} # consumption rate
+end
 #### end ####
 
 #### Type display ####
@@ -314,4 +319,23 @@ function ClassicResponse(
     length(c) == S || (c = repeat([c], S))
 
     ClassicResponse(Float64(h), Float64.(ω), Float64.(c), Float64.(hₜ), Float64.(aᵣ))
+end
+
+function LinearResponse(foodweb::FoodWeb; ω=homogeneous_preference(foodweb), α=1.0)
+
+    # Safety checks
+    S = richness(foodweb)
+    size(ω) == (S, S) || throw(ArgumentError("ω wrong size: should be of size (S, S)
+        with S the species richness."))
+    length(α) ∈ [1, S] || throw(ArgumentError("α wrong length: should be of length 1 or S
+        (species richness)."))
+
+    # Format
+    if length(α) == 1
+        α_vec = spzeros(S)
+        α_vec[.!whoisproducer(foodweb.A)] .= α
+        α = α_vec
+    end
+
+    LinearResponse(Float64.(ω), sparse(Float64.(α)))
 end
