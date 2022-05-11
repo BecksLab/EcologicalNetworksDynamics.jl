@@ -19,9 +19,6 @@ that both take into account a saturation effect with the resource biomass.
 
 ## Linear response
 
-!!! warning
-    The linear response is not implemented yet.
-
 The linear response states that the consumption rate of the consumer is
 proportional to the biomass of the resource.
 Such an assumption is biologically wrong for large resource biomass,
@@ -33,17 +30,43 @@ For that reason, we find it in many theoretical models (e.g. Lotka-Volterra).
 The linear response for consumer ``i`` eating resource ``j`` writes:
 
 ```math
-F_{ij} = a_{ij} \omega_{ij} B_j
+F_{ij} = \omega_{ij} \alpha_i B_j
 ```
 with:
 - ``B_j`` the biomass of resource ``j``
-- ``a_{ij}`` the attack rate of consumer ``i`` on resource ``j``
+- ``\alpha_{i}`` the consumption rate of predator ``i``
 - ``\omega_{ij}`` preferency of consumer ``i`` on resource ``j``
-For more details see `LinearResponse`.
 
-!!! note "Todo"
-    - Add the link to linear response method when implemented
-    - Add code chunk showing how to call the `LinearResponse` method
+The linear response and its parameters
+can be accessed by calling the [`LinearResponse`](@ref) method
+with the [`FoodWeb`](@ref) as a mandatory argument.
+
+```@repl befwm2
+foodweb = FoodWeb([0 0 0; 1 0 0; 0 1 0]); # 1 producer ⋅ 2 eats 1 ⋅ 3 eats 2
+f = LinearResponse(foodweb);
+f.ω # preferency
+f.α # consumption rate
+```
+
+Above parameters take default values, but you can specify custom values.
+For instance if you want to double the attack rate of predator 3, you can do:
+
+```@repl befwm2
+f = LinearResponse(foodweb, α=[0.0,1.0,2.0]);
+f.α # custom attack rates
+```
+
+In addition to storing the functional response parameters,
+the [`LinearResponse`](@ref) method can be used as a function
+corresponding to the linear functional response.
+To do so, you just need to provide the species biomass vector (`B`),
+where `B[i]` is the biomass of species ``i``.
+
+```@repl befwm2
+f = LinearResponse(foodweb);
+B = [1, 1, 1]; # defining species biomass
+f(B) # F matrix, F[i,j] = Fᵢⱼ
+```
 
 And the corresponding ODEs system is:
 
