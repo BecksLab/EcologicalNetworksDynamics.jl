@@ -60,6 +60,17 @@ function Base.show(io::IO, ::MIME"text/plain", response::ClassicResponse)
     println(io, "  hₜ: $(S)x$(S) sparse matrix")
     print(io, "  aᵣ: $(S)x$(S) sparse matrix")
 end
+
+"Multiline LinearResponse display."
+function Base.show(io::IO, ::MIME"text/plain", response::LinearResponse)
+
+    S = size(response.ω, 1)
+
+    # Display output
+    println(io, "LinearResponse:")
+    println(io, "  α: " * vector_to_string(response.α))
+    print(io, "  ω: $(S)x$(S) sparse matrix")
+end
 #### end ####
 
 """
