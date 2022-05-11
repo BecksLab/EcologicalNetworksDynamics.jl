@@ -61,6 +61,10 @@ function vector_to_string(vector)
     length(vector) >= 4 ? long_vector_to_string(vector) : short_vector_to_string(vector)
 end
 
+function vector_to_string(vector::T where {T<:SparseVector})
+    vector.n >= 4 ? long_vector_to_string(vector) : short_vector_to_string(vector)
+end
+
 function short_vector_to_string(short_vector)
     out = "["
     n = length(short_vector)
@@ -74,10 +78,36 @@ function short_vector_to_string(short_vector)
     out
 end
 
+function short_vector_to_string(short_vector::T where {T<:SparseVector})
+    out = "["
+    n = length(short_vector)
+    n <= 4 || throw(ArgumentError("Vector is too long: should be of length 4 or less."))
+
+    for i in 1:(n-1)
+        out *= display_spvalue(short_vector[i]) * ", "
+    end
+
+    out *= display_spvalue(short_vector[end]) * "]"
+    out
+end
+
 function long_vector_to_string(long_vector)
     n = length(long_vector)
     n >= 4 || throw(ArgumentError("Vector is too short: should be of length 4 or more."))
     "[$(long_vector[1]), $(long_vector[2]), ..., $(long_vector[end-1]), $(long_vector[end])]"
+end
+
+function long_vector_to_string(long_vector::T where {T<:SparseVector})
+    n = long_vector.n
+    n >= 4 || throw(ArgumentError("Vector is too short: should be of length 4 or more."))
+    out₁ = "[$(display_spvalue(long_vector[1])), $(display_spvalue(long_vector[2])), ..., "
+    out₂ = "$(display_spvalue(long_vector[end-1])), $(display_spvalue(long_vector[end]))]"
+    out₁ * out₂
+end
+
+function display_spvalue(value)
+    out = value == 0.0 ? "⋅" : "$value"
+    out
 end
 #### end ####
 
