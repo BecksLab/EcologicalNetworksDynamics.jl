@@ -25,4 +25,8 @@
     @test p.environment.K == [1, nothing, nothing] # unchanged
     @test p.foodweb.A == sparse(A) # unchanged
     @test typeof(p.functional_response) == ClassicResponse # changed
+
+    # Linear Functional Response
+    p = ModelParameters(foodweb, functional_response=LinearResponse(foodweb))
+    @test typeof(p.functional_response) == LinearResponse
 end
