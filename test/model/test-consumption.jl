@@ -67,3 +67,33 @@ end
     @test eatingᵢ2 ≈ eating2 atol = 1e-5 # no change for species 2
     @test eatingᵢ3 < eating3 # decrease of species 3 consumption
 end
+
+@testset "Consumption: linear" begin
+    foodweb = FoodWeb([0 0 0; 1 0 0; 1 1 0])
+
+    # Bioenergetic - default
+    p = ModelParameters(foodweb, functional_response=LinearResponse(foodweb))
+    B = [1, 1, 1]
+    fᵣmatrix = p.functional_response(B)
+    eating1, being_eaten1 = BEFWM2.consumption(1, B, p, fᵣmatrix)
+    eating2, being_eaten2 = BEFWM2.consumption(2, B, p, fᵣmatrix)
+    eating3, being_eaten3 = BEFWM2.consumption(3, B, p, fᵣmatrix)
+    @test eating1 ≈ 0 atol = 1e-5 # species 1 does not eat
+    @test eating2 == 0.45 * 1 * 1 * 1 # species 2 eats 1 (e*α*Bᵢ*Bⱼ)
+    @test eating3 == 0.5 * 0.45 * 1 * 1 * 1 + 0.5 * 0.85 * 1 * 1 * 1
+    @test being_eaten3 ≈ 0 atol = 1e-5 # species 3 is not eaten
+    @test being_eaten2 == 0.5
+    @test being_eaten1 == 1.5
+
+    B₂ = [3, 2, 1] # increasing producer biomass...
+    fᵣmatrix₂ = p.functional_response(B₂)
+    eating1, being_eaten1 = BEFWM2.consumption(1, B₂, p, fᵣmatrix₂)
+    eating2, being_eaten2 = BEFWM2.consumption(2, B₂, p, fᵣmatrix₂)
+    eating3, being_eaten3 = BEFWM2.consumption(3, B₂, p, fᵣmatrix₂)
+    @test eating1 ≈ 0 atol = 1e-5 # species 1 does not eat
+    @test eating2 == 0.45 * 1 * 3 * 2 # species 2 eats 1 (e*α*Bᵢ*Bⱼ)
+    @test eating3 == 0.5 * 0.45 * 1 * 3 * 1 + 0.5 * 0.85 * 1 * 2 * 1
+    @test being_eaten3 ≈ 0 atol = 1e-5 # species 3 is not eaten
+    @test being_eaten2 == 0.5 * 2
+    @test being_eaten1 == 3 * (0.5 + 2)
+end
