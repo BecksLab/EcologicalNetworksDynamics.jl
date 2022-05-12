@@ -169,9 +169,6 @@ environment.K
 
 ## Functional responses
 
-!!! warning
-    Linear functional response is not yet implemented.
-
 You can choose between 3 functional responses:
 [Linear response](@ref), [Bioenergetic response](@ref) and [Classic response](@ref).
 By default the [Bioenergetic response](@ref) response is selected.
@@ -199,8 +196,5 @@ params.functional_response
 
 For more information about functional responses,
 see [How to choose the functional response?](@ref)
-or the help for `LinearResponse`, [`BioenergeticResponse`](@ref)
+or the help for [`LinearResponse`](@ref), [`BioenergeticResponse`](@ref)
 and [`ClassicResponse`](@ref)
-
-!!! todo
-    Add cross-ref for linear response when implemented.
