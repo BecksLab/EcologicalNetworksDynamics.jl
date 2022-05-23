@@ -36,3 +36,23 @@ end
     @test_throws ArgumentError draw_links(potential_links, -0.1)
     @test_throws ArgumentError draw_links(potential_links, 1.1)
 end
+
+@testset "Non-trophic Interactions: build non-trophic adjacency matrix." begin
+    foodweb = FoodWeb([0 0 0 0; 0 0 0 0; 0 0 0 0; 1 1 1 0]) # 1, 2 & 3 producers
+    potential_links = potential_facilitation_links(foodweb)
+    Lmax = length(potential_links)
+
+    # From number of links.
+    facilitation = nontrophic_matrix(foodweb, potential_facilitation_links, 5)
+    row, col = findnz(facilitation)
+    subset = Set([(row[i], col[i]) for i in 1:length(row)])
+    @test length(facilitation.nzval) == 5
+    @test subset ⊆ Set(potential_links)
+
+    # From connectance.
+    facilitation = nontrophic_matrix(foodweb, potential_facilitation_links, 6 / Lmax)
+    row, col = findnz(facilitation)
+    subset = Set([(row[i], col[i]) for i in 1:length(row)])
+    @test length(facilitation.nzval) == 6
+    @test subset ⊆ Set(potential_links)
+end
