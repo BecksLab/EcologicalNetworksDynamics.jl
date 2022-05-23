@@ -26,3 +26,22 @@ function draw_links(potential_links, C::AbstractFloat)
     draw_links(potential_links, L)
 end
 #### end ####
+
+#### Generate the realized links ####
+"Generate the non-trophic matrix given the interaction number or connectance."
+function nontrophic_matrix(foodweb, potential_links_function, n)
+
+    # Initialization.
+    S = richness(foodweb)
+    A = spzeros(S, S)
+    potential_links = potential_links_function(foodweb)
+    link_tuples = draw_links(potential_links, n)
+
+    # Fill matrix with corresponding links.
+    for (i, j) in realized_links
+        A[i, j] = 1
+    end
+
+    A
+end
+#### end ####
