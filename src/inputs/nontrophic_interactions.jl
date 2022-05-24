@@ -1,3 +1,19 @@
+#### Multiplex network objects ####
+const AdjacencyMatrix = SparseMatrixCSC{Float64,Int}
+
+mutable struct MultiplexNetwork
+    trophic::AdjacencyMatrix
+    facilitation::AdjacencyMatrix
+    competition::AdjacencyMatrix
+    refuge::AdjacencyMatrix
+    interference::AdjacencyMatrix
+    bodymass::Vector{Float64}
+    species_id::Vector{String}
+end
+
+#Todo: Define methods to build Multiplex Networks
+#### end ####
+
 #### List potential interactions ####
 "Find potential facilitation links."
 function potential_facilitation_links(foodweb)
