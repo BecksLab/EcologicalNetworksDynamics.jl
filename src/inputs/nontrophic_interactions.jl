@@ -21,6 +21,13 @@ function potential_facilitation_links(foodweb)
     producers = (1:S)[whoisproducer(foodweb)]
     [(i, j) for i in (1:S), j in producers if i != j] # i facilitated, j facilitating
 end
+
+"Find potential competition links."
+function potential_competition_links(foodweb)
+    S = richness(foodweb)
+    producers = (1:S)[whoisproducer(foodweb)]
+    [(i, j) for i in producers, j in producers if i != j]
+end
 #### end ####
 
 #### Sample potential interactions ####
