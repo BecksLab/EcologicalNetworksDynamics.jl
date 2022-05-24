@@ -145,6 +145,7 @@ depending on the carrying capacity.
 
 ```@example befwm2
 using Plots # hide
+ENV["GKSwstype"] = "100" # don't open a plot window while building the documentation # hide
 
 # Setup
 K_list = [1 + 0.1*i for i in 1:46]
