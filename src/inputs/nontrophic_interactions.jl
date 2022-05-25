@@ -11,7 +11,43 @@ mutable struct MultiplexNetwork
     species_id::Vector{String}
 end
 
-#Todo: Define methods to build Multiplex Networks
+"Build the [`MultiplexNetwork`](@ref) from the [`FoodWeb`](@ref)."
+function MultiplexNetwork(
+    foodweb::FoodWeb;
+    C_facilitation=0.0,
+    C_competition=0.0,
+    C_refuge=0.0,
+    C_interference=0.0,
+    facilitation=nontrophic_matrix(foodweb, potential_facilitation_links,
+        C_facilitation, symmetric=false),
+    competition=nontrophic_matrix(foodweb, potential_competition_links,
+        C_competition, symmetric=true),
+    refuge=nontrophic_matrix(foodweb, potential_refuge_links,
+        C_refuge, symmetric=false),
+    interference=nontrophic_matrix(foodweb, potential_interference_links,
+        C_interference, symmetric=true)
+)
+
+    # Safety checks.
+    S = richness(foodweb)
+    size(facilitation) == (S, S) || throw(ArgumentError("Adjacency matrix should be of
+        size (S,S) with S the species richness."))
+    size(competition) == (S, S) || throw(ArgumentError("Adjacency matrix should be of
+        size (S,S) with S the species richness."))
+    size(refuge) == (S, S) || throw(ArgumentError("Adjacency matrix should be of
+        size (S,S) with S the species richness."))
+    size(interference) == (S, S) || throw(ArgumentError("Adjacency matrix should be of
+        size (S,S) with S the species richness."))
+    #!Todo: test validity of custom matrices (e.g. facilitation: only prod. are facilitated)
+
+    # Information from FoodWeb.
+    trophic = foodweb.A
+    bodymass = foodweb.M
+    species_id = foodweb.species
+
+    MultiplexNetwork(trophic, sparse(facilitation), sparse(competition),
+        sparse(refuge), sparse(interference), bodymass, species_id)
+end
 #### end ####
 
 #### List potential interactions ####
