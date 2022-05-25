@@ -22,6 +22,17 @@
     foodweb = FoodWeb([0 0 0 0; 0 0 0 0; 1 1 0 0; 0 0 1 0])
     expect = Set([(1, 2), (2, 1), (1, 3), (2, 3)])
     @test Set(potential_refuge_links(foodweb)) == expect
+
+    # Interference.
+    foodweb = FoodWeb([0 0 0 0; 1 0 0 0; 1 0 0 0; 0 0 0 0])
+    expect = Set([(2, 3), (3, 2)])
+    @test Set(potential_interference_links(foodweb)) == expect
+    foodweb = FoodWeb([0 0 0 0; 1 0 0 0; 1 0 0 0; 1 0 0 0])
+    expect = Set([(2, 3), (3, 2), (4, 3), (3, 4), (4, 2), (2, 4)])
+    @test Set(potential_interference_links(foodweb)) == expect
+    foodweb = FoodWeb([0 0 0 0; 1 0 0 0; 0 1 0 0; 1 1 0 0])
+    expect = Set([(4, 3), (3, 4), (4, 2), (2, 4)])
+    @test Set(potential_interference_links(foodweb)) == expect
 end
 
 @testset "Non-trophic Interactions: draw randomly links." begin
