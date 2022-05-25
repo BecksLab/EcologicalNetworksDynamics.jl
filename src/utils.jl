@@ -33,6 +33,11 @@ end
 function whoisprey(foodweb)
     vec(any(foodweb.A, dims=1))
 end
+
+"Are predators `i` and `j` sharing at least one prey?"
+function share_prey(foodweb, i, j)
+    any(foodweb.A[i, :] .&& foodweb.A[j, :])
+end
 #### end ####
 
 #### Find consumers and resources of a species ####
