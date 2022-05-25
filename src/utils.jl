@@ -25,6 +25,14 @@ end
 function isproducer(foodweb::FoodWeb, i)
     foodweb.metabolic_class[i] == "producer"
 end
+
+function whoispredator(foodweb)
+    vec(any(foodweb.A, dims=2))
+end
+
+function whoisprey(foodweb)
+    vec(any(foodweb.A, dims=1))
+end
 #### end ####
 
 #### Find consumers and resources of a species ####
