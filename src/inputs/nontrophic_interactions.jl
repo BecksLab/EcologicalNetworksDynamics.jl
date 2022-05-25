@@ -36,6 +36,13 @@ function potential_refuge_links(foodweb)
     preys = (1:S)[whoisprey(foodweb)]
     [(i, j) for i in producers, j in preys if i != j]
 end
+
+"Find potential interference links."
+function potential_interference_links(foodweb)
+    S = richness(foodweb)
+    predators = (1:S)[whoispredator(foodweb)]
+    [(i, j) for i in predators, j in predators if i != j && share_prey(foodweb, i, j)]
+end
 #### end ####
 
 #### Sample potential interactions ####
