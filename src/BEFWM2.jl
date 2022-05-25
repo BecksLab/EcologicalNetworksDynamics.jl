@@ -25,7 +25,7 @@ include(joinpath(".", "measures/stability.jl"))
 include(joinpath(".", "utils.jl"))
 
 # Export public functions
-export FoodWeb, ModelParameters, FunctionalResponse, BioRates, Environment
+export FoodWeb, ModelParameters, FunctionalResponse, BioRates, Environment, MultiplexNetwork
 export potential_facilitation_links, potential_competition_links, potential_refuge_links
 export potential_interference_links
 export draw_symmetric_links, draw_asymmetric_links, nontrophic_matrix
