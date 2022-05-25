@@ -28,6 +28,14 @@ function potential_competition_links(foodweb)
     producers = (1:S)[whoisproducer(foodweb)]
     [(i, j) for i in producers, j in producers if i != j]
 end
+
+"Find potential refuge links."
+function potential_refuge_links(foodweb)
+    S = richness(foodweb)
+    producers = (1:S)[whoisproducer(foodweb)]
+    preys = (1:S)[whoisprey(foodweb)]
+    [(i, j) for i in producers, j in preys if i != j]
+end
 #### end ####
 
 #### Sample potential interactions ####
