@@ -1,3 +1,55 @@
+@testset "Non-trophic Interactions: build MultiplexNetwork." begin
+
+    # Basic structure.
+    foodweb = FoodWeb([0 0; 1 0]) # 2 eats 1
+    multiplex_net = MultiplexNetwork(foodweb) # default net w/o non-trophic interactions
+    @test isempty(multiplex_net.facilitation.nzval)
+    @test isempty(multiplex_net.competition.nzval)
+    @test isempty(multiplex_net.refuge.nzval)
+    @test isempty(multiplex_net.interference.nzval)
+    @test multiplex_net.trophic == foodweb.A
+    @test multiplex_net.bodymass == foodweb.M
+    @test multiplex_net.species_id == foodweb.species
+
+    # Build from connectance.
+    foodweb = FoodWeb(nichemodel, 20, C=0.1)
+    # - Only facilitation on.
+    multiplex_net = MultiplexNetwork(foodweb, C_facilitation=0.5)
+    @test !isempty(multiplex_net.facilitation.nzval)
+    @test isempty(multiplex_net.competition.nzval)
+    @test isempty(multiplex_net.refuge.nzval)
+    @test isempty(multiplex_net.interference.nzval)
+    # - Refuge and competition on.
+    multiplex_net = MultiplexNetwork(foodweb, C_competition=0.5, C_refuge=0.5)
+    @test isempty(multiplex_net.facilitation.nzval)
+    @test !isempty(multiplex_net.competition.nzval)
+    @test !isempty(multiplex_net.refuge.nzval)
+    @test isempty(multiplex_net.interference.nzval)
+    # - Everything on.
+    multiplex_net = MultiplexNetwork(foodweb, C_facilitation=0.5, C_competition=0.5,
+        C_refuge=0.5, C_interference=0.5)
+    @test !isempty(multiplex_net.facilitation.nzval)
+    @test !isempty(multiplex_net.competition.nzval)
+    @test !isempty(multiplex_net.refuge.nzval)
+    @test !isempty(multiplex_net.interference.nzval)
+
+    # Build with specifying specific non-trophic matrices.
+    custom_matrix = zeros(20, 20)
+    custom_matrix[4, 5] = 1
+    # - Only facilitation.
+    multiplex_net = MultiplexNetwork(foodweb, facilitation=custom_matrix)
+    @test multiplex_net.facilitation == sparse(custom_matrix)
+    @test isempty(multiplex_net.competition.nzval)
+    @test isempty(multiplex_net.refuge.nzval)
+    @test isempty(multiplex_net.interference.nzval)
+    # - Refuge custom, facilitation on.
+    multiplex_net = MultiplexNetwork(foodweb, refuge=custom_matrix, C_facilitation=0.5)
+    @test multiplex_net.refuge == sparse(custom_matrix)
+    @test isempty(multiplex_net.competition.nzval)
+    @test !isempty(multiplex_net.facilitation.nzval)
+    @test isempty(multiplex_net.interference.nzval)
+end
+
 @testset "Non-trophic Interactions: find potential links." begin
 
     # Facilitation.
