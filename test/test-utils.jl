@@ -14,6 +14,12 @@ foodweb_2links.M = [1.0, 1.0, 10.0, 10.0]
     @test BEFWM2.isproducer(foodweb_2links, 2) == true
     @test BEFWM2.isproducer(foodweb_2links, 3) == false
     @test BEFWM2.isproducer(foodweb_2links, 4) == false
+
+    foodweb_3links = FoodWeb([0 0 0 0; 0 0 0 0; 1 1 0 0; 0 0 1 0])
+    @test BEFWM2.whoisprey(foodweb_3links) == [1, 1, 1, 0]
+    @test BEFWM2.whoispredator(foodweb_3links) == [0, 0, 1, 1]
+    @test BEFWM2.whoisprey(foodweb_2links) == [1, 1, 0, 0]
+    @test BEFWM2.whoispredator(foodweb_2links) == [0, 0, 1, 1]
 end
 
 @testset "Finding resources and consumers" begin
