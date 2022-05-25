@@ -22,6 +22,23 @@ foodweb_2links.M = [1.0, 1.0, 10.0, 10.0]
     @test BEFWM2.whoispredator(foodweb_2links) == [0, 0, 1, 1]
 end
 
+@testset "Predator sharing prey" begin
+    foodweb_5links = FoodWeb([0 0 0 0; 1 0 0 0; 1 1 1 0; 0 0 1 0])
+    expected = [
+        (1, 2, false),
+        (2, 1, false),
+        (3, 2, true),
+        (2, 3, true),
+        (2, 4, false),
+        (4, 2, false),
+        (3, 4, true),
+        (4, 3, true)
+    ]
+    for (i, j, e) in expected
+        @test BEFWM2.share_prey(foodweb_5links, i, j) == e
+    end
+end
+
 @testset "Finding resources and consumers" begin
     @test convert(Vector, BEFWM2.resource(1, foodweb_2links)) == [0, 0, 0, 0]
     @test convert(Vector, BEFWM2.resource(2, foodweb_2links)) == [0, 0, 0, 0]
