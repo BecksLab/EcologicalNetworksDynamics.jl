@@ -2,6 +2,13 @@ using Documenter
 using BEFWM2
 using Test
 using SparseArrays
+using Random
+using EcologicalNetworks
+
+# Set and print seed
+seed = sample(1:100000)
+Random.seed!(seed)
+println("Seed set to $seed.")
 
 # Run doctests first.
 DocMeta.setdocmeta!(BEFWM2, :DocTestSetup, :(using BEFWM2); recursive=true)
