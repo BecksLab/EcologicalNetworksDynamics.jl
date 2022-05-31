@@ -1,6 +1,4 @@
 #### Multiplex network objects ####
-const AdjacencyMatrix = SparseMatrixCSC{Float64,Int}
-
 mutable struct MultiplexNetwork <: EcologicalNetwork
     trophic::AdjacencyMatrix
     facilitation::AdjacencyMatrix
@@ -184,7 +182,7 @@ function nontrophic_matrix(foodweb, potential_links_function, n; symmetric=false
 
     # Initialization.
     S = richness(foodweb)
-    A = spzeros(S, S)
+    A = spzeros(Bool, S, S)
     potential_links = potential_links_function(foodweb)
 
     draw_links = symmetric ? draw_symmetric_links : draw_asymmetric_links
