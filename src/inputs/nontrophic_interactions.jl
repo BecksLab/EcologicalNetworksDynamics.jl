@@ -1,7 +1,7 @@
 #### Multiplex network objects ####
 const AdjacencyMatrix = SparseMatrixCSC{Float64,Int}
 
-mutable struct MultiplexNetwork
+mutable struct MultiplexNetwork <: EcologicalNetwork
     trophic::AdjacencyMatrix
     facilitation::AdjacencyMatrix
     competition::AdjacencyMatrix
