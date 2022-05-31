@@ -50,6 +50,44 @@ function MultiplexNetwork(
 end
 #### end ####
 
+#### Display MultiplexNetwork ####
+"One line MultiplexNetwork display."
+function Base.show(io::IO, multiplex_net::MultiplexNetwork)
+    S = richness(multiplex_net)
+    Lt = count(multiplex_net.trophic)
+    Lr = count(multiplex_net.refuge)
+    Lf = count(multiplex_net.facilitation)
+    Li = count(multiplex_net.interference)
+    Lc = count(multiplex_net.competition)
+    print(io, "MultiplexNetwork(S=$S, Lt=$Lt, Lf=$Lf, Lc=$Lc, Lr=$Lr, Li=$Li)")
+end
+
+"Multiline MultiplexNework display."
+function Base.show(io::IO, ::MIME"text/plain", multiplex_net::MultiplexNetwork)
+
+    # Specify parameters
+    S = richness(multiplex_net)
+    Lt = count(multiplex_net.trophic)
+    Lr = count(multiplex_net.refuge)
+    Lf = count(multiplex_net.facilitation)
+    Li = count(multiplex_net.interference)
+    Lc = count(multiplex_net.competition)
+
+    class = multiplex_net.metabolic_class
+    n_p = count(class .== "producer")
+    n_i = count(class .== "invertebrate")
+    n_v = count(class .== "ectotherm vertebrate")
+
+    # Display output
+    println(io, "MultiplexNetwork of $S species:")
+    println(io, "  trophic: $Lt links")
+    println(io, "  facilitation: $Lf links")
+    println(io, "  competition: $Lc links")
+    println(io, "  refuge: $Lr links")
+    print(io, "  interference: $Li links")
+    #println(io, "  bodymass: " * vector_to_string(multiplex_net.bodymass))
+    #println(io, "  metabolic_class: $n_p producers, $n_i invertebrates, $n_v vertebrates")
+    #print(io, "  species: " * vector_to_string(multiplex_net.species_id))
 end
 #### end ####
 
