@@ -12,7 +12,10 @@ Generating FoodWeb objects
 - `metabolic_class` is a vector of species metabolic classes
 - `method` is a String describing the model (if any) used to generate the food web, but can also contain whatever String users want to input (food web source, etc...)
 """
-mutable struct FoodWeb
+
+abstract type EcologicalNetwork end
+
+mutable struct FoodWeb <: EcologicalNetwork
     A::SparseMatrixCSC{Bool,Int64}
     species::Vector{String}
     M::Vector{Real}
