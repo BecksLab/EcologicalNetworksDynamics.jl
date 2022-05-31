@@ -5,38 +5,37 @@ Quantifying food webs structural properties
 import Base.convert
 
 """
-    convert(UnipartiteNetwork, FW::FoodWeb) 
+    convert(UnipartiteNetwork, FW::FoodWeb)
 
 Convert a FoodWeb to its UnipartiteNetwork equivalent
 """
-function convert(::Type{UnipartiteNetwork}, FW::T) where {T <: FoodWeb}
+function convert(::Type{UnipartiteNetwork}, FW::T) where {T<:FoodWeb}
     return UnipartiteNetwork(FW.A, FW.species)
 end
 
-"""
-    richness(FW::FoodWeb)) 
+"Number of species in the network."
+function richness(foodweb::FoodWeb)
+    length(foodweb.species)
+end
 
-Returns the number of species in the food web
-"""
-function EcologicalNetworks.richness(FW::FoodWeb)
-    N = convert(UnipartiteNetwork, FW)
-    return richness(N)
+function richness(multiplex_net::MultiplexNetwork)
+    length(multiplex_net.species_id)
 end
 
 function _ftl(A::AbstractMatrix)
-    if isa(A, AbstractMatrix{Int64}) 
+    if isa(A, AbstractMatrix{Int64})
         A = Bool.(A)
     end
     N = UnipartiteNetwork(A)
     dtp = EcologicalNetworks.fractional_trophic_level(N) #shortest path to producer
     for s in dtp
-        
+
     end
 end
 
 
 function _gettrophiclevels(A::AbstractMatrix)
-    if isa(A, AbstractMatrix{Int64}) 
+    if isa(A, AbstractMatrix{Int64})
         A = Bool.(A)
     end
     tl = trophic_level(UnipartiteNetwork(A))
@@ -47,7 +46,7 @@ function _gettrophiclevels(A::AbstractMatrix)
     return tl_val[tl_sp]
 end
 
-function massratio(obj::Union{ModelParameters, FoodWeb})
+function massratio(obj::Union{ModelParameters,FoodWeb})
 
     if isa(obj, ModelParameters)
         M = obj.foodweb.M
@@ -57,7 +56,7 @@ function massratio(obj::Union{ModelParameters, FoodWeb})
         A = obj.A
     end
 
-    Z = mean((M ./ M')[findall(A)])
+    Z = mean((M./M')[findall(A)])
 
     return Z
 
