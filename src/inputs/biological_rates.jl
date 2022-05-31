@@ -116,7 +116,7 @@ end
 #### Main functions to compute biological rates ####
 """
     BioRates(
-        foodweb;
+        network::EcologicalNetwork;
         r = allometric_rate(foodweb, DefaultGrowthParams()),
         x = allometric_rate(foodweb, DefaultMetabolismParams()),
         y = allometric_rate(foodweb, DefaultMaxConsumptionParams())
@@ -170,15 +170,15 @@ BioRates:
 ```
 """
 function BioRates(
-    foodweb::FoodWeb;
-    r::Union{Vector{<:Real},<:Real}=allometric_rate(foodweb, DefaultGrowthParams()),
-    x::Union{Vector{<:Real},<:Real}=allometric_rate(foodweb, DefaultMetabolismParams()),
-    y::Union{Vector{<:Real},<:Real}=allometric_rate(foodweb, DefaultMaxConsumptionParams()),
-    e=assimilation_efficiency(foodweb)
+    network::EcologicalNetwork;
+    r::Union{Vector{<:Real},<:Real}=allometric_rate(network, DefaultGrowthParams()),
+    x::Union{Vector{<:Real},<:Real}=allometric_rate(network, DefaultMetabolismParams()),
+    y::Union{Vector{<:Real},<:Real}=allometric_rate(network, DefaultMaxConsumptionParams()),
+    e=assimilation_efficiency(network)
 )
 
     # Set up
-    S = richness(foodweb)
+    S = richness(network)
     Rates = [r, x, y]
     nᵣ = length(Rates)
 
@@ -200,9 +200,10 @@ end
 
 "Compute rate vector (one value per species) with allometric scaling."
 function allometric_rate(
-    foodweb::FoodWeb,
+    network::EcologicalNetwork,
     allometricparams::AllometricParams
 )
+    foodweb = convert(FoodWeb, network)
     params = allometricparams_to_vec(foodweb, allometricparams)
     a, b = params.a, params.b
     allometricscale.(a, b, foodweb.M)

@@ -65,11 +65,12 @@ julia> Environment(foodweb, K=[1,2,nothing]).K # can also provide a vector
 See also [`ModelParameters`](@ref).
 """
 function Environment(
-    foodweb::FoodWeb;
+    network::EcologicalNetwork;
     K::Union{Tp,Vector{Union{Nothing,Tp}},Vector{Tp}}=1,
     T::Real=293.15
 ) where {Tp<:Real}
 
+    foodweb = convert(FoodWeb, network)
     S = richness(foodweb)
 
     # Test

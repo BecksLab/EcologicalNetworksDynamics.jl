@@ -74,7 +74,7 @@ end
 #### end ####
 
 """
-    homogeneous_preference(foodweb)
+    homogeneous_preference(network::EcologicalNetwork)
 
 Create the preferency matrix (`ω`) which describes how each predator split its time
 between its different preys.
@@ -84,9 +84,10 @@ Here we assume an **homogeneous** preference, meaning that each predator split i
 equally between its preys, i.e. ∀j ``\\omega_{ij} = \\omega_{i} = \\frac{1}{n_{preys,i}}``
 where ``n_{preys,i}`` is the number of prey of predator i.
 """
-function homogeneous_preference(foodweb::FoodWeb)
+function homogeneous_preference(network::EcologicalNetwork)
 
     # Set up
+    foodweb = convert(FoodWeb, network)
     S = richness(foodweb)
     ω = spzeros(S, S)
     consumer, resource = findnz(foodweb.A)
@@ -103,7 +104,7 @@ function homogeneous_preference(foodweb::FoodWeb)
 end
 
 """
-    assimilation_efficiency(foodweb; e_herbivore=0.45, e_carnivore=0.85)
+    assimilation_efficiency(network; e_herbivore=0.45, e_carnivore=0.85)
 
 Create the assimilation efficiency matrix (`Efficiency`).
 `Efficiency[i,j]` is the assimation efficiency of predator i eating prey j.
@@ -114,9 +115,10 @@ The efficiency depends on the metabolic class of the prey:
 
 Default values are taken from *add ref*.
 """
-function assimilation_efficiency(foodweb::FoodWeb; e_herbivore=0.45, e_carnivore=0.85)
+function assimilation_efficiency(network::EcologicalNetwork; e_herbivore=0.45, e_carnivore=0.85)
 
     # Set up
+    foodweb = convert(FoodWeb, network)
     S = richness(foodweb)
     efficiency = spzeros(Float64, S, S)
     isproducer = whoisproducer(foodweb.A)
@@ -337,29 +339,29 @@ end
 
 # Methods to build Classic and Bionergetic structs
 function BioenergeticResponse(
-    foodweb::FoodWeb;
+    network::EcologicalNetwork;
     B0=0.5,
     h=2.0,
-    ω=homogeneous_preference(foodweb),
+    ω=homogeneous_preference(network),
     c=0.0
 )
-    S = richness(foodweb)
+    S = richness(network)
     length(c) == S || (c = repeat([c], S))
     length(B0) == S || (B0 = repeat([B0], S))
     BioenergeticResponse(Float64(h), Float64.(ω), Float64.(c), Float64.(B0))
 end
 
 function ClassicResponse(
-    foodweb::FoodWeb;
+    network::EcologicalNetwork;
     aᵣ=0.5,
     hₜ=1.0,
     h=2.0,
-    ω=homogeneous_preference(foodweb),
+    ω=homogeneous_preference(network),
     c=0.0
 )
 
     # Safety checks
-    S = richness(foodweb)
+    S = richness(network)
     size(hₜ) ∈ [(), (S, S)] || throw(ArgumentError("hₜ wrong size: should be a scalar or a
         of size (S, S) with S the species richness."))
     size(aᵣ) ∈ [(), (S, S)] || throw(ArgumentError("aᵣ wrong size: should be a scalar or a
@@ -370,6 +372,7 @@ function ClassicResponse(
         with S the species richness."))
 
     # Format
+    foodweb = convert(FoodWeb, network)
     size(hₜ) == (S, S) || (hₜ = scalar_to_sparsematrix(hₜ, foodweb.A))
     size(aᵣ) == (S, S) || (aᵣ = scalar_to_sparsematrix(aᵣ, foodweb.A))
     aᵣ = sparse(aᵣ)
@@ -379,16 +382,21 @@ function ClassicResponse(
     ClassicResponse(Float64(h), Float64.(ω), Float64.(c), Float64.(hₜ), Float64.(aᵣ))
 end
 
-function LinearResponse(foodweb::FoodWeb; ω=homogeneous_preference(foodweb), α=1.0)
+function LinearResponse(
+    network::EcologicalNetwork;
+    ω=homogeneous_preference(network),
+    α=1.0
+)
 
     # Safety checks
-    S = richness(foodweb)
+    S = richness(network)
     size(ω) == (S, S) || throw(ArgumentError("ω wrong size: should be of size (S, S)
         with S the species richness."))
     length(α) ∈ [1, S] || throw(ArgumentError("α wrong length: should be of length 1 or S
         (species richness)."))
 
     # Format
+    foodweb = convert(FoodWeb, network)
     if length(α) == 1
         α_vec = spzeros(S)
         α_vec[.!whoisproducer(foodweb.A)] .= α

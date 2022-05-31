@@ -4,7 +4,7 @@ Model parameters
 
 #### Type definition ####
 mutable struct ModelParameters{R<:FunctionalResponse}
-    foodweb::FoodWeb
+    network::EcologicalNetwork
     biorates::BioRates
     environment::Environment
     functional_response::R
@@ -16,7 +16,7 @@ end
 function Base.show(io::IO, params::ModelParameters)
     response_type = typeof(params.functional_response)
     print(io, "ModelParameters{$response_type}")
-    !get(io, :compact, false) && print(io, "(", params.foodweb, ")")
+    !get(io, :compact, false) && print(io, "(", params.network, ")")
 end
 
 "Multiline ModelParameters display."
@@ -25,7 +25,7 @@ function Base.show(io::IO, ::MIME"text/plain", params::ModelParameters)
     # Display output
     response_type = typeof(params.functional_response)
     println(io, "ModelParameters{$response_type}:")
-    println(io, "  foodweb: ", params.foodweb)
+    println(io, "  network: ", params.network)
     println(io, "  environment: ", params.environment)
     println(io, "  biorates: ", params.biorates)
     print(io, "  functional_response: ", params.functional_response)
@@ -34,10 +34,10 @@ end
 
 """
     ModelParameters(
-        FoodWeb::FoodWeb;
-        BioRates::BioRates=BioRates(foodweb),
-        Environment::Environment=Environment(foodweb),
-        F::FunctionalResponse=BioenergeticResponse(foodweb)
+        network::EcologicalNetwork;
+        biorates::BioRates=BioRates(foodweb),
+        environment::Environment=Environment(foodweb),
+        functional_response::FunctionalResponse=BioenergeticResponse(foodweb)
     )
 
 Generate the parameters of the species community.
@@ -57,12 +57,12 @@ julia> foodweb = FoodWeb([0 1; 0 0]); # create a simple foodweb
 
 julia> p = ModelParameters(foodweb) # default
 ModelParameters{BioenergeticResponse}:
-  foodweb: FoodWeb(S=2, L=1)
+  network: FoodWeb(S=2, L=1)
   environment: Environment(K=[nothing, 1], T=293.15K)
   biorates: BioRates(e, r, x, y)
   functional_response: BioenergeticResponse
 
-julia> p.foodweb # check that stored foodweb is the same than the one we provided
+julia> p.network # check that stored foodweb is the same than the one we provided
 FoodWeb of 2 species:
   A: sparse matrix with 1 links
   M: [1.0, 1.0]
@@ -91,11 +91,10 @@ ClassicResponse:
 ```
 """
 function ModelParameters(
-    foodweb::FoodWeb;
-    biorates::BioRates=BioRates(foodweb),
-    environment::Environment=Environment(foodweb),
-    functional_response::FunctionalResponse=BioenergeticResponse(foodweb)
+    network::EcologicalNetwork;
+    biorates::BioRates=BioRates(network),
+    environment::Environment=Environment(network),
+    functional_response::FunctionalResponse=BioenergeticResponse(network)
 )
-
-    ModelParameters(foodweb, biorates, environment, functional_response)
+    ModelParameters(network, biorates, environment, functional_response)
 end

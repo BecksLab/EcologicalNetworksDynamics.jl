@@ -5,7 +5,7 @@ Consumption
 function consumption(i, B, params::ModelParameters{BioenergeticResponse}, fᵣmatrix)
 
     # Set up
-    foodweb = params.foodweb
+    foodweb = convert(FoodWeb, params.network)
     res = resource(i, foodweb) # ressource of species i
     cons = consumer(i, foodweb) # consumer of species i
     x = params.biorates.x # metabolic rate
@@ -26,7 +26,7 @@ function consumption(
     fᵣmatrix)
 
     # Set up
-    foodweb = params.foodweb
+    foodweb = convert(FoodWeb, params.network)
     res = resource(i, foodweb) # ressource of species i
     cons = consumer(i, foodweb) # consumer of species i
     e = params.biorates.e # assimilation efficiency
