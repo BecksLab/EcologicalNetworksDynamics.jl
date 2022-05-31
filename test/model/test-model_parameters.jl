@@ -7,7 +7,7 @@
     @test p.biorates.x == [0, 0.314, 0.314]
     @test p.biorates.r == [1, 0, 0]
     @test p.environment.K == [1, nothing, nothing]
-    @test p.foodweb.A == sparse(A)
+    @test p.network.A == sparse(A)
     @test typeof(p.functional_response) == BioenergeticResponse
 
     # Custom biorates
@@ -15,7 +15,7 @@
     @test p.biorates.x == [1, 1, 1] # changed
     @test p.biorates.r == [1, 0, 0] # unchanged
     @test p.environment.K == [1, nothing, nothing] # unchanged
-    @test p.foodweb.A == sparse(A) # unchanged
+    @test p.network.A == sparse(A) # unchanged
     @test typeof(p.functional_response) == BioenergeticResponse # unchanged
 
     # Classic Functional Response
@@ -23,7 +23,7 @@
     @test p.biorates.x == [0, 0.314, 0.314] # unchanged
     @test p.biorates.r == [1, 0, 0] # unchanged
     @test p.environment.K == [1, nothing, nothing] # unchanged
-    @test p.foodweb.A == sparse(A) # unchanged
+    @test p.network.A == sparse(A) # unchanged
     @test typeof(p.functional_response) == ClassicResponse # changed
 
     # Linear Functional Response
