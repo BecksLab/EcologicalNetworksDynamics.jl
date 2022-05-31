@@ -238,7 +238,7 @@ julia> FW = FoodWeb(A)
 Method: unspecified
 ```
 """
-function FoodWeb(A::AbstractMatrix{Bool}
+function FoodWeb(A::Union{AbstractMatrix{Bool},AdjacencyMatrix}
     ; species::Union{Nothing,Vector{String}}=nothing, M::Union{Nothing,Vector{T}}=nothing, metabolic_class::Union{Nothing,Vector{String},String}=nothing, method::String="unspecified", Z::Union{Nothing,T}=nothing) where {T<:Real}
 
     M = _masscalculation(A, M, Z)
