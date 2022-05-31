@@ -1,10 +1,25 @@
 #### Multiplex network objects ####
+"""
+Intensities of non-trophic interactions:
+- `f0`: intesity of plant facilitation
+- `c0`: intesity of competition for space
+- `r0`: intesity of refuge provisioning
+- `i0`: intesity of interference between predators
+"""
+mutable struct NonTrophicIntensity
+    f0::Float64
+    c0::Float64
+    r0::Float64
+    i0::Float64
+end
+
 mutable struct MultiplexNetwork <: EcologicalNetwork
     trophic::AdjacencyMatrix
     facilitation::AdjacencyMatrix
     competition::AdjacencyMatrix
     refuge::AdjacencyMatrix
     interference::AdjacencyMatrix
+    nontrophic_intensity::NonTrophicIntensity
     bodymass::Vector{Float64}
     species_id::Vector{String}
     metabolic_class::Vector{String}
@@ -24,7 +39,8 @@ function MultiplexNetwork(
     refuge=nontrophic_matrix(foodweb, potential_refuge_links,
         C_refuge, symmetric=false),
     interference=nontrophic_matrix(foodweb, potential_interference_links,
-        C_interference, symmetric=true)
+        C_interference, symmetric=true),
+    intensity=NonTrophicIntensity(1.0, 1.0, 1.0, 1.0)
 )
 
     # Safety checks.
@@ -46,11 +62,18 @@ function MultiplexNetwork(
     metabolic_class = foodweb.metabolic_class
 
     MultiplexNetwork(trophic, sparse(facilitation), sparse(competition),
-        sparse(refuge), sparse(interference), bodymass, species_id, metabolic_class)
+        sparse(refuge), sparse(interference), intensity,
+        bodymass, species_id, metabolic_class)
 end
 #### end ####
 
-#### Display MultiplexNetwork ####
+#### Display MultiplexNetwork & NonTrophicIntensity ####
+"One line NonTrophicIntensity display."
+function Base.show(io::IO, intensity::NonTrophicIntensity)
+    f0, c0, r0, i0 = intensity.f0, intensity.c0, intensity.r0, intensity.i0
+    print(io, "NonTrophicIntensity(f0=$f0, c0=$c0, r0=$r0, i0=$i0)")
+end
+
 "One line MultiplexNetwork display."
 function Base.show(io::IO, multiplex_net::MultiplexNetwork)
     S = richness(multiplex_net)
