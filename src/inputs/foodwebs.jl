@@ -3,6 +3,8 @@ Generating FoodWeb objects
 =#
 
 #### Type definition ####
+const AdjacencyMatrix = SparseMatrixCSC{Bool,Int64} # alias for comfort
+
 """
     A FoodWeb is a collection of the following fields:
 
@@ -16,7 +18,7 @@ Generating FoodWeb objects
 abstract type EcologicalNetwork end
 
 mutable struct FoodWeb <: EcologicalNetwork
-    A::SparseMatrixCSC{Bool,Int64}
+    A::AdjacencyMatrix
     species::Vector{String}
     M::Vector{Real}
     metabolic_class::Vector{String}
