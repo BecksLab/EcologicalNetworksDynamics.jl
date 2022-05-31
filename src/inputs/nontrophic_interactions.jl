@@ -7,6 +7,7 @@ mutable struct MultiplexNetwork <: EcologicalNetwork
     interference::AdjacencyMatrix
     bodymass::Vector{Float64}
     species_id::Vector{String}
+    metabolic_class::Vector{String}
 end
 
 "Build the [`MultiplexNetwork`](@ref) from the [`FoodWeb`](@ref)."
@@ -42,9 +43,13 @@ function MultiplexNetwork(
     trophic = foodweb.A
     bodymass = foodweb.M
     species_id = foodweb.species
+    metabolic_class = foodweb.metabolic_class
 
     MultiplexNetwork(trophic, sparse(facilitation), sparse(competition),
-        sparse(refuge), sparse(interference), bodymass, species_id)
+        sparse(refuge), sparse(interference), bodymass, species_id, metabolic_class)
+end
+#### end ####
+
 end
 #### end ####
 
@@ -56,7 +61,8 @@ Convert a [`MultiplexNetwork`](@ref) to a [`FoodWeb`](@ref).
 The convertion consists in removing the non-trophic layers of the multiplex networks.
 """
 function convert(::Type{FoodWeb}, net::MultiplexNetwork)
-    FoodWeb(net.trophic, species=net.species_id, M=net.bodymass)
+    FoodWeb(net.trophic, species=net.species_id, M=net.bodymass,
+        metabolic_class=net.metabolic_class)
 end
 
 """
