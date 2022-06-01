@@ -2,11 +2,13 @@
 Productivity
 =#
 
-function logisticgrowth(i, B, params::ModelParameters)
-    rᵢ = params.biorates.r[i] # intrinsic growth rate of species i
-    Kᵢ = params.environment.K[i] # carrying capacity of species i
-    Bᵢ = B[i] # biomass of species i
-    logisticgrowth(Bᵢ, rᵢ, Kᵢ)
+function logisticgrowth(i, B, rᵢ, Kᵢ, network::FoodWeb)
+    logisticgrowth(B[i], rᵢ, Kᵢ)
+end
+
+function logisticgrowth(i, B, rᵢ, Kᵢ, network::MultiplexNetwork)
+    rᵢ = r_facilitated(rᵢ, i, B, network)
+    logisticgrowth(B[i], rᵢ, Kᵢ)
 end
 
 function logisticgrowth(B, r, K)
