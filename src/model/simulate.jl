@@ -13,7 +13,7 @@ function simulate(
 )
 
     # Tests and format
-    S = richness(params.foodweb)
+    S = richness(params.network)
     length(B0) ∈ [1, S] || throw(ArgumentError("B0 should be of length 1 or S
         (species richeness)."))
     length(B0) == S || (B0 = repeat([B0], S))

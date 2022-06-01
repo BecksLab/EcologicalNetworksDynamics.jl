@@ -7,8 +7,8 @@ function dBdt!(dB, B, params::ModelParameters, t)
     B[B.<=0] .= 0 # ensuring non-negative biomass
 
     # Set up
-    S = richness(params.foodweb)
-    fᵣmatrix = params.functional_response(B) # functional response matrix
+    S = richness(params.network)
+    fᵣmatrix = params.functional_response(B, params.network) # functional response matrix
 
     # Loop over species
     for i in 1:S
