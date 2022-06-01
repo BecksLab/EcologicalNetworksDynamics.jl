@@ -183,6 +183,12 @@ function (F::BioenergeticResponse)(B, i, j)
     num / denom
 end
 
+function (F::BioenergeticResponse)(B, i, j, network::EcologicalNetwork)
+    num = F.ω[i, j] * B[j]^F.h
+    denom = (F.B0[i]^F.h) + (F.c[i] * B[i] * F.B0[i]^F.h) + (sum(F.ω[i, :] .* (B .^ F.h)))
+    num / denom
+end
+
 """
     ClassicResponse(B, i, j)
 
@@ -233,6 +239,25 @@ function (F::ClassicResponse)(B, i, j)
     num / denom
 end
 
+function (F::ClassicResponse)(B, i, j, network::FoodWeb)
+    num = F.ω[i, j] * F.aᵣ[i, j] * B[j]^F.h
+    denom = 1 + (F.c[i] * B[i]) + sum(F.aᵣ[i, :] .* F.hₜ[i, :] .* F.ω[i, :] .* (B .^ F.h))
+    num / denom
+end
+
+function (F::ClassicResponse)(B, i, j, network::MultiplexNetwork)
+    # Compute numerator and denominator.
+    num = F.ω[i, j] * F.aᵣ[i, j] * B[j]^F.h
+    denom = 1 + (F.c[i] * B[i]) + sum(F.aᵣ[i, :] .* F.hₜ[i, :] .* F.ω[i, :] .* (B .^ F.h))
+
+    # Add interspecific predator interference to denominator.
+    i0 = network.nontrophic_intensity.i0
+    predator_interfering = network.interference[:, i]
+    denom += i0 * sum(B .* predator_interfering)
+
+    num / denom
+end
+
 """
     LinearResponse(B, i, j)
 
@@ -274,6 +299,10 @@ See also [`BioenergeticResponse`](@ref), [`ClassicResponse`](@ref)
 and [`FunctionalResponse`](@ref).
 """
 function (F::LinearResponse)(B, i, j)
+    F.ω[i, j] * F.α[i] * B[j]
+end
+
+function (F::LinearResponse)(B, i, j, network::EcologicalNetwork)
     F.ω[i, j] * F.α[i] * B[j]
 end
 
@@ -335,6 +364,28 @@ function (F::FunctionalResponse)(B)
     end
 
     sparse(F_matrix)
+end
+
+function (F::FunctionalResponse)(B, network::EcologicalNetwork)
+
+    # Safety checks and format
+    S = richness(network)
+    length(B) ∈ [1, S] || throw(ArgumentError("B wrong length: should be of length 1 or S
+        (species richness)."))
+    length(B) == S || (B = repeat([B], S))
+
+    # Set up
+    consumer, resource = findnz(F.ω)
+    n_interactions = length(consumer) # number of trophic interactions
+    F_matrix = spzeros(S, S)
+
+    # Fill functional response matrix
+    for n in 1:n_interactions
+        i, j = consumer[n], resource[n]
+        F_matrix[i, j] = F(B, i, j, network)
+    end
+
+    F_matrix
 end
 
 # Methods to build Classic and Bionergetic structs
