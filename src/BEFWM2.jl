@@ -9,10 +9,10 @@ import DifferentialEquations.Tsit5, DifferentialEquations.Rodas4
 
 # Include scripts
 include(joinpath(".", "inputs/foodwebs.jl"))
+include(joinpath(".", "inputs/nontrophic_interactions.jl"))
 include(joinpath(".", "inputs/functional_response.jl"))
 include(joinpath(".", "inputs/biological_rates.jl"))
 include(joinpath(".", "inputs/environment.jl"))
-include(joinpath(".", "inputs/nontrophic_interactions.jl"))
 include(joinpath(".", "model/model_parameters.jl"))
 include(joinpath(".", "model/productivity.jl"))
 include(joinpath(".", "model/consumption.jl"))
