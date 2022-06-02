@@ -34,6 +34,6 @@ export FunctionalResponse, ClassicResponse, BioenergeticResponse, LinearResponse
 export allometric_rate, AllometricParams
 export DefaultGrowthParams, DefaultMaxConsumptionParams, DefaultMetabolismParams
 export simulate
-export cascademodel, nichemodel, nestedhierarchymodel, mpnmodel, richness
+export cascademodel, nichemodel, nestedhierarchymodel, mpnmodel, richness, links
 
 end

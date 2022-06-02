@@ -89,3 +89,8 @@ function scalar_to_sparsematrix(scalar, template_matrix)
     out_matrix[nonzero_indexes] .= scalar
     sparse(out_matrix)
 end
+
+"Number of links of an adjacency matrix."
+function links(A::AdjacencyMatrix)
+    count(A)
+end
