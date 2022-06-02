@@ -28,3 +28,21 @@
     @test BEFWM2.logisticgrowth(2, B, r[2], K[2], foodweb) == 0.5
     @test BEFWM2.logisticgrowth(3, B, r[3], K[3], foodweb) == 0
 end
+
+@testset "Effect of facilitation on intrinsic growth rate" begin
+    foodweb = FoodWeb([0 0; 1 0])
+    multiplex_network = MultiplexNetwork(foodweb, C_facilitation=1.0)
+
+    # Default intensity: f0 = 1.0
+    @test BEFWM2.r_facilitated(1, 1, [1, 0], multiplex_network) == 1
+    @test BEFWM2.r_facilitated(10, 1, [1, 0], multiplex_network) == 10
+    @test BEFWM2.r_facilitated(10, 1, [1, 1], multiplex_network) == 20
+    @test BEFWM2.r_facilitated(10, 1, [1, 2], multiplex_network) == 30
+
+    # Non default intensity: f0 = 5.0
+    multiplex_network.nontrophic_intensity.f0 = 5.0
+    @test BEFWM2.r_facilitated(1, 1, [1, 0], multiplex_network) == 1
+    @test BEFWM2.r_facilitated(10, 1, [1, 0], multiplex_network) == 10
+    @test BEFWM2.r_facilitated(10, 1, [1, 1], multiplex_network) == 60
+    @test BEFWM2.r_facilitated(10, 1, [1, 2], multiplex_network) == 110
+end
