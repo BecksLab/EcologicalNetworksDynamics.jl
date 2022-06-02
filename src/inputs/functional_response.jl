@@ -258,6 +258,19 @@ function (F::ClassicResponse)(B, i, j, network::MultiplexNetwork)
     num / denom
 end
 
+function (F::ClassicResponse)(B, i, j, aᵣ, network::MultiplexNetwork)
+    # Compute numerator and denominator.
+    num = F.ω[i, j] * aᵣ[i, j] * B[j]^F.h
+    denom = 1 + (F.c[i] * B[i]) + sum(aᵣ[i, :] .* F.hₜ[i, :] .* F.ω[i, :] .* (B .^ F.h))
+
+    # Add interspecific predator interference to denominator.
+    i0 = network.nontrophic_intensity.i0
+    predator_interfering = network.interference[:, i]
+    denom += i0 * sum(B .* predator_interfering)
+
+    num / denom
+end
+
 """
     LinearResponse(B, i, j)
 
@@ -388,6 +401,32 @@ function (F::FunctionalResponse)(B, network::EcologicalNetwork)
     F_matrix
 end
 
+function (F::ClassicResponse)(B, network::MultiplexNetwork)
+
+    # Safety checks and format
+    S = richness(network)
+    length(B) ∈ [1, S] || throw(ArgumentError("B wrong length: should be of length 1 or S
+        (species richness)."))
+    length(B) == S || (B = repeat([B], S))
+
+    # Set up
+    consumer, resource = findnz(F.ω)
+    n_interactions = length(consumer) # number of trophic interactions
+    F_matrix = spzeros(S, S)
+
+    # Effect of refuge on aᵣ
+    aᵣ, r0, A_refuge = F.aᵣ, network.nontrophic_intensity.r0, network.refuge
+    aᵣ = aᵣ_refuge(aᵣ, r0, A_refuge, B)
+
+    # Fill functional response matrix
+    for n in 1:n_interactions
+        i, j = consumer[n], resource[n]
+        F_matrix[i, j] = F(B, i, j, aᵣ, network)
+    end
+
+    F_matrix
+end
+
 # Methods to build Classic and Bionergetic structs
 function BioenergeticResponse(
     network::EcologicalNetwork;
@@ -455,4 +494,33 @@ function LinearResponse(
     end
 
     LinearResponse(Float64.(ω), sparse(Float64.(α)))
+end
+
+"""
+Compute the matrix of the attack rates (`aᵣ`)
+by considering the effect of refuge provisioning.
+Rows are predators and columns preys,
+i.e. `aᵣ[i,j]` is the attack rate of predator `i` on prey `j`.
+The new attack rates are given by:
+``aᵣ'  = \\frac{aᵣ}{1 + r_0 \\sum_{k \\in \\{\\text{ref.}\\} B_k}``
+"""
+function aᵣ_refuge(aᵣ, r0, A_refuge, B)
+
+    # Early checks
+    r0 > 0 || return aᵣ # r0 = 0 ⇒ no effect of refuge
+    links(A_refuge) > 0 || return aᵣ # no refuge links ⇒ no effect of refuge
+
+    # Set up
+    S = richness(A_refuge)
+    preys = (1:S)[whoisprey(aᵣ)]
+    aᵣ_refuge = spzeros(Float64, S, S)
+
+    # Updating attack rate matrix (aᵣ)
+    for prey in preys
+        providing_refuge = A_refuge[:, prey] # species providing a refuge to 'prey'
+        refuge_ratio = 1 + r0 * sum(providing_refuge .* B)
+        aᵣ_refuge[:, prey] .= aᵣ[:, prey] / refuge_ratio
+    end
+
+    aᵣ_refuge
 end
