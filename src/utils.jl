@@ -26,12 +26,20 @@ function isproducer(foodweb::FoodWeb, i)
     foodweb.metabolic_class[i] == "producer"
 end
 
-function whoispredator(foodweb)
-    vec(any(foodweb.A, dims=2))
+function whoispredator(foodweb::FoodWeb)
+    whoispredator(foodweb.A)
 end
 
-function whoisprey(foodweb)
-    vec(any(foodweb.A, dims=1))
+function whoispredator(A::AbstractSparseMatrix)
+    vec(any(A .> 0, dims=2))
+end
+
+function whoisprey(foodweb::FoodWeb)
+    whoisprey(foodweb.A)
+end
+
+function whoisprey(A::AbstractSparseMatrix)
+    vec(any(A .> 0, dims=1))
 end
 
 "Are predators `i` and `j` sharing at least one prey?"
