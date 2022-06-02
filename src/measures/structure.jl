@@ -14,12 +14,14 @@ function convert(::Type{UnipartiteNetwork}, FW::T) where {T<:FoodWeb}
 end
 
 "Number of species in the network."
-function richness(foodweb::FoodWeb)
-    length(foodweb.species)
+function richness(A::AbstractSparseMatrix)
+    size(A, 1)
 end
-
+function richness(foodweb::FoodWeb)
+    richness(foodweb.A)
+end
 function richness(multiplex_net::MultiplexNetwork)
-    length(multiplex_net.species_id)
+    richness(multiplex_net.trophic)
 end
 
 function _ftl(A::AbstractMatrix)
