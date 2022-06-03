@@ -20,8 +20,10 @@ function dBdt!(dB, B, params::ModelParameters, t)
         growth = logisticgrowth(i, B, r[i], K[i], network)
         eating, being_eaten = consumption(i, B, params, fᵣmatrix)
         metabolism_loss = metabolic_loss(i, B, params)
+        net_growth_rate = growth + eating - metabolism_loss
+        cᵢ = net_growth_rate >= 0 ? competition_factor(i, B, network) : 1
 
         # Update dB/dt
-        dB[i] = growth + eating - being_eaten - metabolism_loss
+        dB[i] = cᵢ * net_growth_rate - being_eaten
     end
 end
