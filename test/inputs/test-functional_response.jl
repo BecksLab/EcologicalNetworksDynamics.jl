@@ -16,6 +16,7 @@ multi_net1 = MultiplexNetwork(foodweb_2sp)
 foodweb_3sp = FoodWeb(A_3sp)
 intensity = NonTrophicIntensity(0.0, 0.0, 0.0, 0.0)
 net_interference = MultiplexNetwork(foodweb_3sp, intensity=intensity, C_interference=1.0)
+net_refuge = MultiplexNetwork(foodweb_3sp, intensity=intensity, C_refuge=1.0)
 
 @testset "Bioenergetic functional response parameters" begin
     # Default
@@ -278,4 +279,44 @@ end
     F31 = (0.5 * 0.5 * 3^2) / (1 + 0.5 * 1 + 0.6 * 2 + 0.5 * 0.5 * 1 * 3^2 + 0.5 * 0.5 * 1 * 2^2)
     F32 = (0.5 * 0.5 * 2^2) / (1 + 0.5 * 1 + 0.6 * 2 + 0.5 * 0.5 * 1 * 3^2 + 0.5 * 0.5 * 1 * 2^2)
     @test Fclassic2_nti(B, net_interference) == sparse([0 0 0; F21 0 0; F31 F32 0])
+
+    # Adding refuge provisioning
+    Fclassic2_nti = ClassicResponse(net_refuge, c=0.0)
+    Fclassic2_fw = ClassicResponse(foodweb_3sp, c=0.0)
+    B = [3, 2, 1]
+    @test Fclassic2_fw(B) == Fclassic2_nti(B) # nti intensity = 0 <=> food web
+    for r0 in [0.1, 0.2, 0.25]
+        net_refuge.nontrophic_intensity.r0 = r0
+        Fclassic2_nti = ClassicResponse(net_refuge, c=0.0)
+        a₃₁, a₃₂, a₂₁ = 0.5, 0.5 / (1 + r0 * B[1]), 0.5
+        F21 = (1 * a₂₁ * 3^2) / (1 + a₂₁ * 1 * 3^2)
+        F31 = (0.5 * a₃₁ * 3^2) / (1 + 0.5 * a₃₁ * 1 * 3^2 + 0.5 * a₃₂ * 1 * 2^2)
+        F32 = (0.5 * a₃₂ * 2^2) / (1 + 0.5 * a₃₁ * 1 * 3^2 + 0.5 * a₃₂ * 1 * 2^2)
+        @test Fclassic2_nti(B, net_refuge) == sparse([0 0 0; F21 0 0; F31 F32 0])
+    end
+end
+
+@testset "Effect of refuge on attack rate" begin
+
+    # 1 refuge link
+    A_refuge = net_refuge.refuge # adjacency matrix of refuge interactions
+    B = [1, 1, 1]
+    for aᵣ in [0.1, 0.2, 0.3, 0.4, 0.5], r0 in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
+        aᵣ_matrix = sparse([0 0 0; aᵣ 0 0; aᵣ aᵣ 0])
+        aᵣ_refuge_matrix = sparse([0 0 0; aᵣ 0 0; aᵣ aᵣ/(1+r0) 0])
+        @test BEFWM2.aᵣ_refuge(aᵣ_matrix, r0, A_refuge, B) == aᵣ_refuge_matrix
+    end
+
+    # 2 refuge links
+    A_refuge = sparse(Bool[0 1 1 0; 1 0 1 0; 0 0 0 0; 0 0 0 0])
+    B = [1, 2, 3, 4]
+    for aᵣ in [0.1, 0.2, 0.3, 0.4, 0.5], r0 in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
+        aᵣ_matrix = sparse([0 0 0 0; 0 0 0 0; aᵣ 0 0 0; aᵣ aᵣ aᵣ 0])
+        aᵣ31 = aᵣ / (1 + 2 * r0)
+        aᵣ41 = aᵣ / (1 + 2 * r0)
+        aᵣ42 = aᵣ / (1 + 1 * r0)
+        aᵣ43 = aᵣ / (1 + 1 * r0 + 2 * r0)
+        aᵣ_refuge_matrix = sparse([0 0 0 0; 0 0 0 0; aᵣ31 0 0 0; aᵣ41 aᵣ42 aᵣ43 0])
+        @test BEFWM2.aᵣ_refuge(aᵣ_matrix, r0, A_refuge, B) == aᵣ_refuge_matrix
+    end
 end
