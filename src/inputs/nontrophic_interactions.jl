@@ -1,9 +1,11 @@
 #### Multiplex network objects ####
+"Layer"
 mutable struct Layer
     adjacency::AdjacencyMatrix
     intensity::Union{Nothing,Float64}
 end
 
+"Multiplex network"
 mutable struct MultiplexNetwork <: EcologicalNetwork
     trophic_layer::Layer
     competition_layer::Layer
@@ -90,7 +92,7 @@ function Base.show(io::IO, multiplex_net::MultiplexNetwork)
     print(io, "MultiplexNetwork(S=$S, Lt=$Lt, Lf=$Lf, Lc=$Lc, Lr=$Lr, Li=$Li)")
 end
 
-"Multiline [`MultiplexNework`](@ref) display."
+"Multiline [`MultiplexNetwork`](@ref) display."
 function Base.show(io::IO, ::MIME"text/plain", multiplex_net::MultiplexNetwork)
 
     # Specify parameters
