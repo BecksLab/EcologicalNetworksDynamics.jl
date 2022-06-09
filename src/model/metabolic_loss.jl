@@ -18,8 +18,8 @@ We assume `competition_factor` ∈ [0,1].
 """
 function competition_factor(i, B, network::MultiplexNetwork)
     isproducer(network, i) || return 1
-    c0 = network.nontrophic_intensity.c0 # competition intensity
-    A_competition = network.competition # competition adjacency matrix
+    c0 = network.competition_layer.intensity
+    A_competition = network.competition_layer.adjacency
     competitors = A_competition[:, i] # species competing for space with species i
     max(0, 1 - c0 * sum(competitors .* B))
 end
