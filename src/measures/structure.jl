@@ -21,7 +21,7 @@ function richness(foodweb::FoodWeb)
     richness(foodweb.A)
 end
 function richness(multiplex_net::MultiplexNetwork)
-    richness(multiplex_net.trophic)
+    richness(multiplex_net.trophic_layer.adjacency)
 end
 
 function _ftl(A::AbstractMatrix)

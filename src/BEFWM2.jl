@@ -27,8 +27,8 @@ include(joinpath(".", "utils.jl"))
 # Export public functions
 export FoodWeb, ModelParameters, FunctionalResponse, BioRates, Environment, MultiplexNetwork
 export potential_facilitation_links, potential_competition_links, potential_refuge_links
-export potential_interference_links, NonTrophicIntensity
-export draw_symmetric_links, draw_asymmetric_links, nontrophic_matrix
+export potential_interference_links, NonTrophicIntensity, Layer
+export draw_symmetric_links, draw_asymmetric_links, nontrophic_adjacency_matrix
 export homogeneous_preference, BioEnergeticFunctionalResponse
 export FunctionalResponse, ClassicResponse, BioenergeticResponse, LinearResponse
 export allometric_rate, AllometricParams

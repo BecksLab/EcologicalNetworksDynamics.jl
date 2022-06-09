@@ -1,25 +1,15 @@
 #### Multiplex network objects ####
-"""
-Intensities of non-trophic interactions:
-- `f0`: intesity of plant facilitation
-- `c0`: intesity of competition for space
-- `r0`: intesity of refuge provisioning
-- `i0`: intesity of interference between predators
-"""
-mutable struct NonTrophicIntensity
-    f0::Float64
-    c0::Float64
-    r0::Float64
-    i0::Float64
+mutable struct Layer
+    adjacency::AdjacencyMatrix
+    intensity::Union{Nothing,Float64}
 end
 
 mutable struct MultiplexNetwork <: EcologicalNetwork
-    trophic::AdjacencyMatrix
-    facilitation::AdjacencyMatrix
-    competition::AdjacencyMatrix
-    refuge::AdjacencyMatrix
-    interference::AdjacencyMatrix
-    nontrophic_intensity::NonTrophicIntensity
+    trophic_layer::Layer
+    competition_layer::Layer
+    facilitation_layer::Layer
+    interference_layer::Layer
+    refuge_layer::Layer
     bodymass::Vector{Float64}
     species_id::Vector{String}
     metabolic_class::Vector{String}
@@ -28,89 +18,100 @@ end
 "Build the [`MultiplexNetwork`](@ref) from the [`FoodWeb`](@ref)."
 function MultiplexNetwork(
     foodweb::FoodWeb;
-    C_facilitation=0.0,
     C_competition=0.0,
-    C_refuge=0.0,
+    C_facilitation=0.0,
     C_interference=0.0,
-    facilitation=nontrophic_matrix(foodweb, potential_facilitation_links,
-        C_facilitation, symmetric=false),
-    competition=nontrophic_matrix(foodweb, potential_competition_links,
+    C_refuge=0.0,
+    A_competition=nontrophic_adjacency_matrix(foodweb, potential_competition_links,
         C_competition, symmetric=true),
-    refuge=nontrophic_matrix(foodweb, potential_refuge_links,
-        C_refuge, symmetric=false),
-    interference=nontrophic_matrix(foodweb, potential_interference_links,
+    A_facilitation=nontrophic_adjacency_matrix(foodweb, potential_facilitation_links,
+        C_facilitation, symmetric=false),
+    A_interference=nontrophic_adjacency_matrix(foodweb, potential_interference_links,
         C_interference, symmetric=true),
-    intensity=NonTrophicIntensity(1.0, 1.0, 1.0, 1.0)
+    A_refuge=nontrophic_adjacency_matrix(foodweb, potential_refuge_links,
+        C_refuge, symmetric=false),
+    c0=1.0,
+    f0=1.0,
+    i0=1.0,
+    r0=1.0
 )
 
     # Safety checks.
     S = richness(foodweb)
-    size(facilitation) == (S, S) || throw(ArgumentError("Adjacency matrix should be of
+    size(A_facilitation) == (S, S) || throw(ArgumentError("Adjacency matrix should be of
         size (S,S) with S the species richness."))
-    size(competition) == (S, S) || throw(ArgumentError("Adjacency matrix should be of
+    size(A_competition) == (S, S) || throw(ArgumentError("Adjacency matrix should be of
         size (S,S) with S the species richness."))
-    size(refuge) == (S, S) || throw(ArgumentError("Adjacency matrix should be of
+    size(A_refuge) == (S, S) || throw(ArgumentError("Adjacency matrix should be of
         size (S,S) with S the species richness."))
-    size(interference) == (S, S) || throw(ArgumentError("Adjacency matrix should be of
+    size(A_interference) == (S, S) || throw(ArgumentError("Adjacency matrix should be of
         size (S,S) with S the species richness."))
     #!Todo: test validity of custom matrices (e.g. facilitation: only prod. are facilitated)
 
     # Information from FoodWeb.
-    trophic = foodweb.A
+    A_trophic = foodweb.A
     bodymass = foodweb.M
     species_id = foodweb.species
     metabolic_class = foodweb.metabolic_class
 
-    MultiplexNetwork(trophic, sparse(facilitation), sparse(competition),
-        sparse(refuge), sparse(interference), intensity,
-        bodymass, species_id, metabolic_class)
+    # Building layers.
+    trophic_layer = Layer(A_trophic, nothing)
+    competition_layer = Layer(A_competition, c0)
+    facilitation_layer = Layer(A_facilitation, f0)
+    interference_layer = Layer(A_interference, i0)
+    refuge_layer = Layer(A_refuge, r0)
+
+    # Create the resulting multiplex network.
+    MultiplexNetwork(
+        trophic_layer,
+        competition_layer,
+        facilitation_layer,
+        interference_layer,
+        refuge_layer,
+        bodymass,
+        species_id,
+        metabolic_class
+    )
 end
 #### end ####
 
 #### Display MultiplexNetwork & NonTrophicIntensity ####
-"One line NonTrophicIntensity display."
-function Base.show(io::IO, intensity::NonTrophicIntensity)
-    f0, c0, r0, i0 = intensity.f0, intensity.c0, intensity.r0, intensity.i0
-    print(io, "NonTrophicIntensity(f0=$f0, c0=$c0, r0=$r0, i0=$i0)")
+"One line [`Layer`](@ref) display."
+function Base.show(io::IO, layer::Layer)
+    L = count(layer.adjacency)
+    intensity = layer.intensity
+    print(io, "Layer(adjacency=AdjacencyMatrix(L=$L), intensity=$intensity)")
 end
 
-"One line MultiplexNetwork display."
+"One line [`MultiplexNetwork`](@ref) display."
 function Base.show(io::IO, multiplex_net::MultiplexNetwork)
     S = richness(multiplex_net)
-    Lt = count(multiplex_net.trophic)
-    Lr = count(multiplex_net.refuge)
-    Lf = count(multiplex_net.facilitation)
-    Li = count(multiplex_net.interference)
-    Lc = count(multiplex_net.competition)
+    Lt = count(multiplex_net.trophic_layer.adjacency)
+    Lr = count(multiplex_net.refuge_layer.adjacency)
+    Lf = count(multiplex_net.facilitation_layer.adjacency)
+    Li = count(multiplex_net.interference_layer.adjacency)
+    Lc = count(multiplex_net.competition_layer.adjacency)
     print(io, "MultiplexNetwork(S=$S, Lt=$Lt, Lf=$Lf, Lc=$Lc, Lr=$Lr, Li=$Li)")
 end
 
-"Multiline MultiplexNework display."
+"Multiline [`MultiplexNework`](@ref) display."
 function Base.show(io::IO, ::MIME"text/plain", multiplex_net::MultiplexNetwork)
 
     # Specify parameters
     S = richness(multiplex_net)
-    Lt = count(multiplex_net.trophic)
-    Lr = count(multiplex_net.refuge)
-    Lf = count(multiplex_net.facilitation)
-    Li = count(multiplex_net.interference)
-    Lc = count(multiplex_net.competition)
-
-    class = multiplex_net.metabolic_class
-    n_p = count(class .== "producer")
-    n_i = count(class .== "invertebrate")
-    n_v = count(class .== "ectotherm vertebrate")
+    Lt = count(multiplex_net.trophic_layer.adjacency)
+    Lc = count(multiplex_net.competition_layer.adjacency)
+    Lf = count(multiplex_net.facilitation_layer.adjacency)
+    Li = count(multiplex_net.interference_layer.adjacency)
+    Lr = count(multiplex_net.refuge_layer.adjacency)
 
     # Display output
     println(io, "MultiplexNetwork of $S species:")
-    println(io, "  trophic: $Lt links")
-    println(io, "  facilitation: $Lf links")
-    println(io, "  competition: $Lc links")
-    println(io, "  refuge: $Lr links")
-    print(io, "  interference: $Li links")
-    #println(io, "  bodymass: " * vector_to_string(multiplex_net.bodymass))
-    #println(io, "  metabolic_class: $n_p producers, $n_i invertebrates, $n_v vertebrates")
-    #print(io, "  species: " * vector_to_string(multiplex_net.species_id))
+    println(io, "  trophic_layer: $Lt links")
+    println(io, "  competition_layer: $Lc links")
+    println(io, "  facilitation_layer: $Lf links")
+    println(io, "  interference_layer: $Li links")
+    print(io, "  refuge_layer: $Lr links")
 end
 #### end ####
 
@@ -122,7 +123,7 @@ Convert a [`MultiplexNetwork`](@ref) to a [`FoodWeb`](@ref).
 The convertion consists in removing the non-trophic layers of the multiplex networks.
 """
 function convert(::Type{FoodWeb}, net::MultiplexNetwork)
-    FoodWeb(net.trophic, species=net.species_id, M=net.bodymass,
+    FoodWeb(net.trophic_layer.adjacency, species=net.species_id, M=net.bodymass,
         metabolic_class=net.metabolic_class)
 end
 
@@ -245,12 +246,12 @@ end
 
 #### Generate the realized links ####
 "Generate the non-trophic matrix given the interaction number or connectance."
-function nontrophic_matrix(foodweb, potential_links_function, n; symmetric=false)
+function nontrophic_adjacency_matrix(foodweb, find_potential_links, n; symmetric=false)
 
     # Initialization.
     S = richness(foodweb)
     A = spzeros(Bool, S, S)
-    potential_links = potential_links_function(foodweb)
+    potential_links = find_potential_links(foodweb)
 
     draw_links = symmetric ? draw_symmetric_links : draw_asymmetric_links
     realized_links = draw_links(potential_links, n)

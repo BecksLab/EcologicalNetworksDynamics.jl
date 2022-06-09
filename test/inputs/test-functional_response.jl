@@ -14,9 +14,8 @@ A_3sp = [0 0 0; 1 0 0; 1 1 0] # 2 eats 1; 3 eats 1 & 2
 foodweb_2sp = FoodWeb(A_2sp)
 multi_net1 = MultiplexNetwork(foodweb_2sp)
 foodweb_3sp = FoodWeb(A_3sp)
-intensity = NonTrophicIntensity(0.0, 0.0, 0.0, 0.0)
-net_interference = MultiplexNetwork(foodweb_3sp, intensity=intensity, C_interference=1.0)
-net_refuge = MultiplexNetwork(foodweb_3sp, intensity=intensity, C_refuge=1.0)
+net_interference = MultiplexNetwork(foodweb_3sp, C_interference=1.0, c0=0, f0=0, i0=0, r0=0)
+net_refuge = MultiplexNetwork(foodweb_3sp, C_refuge=1.0, c0=0, f0=0, i0=0, r0=0)
 
 @testset "Bioenergetic functional response parameters" begin
     # Default
@@ -272,7 +271,7 @@ end
     @test Fclassic2_nti(B, net_interference) == sparse([0 0 0; F21 0 0; F31 F32 0])
 
     # Adding interspecific interference
-    net_interference.nontrophic_intensity.i0 = 0.6 # activate interspecific interference
+    net_interference.interference_layer.intensity = 0.6 # activate interspecific interference
     Fclassic2_nti = ClassicResponse(net_interference, c=0.5) #! c=intraspecific interference
     B = [3, 2, 1] # non-uniform biomass distribution
     F21 = (1 * 0.5 * 3^2) / (1 + 0.5 * 2 + 0.6 * 1 + 0.5 * 1 * 3^2)
@@ -286,7 +285,7 @@ end
     B = [3, 2, 1]
     @test Fclassic2_fw(B) == Fclassic2_nti(B) # nti intensity = 0 <=> food web
     for r0 in [0.1, 0.2, 0.25]
-        net_refuge.nontrophic_intensity.r0 = r0
+        net_refuge.refuge_layer.intensity = r0
         Fclassic2_nti = ClassicResponse(net_refuge, c=0.0)
         a₃₁, a₃₂, a₂₁ = 0.5, 0.5 / (1 + r0 * B[1]), 0.5
         F21 = (1 * a₂₁ * 3^2) / (1 + a₂₁ * 1 * 3^2)
@@ -299,7 +298,7 @@ end
 @testset "Effect of refuge on attack rate" begin
 
     # 1 refuge link
-    A_refuge = net_refuge.refuge # adjacency matrix of refuge interactions
+    A_refuge = net_refuge.refuge_layer.adjacency # adjacency matrix of refuge interactions
     B = [1, 1, 1]
     for aᵣ in [0.1, 0.2, 0.3, 0.4, 0.5], r0 in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
         aᵣ_matrix = sparse([0 0 0; aᵣ 0 0; aᵣ aᵣ 0])

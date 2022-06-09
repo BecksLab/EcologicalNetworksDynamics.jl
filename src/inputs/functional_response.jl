@@ -251,8 +251,9 @@ function (F::ClassicResponse)(B, i, j, network::MultiplexNetwork)
     denom = 1 + (F.c[i] * B[i]) + sum(F.aᵣ[i, :] .* F.hₜ[i, :] .* F.ω[i, :] .* (B .^ F.h))
 
     # Add interspecific predator interference to denominator.
-    i0 = network.nontrophic_intensity.i0
-    predator_interfering = network.interference[:, i]
+    A_interference = network.interference_layer.adjacency
+    i0 = network.interference_layer.intensity
+    predator_interfering = A_interference[:, i]
     denom += i0 * sum(B .* predator_interfering)
 
     num / denom
@@ -264,8 +265,9 @@ function (F::ClassicResponse)(B, i, j, aᵣ, network::MultiplexNetwork)
     denom = 1 + (F.c[i] * B[i]) + sum(aᵣ[i, :] .* F.hₜ[i, :] .* F.ω[i, :] .* (B .^ F.h))
 
     # Add interspecific predator interference to denominator.
-    i0 = network.nontrophic_intensity.i0
-    predator_interfering = network.interference[:, i]
+    A_interference = network.interference_layer.adjacency
+    i0 = network.interference_layer.intensity
+    predator_interfering = A_interference[:, i]
     denom += i0 * sum(B .* predator_interfering)
 
     num / denom
@@ -415,7 +417,9 @@ function (F::ClassicResponse)(B, network::MultiplexNetwork)
     F_matrix = spzeros(S, S)
 
     # Effect of refuge on aᵣ
-    aᵣ, r0, A_refuge = F.aᵣ, network.nontrophic_intensity.r0, network.refuge
+    aᵣ = F.aᵣ
+    A_refuge = network.refuge_layer.adjacency
+    r0 = network.refuge_layer.intensity
     aᵣ = aᵣ_refuge(aᵣ, r0, A_refuge, B)
 
     # Fill functional response matrix

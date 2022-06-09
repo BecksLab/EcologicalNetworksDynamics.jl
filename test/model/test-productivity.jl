@@ -31,7 +31,7 @@
     # Extern method with facilitation
     multiplex_network = MultiplexNetwork(foodweb, C_facilitation=1.0)
     # Facilitation to 0 <=> the growth is unchanged (compared to above section)
-    multiplex_network.nontrophic_intensity.f0 = 0.0
+    multiplex_network.facilitation_layer.intensity = 0.0
     p = ModelParameters(multiplex_network)
     K, r = p.environment.K, p.biorates.r
     B = [1, 1, 1]
@@ -49,7 +49,7 @@
     @test BEFWM2.logisticgrowth(3, B, r[3], K[3], multiplex_network) == 0
     # Facilitation > 0 <=> the growth is changed (compared to above section)
     for f0 in [1.0, 2.0, 5.0, 10.0]
-        multiplex_network.nontrophic_intensity.f0 = f0
+        multiplex_network.facilitation_layer.intensity = f0
         p = ModelParameters(multiplex_network)
         K, r = p.environment.K, p.biorates.r
         B = [1, 1, 1]
@@ -79,7 +79,7 @@ end
     @test BEFWM2.r_facilitated(10, 1, [1, 2], multiplex_network) == 30
 
     # Non default intensity: f0 = 5.0
-    multiplex_network.nontrophic_intensity.f0 = 5.0
+    multiplex_network.facilitation_layer.intensity = 5.0
     @test BEFWM2.r_facilitated(1, 1, [1, 0], multiplex_network) == 1
     @test BEFWM2.r_facilitated(10, 1, [1, 0], multiplex_network) == 10
     @test BEFWM2.r_facilitated(10, 1, [1, 1], multiplex_network) == 60
