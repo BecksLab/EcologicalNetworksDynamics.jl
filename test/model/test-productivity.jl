@@ -32,7 +32,8 @@
     multiplex_network = MultiplexNetwork(foodweb, n_facilitation=1.0)
     # Facilitation to 0 <=> the growth is unchanged (compared to above section)
     multiplex_network.facilitation_layer.intensity = 0.0
-    p = ModelParameters(multiplex_network)
+    response = ClassicResponse(multiplex_network) # avoid warning
+    p = ModelParameters(multiplex_network, functional_response=response)
     K, r = p.environment.K, p.biorates.r
     B = [1, 1, 1]
     @test BEFWM2.logisticgrowth(1, B, r[1], K[1], multiplex_network) == 0
@@ -42,7 +43,8 @@
     @test BEFWM2.logisticgrowth(1, B, r[1], K[1], multiplex_network) == 0.25
     @test BEFWM2.logisticgrowth(2, B, r[2], K[2], multiplex_network) == 0.25
     @test BEFWM2.logisticgrowth(3, B, r[3], K[3], multiplex_network) == 0
-    p = ModelParameters(multiplex_network, biorates=BioRates(multiplex_network, r=2))
+    rates = BioRates(multiplex_network, r=2)
+    p = ModelParameters(multiplex_network, functional_response=response, biorates=rates)
     K, r = p.environment.K, p.biorates.r
     @test BEFWM2.logisticgrowth(1, B, r[1], K[1], multiplex_network) == 0.5
     @test BEFWM2.logisticgrowth(2, B, r[2], K[2], multiplex_network) == 0.5
@@ -50,7 +52,7 @@
     # Facilitation > 0 <=> the growth is changed (compared to above section)
     for f0 in [1.0, 2.0, 5.0, 10.0]
         multiplex_network.facilitation_layer.intensity = f0
-        p = ModelParameters(multiplex_network)
+        p = ModelParameters(multiplex_network, functional_response=response)
         K, r = p.environment.K, p.biorates.r
         B = [1, 1, 1]
         @test BEFWM2.logisticgrowth(1, B, r[1], K[1], multiplex_network) == 0
@@ -60,7 +62,8 @@
         @test BEFWM2.logisticgrowth(1, B, r[1], K[1], multiplex_network) == 0.25 * (1 + f0)
         @test BEFWM2.logisticgrowth(2, B, r[2], K[2], multiplex_network) == 0.25 * (1 + f0)
         @test BEFWM2.logisticgrowth(3, B, r[3], K[3], multiplex_network) == 0
-        p = ModelParameters(multiplex_network, biorates=BioRates(multiplex_network, r=2))
+        rates = BioRates(multiplex_network, r=2)
+        p = ModelParameters(multiplex_network, functional_response=response, biorates=rates)
         K, r = p.environment.K, p.biorates.r
         @test BEFWM2.logisticgrowth(1, B, r[1], K[1], multiplex_network) == 0.5 * (1 + f0)
         @test BEFWM2.logisticgrowth(2, B, r[2], K[2], multiplex_network) == 0.5 * (1 + f0)

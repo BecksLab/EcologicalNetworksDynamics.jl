@@ -38,14 +38,10 @@ function MultiplexNetwork(
 
     # Safety checks.
     S = richness(foodweb)
-    size(A_facilitation) == (S, S) || throw(ArgumentError("Adjacency matrix should be of
-        size (S,S) with S the species richness."))
-    size(A_competition) == (S, S) || throw(ArgumentError("Adjacency matrix should be of
-        size (S,S) with S the species richness."))
-    size(A_refuge) == (S, S) || throw(ArgumentError("Adjacency matrix should be of
-        size (S,S) with S the species richness."))
-    size(A_interference) == (S, S) || throw(ArgumentError("Adjacency matrix should be of
-        size (S,S) with S the species richness."))
+    for A in [A_competition, A_facilitation, A_interference, A_refuge]
+        size(A) == (S, S) || throw(ArgumentError("Wrong size $(size(A)):
+            adjacency matrix should be of size (S,S) with S the species richness (S=$S)."))
+    end
     #!Todo: test validity of custom matrices (e.g. facilitation: only prod. are facilitated)
 
     # Information from FoodWeb.
@@ -175,9 +171,10 @@ i.e. ``i`` interacts with ``j`` ⇏ ``j`` interacts with ``i``.
 """
 function draw_asymmetric_links(potential_links, L::Integer)
     Lmax = length(potential_links)
-    L >= 0 || throw(ArgumentError("L too small: should be positive."))
-    L <= Lmax || throw(ArgumentError("L too large: should be lower than $Lmax,
-    the maximum number of potential interactions."))
+    L >= 0 || throw(ArgumentError("L too small: L=$L whereas L should be positive."))
+    L <= Lmax || throw(ArgumentError("L too large:
+        L=$L whereas L should be lower or equal to $Lmax,
+        the maximum number of potential interactions."))
     sample(potential_links, L, replace=false)
 end
 
@@ -187,7 +184,8 @@ Links are drawn asymmetrically,
 i.e. ``i`` interacts with ``j`` ⇏ ``j`` interacts with ``i``.
 """
 function draw_asymmetric_links(potential_links, C::AbstractFloat)
-    0 <= C <= 1 || throw(ArgumentError("Connectance out of bounds: should be in [0,1]."))
+    0 <= C <= 1 || throw(ArgumentError("Connectance out of bounds:
+    C=$C whereas connectance should be in [0,1]."))
     Lmax = length(potential_links)
     L = round(Int64, C * Lmax)
     draw_asymmetric_links(potential_links, L)
@@ -200,12 +198,13 @@ i.e. ``i`` interacts with ``j`` ⇒ ``j`` interacts with ``i``.
 """
 function draw_symmetric_links(potential_links, L::Integer)
     Lmax = length(potential_links)
-    L >= 0 || throw(ArgumentError("L too small: should be positive."))
-    L <= Lmax || throw(ArgumentError("L too large: should be lower than $Lmax,
-    the maximum number of potential interactions."))
-    L % 2 == 0 || throw(ArgumentError("Odd number of links:
+    L >= 0 || throw(ArgumentError("L too small: L=$L whereas L should be positive."))
+    L <= Lmax || throw(ArgumentError("L too large:
+        L=$L whereas L should be lower or equal to $Lmax,
+        the maximum number of potential interactions."))
+    L % 2 == 0 || throw(ArgumentError("Odd number of links (L=$L):
     interaction should be symmetric."))
-    Lmax % 2 == 0 || throw(ArgumentError("Odd total number of links:
+    Lmax % 2 == 0 || throw(ArgumentError("Odd total number of links (L=$L):
     interaction should be symmetric."))
     potential_links = asymmetrize(potential_links)
     potential_links = sample(potential_links, L ÷ 2, replace=false)
@@ -218,7 +217,8 @@ Links are drawn symmetrically,
 i.e. ``i`` interacts with ``j`` ⇒ ``j`` interacts with ``i``.
 """
 function draw_symmetric_links(potential_links, C::AbstractFloat)
-    0 <= C <= 1 || throw(ArgumentError("Connectance out of bounds: should be in [0,1]."))
+    0 <= C <= 1 || throw(ArgumentError("Connectance out of bounds:
+        C=$C whereas connectance should be in [0,1]."))
     Lmax = length(potential_links)
     L = C * Lmax
     L = 2 * round(Int64, L / 2) # round to an even number
