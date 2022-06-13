@@ -11,7 +11,7 @@ end
 
 @testset "Effect of competition on net growth rate" begin
     foodweb = FoodWeb([0 0; 0 0]) # 2 producers
-    multiplex_network = MultiplexNetwork(foodweb, C_competition=1.0)
+    multiplex_network = MultiplexNetwork(foodweb, n_competition=1.0)
     for c0 in [0.0, 1.0, 2.0, 5.0, 10.0]
         multiplex_network.competition_layer.intensity = c0
         B = [0.1, 0.2]
