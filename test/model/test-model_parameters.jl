@@ -29,4 +29,17 @@
     # Linear Functional Response
     p = ModelParameters(foodweb, functional_response=LinearResponse(foodweb))
     @test typeof(p.functional_response) == LinearResponse
+
+    # Warning if not ClassicResponse and MultiplexNetwork
+    multiplex_network = MultiplexNetwork(foodweb)
+    lresp = LinearResponse(multiplex_network)
+    bresp = BioenergeticResponse(multiplex_network)
+    cresp = ClassicResponse(multiplex_network)
+    linmsg = "Non-trophic interactions aren't implented for 'LinearResponse'.
+            Use a functional response of type 'ClassicResponse' instead."
+    biomsg = "Non-trophic interactions aren't implented for 'BioenergeticResponse'.
+            Use a functional response of type 'ClassicResponse' instead."
+    @test_logs (:warn, linmsg) ModelParameters(multiplex_network, functional_response=lresp)
+    @test_logs (:warn, biomsg) ModelParameters(multiplex_network, functional_response=bresp)
+    @test_nowarn ModelParameters(multiplex_network, functional_response=cresp)
 end

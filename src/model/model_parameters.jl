@@ -96,5 +96,10 @@ function ModelParameters(
     environment::Environment=Environment(network),
     functional_response::FunctionalResponse=BioenergeticResponse(network)
 )
+    if isa(network, MultiplexNetwork) & !(isa(functional_response, ClassicResponse))
+        type_response = typeof(functional_response)
+        @warn "Non-trophic interactions aren't implented for '$type_response'.
+            Use a functional response of type 'ClassicResponse' instead."
+    end
     ModelParameters(network, biorates, environment, functional_response)
 end
