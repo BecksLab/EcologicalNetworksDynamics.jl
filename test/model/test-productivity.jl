@@ -29,7 +29,7 @@
     @test BEFWM2.logisticgrowth(3, B, r[3], K[3], foodweb) == 0
 
     # Extern method with facilitation
-    multiplex_network = MultiplexNetwork(foodweb, C_facilitation=1.0)
+    multiplex_network = MultiplexNetwork(foodweb, n_facilitation=1.0)
     # Facilitation to 0 <=> the growth is unchanged (compared to above section)
     multiplex_network.facilitation_layer.intensity = 0.0
     p = ModelParameters(multiplex_network)
@@ -70,7 +70,7 @@ end
 
 @testset "Effect of facilitation on intrinsic growth rate" begin
     foodweb = FoodWeb([0 0; 1 0])
-    multiplex_network = MultiplexNetwork(foodweb, C_facilitation=1.0)
+    multiplex_network = MultiplexNetwork(foodweb, n_facilitation=1.0)
 
     # Default intensity: f0 = 1.0
     @test BEFWM2.r_facilitated(1, 1, [1, 0], multiplex_network) == 1

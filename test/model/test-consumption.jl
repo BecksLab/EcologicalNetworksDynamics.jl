@@ -105,7 +105,7 @@ end
     @test eatingᵢ3 < eating3 # decrease of species 3 consumption
 
     # Classic with interspecific interference
-    multiplex_network = MultiplexNetwork(foodweb, C_interference=1.0) # add interference
+    multiplex_network = MultiplexNetwork(foodweb, n_interference=1.0) # add interference
     multiplex_network.interference_layer.intensity = 0.0 # but set i0 to zero in a 1st time
     response = ClassicResponse(multiplex_network, c=[0, 0, 0.5]) # intra interference
     p = ModelParameters(multiplex_network, functional_response=response)

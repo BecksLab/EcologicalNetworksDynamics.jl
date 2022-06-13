@@ -14,8 +14,8 @@ A_3sp = [0 0 0; 1 0 0; 1 1 0] # 2 eats 1; 3 eats 1 & 2
 foodweb_2sp = FoodWeb(A_2sp)
 multi_net1 = MultiplexNetwork(foodweb_2sp)
 foodweb_3sp = FoodWeb(A_3sp)
-net_interference = MultiplexNetwork(foodweb_3sp, C_interference=1.0, c0=0, f0=0, i0=0, r0=0)
-net_refuge = MultiplexNetwork(foodweb_3sp, C_refuge=1.0, c0=0, f0=0, i0=0, r0=0)
+net_interference = MultiplexNetwork(foodweb_3sp, n_interference=1.0, c0=0, f0=0, i0=0, r0=0)
+net_refuge = MultiplexNetwork(foodweb_3sp, n_refuge=1.0, c0=0, f0=0, i0=0, r0=0)
 
 @testset "Bioenergetic functional response parameters" begin
     # Default
