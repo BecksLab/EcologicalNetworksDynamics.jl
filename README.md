@@ -1,5 +1,8 @@
 # BioenergeticFoodwebs.jl
 
+![CI](https://github.com/BecksLab/BEFWM2.jl/workflows/CI/badge.svg?branch=main)
+[![codecov.io](http://codecov.io/github/BecksLab/BEFWM2.jl/coverage.svg?branch=main)](http://codecov.io/github/BecksLab/BEFWM2.jl?branch=main)
+
 BioenergeticFoodwebs is a Julia package that implements the bioenergetic
 consumer-resource model from [Yodzis and Innès (1992)][Yodzis1992] adapted to foodwebs
 (see [Williams et al., 2008][Williams2008] for more details).
