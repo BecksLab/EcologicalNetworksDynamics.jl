@@ -7,13 +7,13 @@ makedocs(;
     modules=[BEFWM2],
     authors=
     "Eva Delmas"
-    * ", Hana Mayall"
-    * ", Thomas Malpas"
-    * ", Andrew Beckerman"
     * ", Ismaël Lajaaiti"
+    * ", Thomas Malpas"
+    * ", Hana Mayall"
     * ", Iago Bonnici"
     * ", Sonia Kéfi",
-    repo="https://github.com/ilajaait/BEFWM2/blob/{commit}{path}#{line}",
+    * ", Andrew Beckerman"
+    repo="https://github.com/BecksLab/BEFWM2/blob/{commit}{path}#{line}",
     sitename="BEFWM2.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
@@ -40,6 +40,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/ilajaait/BEFWM2",
+    repo="github.com/BecksLab/BEFWM2.jl.git",
     devbranch="doc"
 )
