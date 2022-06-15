@@ -65,9 +65,33 @@ function simulate(
     start < stop || throw(ArgumentError("'start' ($start) should be smaller than
         'stop' ($stop)."))
 
+    # Define callback - extinction threshold
+    function species_under_threshold(u, t, integrator)
+        any(0.0 .< u .< extinction_threshold)
+    end
+    function extinct_species!(integrator)
+        integrator.u[integrator.u.<=extinction_threshold] .= 0.0
+        extinct_sp = (1:length(integrator.u))[integrator.u.<=extinction_threshold]
+        t = round(integrator.t, digits=2)
+        println("$extinct_sp have gone extinct at time $t.")
+    end
+    extinction_callback = DiscreteCallback(species_under_threshold, extinct_species!)
+
+    # Define callback - negative biomass
+    function negative_biomass(u, t, integrator)
+        any(u .< 0)
+    end
+    function negative_biomass_to_zero!(integrator)
+        integrator.u[integrator.u.<0] .= 0
+        @warn "A negative biomass has been detected."
+    end
+    negbiomass_callback = DiscreteCallback(negative_biomass, negative_biomass_to_zero!)
+
+    callbacks = CallbackSet(extinction_callback, negbiomass_callback)
+
     # Define ODE problem and solve
     timespan = (float(start), float(stop))
     timesteps = collect(start:δt:stop)
     problem = ODEProblem(dBdt!, B0, timespan, params)
-    solve(problem, saveat=timesteps, alg_hints=[alg_hints])
+    solve(problem, saveat=timesteps, alg_hints=[alg_hints], callback=callbacks)
 end
