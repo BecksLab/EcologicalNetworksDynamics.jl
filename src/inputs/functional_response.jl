@@ -118,7 +118,7 @@ function assimilation_efficiency(foodweb::FoodWeb; e_herbivore=0.45, e_carnivore
 
     # Set up
     S = richness(foodweb)
-    efficiency = spzeros(Float64, (S, S))
+    efficiency = spzeros(Float64, S, S)
     isproducer = whoisproducer(foodweb.A)
     consumer, resource = findnz(foodweb.A) # indexes of trophic interactions
     n_interactions = length(consumer) # number of trophic interactions
