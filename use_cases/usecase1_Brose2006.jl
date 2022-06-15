@@ -42,9 +42,9 @@ for m in models
                     println("$j / $nsims")
                     # change the parameters of the functional response 
                     # (we want the original functional response, as defined in Yodzis and Ines original paper)
-                    funcrep = originalFR(fw, hill_exponent = f.h, interference = f.c)
+                    funcrep = BioenergeticResponse(fw, hill_exponent = f.h, interference = f.c)
                     # generate the model parameters
-                    p = ModelParameters(fw; FR = funcrep)
+                    p = ModelParameters(fw; functional_response = funcrep)
 
                     #= Step 3: Perform the simulations 
                     initial biomass (b0) are random
