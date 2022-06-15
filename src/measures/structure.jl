@@ -50,8 +50,8 @@ end
 function massratio(obj::Union{ModelParameters, FoodWeb})
 
     if isa(obj, ModelParameters)
-        M = obj.FoodWeb.M
-        A = obj.FoodWeb.A
+        M = obj.foodweb.M
+        A = obj.foodweb.A
     else
         M = obj.M
         A = obj.A
