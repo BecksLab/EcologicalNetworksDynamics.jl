@@ -52,7 +52,7 @@ function simulate(
     B0::AbstractVector;
     start::Number=0,
     stop::Number=500,
-    use::Symbol=:nonstiff,
+    alg_hints::Symbol=:auto,
     extinction_threshold::AbstractFloat=1e-6,
     δt::Number=0.25
 )
@@ -64,13 +64,10 @@ function simulate(
     length(B0) == S || (B0 = repeat(B0, S))
     start < stop || throw(ArgumentError("'start' ($start) should be smaller than
         'stop' ($stop)."))
-    use ∈ vec([:stiff :nonstiff]) || throw(ArgumentError("'use' should be '::stiff'
-        or '::nonstiff'."))
-    algorithm = use == :stiff ? Rodas4(autodiff=false) : Tsit5()
 
     # Define ODE problem and solve
     timespan = (float(start), float(stop))
     timesteps = collect(start:δt:stop)
     problem = ODEProblem(dBdt!, B0, timespan, params)
-    solve(problem, algorithm, saveat=timesteps)
+    solve(problem, saveat=timesteps, alg_hints=[alg_hints])
 end
