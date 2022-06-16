@@ -77,21 +77,33 @@ function simulate(
     end
     extinction_callback = DiscreteCallback(species_under_threshold, extinct_species!)
 
-    # Define callback - negative biomass
-    function negative_biomass(u, t, integrator)
-        any(u .< 0)
-    end
-    function negative_biomass_to_zero!(integrator)
-        integrator.u[integrator.u.<0] .= 0
-        @warn "A negative biomass has been detected."
-    end
-    negbiomass_callback = DiscreteCallback(negative_biomass, negative_biomass_to_zero!)
+    # Define callback - positive domain
+    positive_domain = PositiveDomain()
 
-    callbacks = CallbackSet(extinction_callback, negbiomass_callback)
+    # Define callback - terminate at steady state
+    terminate_steady_state = TerminateSteadyState(1e-6, 1e-4)
+
+    callbacks = CallbackSet(extinction_callback, positive_domain, terminate_steady_state)
 
     # Define ODE problem and solve
     timespan = (float(start), float(stop))
     timesteps = collect(start:δt:stop)
     problem = ODEProblem(dBdt!, B0, timespan, params)
     solve(problem, saveat=timesteps, alg_hints=[alg_hints], callback=callbacks)
+end
+
+function find_steady_state(
+    params::ModelParameters,
+    B0::AbstractVector;
+)
+
+    # Check for consistency and format input arguments
+    S = richness(params.network)
+    length(B0) ∈ [1, S] || throw(ArgumentError("B0 of size $(length(B0)) instead of $S:
+        B0 should be of length 1 or S (species richness)."))
+    length(B0) == S || (B0 = repeat(B0, S))
+
+    # Define ODE problem and solve
+    problem = SteadyStateProblem(dBdt!, B0, params)
+    solve(problem, SSRootfind())
 end

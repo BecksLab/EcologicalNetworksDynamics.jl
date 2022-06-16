@@ -4,9 +4,10 @@ module BEFWM2
 using EcologicalNetworks
 using SparseArrays
 using DiffEqBase
+using DiffEqCallbacks
 using Mangal
 using Statistics
-import DifferentialEquations.Tsit5, DifferentialEquations.Rodas4
+import DifferentialEquations.Tsit5, DifferentialEquations.Rodas4, DifferentialEquations.SSRootfind
 
 # Include scripts
 include(joinpath(".", "inputs/foodwebs.jl"))
@@ -34,7 +35,7 @@ export homogeneous_preference, BioEnergeticFunctionalResponse
 export FunctionalResponse, ClassicResponse, BioenergeticResponse, LinearResponse
 export allometric_rate, AllometricParams
 export DefaultGrowthParams, DefaultMaxConsumptionParams, DefaultMetabolismParams
-export simulate
+export simulate, find_steady_state
 export cascademodel, nichemodel, nestedhierarchymodel, mpnmodel, richness, links
 
 end
