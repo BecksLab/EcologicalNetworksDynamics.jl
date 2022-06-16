@@ -25,6 +25,7 @@ include(joinpath(".", "model/productivity.jl"))
 include(joinpath(".", "model/consumption.jl"))
 include(joinpath(".", "model/metabolic_loss.jl"))
 include(joinpath(".", "model/dbdt.jl"))
+include(joinpath(".", "model/generate_dbdt.jl"))
 include(joinpath(".", "model/simulate.jl"))
 include(joinpath(".", "model/effect_nti.jl"))
 include(joinpath(".", "measures/structure.jl"))
@@ -67,6 +68,7 @@ export foodweb_shannon
 export foodweb_simpson
 export FunctionalResponse
 export FunctionalResponse
+export generate_dbdt
 export homogeneous_preference
 export interaction_names
 export Layer

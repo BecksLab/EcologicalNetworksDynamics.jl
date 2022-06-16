@@ -13,6 +13,7 @@
             TerminateSteadyState(1e-5, 1e-3),
             ExtinctionCallback(extinction_threshold, verbose)
         ),
+        diff_function=dBdt!,
         kwargs...
     )
 
@@ -32,6 +33,11 @@ By default, we give the following callbacks to `solve()`:
 You are free to provide other callbacks, either by changing the parameter values of the
 callbacks above, choosing other callbacks from DiffEqCallbacks or by creating you own
 callbacks.
+
+Extra performance may be achieved
+by providing specialized julia code to the `diff_function` argument
+instead of the default, generic `BEFWM2.dBdt!` code.
+No need to write it yourself as [`generate_dbdt`](@ref) does it for you.
 
 Thanks to the extra keywords arguments `kwargs...`,
 you have a direct access to the interface of solve.
@@ -66,6 +72,21 @@ julia> round.(solution[end], digits=2) # steady state biomass
 2-element Vector{Float64}:
  0.19
  0.22
+
+julia> expression = generate_dbdt(params); # generate specialized code (same simulation)
+
+julia> solution = simulate(params, B0; diff_function = eval(expression));
+
+julia> solution.retcode #  the same result is obtained, possibly more efficiently.
+:Terminated
+
+julia> solution[begin] == B0
+true
+
+julia> round.(solution[end], digits=2)
+2-element Vector{Float64}:
+ 0.19
+ 0.22
 ```
 
 By default, the extinction callback throw a message when a species goes extinct.
@@ -94,6 +115,7 @@ function simulate(
         TerminateSteadyState(1e-6, 1e-4),
         ExtinguishSpecies(extinction_threshold, verbose),
     ),
+    diff_function = dBdt!,
     kwargs...,
 )
 
@@ -106,7 +128,12 @@ function simulate(
     # Define ODE problem and solve
     timespan = (t0, tmax)
     timesteps = collect(t0:δt:tmax)
-    problem = ODEProblem(dBdt!, B0, timespan, params)
+    # Work around julia's world count:
+    # `generate_dbdt` only produces anonymous code,
+    # so the generated functions cannot be overriden.
+    # As such, and in principle, the 'latest' function is unambiguous.
+    fun = (args...) -> Base.invokelatest(diff_function, args...)
+    problem = ODEProblem(fun, B0, timespan, params)
     solve(problem; saveat = timesteps, callback = callback, kwargs...)
 end
 #### end ####
