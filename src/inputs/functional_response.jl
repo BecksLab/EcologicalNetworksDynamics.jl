@@ -151,6 +151,23 @@ function (F::BioenergeticResponse)(B, i, j)
     denom = (F.B0[i]^F.h) + (F.c[i] * B[i] * F.B0[i]^F.h) + (sum(F.ω[i, :] .* (B .^ F.h)))
     num / denom
 end
+# Code generation version (↑ ↑ ↑ DUPLICATED FROM ABOVE ↑ ↑ ↑).
+# (update together as long as the two coexist)
+function (F::BioenergeticResponse)(i, j, resources::Vector)
+    ω_ij = F.ω[i, j]
+    B_i = :(B[$i])
+    B_j = :(B[$j])
+    h = F.h
+    B0_ih = F.B0[i]^h
+    c_i = F.c[i]
+    num = :($ω_ij * $B_j^$h)
+    denom = :(
+        $B0_ih +
+        ($c_i * $B_i * $B0_ih) +
+        xp_sum([:r, :ω], $[resources, F.ω[i, resources]], :(ω * (B[r]^$$h)))
+    )
+    :($num / $denom)
+end
 
 """
     ClassicResponse(B, i, j)
