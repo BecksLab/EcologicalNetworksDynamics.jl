@@ -6,8 +6,8 @@ Simulations of biomass dynamics
     simulate(
         params,
         B0;
-        start=0,
-        stop=500,
+        t0=0,
+        tmax=500,
         use=:nonstiff,
         extinction_threshold=1e-6,
         δt=0.25
@@ -16,7 +16,8 @@ Simulations of biomass dynamics
 Run biomass dynamics simulation,
 given model parameters (`params`) and the initial biomass (`B0`).
 
-The dynamic is solved between t=`start` and t=`stop`.
+The dynamic is solved between t=`t0` and t=`tmax`.
+However, if a steady state is found the simulation ends before `tmax`.
 Biomass trajectories are saved every `δt`.
 
 The output of this function is the result of `DifferentialEquations.solve()`,
@@ -33,7 +34,7 @@ julia> B0 = [0.5, 0.5]; # set initial biomass
 
 julia> solution = simulate(params, B0); # run simulation
 
-julia> solution.t == collect(0:0.25:500) # saved timesteps
+julia> solution.t[end] < 500 # true => a steady state has been found
 true
 
 julia> solution[begin] # initial biomass, recover B0
@@ -41,7 +42,7 @@ julia> solution[begin] # initial biomass, recover B0
  0.5
  0.5
 
-julia> round.(solution[end], digits=2) # final biomass
+julia> round.(solution[end], digits=2) # steady state biomass
 2-element Vector{Float64}:
  0.19
  0.22
