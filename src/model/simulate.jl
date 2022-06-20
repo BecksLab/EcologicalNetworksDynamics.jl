@@ -98,22 +98,21 @@ end
 
 Find a steady state of a system parametrized by a parameter set `params`
 and some initial conditions `B0`.
-The function returns a tuple (`steady_state`, `converged`).
-If no steady state has been found `converged` is set to `false`
+The function returns a tuple (`steady_state`, `terminated`).
+If no steady state has been found `terminated` is set to `false`
 and `steady_state` to `nothing`.
-Otherwise, `converged` is set to `true`
+Otherwise, `terminated` is set to `true`
 and `steady_state` to the corresponding value.
 """
 function find_steady_state(
     params::ModelParameters,
     B0::AbstractVector;
-    tmax=500,
     kwargs...
 )
-    out = simulate(params, B0; tmax=tmax, kwargs...)
-    converged = has_terminated(out, tmax)
-    steady_state = converged ? out.u[end] : nothing
-    (steady_state=steady_state, converged=converged)
+    solution = simulate(params, B0; kwargs...)
+    terminated = has_terminated(solution)
+    steady_state = terminated ? solution.u[end] : nothing
+    (steady_state=steady_state, terminated=terminated)
 end
 
-has_terminated(out, tmax) = out.t[end] < tmax
+has_terminated(solution) = solution.retcode == :Terminated
