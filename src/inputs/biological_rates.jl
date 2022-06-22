@@ -174,7 +174,7 @@ function BioRates(
     r::Union{Vector{<:Real},<:Real}=allometric_rate(network, DefaultGrowthParams()),
     x::Union{Vector{<:Real},<:Real}=allometric_rate(network, DefaultMetabolismParams()),
     y::Union{Vector{<:Real},<:Real}=allometric_rate(network, DefaultMaxConsumptionParams()),
-    e=assimilation_efficiency(network)
+    e=efficiency(network)
 )
 
     # Set up
@@ -234,14 +234,14 @@ function allometricparams_to_vec(
     a, b = zeros(S), zeros(S)
 
     # Fill a
-    a[whoisproducer(foodweb)] .= params.aₚ
-    a[whoisinvertebrate(foodweb)] .= params.aᵢ
-    a[whoisvertebrate(foodweb)] .= params.aₑ
+    a[producers(foodweb)] .= params.aₚ
+    a[invertebrates(foodweb)] .= params.aᵢ
+    a[vertebrates(foodweb)] .= params.aₑ
 
     # Fill b
-    b[whoisproducer(foodweb)] .= params.bₚ
-    b[whoisinvertebrate(foodweb)] .= params.bᵢ
-    b[whoisvertebrate(foodweb)] .= params.bₑ
+    b[producers(foodweb)] .= params.bₚ
+    b[invertebrates(foodweb)] .= params.bᵢ
+    b[vertebrates(foodweb)] .= params.bₑ
 
     (a=a, b=b)
 end

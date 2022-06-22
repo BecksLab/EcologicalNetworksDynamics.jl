@@ -84,27 +84,17 @@ Here we assume an **homogeneous** preference, meaning that each predator split i
 equally between its preys, i.e. ∀j ``\\omega_{ij} = \\omega_{i} = \\frac{1}{n_{preys,i}}``
 where ``n_{preys,i}`` is the number of prey of predator i.
 """
-function homogeneous_preference(network::EcologicalNetwork)
-
-    # Set up
-    A_trophic = get_trophic_adjacency(network)
-    S = richness(network)
+function homogeneous_preference(net::EcologicalNetwork)
+    S = richness(net)
+    num_resource = number_of_resource(net) # num_resource[i] = nb. of resource(s) of i
+    A = get_trophic_adjacency(net)
     ω = spzeros(S, S)
-    consumer, resource = findnz(A_trophic)
-    num_resources = resourcenumber(consumer, A_trophic) # Dict: consumer => number resources
-    n_interactions = length(consumer) # number of interactions
-
-    # Fill preference matrix
-    for n in 1:n_interactions
-        i, j = consumer[n], resource[n]
-        ω[i, j] = 1 / num_resources[i]
-    end
-
+    [ω[i, j] = 1 / num_resource[i] for (i, j, _) in zip(findnz(A)...)]
     ω
 end
 
 """
-    assimilation_efficiency(network; e_herbivore=0.45, e_carnivore=0.85)
+    efficiency(network; e_herbivore=0.45, e_carnivore=0.85)
 
 Create the assimilation efficiency matrix (`Efficiency`).
 `Efficiency[i,j]` is the assimation efficiency of predator i eating prey j.
@@ -115,23 +105,12 @@ The efficiency depends on the metabolic class of the prey:
 
 Default values are taken from *add ref*.
 """
-function assimilation_efficiency(network::EcologicalNetwork; e_herbivore=0.45, e_carnivore=0.85)
-
-    # Set up
-    A_trophic = get_trophic_adjacency(network)
-    S = richness(network)
-    efficiency = spzeros(Float64, S, S)
-    isproducer = whoisproducer(A_trophic)
-    consumer, resource = findnz(A_trophic) # indexes of trophic interactions
-    n_interactions = length(consumer) # number of trophic interactions
-
-    # Fill efficiency matrix
-    for n in 1:n_interactions
-        i, j = consumer[n], resource[n]
-        efficiency[i, j] = isproducer[j] ? e_herbivore : e_carnivore
-    end
-
-    efficiency
+function efficiency(net::EcologicalNetwork; e_herb=0.45, e_carn=0.85)
+    S = richness(net)
+    E = spzeros(Float64, S, S)
+    A = get_trophic_adjacency(net)
+    [E[i, j] = isproducer(j, net) ? e_herb : e_carn for (i, j, _) in zip(findnz(A)...)]
+    E
 end
 
 # Functional response functors
@@ -378,7 +357,7 @@ function (F::FunctionalResponse)(B)
         F_matrix[i, j] = F(B, i, j)
     end
 
-    sparse(F_matrix)
+    F_matrix
 end
 
 function (F::FunctionalResponse)(B, network::EcologicalNetwork)
@@ -442,7 +421,7 @@ function BioenergeticResponse(
     S = richness(network)
     length(c) == S || (c = repeat([c], S))
     length(B0) == S || (B0 = repeat([B0], S))
-    BioenergeticResponse(Float64(h), Float64.(ω), Float64.(c), Float64.(B0))
+    BioenergeticResponse(h, ω, c, B0)
 end
 
 function ClassicResponse(
@@ -490,14 +469,13 @@ function LinearResponse(
         (species richness)."))
 
     # Format
-    A_trophic = get_trophic_adjacency(network)
     if length(α) == 1
         α_vec = spzeros(S)
-        α_vec[.!whoisproducer(A_trophic)] .= α
+        α_vec[predators(network)] .= α
         α = α_vec
     end
 
-    LinearResponse(Float64.(ω), sparse(Float64.(α)))
+    LinearResponse(sparse(ω), sparse(α))
 end
 
 """
@@ -516,14 +494,14 @@ function aᵣ_refuge(aᵣ, r0, A_refuge, B)
 
     # Set up
     S = richness(A_refuge)
-    preys = (1:S)[whoisprey(aᵣ)]
+    prey = preys(aᵣ)
     aᵣ_refuge = spzeros(Float64, S, S)
 
     # Updating attack rate matrix (aᵣ)
-    for prey in preys
-        providing_refuge = A_refuge[:, prey] # species providing a refuge to 'prey'
+    for i in prey
+        providing_refuge = A_refuge[:, i] # species providing a refuge to 'prey'
         refuge_ratio = 1 + r0 * sum(providing_refuge .* B)
-        aᵣ_refuge[:, prey] .= aᵣ[:, prey] / refuge_ratio
+        aᵣ_refuge[:, i] .= aᵣ[:, i] / refuge_ratio
     end
 
     aᵣ_refuge
