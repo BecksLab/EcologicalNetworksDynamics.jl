@@ -1,46 +1,65 @@
-#=
-Simulations of biomass dynamics
-=#
-
+#### Run biomass simulations ####
 """
     simulate(
-        params,
-        B0;
-        t0=0,
-        tmax=500,
-        use=:nonstiff,
+        params::ModelParameters,
+        B0::AbstractVector;
+        t0::Number=0,
+        tmax::Number=500,
+        δt::Number=0.25,
         extinction_threshold=1e-6,
-        δt=0.25
+        callback=CallbackSet(
+            PositiveDomain(),
+            TerminateSteadyState(1e-5, 1e-3),
+            ExtinctionCallback(extinction_threshold)
+        ),
+        kwargs...
     )
 
 Run biomass dynamics simulation,
 given model parameters (`params`) and the initial biomass (`B0`).
 
-The dynamic is solved between t=`t0` and t=`tmax`.
-However, if a steady state is found the simulation ends before `tmax`.
-Biomass trajectories are saved every `δt`.
+The dynamic is solved between t=`t0` and t=`tmax` (at worst) and
+biomass are saved (at least) every `δt`.
+
+By default, we give the following callbacks to `solve()`:
+
+    - PositiveDomain (DiffEqCallbacks) ensures that biomass stays positive
+    - TerminateSteadyState (DiffEqCallbacks) ends simulation if a steady state is found
+    - ExtinguishSpecies (custom) extinguish species whose biomass goes under the
+        `extinction_threshold`
+
+You are free to provide other callbacks, either by changing the parameter values of the
+callbacks above, choosing other callbacks from DiffEqCallbacks or by creating you own
+callbacks.
+
+Thanks to the extra keywords arguments `kwargs...`,
+you have a direct access to the interface of solve.
+Thus you can directly specify keyword arguments of solve(),
+for instance if you want to hint toward stiff solver
+you can give as an argument to simulate `alg_hints=[:stiff]`.
 
 The output of this function is the result of `DifferentialEquations.solve()`,
 to learn how to handle this output
 see [Solution Handling](https://diffeq.sciml.ai/stable/basics/solution/).
 
+If you are not interested in the biomass trajectories,
+but want to find directly the biomass at steady state see [`find_steady_state`](@ref).
+
 # Examples
 ```jldoctest
-julia> foodweb = FoodWeb([0 0; 1 0]); # create foodweb
+julia> foodweb = FoodWeb([0 0; 1 0]); # create the foodweb
 
-julia> params = ModelParameters(foodweb); # generate its parameters
+julia> params = ModelParameters(foodweb); # generate the parameters
 
 julia> B0 = [0.5, 0.5]; # set initial biomass
 
 julia> solution = simulate(params, B0); # run simulation
 
-julia> solution.t[end] < 500 # true => a steady state has been found
-true
+julia> solution.retcode # => a steady state has been found
+:Terminated
 
-julia> solution[begin] # initial biomass, recover B0
-2-element Vector{Float64}:
- 0.5
- 0.5
+julia> solution[begin] == B0 # initial biomass equals initial biomass
+true
 
 julia> round.(solution[end], digits=2) # steady state biomass
 2-element Vector{Float64}:
@@ -53,9 +72,14 @@ function simulate(
     B0::AbstractVector;
     t0::Number=0,
     tmax::Number=500,
-    alg_hints::Symbol=:auto,
-    extinction_threshold::AbstractFloat=1e-6,
-    δt::Number=0.25
+    δt::Number=0.25,
+    extinction_threshold=1e-6,
+    callback=CallbackSet(
+        PositiveDomain(),
+        TerminateSteadyState(1e-5, 1e-3),
+        ExtinguishSpecies(extinction_threshold)
+    ),
+    kwargs...
 )
 
     # Check for consistency and format input arguments
@@ -66,35 +90,38 @@ function simulate(
     t0 < tmax || throw(ArgumentError("'t0' ($t0) should be smaller than
         'tmax' ($tmax)."))
 
-    # Define callback - extinction threshold
+    # Define ODE problem and solve
+    timespan = (t0, tmax)
+    timesteps = collect(t0:δt:tmax)
+    problem = ODEProblem(dBdt!, B0, timespan, params)
+    solve(problem, saveat=timesteps, callback=callback; kwargs...)
+end
+#### end ####
+
+#### Species extinction callback ####
+"Callback to extinguish species under the `extinction_threshold`."
+function ExtinguishSpecies(extinction_threshold)
+
+    # Condition to trigger the callback: a species biomass goes below the threshold.
     function species_under_threshold(u, t, integrator)
-        any(0.0 .< u .< extinction_threshold)
+        any(u .< extinction_threshold)
     end
-    function extinct_species!(integrator)
+
+    # Effect of the callback: the species biomass below the threshold are set to 0.
+    function extinguish_species!(integrator)
         integrator.u[integrator.u.<=extinction_threshold] .= 0.0
         extinct_sp = (1:length(integrator.u))[integrator.u.<=extinction_threshold]
         t = round(integrator.t, digits=2)
         println("$extinct_sp have gone extinct at time $t.")
     end
-    extinction_callback = DiscreteCallback(species_under_threshold, extinct_species!)
 
-    # Define callback - positive domain
-    positive_domain = PositiveDomain()
-
-    # Define callback - terminate at steady state
-    terminate_steady_state = TerminateSteadyState(1e-5, 1e-3)
-
-    callbacks = CallbackSet(extinction_callback, positive_domain, terminate_steady_state)
-
-    # Define ODE problem and solve
-    timespan = (float(t0), float(tmax))
-    timesteps = collect(t0:δt:tmax)
-    problem = ODEProblem(dBdt!, B0, timespan, params)
-    solve(problem, saveat=timesteps, alg_hints=[alg_hints], callback=callbacks)
+    DiscreteCallback(species_under_threshold, extinguish_species!)
 end
+#### end ####
 
+#### Find steady state ####
 """
-    find_steady_state(params::ModelParameters, B0::AbstractVector)
+    find_steady_state(params::ModelParameters, B0::AbstractVector; kwargs...)
 
 Find a steady state of a system parametrized by a parameter set `params`
 and some initial conditions `B0`.
@@ -103,6 +130,28 @@ If no steady state has been found `terminated` is set to `false`
 and `steady_state` to `nothing`.
 Otherwise, `terminated` is set to `true`
 and `steady_state` to the corresponding value.
+
+If you are not only interested in the steady state biomass,
+but also in the trajectories see [`simulate`](@ref).
+
+# Examples
+```jldoctest
+julia> foodweb = FoodWeb([0 0; 1 0]); # create the foodweb
+
+julia> params = ModelParameters(foodweb); # generate the parameters
+
+julia> B0 = [0.5, 0.5]; # set initial biomass
+
+julia> solution = find_steady_state(params, B0);
+
+julia> solution.terminated # => a steady state has been found
+true
+
+julia> round.(solution.steady_state, digits=2) # steady state biomass
+2-element Vector{Float64}:
+ 0.19
+ 0.22
+```
 """
 function find_steady_state(
     params::ModelParameters,
@@ -116,3 +165,4 @@ function find_steady_state(
 end
 
 has_terminated(solution) = solution.retcode == :Terminated
+#### end ####
