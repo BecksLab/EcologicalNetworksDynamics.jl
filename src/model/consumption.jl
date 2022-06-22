@@ -2,20 +2,19 @@
 Consumption
 =#
 
+"Compute consumption terms of ODEs."
 function consumption(i, B, params::ModelParameters{BioenergeticResponse}, fᵣmatrix)
-
     # Set up
-    foodweb = convert(FoodWeb, params.network)
-    res = resource(i, foodweb) # ressource of species i
-    cons = consumer(i, foodweb) # consumer of species i
+    net = params.network
+    prey = preys_of(i, net)
+    pred = predators_of(i, net)
     x = params.biorates.x # metabolic rate
     y = params.biorates.y # max. consumption
     e = params.biorates.e # assimilation efficiency
 
     # Compute consumption terms
-    eating = x[i] * y[i] * B[i] * sum(fᵣmatrix[i, res])
-    being_eaten = sum(x[cons] .* y[cons] .* B[cons] .* fᵣmatrix[cons, i] ./ e[cons, i])
-
+    eating = x[i] * y[i] * B[i] * sum(fᵣmatrix[i, prey])
+    being_eaten = sum(x[pred] .* y[pred] .* B[pred] .* fᵣmatrix[pred, i] ./ e[pred, i])
     eating, being_eaten
 end
 
@@ -23,17 +22,16 @@ function consumption(
     i,
     B,
     params::Union{ModelParameters{ClassicResponse},ModelParameters{LinearResponse}},
-    fᵣmatrix)
-
+    fᵣmatrix
+)
     # Set up
-    foodweb = convert(FoodWeb, params.network)
-    res = resource(i, foodweb) # ressource of species i
-    cons = consumer(i, foodweb) # consumer of species i
-    e = params.biorates.e # assimilation efficiency
+    net = params.network
+    prey = preys_of(i, net)
+    pred = predators_of(i, net)
+    e = params.biorates.e
 
     # Compute consumption terms
-    eating = B[i] * sum(e[i, res] .* fᵣmatrix[i, res])
-    being_eaten = sum(B[cons] .* fᵣmatrix[cons, i])
-
+    eating = B[i] * sum(e[i, prey] .* fᵣmatrix[i, prey])
+    being_eaten = sum(B[pred] .* fᵣmatrix[pred, i])
     eating, being_eaten
 end

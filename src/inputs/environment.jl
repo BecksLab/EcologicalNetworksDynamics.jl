@@ -65,20 +65,13 @@ julia> Environment(foodweb, K=[1,2,nothing]).K # can also provide a vector
 See also [`ModelParameters`](@ref).
 """
 function Environment(
-    network::EcologicalNetwork;
+    net::EcologicalNetwork;
     K::Union{Tp,Vector{Union{Nothing,Tp}},Vector{Tp}}=1,
     T::Real=293.15
 ) where {Tp<:Real}
-
-    foodweb = convert(FoodWeb, network)
-    S = richness(foodweb)
-
-    # Test
+    S = richness(net)
     length(K) ∈ [1, S] || throw(ArgumentError("Wrong length: K should be of length 1 or S
         (species richness)."))
-
-    # Format if needed
-    length(K) == S || (K = [isproducer(foodweb, i) ? K : nothing for i in 1:S])
-
+    length(K) == S || (K = [isproducer(i, net) ? K : nothing for i in 1:S])
     Environment(K, T)
 end

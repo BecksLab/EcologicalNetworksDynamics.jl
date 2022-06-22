@@ -253,8 +253,7 @@ Facilitation links can only occur from any species to a plant.
 """
 function potential_facilitation_links(foodweb::FoodWeb)
     S = richness(foodweb)
-    producers = (1:S)[whoisproducer(foodweb)]
-    [(i, j) for i in (1:S), j in producers if i != j] # i facilitated, j facilitating
+    [(i, j) for i in (1:S), j in producers(foodweb) if i != j] # i --facilitates-> j
 end
 
 """
@@ -264,9 +263,8 @@ Find possible competition links.
 Competition links can only occur between two sessile species (producers).
 """
 function potential_competition_links(foodweb::FoodWeb)
-    S = richness(foodweb)
-    producers = (1:S)[whoisproducer(foodweb)]
-    [(i, j) for i in producers, j in producers if i != j]
+    prod = producers(foodweb)
+    [(i, j) for i in prod, j in prod if i != j] # i <-competes-> j
 end
 
 """
@@ -276,10 +274,7 @@ Find possible refuge links.
 Refuge links can only occur from a sessile species (producer) to a prey.
 """
 function potential_refuge_links(foodweb::FoodWeb)
-    S = richness(foodweb)
-    producers = (1:S)[whoisproducer(foodweb)]
-    preys = (1:S)[whoisprey(foodweb)]
-    [(i, j) for i in producers, j in preys if i != j]
+    [(i, j) for i in producers(foodweb), j in preys(foodweb) if i != j]
 end
 
 """
@@ -289,9 +284,8 @@ Find possible interference links.
 Interference liks can only occur between two predators sharing at least one prey.
 """
 function potential_interference_links(foodweb::FoodWeb)
-    S = richness(foodweb)
-    predators = (1:S)[whoispredator(foodweb)]
-    [(i, j) for i in predators, j in predators if i != j && share_prey(foodweb, i, j)]
+    preds = predators(foodweb)
+    [(i, j) for i in preds, j in preds if i != j && share_prey(i, j, foodweb)]
 end
 #### end ####
 

@@ -17,7 +17,7 @@ Quantity describing the reduction of the net growth rate due to the competition 
 We assume `competition_factor` ∈ [0,1].
 """
 function competition_factor(i, B, network::MultiplexNetwork)
-    isproducer(network, i) || return 1
+    isproducer(i, network) || return 1
     c0 = network.competition_layer.intensity
     A_competition = network.competition_layer.A
     competitors = A_competition[:, i] # species competing for space with species i
