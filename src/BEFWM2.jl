@@ -37,5 +37,6 @@ export allometric_rate, AllometricParams
 export DefaultGrowthParams, DefaultMaxConsumptionParams, DefaultMetabolismParams
 export simulate, find_steady_state
 export cascademodel, nichemodel, nestedhierarchymodel, mpnmodel, richness, links
+export @check_lower_than, @check_greater_than, @check_between, @check_in, @check_size
 
 end
