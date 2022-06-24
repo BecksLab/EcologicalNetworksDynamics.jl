@@ -11,8 +11,8 @@ makedocs(;
     * ", Thomas Malpas"
     * ", Hana Mayall"
     * ", Iago Bonnici"
-    * ", Sonia Kéfi",
-    * ", Andrew Beckerman"
+    * ", Sonia Kéfi"
+    * ", Andrew Beckerman",
     repo="https://github.com/BecksLab/BEFWM2/blob/{commit}{path}#{line}",
     sitename="BEFWM2.jl",
     format=Documenter.HTML(;
