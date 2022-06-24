@@ -8,19 +8,30 @@ using EcologicalNetworks
 # Set and print seed
 seed = sample(1:100000)
 Random.seed!(seed)
-println("Seed set to $seed.")
+@info "Seed set to $seed."
 
-# Run doctests first.
+# Run doctests first
 DocMeta.setdocmeta!(BEFWM2, :DocTestSetup, :(using BEFWM2); recursive=true)
 doctest(BEFWM2)
+println("------------------------------------------")
 
-include("test-utils.jl")
-include("inputs/test-biological_rates.jl")
-include("inputs/test-functional_response.jl")
-include("inputs/test-environment.jl")
-include("inputs/test-nontrophic_interactions.jl")
-include("model/test-productivity.jl")
-include("model/test-metabolic_loss.jl")
-include("model/test-model_parameters.jl")
-include("model/test-consumption.jl")
-include("model/test-simulate.jl")
+# Run test files
+test_files = [
+    "test-utils.jl",
+    "inputs/test-biological_rates.jl",
+    "inputs/test-functional_response.jl",
+    "inputs/test-environment.jl",
+    "inputs/test-nontrophic_interactions.jl",
+    "model/test-productivity.jl",
+    "model/test-metabolic_loss.jl",
+    "model/test-model_parameters.jl",
+    "model/test-consumption.jl",
+    "model/test-simulate.jl"
+]
+
+for test in test_files
+    println("\033[7m$(test)\033[0m")
+    include(test)
+    println("\033[1m\033[32mPASSED\033[0m")
+    println("------------------------------------------")
+end
