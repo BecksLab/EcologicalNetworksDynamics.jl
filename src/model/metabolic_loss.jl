@@ -11,3 +11,21 @@ function metabolism_loss(i, parms::ModelParameters)
     (x_i == 0) && return 0 #  Just to simplify expressions.
     :($x_i * $B_i)
 end
+
+# Code generation version (compact):
+# Explain how to efficiently construct all values of eating/being_eaten,
+# and provide the additional/intermediate data needed.
+# This code assumes that dB[i] has already been *initialized*.
+function metabolism_loss(parms::ModelParameters, ::Symbol)
+
+    # Pre-calculate skips over lossless species.
+    data = Dict(:loss => [(i, x) for (i, x) in enumerate(parms.biorates.x) if x != 0])
+
+    code = [:(
+        for (i, x_i) in loss #  (skips over null terms)
+            dB[i] -= x_i * B[i]
+        end
+    )]
+
+    code, data
+end

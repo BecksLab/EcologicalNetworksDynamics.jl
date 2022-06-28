@@ -12,7 +12,7 @@ function logisticgrowth(B, r, K)
     !isnothing(K) || return 0
     r * B * (1 - B / K)
 end
-# Code generation version (↑ ↑ ↑ DUPLICATED FROM ABOVE ↑ ↑ ↑).
+# Code generation version (raw) (↑ ↑ ↑ DUPLICATED FROM ABOVE ↑ ↑ ↑).
 # (update together as long as the two coexist)
 function logisticgrowth(i, parms::ModelParameters)
     B_i = :(B[$i])
@@ -20,4 +20,27 @@ function logisticgrowth(i, parms::ModelParameters)
     K_i = parms.environment.K[i]
     (r_i == 0 || isnothing(K_i)) && return 0
     :($r_i * $B_i * (1 - $B_i / $K_i))
+end
+
+# Code generation version (compact):
+# Explain how to efficiently construct all values of growth.
+# This code assumes that dB[i] has already been *initialized*.
+function growth(parms::ModelParameters, ::Symbol)
+
+    # Pre-calculate skips over non-primary producers.
+    data = Dict(
+        :primary_producers => [
+            (i, r, K) for
+            (i, (r, K)) in enumerate(zip(parms.biorates.r, parms.environment.K)) if
+            (r != 0 && !isnothing(K))
+        ],
+    )
+
+    code = [:(
+        for (i, r_i, K_i) in primary_producers #  (skips over null terms)
+            dB[i] += r_i * B[i] * (1 - B[i] / K_i)
+        end
+    )]
+
+    code, data
 end

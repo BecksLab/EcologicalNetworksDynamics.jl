@@ -5,14 +5,20 @@ using SyntaxTree
 function simulates(parms, B0; kwargs...)
     g = simulate(parms, B0; verbose = false, kwargs...)
 
-    # Compare with specialized code.
-    xp = generate_dbdt(parms)
+    # Compare with raw specialized code.
+    xp, data = generate_dbdt(parms, :raw)
     # Guard against explosive compilation times with this approach.
     if SyntaxTree.callcount(xp) <= 20_000 #  wild rule of thumb
         dbdt = eval(xp)
-        s = simulate(parms, B0; diff_function = dbdt, verbose = false, kwargs...)
+        s = simulate(parms, B0; diff_code_data = (dbdt, data), verbose = false, kwargs...)
         compare_generic_vs_specialized(g, s)
     end
+
+    # Compare with compact specialized code.
+    xp, data = generate_dbdt(parms, :compact)
+    dbdt = eval(xp)
+    s = simulate(parms, B0; diff_code_data = (dbdt, data), verbose = false, kwargs...)
+    compare_generic_vs_specialized(g, s)
 
     g
 end

@@ -13,7 +13,7 @@
             TerminateSteadyState(1e-5, 1e-3),
             ExtinctionCallback(extinction_threshold, verbose)
         ),
-        diff_function=dBdt!,
+        diff_code_data=(BEFWM2.dBdt!, params),
         kwargs...
     )
 
@@ -35,7 +35,7 @@ callbacks above, choosing other callbacks from DiffEqCallbacks or by creating yo
 callbacks.
 
 Extra performance may be achieved
-by providing specialized julia code to the `diff_function` argument
+by providing specialized julia code to the `diff_code_data` argument
 instead of the default, generic `BEFWM2.dBdt!` code.
 No need to write it yourself as [`generate_dbdt`](@ref) does it for you.
 
@@ -73,11 +73,26 @@ julia> round.(solution[end], digits=2) # steady state biomass
  0.19
  0.22
 
-julia> expression = generate_dbdt(params); # generate specialized code (same simulation)
+julia> xpr, data = generate_dbdt(params, :raw); # generate specialized code (same simulation)
 
-julia> solution = simulate(params, B0; diff_function = eval(expression));
+julia> solution = simulate(params, B0; diff_code_data = (eval(xpr), data));
 
 julia> solution.retcode #  the same result is obtained, possibly more efficiently.
+:Terminated
+
+julia> solution[begin] == B0
+true
+
+julia> round.(solution[end], digits=2)
+2-element Vector{Float64}:
+ 0.19
+ 0.22
+
+julia> xpr, data = generate_dbdt(params, :compact); # Same with alternate style.
+
+julia> solution = simulate(params, B0; diff_code_data = (eval(xpr), data));
+
+julia> solution.retcode
 :Terminated
 
 julia> solution[begin] == B0
@@ -115,7 +130,7 @@ function simulate(
         TerminateSteadyState(1e-6, 1e-4),
         ExtinguishSpecies(extinction_threshold, verbose),
     ),
-    diff_function = dBdt!,
+    diff_code_data = (dBdt!, params),
     kwargs...,
 )
 
@@ -128,12 +143,13 @@ function simulate(
     # Define ODE problem and solve
     timespan = (t0, tmax)
     timesteps = collect(t0:δt:tmax)
+    code, data = diff_code_data
     # Work around julia's world count:
     # `generate_dbdt` only produces anonymous code,
     # so the generated functions cannot be overriden.
     # As such, and in principle, the 'latest' function is unambiguous.
-    fun = (args...) -> Base.invokelatest(diff_function, args...)
-    problem = ODEProblem(fun, B0, timespan, params)
+    fun = (args...) -> Base.invokelatest(code, args...)
+    problem = ODEProblem(fun, B0, timespan, data)
     solve(problem; saveat = timesteps, callback = callback, kwargs...)
 end
 #### end ####

@@ -1,12 +1,14 @@
 # Rough measures of performance improvements with specialized dBdt! code generation.
 
-println("Loading packages..")
+print("Loading packages.. ")
+flush(stdout)
 @time begin
     using BEFWM2
     using BenchmarkTools
     using DiffEqBase
     using DiffEqCallbacks
     using EcologicalNetworks
+    using Formatting
     using Random
 end
 
@@ -25,7 +27,7 @@ end
 
 function large_foodweb_short_simulation()
     Random.seed!(12)
-    S = 35 # ←  ⚠ time is exploding with eg. S=60 at compilation time, but speedup is great.
+    S = 35 #  ⚠  very long to compile with eg. S=60 and type = :raw.
     foodweb = FoodWeb(nichemodel, S; C = 0.2)
     parms = ModelParameters(foodweb)
     B0 = repeat([0.5], S)
@@ -34,57 +36,80 @@ function large_foodweb_short_simulation()
 end
 
 function check(situation)
-    println("Parametrize..")
+    styles = [:raw, :compact]
+
+    print("Parametrize.. ")
+    flush(stdout)
     @time parms, B0, tlims = situation()
 
-    println("Generate/evaluate expression..")
-    @time dbdt = eval(generate_dbdt(parms))
-
-    act_state = [v for v in B0]
-    exp_state = [v for v in B0]
-    println("Compile expression..") #  ↓ ⚠  occasionally takes forever.
-    @time Base.invokelatest(dbdt, act_state, B0, parms, 0)
-
-    print("Check basic consistence of generic/specialized code on simple invocation..")
+    print("Single invocation of generic code.. ")
     flush(stdout)
-    BEFWM2.dBdt!(exp_state, B0, parms, 0)
-    all(act_state .≈ exp_state) || error("Inconsistent!")
-    println(" ok.")
+    expected_dB = [v for v in B0]
+    @time BEFWM2.dBdt!(expected_dB, B0, parms, 0)
 
-    println("\n- - - Measure basic perfs - - -")
-    for tlim in tlims
-        println("tlim=$tlim:")
-        solutions = []
-        for df in [BEFWM2.dBdt!, dbdt]
-            println("$(df == dbdt ? "Specialized" : "Generic") code:")
-            for _ in 1:2 #  Run twice to get rid of compilation effects.
-                GC.gc() #  Attempt to measure least gc.
-                @time sol = simulate(
-                    parms,
-                    B0;
-                    tmax = tlim,
-                    diff_function = df,
-                    callback = CallbackSet(PositiveDomain()), #  Don't stop before tmax.
-                )
-                push!(solutions, sol)
-            end
-        end
-        print("Check solutions consistency..")
+    codes = Dict()
+    datas = Dict()
+    for gen_style in styles
+        println("\nSpecialized :$gen_style expression..")
+        print("Generate: ")
         flush(stdout)
-        for i in 1:(length(solutions)-1)
-            for j in (i+1):length(solutions)
-                a, b = solutions[i], solutions[j]
-                all([a.retcode == b.retcode, a.k ≈ b.k, a.t ≈ b.t, a.u ≈ b.u]) ||
-                    error("Inconsistent solutions $i and $j!")
-                GC.gc()
+        @time begin
+            xp, data = generate_dbdt(parms, gen_style)
+            dbdt = eval(xp)
+        end
+
+        actual_dB = [v for v in B0]
+        print("Compile:  ") #  ↓ ⚠  takes forever with too big :raw generated code.
+        flush(stdout)
+        @time Base.invokelatest(dbdt, actual_dB, B0, data, 0)
+
+        print("Check consistency with basic generic invocation.. ")
+        flush(stdout)
+        all(actual_dB .≈ expected_dB) || error("Inconsistent!")
+        println("ok.")
+
+        codes[gen_style] = dbdt
+        datas[gen_style] = data
+    end
+
+    time_simulate(tlim, code, data) = begin
+        for i in 1:2 #  Run twice to get rid of compilation effects.
+            GC.gc() #  Attempt to measure least gc.
+            @time sol = simulate(
+                parms,
+                B0;
+                tmax = tlim,
+                diff_code_data = (code, data),
+                callback = CallbackSet(PositiveDomain()), #  Don't stop before tmax.
+            )
+            if i == 2
+                return sol
             end
         end
-        println(" ok.")
+    end
+
+    for tlim in tlims
+        println("\n- - - tlim = $(format(tlim, commas=true)) - - -")
+        println("Simulate with generic code..")
+        expected_solution = time_simulate(tlim, BEFWM2.dBdt!, parms)
+
+        for gen_style in styles
+            println("\nSimulate with :$gen_style generated code..")
+            actual_solution = time_simulate(tlim, codes[gen_style], datas[gen_style])
+
+            print("Check consistency with generic code.. ")
+            flush(stdout)
+            e = expected_solution
+            a = actual_solution
+            all([a.retcode == e.retcode, a.k ≈ e.k, a.t ≈ e.t, a.u ≈ e.u]) ||
+                error("Inconsistent solutions!")
+            println("ok.")
+        end
     end
 end
 
-println("\n===== Small foodweb, long simulation time ===== ")
+println("\n===== Small foodweb, long simulation time =====")
 check(small_foodweb_long_simulation)
 
-println("\n===== Large foodweb, short simulation time ===== ")
+println("\n\n===== Large foodweb, short simulation time =====")
 check(large_foodweb_short_simulation)
