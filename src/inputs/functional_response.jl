@@ -151,7 +151,7 @@ function (F::BioenergeticResponse)(B, i, j)
     denom = (F.B0[i]^F.h) + (F.c[i] * B[i] * F.B0[i]^F.h) + (sum(F.ω[i, :] .* (B .^ F.h)))
     num / denom
 end
-# Code generation version (↑ ↑ ↑ DUPLICATED FROM ABOVE ↑ ↑ ↑).
+# Code generation version (raw) (↑ ↑ ↑ DUPLICATED FROM ABOVE ↑ ↑ ↑).
 # (update together as long as the two coexist)
 function (F::BioenergeticResponse)(i, j, resources::Vector)
     ω_ij = F.ω[i, j]
@@ -167,6 +167,53 @@ function (F::BioenergeticResponse)(i, j, resources::Vector)
         xp_sum([:r, :ω], $[resources, F.ω[i, resources]], :(ω * (B[r]^$$h)))
     )
     :($num / $denom)
+end
+# Code generation version (compact):
+# Specify how to efficiently construct all values of F,
+# and provide the additional/intermediate data needed.
+function (F::BioenergeticResponse)(parms, ::Symbol)
+
+    # Basic informations made available as variables in the generated code.
+    S = richness(parms.network)
+    data = Dict(:S => S, :h => F.h, :B0 => F.B0, :c => F.c)
+
+    # For every species, pre-calculate associated resources indexes
+    # and all relevant ω weights.
+    data[:ω_res] = [[(k, F.ω[i, k]) for k in preys_of(i, parms.network)] for i in 1:S]
+
+    # Flatten sparse matrices into plain compact arrays.
+    cons, res = findnz(parms.network.A)
+    data[:ω] = [F.ω[i, j] for (i, j) in zip(cons, res)]
+    # Map compact ij ↦ (i, j) indices.
+    data[:nonzero_links] = (cons, res)
+
+    # Reusable scratch space to write intermediate values.
+    data[:F] = zeros(length(cons)) # (flattened, 'ij'-indexed)
+    data[:denominators] = zeros(S)
+
+    # Construct FR values: F_ij = num(ij) / denom(i)
+    code = [
+        :(
+            # Calculate all denominators (only one iteration over i is needed)
+            for i in 1:S
+                Σ = 0.0
+                for (k, ω_ik) in ω_res[i]
+                    Σ += ω_ik * B[k]^h
+                end
+                denominators[i] = B0[i]^h * (1.0 + c[i] * B[i]) + Σ
+            end
+        ),
+        :(
+            # Calculate numerators and actual F values.
+            # (only one iteration over nonzero (i,j) entries is needed)
+            for (ij, (i, j)) in enumerate(zip(nonzero_links...))
+                numerator = ω[ij] * B[j]^h
+                F[ij] = numerator / denominators[i]
+            end
+        ),
+    ]
+
+    code, data
 end
 
 """

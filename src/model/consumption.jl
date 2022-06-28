@@ -22,7 +22,8 @@ function consumption(::BioenergeticResponse, i, B, params::ModelParameters, fᵣ
     being_eaten = sum(x[pred] .* y[pred] .* B[pred] .* fᵣmatrix[pred, i] ./ e[pred, i])
     eating, being_eaten
 end
-# Code generation version(s) (↑ ↑ ↑ DUPLICATED FROM ABOVE ↑ ↑ ↑).
+
+# Code generation version(s) (raw) (↑ ↑ ↑ DUPLICATED FROM ABOVE ↑ ↑ ↑).
 # (update together as long as the two coexist)
 eating(i, p::ModelParameters) = eating(p.functional_response, i, p) # (dispatch)
 function eating(::BioenergeticResponse, i, parms::ModelParameters)
@@ -46,6 +47,60 @@ function being_eaten(::BioenergeticResponse, i, parms::ModelParameters)
         $[preds, x, y, e_pi, F_pi],
         :(xp * yp * B[p] * f_pi / e_pi),
     ))
+end
+
+# Code generation version (compact):
+# Explain how to efficiently construct all values of eating/being_eaten,
+# and provide the additional/intermediate data needed.
+# This code is responsible to *initialize* all dB[i] values.
+consumption(p::ModelParameters, ::Symbol) = consumption(p.functional_response, p) # (dispatch)
+function consumption(::BioenergeticResponse, parms::ModelParameters)
+
+    # Basic informations made available as variables in the generated code.
+    S = richness(parms.network)
+    data = Dict(
+        :x => parms.biorates.x,
+        :y => parms.biorates.y,
+        # Scratch space to calculate intermediate values.
+        :Σ_res => zeros(S),
+        :Σ_cons => zeros(S),
+    )
+    # Flatten the e matrix with the same 'ij' indexing.
+    cons, res = findnz(parms.network.A)
+    data[:e] = [parms.biorates.e[i, j] for (i, j) in zip(cons, res)]
+
+    # The following code relies on the following variables
+    # being already created by the functional response generated code:
+    #   S
+    #   F
+    #   nonzero_links
+    code = [
+        :(
+            # Only nonzero entries contribute to these terms.
+            # Calculate their contributions first:
+            for (ij, (i, j)) in enumerate(zip(nonzero_links...))
+                ir, i, r = ij, i, j #  i is focal, r is resource of i
+                Σ_res[i] += F[ir]
+                ci, c, i = ij, i, j #  i is focal, c is consumer of i
+                Σ_cons[i] += x[c] * y[c] * B[c] * F[ci] / e[ci]
+            end
+        ),
+        :(
+            # Then the full actual terms.
+            # This is the first and only full iteration over 1:S.
+            # Take this opportunity to *initialize* every dB[i].
+            for i in 1:S
+                eating = B[i] * x[i] * y[i] * Σ_res[i]
+                being_eaten = Σ_cons[i]
+                dB[i] = eating - being_eaten #  (re-)initialization of dB[i]
+                # Reset scratch space for next time.
+                Σ_res[i] = 0
+                Σ_cons[i] = 0
+            end
+        ),
+    ]
+
+    code, data
 end
 
 function consumption(
