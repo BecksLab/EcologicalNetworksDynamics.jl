@@ -4,12 +4,23 @@
 using BEFWM2
 ```
 
-A network which contains information about several types of interactions between a given set of species can be referred to as a multiplex network. 
-The interaction types are gathered by layers, where one layer contains all the interactions of a given type. 
-All the layers share the same set of nodes that are the species of the community. 
-For example, the trophic layer is a food web which contains all the information about the feeding interactions between the species of the community.  
-To generate a multiplex network, we assume that the trophic layer is the backbone of the multiplex network, on top of which layers of other interactions (so-called non-trophic interactions) are added. For instance, one layer could contain information about competitive interactions between species, and another about facilitative interactions. The resulting multiplex network would have 3 layers: feeding, competition and facilitation. 
-
+A multiplex network is a network that
+contains information about several types of interactions
+between a given set of species.
+The interaction types are gathered by layers,
+where one layer contains all the interactions of a given type.
+All the layers share the same set of nodes that are the species of the community.
+For example, the trophic layer is a foodweb
+which contains all the information about the feeding interactions
+between the species of the community.
+To generate a multiplex network,
+we assume that the trophic layer is the backbone of the multiplex network,
+on top of which layers of other interactions
+(so-called **non-trophic interactions**) are added.
+For instance, one layer could contain information
+about competitive interactions between species,
+and another about facilitative interactions.
+The resulting multiplex network would have 3 layers: trophic, competition and facilitation.
 
 In this package, four types of non-trophic interactions are available:
 
@@ -18,19 +29,28 @@ In this package, four types of non-trophic interactions are available:
 - [Competition for space](@ref)
 - [Refuge provisioning](@ref)
 
-We chose these four non-trophic interactions because they have been shown to significantly impact the dynamics of ecological communities
-(see e.g. [Kefi et al. 2012](https://doi-org.inee.bib.cnrs.fr/10.1111/j.1461-0248.2011.01732.x),[Kefi et al. 2016](https://doi.org/10.1371/journal.pbio.1002527),[Miele et al. 2019](https://doi.org/10.1371/journal.pcbi.1007269)).
+We chose these four non-trophic interactions because
+they have been shown to significantly impact the dynamics of ecological communities
+(see e.g.
+[Kefi et al. 2012](https://doi-org.inee.bib.cnrs.fr/10.1111/j.1461-0248.2011.01732.x),
+[Kefi et al. 2016](https://doi.org/10.1371/journal.pbio.1002527),
+[Miele et al. 2019](https://doi.org/10.1371/journal.pcbi.1007269)).
 
-In the following, after a short introduction on how to build a minimal multiplex network from a foodweb, we go over the four types of non-trophic interactions one by one.
+In the following,
+after a short introduction on how to build a minimal multiplex network from a foodweb,
+we go over the four types of non-trophic interactions one by one.
 
 !!! warning
-    The non-trophic interactions are only available for the functional response: [`ClassicResponse`](@ref). For more details about the different functional responses, 
-    see: [How to choose the functional response?](@ref)
+    The non-trophic interactions are only available for the functional response:
+    [`ClassicResponse`](@ref).
+    For more details about the different functional responses
+    see [How to choose the functional response?](@ref)
 
 ## Introduction to [`MultiplexNetwork`](@ref)
 
-As previously explained, we will build a multiplex network from a foodweb, i.e. a trophic network, on top of which non-trophic interactions are added. 
-Therefore, the first step to create your first multiplex network is to generate a foodweb, 
+As previously explained, we will build a multiplex network from a foodweb,
+In other words, we will add non-trophic interactions on top of a foodweb.
+Therefore, the first step to create your first multiplex network is to generate a foodweb,
 (for more details see [How to generate foodwebs?](@ref))
 which is the backbone of the multiplex network.
 
@@ -47,25 +67,28 @@ multiplex_network = MultiplexNetwork(foodweb)
 ```
 
 As we only gave the foodweb to the [`MultiplexNetwork`](@ref) method
-without any additional arguments, 
+without any additional arguments,
 the number of non-trophic links is set to zero.
 Indeed, by default the multiplex network contains only trophic interactions
-which are stored in the `trophic_layer` field ,
+which are stored in the `trophic_layer` field,
 and the non-trophic layers
 (`competition_layer`, `facilitation_layer`, `interference_layer` and `refuge_layer`)
 are empty.
 
 Each [`Layer`](@ref) contains two fields:
 
-- `adjacency`: the adjacency matrix that defines where (i.e. between which pair of species) the interactions occur;
-- `intensity`: the intensity of the non-trophic interactions (one value per non-trophic interaction)
+- `adjacency`: the adjacency matrix that defines where
+    (i.e. between which pair of species) the interactions occur;
+- `intensity`: the intensity of the non-trophic interactions
+    (one value per non-trophic interaction)
 
-Information about a layer can be retrieved as follows: 
+Information about a layer can be retrieved as follows:
 ```@repl befwm2
 multiplex_network.trophic_layer
 ```
 
-Before explaining how to fill the non-trophic layers, note that the [`MultiplexNetwork`](@ref) contains, in the same way as the [`FoodWeb`](@ref),
+Before explaining how to fill the non-trophic layers,
+note that the [`MultiplexNetwork`](@ref) contains, in the same way as the [`FoodWeb`](@ref),
 information about the species identities, the metabolic classes, and the body-masses:
 
 ```@repl befwm2
@@ -76,7 +99,7 @@ multiplex_network.bodymass # individual body mass
 
 ## Competition for space
 
-### Definition
+### Definition of competition
 
 Competition for space happens between sessile species (mostly producers).
 As for the [Interference between predators](@ref),
@@ -97,7 +120,7 @@ Where:
 
 - ``r_i G_i`` is the growth term for producers
 - ``\sum_{j \in \{\text{preys}\}} e_{ij} F_{ij}`` is the biomass gained by species ``i``
-    due to consumption of prey 
+    due to consumption of prey
 - ``x_i`` is the metabolic loss of species ``i``
 
 When competition occurs and if ``G_\text{net}`` is positive, then ``G_\text{net}`` becomes:
@@ -119,6 +142,7 @@ With:
 ### Adding competitive interactions to the [`MultiplexNetwork`](@ref)
 
 Non-trophic layers can be filled in three ways, either by providing a:
+
 - number of non-trophic links
 - connectance of non-trophic links
 - custom adjacency matrix
@@ -154,13 +178,16 @@ multiplex_network = MultiplexNetwork(foodweb, n_competition=1.0)
 
 !!! note "Connectance definition"
     Here, the connectance of non-trophic interactions is not defined as
-    ``C=\frac{L}{S^2}`` where ``L`` is the number of competitive links and ``S`` the total number of species in the community.
+    ``C=\frac{L}{S^2}`` where ``L`` is the number of competitive links
+    and ``S`` the total number of species in the community.
     Instead, connectance is defined as ``C=\frac{L}{L_\text{max}}``
-    where ``L_\text{max}`` is the maximum number of possible competitive links in the community. 
-    Indeed, as only pairs of sessile species can compete with each other, 
-    all species pairs are not eligible for competition (e.g. a pair of mobile species). 
-    This definition ensures you that if you provide a connectance of `1.0`, the adjacency matrix will be filled as much as possible,
-    given the rules that govern the interaction. 
+    where ``L_\text{max}`` is the maximum number of possible competitive links
+    in the community.
+    Indeed, as only pairs of sessile species can compete with each other,
+    all species pairs are not eligible for competition (e.g. a pair of mobile species).
+    This definition ensures you that if you provide a connectance of `1.0`,
+    the adjacency matrix will be filled as much as possible,
+    given the rules that govern the interaction.
     The definition applies to the four non-trophic interaction types
     with ``L_\text{max}`` depending on the non-trophic interaction considered.
 
@@ -186,10 +213,11 @@ multiplex_network.competition_layer
 
 ## Plant facilitation
 
-### Definition
+### Definition of facilitation
 
 Facilitation links are directed from any species to a plant (primary producer).
-Facilitation is translated as an increase in the intrinsic growth rate (``r``) of the facilitated plant. 
+Facilitation is translated as an increase in the intrinsic growth rate (``r``)
+of the facilitated plant.
 Formally, the net growth rate of a facilitated plant becomes:
 
 ```math
@@ -214,7 +242,8 @@ of one producer and two consumers feeding on that single producer.
 foodweb = FoodWeb([0 0 0; 1 0 0; 1 0 0]);
 ```
 
-Here, the potential facilitation links can happen between each of the consumers and the plant
+Here, the potential facilitation links can happen
+between each of the consumers and the plant
 (``2 \rightarrow 1`` and ``3 \rightarrow 1``).
 
 To fill the facilitation layer,
@@ -238,7 +267,7 @@ MultiplexNetwork(foodweb, A_facilitation=[0 0 0; 1 0 0; 0 0 0])
 
 ### Setting the facilitation intensity
 
-The intensity of facilitatiVE interactions can be changed
+The intensity of facilitative interactions can be changed
 by specifying a value to `f0` (default set to 1).
 For instance, the previous example can be rewritten as:
 
@@ -249,11 +278,12 @@ multiplex_network.facilitation_layer
 
 ## Interference between predators
 
-### Definition
+### Definition of interference
 
 The interspecific interference between predators
 can only happen between predators sharing at least one prey.
-Moreover, we assume interference to be symmetric, in the same way as for [Competition for space](@ref).
+Moreover, we assume interference to be symmetric,
+in the same way as for [Competition for space](@ref).
 
 Interference between predators leads to a decrease in the consumption rates
 (given by the functional response) of the interfering predators.
@@ -301,7 +331,7 @@ foodweb = FoodWeb([0 0 0; 1 0 0; 1 0 0]);
 For this community, potential interference links can happen between species 2 and 3
 (``3 \rightarrow 2`` and ``2 \rightarrow 3``).
 
-To fill the interference layer, 
+To fill the interference layer,
 you can either provide a number of links (integer) to `n_interference`:
 
 ```@repl befwm2
@@ -336,7 +366,7 @@ multiplex_network.interference_layer
 
 ## Refuge provisioning
 
-### Definition
+### Definition of refuge
 
 The last non-trophic interaction is refuge provisioning.
 Refuge provisioning corresponds to the case where
@@ -375,13 +405,13 @@ To fill the refuge layer, you can provide a number of links (integer) to `n_refu
 multiplex_network = MultiplexNetwork(foodweb, n_refuge=1)
 ```
 
-Or you can provide a connectance (float) to `n_refuge`: 
+Or you can provide a connectance (float) to `n_refuge`:
 
 ```@repl befwm2
 multiplex_network = MultiplexNetwork(foodweb, n_refuge=1.0)
 ```
 
-Or you can provide an adjacency matrix to `A_refuge`: 
+Or you can provide an adjacency matrix to `A_refuge`:
 
 ```@repl befwm2
 multiplex_network = MultiplexNetwork(foodweb, A_refuge=[0 1 0; 0 0 0; 0 0 0])
@@ -408,7 +438,7 @@ and two consumers (3-4), which each feed on both producers:
 foodweb = FoodWeb([0 0 0 0; 0 0 0 0; 1 1 0 0; 1 1 0 0]);
 ```
 
-You can add two competition links and one facilitation link at the same time: 
+You can add two competition links and one facilitation link at the same time:
 
 ```@repl befwm2
 MultiplexNetwork(foodweb, n_competition=2, n_facilitation=1)
@@ -436,7 +466,7 @@ MultiplexNetwork(foodweb, n_competition=1.0, n_facilitation=1, A_interference=A_
     and integers as numbers of links.
     `MultiplexNetwork(foodweb, n_facilitation=1)` is very different from
     `MultiplexNetwork(foodweb, n_facilitation=1.0)`.
-    The first reads *'put one facilitation link'*, 
+    The first reads *'put one facilitation link'*,
     whereas the second reads *'put as many facilitation links as possible'*.
 
 In the next part, you will see how to parametrize the system
