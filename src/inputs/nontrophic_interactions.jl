@@ -177,6 +177,10 @@ function MultiplexNetwork(
         metabolic_class
     )
 end
+
+function MultiplexNetwork(net::UnipartiteNetwork; kwargs...)
+    MultiplexNetwork(FoodWeb(net), kwargs...)
+end
 #### end ####
 
 #### Display MultiplexNetwork & NonTrophicIntensity ####
