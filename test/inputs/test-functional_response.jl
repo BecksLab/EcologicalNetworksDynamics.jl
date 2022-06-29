@@ -298,7 +298,7 @@ end
 @testset "Effect of refuge on attack rate" begin
 
     # 1 refuge link
-    A_refuge = net_refuge.refuge_layer.adjacency # adjacency matrix of refuge interactions
+    A_refuge = net_refuge.refuge_layer.A # adjacency matrix of refuge interactions
     B = [1, 1, 1]
     for aᵣ in [0.1, 0.2, 0.3, 0.4, 0.5], r0 in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
         aᵣ_matrix = sparse([0 0 0; aᵣ 0 0; aᵣ aᵣ 0])

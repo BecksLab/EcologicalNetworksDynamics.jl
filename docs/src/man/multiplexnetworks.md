@@ -77,7 +77,7 @@ are empty.
 
 Each [`Layer`](@ref) contains two fields:
 
-- `adjacency`: the adjacency matrix that defines where
+- `A`: the adjacency matrix that defines where
     (i.e. between which pair of species) the interactions occur;
 - `intensity`: the intensity of the non-trophic interactions
     (one value per non-trophic interaction)

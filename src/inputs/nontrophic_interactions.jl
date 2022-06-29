@@ -1,17 +1,17 @@
 #### Multiplex network objects ####
 """
-    Layer(adjacency::SparseMatrixCSC{Bool,Int64}, intensity::Union{Nothing,Float64})
+    Layer(A::SparseMatrixCSC{Bool,Int64}, intensity::Union{Nothing,Float64})
 
 A `Layer` of an interaction type contains
 two pieces of information concerning this interaction:
-- `adjacency`: where the interactions occur given by the adjacency matrix
+- `A`: where the interactions occur given by the adjacency matrix
 - `intensity`: the intensity of the interaction
 
 The intensity is only defined for non-trophic interactions and is set to `nothing` for
 trophic interactions.
 """
 mutable struct Layer
-    adjacency::AdjacencyMatrix
+    A::AdjacencyMatrix
     intensity::Union{Nothing,Float64}
 end
 
@@ -119,7 +119,7 @@ julia> foodweb = FoodWeb([0 0 0; 0 0 0; 1 1 0]); # 2 producers and 1 consumer
 julia> multiplex_network = MultiplexNetwork(foodweb, n_facilitation=1, f0=2.0);
 
 julia> multiplex_network.facilitation_layer
-Layer(adjacency=AdjacencyMatrix(L=1), intensity=2.0)
+Layer(A=AdjacencyMatrix(L=1), intensity=2.0)
 ```
 
 See also [`FoodWeb`](@ref), [`Layer`](@ref).
@@ -182,19 +182,19 @@ end
 #### Display MultiplexNetwork & NonTrophicIntensity ####
 "One line [`Layer`](@ref) display."
 function Base.show(io::IO, layer::Layer)
-    L = count(layer.adjacency)
+    L = count(layer.A)
     intensity = layer.intensity
-    print(io, "Layer(adjacency=AdjacencyMatrix(L=$L), intensity=$intensity)")
+    print(io, "Layer(A=AdjacencyMatrix(L=$L), intensity=$intensity)")
 end
 
 "One line [`MultiplexNetwork`](@ref) display."
 function Base.show(io::IO, multiplex_net::MultiplexNetwork)
     S = richness(multiplex_net)
-    Lt = count(multiplex_net.trophic_layer.adjacency)
-    Lr = count(multiplex_net.refuge_layer.adjacency)
-    Lf = count(multiplex_net.facilitation_layer.adjacency)
-    Li = count(multiplex_net.interference_layer.adjacency)
-    Lc = count(multiplex_net.competition_layer.adjacency)
+    Lt = count(multiplex_net.trophic_layer.A)
+    Lr = count(multiplex_net.refuge_layer.A)
+    Lf = count(multiplex_net.facilitation_layer.A)
+    Li = count(multiplex_net.interference_layer.A)
+    Lc = count(multiplex_net.competition_layer.A)
     print(io, "MultiplexNetwork(S=$S, Lt=$Lt, Lf=$Lf, Lc=$Lc, Lr=$Lr, Li=$Li)")
 end
 
@@ -203,11 +203,11 @@ function Base.show(io::IO, ::MIME"text/plain", multiplex_net::MultiplexNetwork)
 
     # Specify parameters
     S = richness(multiplex_net)
-    Lt = count(multiplex_net.trophic_layer.adjacency)
-    Lc = count(multiplex_net.competition_layer.adjacency)
-    Lf = count(multiplex_net.facilitation_layer.adjacency)
-    Li = count(multiplex_net.interference_layer.adjacency)
-    Lr = count(multiplex_net.refuge_layer.adjacency)
+    Lt = count(multiplex_net.trophic_layer.A)
+    Lc = count(multiplex_net.competition_layer.A)
+    Lf = count(multiplex_net.facilitation_layer.A)
+    Li = count(multiplex_net.interference_layer.A)
+    Lr = count(multiplex_net.refuge_layer.A)
 
     # Display output
     println(io, "MultiplexNetwork of $S species:")
@@ -227,7 +227,7 @@ Convert a [`MultiplexNetwork`](@ref) to a [`FoodWeb`](@ref).
 The convertion consists in removing the non-trophic layers of the multiplex networks.
 """
 function convert(::Type{FoodWeb}, net::MultiplexNetwork)
-    FoodWeb(net.trophic_layer.adjacency, species=net.species_id, M=net.bodymass,
+    FoodWeb(net.trophic_layer.A, species=net.species_id, M=net.bodymass,
         metabolic_class=net.metabolic_class)
 end
 

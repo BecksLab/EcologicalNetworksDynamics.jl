@@ -22,7 +22,7 @@ The new intrinsic growth rate `r_facilitated` is given by:
 ``r'  = r (1 + f_0 \\sum_{k \\in \\{\\text{fac.}\\} B_k``
 """
 function r_facilitated(r, i, B, network::MultiplexNetwork)
-    A_facilitation = network.facilitation_layer.adjacency
+    A_facilitation = network.facilitation_layer.A
     facilitating_species = A_facilitation[:, i]
     f0 = network.facilitation_layer.intensity
     r * (1 + f0 * sum(B .* facilitating_species))

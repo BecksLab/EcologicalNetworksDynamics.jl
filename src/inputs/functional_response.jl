@@ -251,7 +251,7 @@ function (F::ClassicResponse)(B, i, j, network::MultiplexNetwork)
     denom = 1 + (F.c[i] * B[i]) + sum(F.aᵣ[i, :] .* F.hₜ[i, :] .* F.ω[i, :] .* (B .^ F.h))
 
     # Add interspecific predator interference to denominator.
-    A_interference = network.interference_layer.adjacency
+    A_interference = network.interference_layer.A
     i0 = network.interference_layer.intensity
     predator_interfering = A_interference[:, i]
     denom += i0 * sum(B .* predator_interfering)
@@ -265,7 +265,7 @@ function (F::ClassicResponse)(B, i, j, aᵣ, network::MultiplexNetwork)
     denom = 1 + (F.c[i] * B[i]) + sum(aᵣ[i, :] .* F.hₜ[i, :] .* F.ω[i, :] .* (B .^ F.h))
 
     # Add interspecific predator interference to denominator.
-    A_interference = network.interference_layer.adjacency
+    A_interference = network.interference_layer.A
     i0 = network.interference_layer.intensity
     predator_interfering = A_interference[:, i]
     denom += i0 * sum(B .* predator_interfering)
@@ -418,7 +418,7 @@ function (F::ClassicResponse)(B, network::MultiplexNetwork)
 
     # Effect of refuge on aᵣ
     aᵣ = F.aᵣ
-    A_refuge = network.refuge_layer.adjacency
+    A_refuge = network.refuge_layer.A
     r0 = network.refuge_layer.intensity
     aᵣ = aᵣ_refuge(aᵣ, r0, A_refuge, B)
 
