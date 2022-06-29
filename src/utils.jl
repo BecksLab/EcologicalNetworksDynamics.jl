@@ -58,12 +58,14 @@ function consumer(i, foodweb::FoodWeb)
 end
 #### end #### 
 
-function resourcenumber(consumer, foodweb::FoodWeb)
-    sum(foodweb.A[consumer, :])
+function resourcenumber(consumer, A::AdjacencyMatrix)
+    sum(A[consumer, :])
 end
-
+function resourcenumber(consumer::Vector, A::AdjacencyMatrix)
+    Dict(i => resourcenumber(i, A) for i in unique(consumer))
+end
 function resourcenumber(consumer::Vector, foodweb::FoodWeb)
-    Dict(i => resourcenumber(i, foodweb) for i in unique(consumer))
+    Dict(i => resourcenumber(i, foodweb.A) for i in unique(consumer))
 end
 
 """
@@ -102,3 +104,7 @@ end
 function links(A::AdjacencyMatrix)
     count(A)
 end
+
+"Return the adjacency matrix of the trophic interactions."
+get_trophic_adjacency(net::FoodWeb) = net.A
+get_trophic_adjacency(net::MultiplexNetwork) = net.trophic_layer.A

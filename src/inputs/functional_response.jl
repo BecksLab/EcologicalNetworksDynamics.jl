@@ -87,11 +87,11 @@ where ``n_{preys,i}`` is the number of prey of predator i.
 function homogeneous_preference(network::EcologicalNetwork)
 
     # Set up
-    foodweb = convert(FoodWeb, network)
-    S = richness(foodweb)
+    A_trophic = get_trophic_adjacency(network)
+    S = richness(network)
     ω = spzeros(S, S)
-    consumer, resource = findnz(foodweb.A)
-    num_resources = resourcenumber(consumer, foodweb) # Dict: consumer => number resources
+    consumer, resource = findnz(A_trophic)
+    num_resources = resourcenumber(consumer, A_trophic) # Dict: consumer => number resources
     n_interactions = length(consumer) # number of interactions
 
     # Fill preference matrix
@@ -118,11 +118,11 @@ Default values are taken from *add ref*.
 function assimilation_efficiency(network::EcologicalNetwork; e_herbivore=0.45, e_carnivore=0.85)
 
     # Set up
-    foodweb = convert(FoodWeb, network)
-    S = richness(foodweb)
+    A_trophic = get_trophic_adjacency(network)
+    S = richness(network)
     efficiency = spzeros(Float64, S, S)
-    isproducer = whoisproducer(foodweb.A)
-    consumer, resource = findnz(foodweb.A) # indexes of trophic interactions
+    isproducer = whoisproducer(A_trophic)
+    consumer, resource = findnz(A_trophic) # indexes of trophic interactions
     n_interactions = length(consumer) # number of trophic interactions
 
     # Fill efficiency matrix
@@ -466,9 +466,9 @@ function ClassicResponse(
         with S the species richness."))
 
     # Format
-    foodweb = convert(FoodWeb, network)
-    size(hₜ) == (S, S) || (hₜ = scalar_to_sparsematrix(hₜ, foodweb.A))
-    size(aᵣ) == (S, S) || (aᵣ = scalar_to_sparsematrix(aᵣ, foodweb.A))
+    A_trophic = get_trophic_adjacency(network)
+    size(hₜ) == (S, S) || (hₜ = scalar_to_sparsematrix(hₜ, A_trophic))
+    size(aᵣ) == (S, S) || (aᵣ = scalar_to_sparsematrix(aᵣ, A_trophic))
     aᵣ = sparse(aᵣ)
     hₜ = sparse(hₜ)
     length(c) == S || (c = repeat([c], S))
@@ -490,10 +490,10 @@ function LinearResponse(
         (species richness)."))
 
     # Format
-    foodweb = convert(FoodWeb, network)
+    A_trophic = get_trophic_adjacency(network)
     if length(α) == 1
         α_vec = spzeros(S)
-        α_vec[.!whoisproducer(foodweb.A)] .= α
+        α_vec[.!whoisproducer(A_trophic)] .= α
         α = α_vec
     end
 
