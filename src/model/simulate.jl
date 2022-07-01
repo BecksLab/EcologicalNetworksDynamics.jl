@@ -73,10 +73,10 @@ function simulate(
     t0::Number=0,
     tmax::Number=500,
     δt::Number=0.25,
-    extinction_threshold=1e-6,
+    extinction_threshold=1e-5,
     callback=CallbackSet(
         PositiveDomain(),
-        TerminateSteadyState(1e-5, 1e-3),
+        TerminateSteadyState(1e-6, 1e-4),
         ExtinguishSpecies(extinction_threshold)
     ),
     kwargs...
@@ -104,7 +104,7 @@ function ExtinguishSpecies(extinction_threshold)
 
     # Condition to trigger the callback: a species biomass goes below the threshold.
     function species_under_threshold(u, t, integrator)
-        any(u .< extinction_threshold)
+        any(u[u.>0] .< extinction_threshold)
     end
 
     # Effect of the callback: the species biomass below the threshold are set to 0.
@@ -112,7 +112,7 @@ function ExtinguishSpecies(extinction_threshold)
         integrator.u[integrator.u.<=extinction_threshold] .= 0.0
         extinct_sp = (1:length(integrator.u))[integrator.u.<=extinction_threshold]
         t = round(integrator.t, digits=2)
-        println("$extinct_sp have gone extinct at time $t.")
+        @info "Species $extinct_sp are extinct (t=$t)."
     end
 
     DiscreteCallback(species_under_threshold, extinguish_species!)
