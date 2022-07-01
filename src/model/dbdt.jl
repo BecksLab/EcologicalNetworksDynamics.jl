@@ -4,8 +4,6 @@ Core functions of the model
 
 function dBdt!(dB, B, params::ModelParameters, t)
 
-    #B[B.<=0] .= 0 # ensuring non-negative biomass
-
     # Set up - Unpack parameters
     S = richness(params.network)
     fᵣmatrix = params.functional_response(B, params.network) # functional response matrix
