@@ -180,12 +180,11 @@ function BioRates(
     # Set up
     S = richness(network)
     Rates = [r, x, y]
-    nᵣ = length(Rates)
 
     # Test and format rates
-    for i in 1:nᵣ
+    for (i, rate) in enumerate(Rates)
         rate = Rates[i]
-        length(rate) ∈ [1, S] || throw(ArgumentError("Rate should be of length 1 or S."))
+        @check_in_one_or_richness length(rate) S
         typeof(rate) <: Real && (rate = [rate]) # convert 'rate' to vector
         length(rate) == S || (Rates[i] = repeat(rate, S)) # length 1 -> length S
     end

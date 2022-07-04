@@ -126,6 +126,17 @@ macro check_in(var, values)
     )
 end
 
+macro check_in_one_or_richness(var, S)
+    :(
+        if $(esc(var)) ∉ [1, $(esc(S))]
+            line1 = $(string(var)) * " should be in [1, richness].\n"
+            line2 = "  Evaluated: " * $(string(var)) * " = $($(esc(var))) ∉ [1, richness].\n"
+            line3 = "  Here the species richness is $($(esc(S)))."
+            throw(ArgumentError(line1 * line2 * line3))
+        end
+    )
+end 
+
 "Check that `mat` has a size `size`."
 macro check_size(mat, size)
     :(
