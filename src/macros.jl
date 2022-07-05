@@ -44,12 +44,33 @@ macro check_in(var, values)
     )
 end
 
-macro check_in_one_or_richness(var, S)
+macro check_is_one_or_richness(var, S)
     :(
         if $(esc(var)) ∉ [1, $(esc(S))]
-            line1 = $(string(var)) * " should be in [1, richness].\n"
-            line2 = "  Evaluated: " * $(string(var)) * " = $($(esc(var))) ∉ [1, richness].\n"
-            line3 = "  Here the species richness is $($(esc(S)))."
+            line1 = $(string(var)) * " should be 1 or richness=$($(esc(S))).\n"
+            line2 = "  Evaluated: " * $(string(var)) * " = $($(esc(var))) ∉ {1, $($(esc(S)))}."
+            throw(ArgumentError(line1 * line2))
+        end
+    )
+end
+
+macro check_equal_richness(var, S)
+    :(
+        if $(esc(var)) != $(esc(S))
+            line1 = $(string(var)) * " should be equal to richness.\n"
+            line2 = "  Evaluated: $($(string(var))) = $($(esc(var)))\n"
+            line3 = "  Expected: $($(string(var))) = $($(esc(S)))"
+            throw(ArgumentError(line1 * line2 * line3))
+        end
+    )
+end
+
+macro check_size_is_richness²(mat, S)
+    :(
+        if size($(esc(mat))) != ($(esc(S)), $(esc(S)))
+            line1 = $(string(mat)) * " should be of size (richness, richness).\n"
+            line2 = "  Evaluated: size(" * $(string(mat)) * ") = $(size($(esc(mat))))\n"
+            line3 = "  Expected: size(" * $(string(mat)) * ") = $(($(esc(S)),$(esc(S))))"
             throw(ArgumentError(line1 * line2 * line3))
         end
     )

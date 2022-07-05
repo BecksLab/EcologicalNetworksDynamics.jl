@@ -176,24 +176,17 @@ function BioRates(
     y::Union{Vector{<:Real},<:Real}=allometric_rate(network, DefaultMaxConsumptionParams()),
     e=efficiency(network)
 )
-
-    # Set up
     S = richness(network)
     Rates = [r, x, y]
 
-    # Test and format rates
+    # Perform sanity checks and vectorize rates if necessary
     for (i, rate) in enumerate(Rates)
-        rate = Rates[i]
-        @check_in_one_or_richness length(rate) S
-        typeof(rate) <: Real && (rate = [rate]) # convert 'rate' to vector
-        length(rate) == S || (Rates[i] = repeat(rate, S)) # length 1 -> length S
+        isa(rate, Real) ? (Rates[i] = fill(rate, S)) : @check_equal_richness length(rate) S
     end
-    size(e) == (S, S) || throw(ArgumentError("e should be of size (S, S) with S the species
-        richness"))
-    e = sparse(e)
+    @check_size_is_richness² e S
 
     # Output
-    r, x, y = Rates # recover formated rates
+    r, x, y = Rates
     BioRates(r, x, y, e)
 end
 
