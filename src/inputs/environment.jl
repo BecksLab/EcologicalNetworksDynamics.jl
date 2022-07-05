@@ -70,8 +70,7 @@ function Environment(
     T::Real=293.15
 ) where {Tp<:Real}
     S = richness(net)
-    length(K) ∈ [1, S] || throw(ArgumentError("Wrong length: K should be of length 1 or S
-        (species richness)."))
-    length(K) == S || (K = [isproducer(i, net) ? K : nothing for i in 1:S])
+    isa(K, AbstractVector) || (K = [isproducer(i, net) ? K : nothing for i in 1:S])
+    @check_equal_richness length(K) S
     Environment(K, T)
 end
