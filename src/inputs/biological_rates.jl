@@ -12,12 +12,12 @@ end
 #### end ####
 
 #### Type display ####
-"One line BioRates display."
+"One line [`BioRates`](@ref) display."
 function Base.show(io::IO, b::BioRates)
     print(io, "BioRates(e, r, x, y)")
 end
 
-"Multiline FoodWeb display."
+"Multiline [`BioRates`](@ref) display."
 function Base.show(io::IO, ::MIME"text/plain", biorates::BioRates)
 
     # Specify parameters
@@ -192,13 +192,12 @@ end
 
 "Compute rate vector (one value per species) with allometric scaling."
 function allometric_rate(
-    network::EcologicalNetwork,
+    net::EcologicalNetwork,
     allometricparams::AllometricParams
 )
-    foodweb = convert(FoodWeb, network)
-    params = allometricparams_to_vec(foodweb, allometricparams)
+    params = allometricparams_to_vec(net, allometricparams)
     a, b = params.a, params.b
-    allometricscale.(a, b, foodweb.M)
+    allometricscale.(a, b, net.M)
 end
 #### end ####
 
@@ -211,29 +210,27 @@ Create species parameter vectors for a, b of length S (species richness) given t
 allometric parameters for the different metabolic classes (aₚ,aᵢ,...).
 """
 function allometricparams_to_vec(
-    foodweb::FoodWeb,
+    net::EcologicalNetwork,
     params::AllometricParams
 )
 
     # Test
     validclasses = ["producer", "invertebrate", "ectotherm vertebrate"]
     isclassvalid(class) = class ∈ validclasses
-    all(isclassvalid.(foodweb.metabolic_class)) || throw(ArgumentError("Metabolic classes
+    all(isclassvalid.(net.metabolic_class)) || throw(ArgumentError("Metabolic classes
         should be in $(validclasses)"))
 
     # Set up
-    S = richness(foodweb)
+    S = richness(net)
     a, b = zeros(S), zeros(S)
 
-    # Fill a
-    a[producers(foodweb)] .= params.aₚ
-    a[invertebrates(foodweb)] .= params.aᵢ
-    a[vertebrates(foodweb)] .= params.aₑ
-
-    # Fill b
-    b[producers(foodweb)] .= params.bₚ
-    b[invertebrates(foodweb)] .= params.bᵢ
-    b[vertebrates(foodweb)] .= params.bₑ
+    # Fill allometric parameters (a & b) for each metabolic class
+    a[producers(net)] .= params.aₚ
+    a[invertebrates(net)] .= params.aᵢ
+    a[vertebrates(net)] .= params.aₑ
+    b[producers(net)] .= params.bₚ
+    b[invertebrates(net)] .= params.bᵢ
+    b[vertebrates(net)] .= params.bₑ
 
     (a=a, b=b)
 end
