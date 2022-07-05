@@ -10,6 +10,7 @@ using Statistics
 import DifferentialEquations.Tsit5, DifferentialEquations.Rodas4, DifferentialEquations.SSRootfind
 
 # Include scripts
+include(joinpath(".", "macros.jl"))
 include(joinpath(".", "inputs/foodwebs.jl"))
 include(joinpath(".", "inputs/nontrophic_interactions.jl"))
 include(joinpath(".", "inputs/functional_response.jl"))
