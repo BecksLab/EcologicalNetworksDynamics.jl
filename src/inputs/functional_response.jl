@@ -86,7 +86,9 @@ function homogeneous_preference(net::EcologicalNetwork)
     num_resource = number_of_resource(net) # num_resource[i] = nb. of resource(s) of i
     A = get_trophic_adjacency(net)
     ω = spzeros(S, S)
-    [ω[i, j] = 1 / num_resource[i] for (i, j, _) in zip(findnz(A)...)]
+    for (i, j, _) in zip(findnz(A)...)
+        ω[i, j] = 1 / num_resource[i]
+    end
     ω
 end
 
