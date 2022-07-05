@@ -81,7 +81,7 @@ end
 #### end ####
 
 """
-    scalar_to_sparsematrix(scalar, template_matrix)
+    fill_sparsematrix(scalar, template_matrix)
 
 Return a matrix filled with a constant (`scalar`) for indexes where the value of the
 `template_matrix` is non-zero.
@@ -91,25 +91,24 @@ Return a matrix filled with a constant (`scalar`) for indexes where the value of
 ```jldoctest
 julia> template_matrix = ones(2,2);
 
-julia> BEFWM2.scalar_to_sparsematrix(10, template_matrix)
+julia> BEFWM2.fill_sparsematrix(10, template_matrix)
 2×2 SparseArrays.SparseMatrixCSC{Float64, Int64} with 4 stored entries:
  10.0  10.0
  10.0  10.0
 
 julia> template_matrix[1,1] = 0;
 
-julia> BEFWM2.scalar_to_sparsematrix(10, template_matrix)
+julia> BEFWM2.fill_sparsematrix(10, template_matrix)
 2×2 SparseArrays.SparseMatrixCSC{Float64, Int64} with 3 stored entries:
    ⋅   10.0
  10.0  10.0
 ```
 """
-function scalar_to_sparsematrix(scalar, template_matrix)
-    S = size(template_matrix, 1)
-    out_matrix = spzeros(S, S)
-    nonzero_indexes = findall(!iszero, template_matrix)
-    out_matrix[nonzero_indexes] .= scalar
-    out_matrix
+function fill_sparsematrix(x, template)
+    out = spzeros(size(template))
+    nzind = findall(!iszero, template)
+    out[nzind] .= x
+    out
 end
 
 "Number of links of an adjacency matrix."

@@ -24,7 +24,7 @@ end
 
 struct LinearResponse <: FunctionalResponse
     ω::SparseMatrixCSC{Float64} # resource preferency
-    α::SparseVector{Float64,Int64} # consumption rate
+    α::SparseVector{Float64} # consumption rate
 end
 #### end ####
 
@@ -161,12 +161,6 @@ function (F::BioenergeticResponse)(B, i, j)
     num / denom
 end
 
-function (F::BioenergeticResponse)(B, i, j, network::EcologicalNetwork)
-    num = F.ω[i, j] * B[j]^F.h
-    denom = (F.B0[i]^F.h) + (F.c[i] * B[i] * F.B0[i]^F.h) + (sum(F.ω[i, :] .* (B .^ F.h)))
-    num / denom
-end
-
 """
     ClassicResponse(B, i, j)
 
@@ -214,26 +208,6 @@ and [`FunctionalResponse`](@ref).
 function (F::ClassicResponse)(B, i, j)
     num = F.ω[i, j] * F.aᵣ[i, j] * B[j]^F.h
     denom = 1 + (F.c[i] * B[i]) + sum(F.aᵣ[i, :] .* F.hₜ[i, :] .* F.ω[i, :] .* (B .^ F.h))
-    num / denom
-end
-
-function (F::ClassicResponse)(B, i, j, network::FoodWeb)
-    num = F.ω[i, j] * F.aᵣ[i, j] * B[j]^F.h
-    denom = 1 + (F.c[i] * B[i]) + sum(F.aᵣ[i, :] .* F.hₜ[i, :] .* F.ω[i, :] .* (B .^ F.h))
-    num / denom
-end
-
-function (F::ClassicResponse)(B, i, j, network::MultiplexNetwork)
-    # Compute numerator and denominator.
-    num = F.ω[i, j] * F.aᵣ[i, j] * B[j]^F.h
-    denom = 1 + (F.c[i] * B[i]) + sum(F.aᵣ[i, :] .* F.hₜ[i, :] .* F.ω[i, :] .* (B .^ F.h))
-
-    # Add interspecific predator interference to denominator.
-    A_interference = network.interference_layer.A
-    i0 = network.interference_layer.intensity
-    predator_interfering = A_interference[:, i]
-    denom += i0 * sum(B .* predator_interfering)
-
     num / denom
 end
 
@@ -295,10 +269,6 @@ function (F::LinearResponse)(B, i, j)
     F.ω[i, j] * F.α[i] * B[j]
 end
 
-function (F::LinearResponse)(B, i, j, network::EcologicalNetwork)
-    F.ω[i, j] * F.α[i] * B[j]
-end
-
 """
     FunctionalResponse(B)
 
@@ -339,73 +309,42 @@ and [`ClassicResponse`](@ref).
 """
 function (F::FunctionalResponse)(B)
 
-    # Safety checks and format
-    S = size(F.ω, 1) #! Care: your functional response should have a parameter ω
-    length(B) ∈ [1, S] || throw(ArgumentError("B wrong length: should be of length 1 or S
-        (species richness)."))
-    length(B) == S || (B = repeat([B], S))
-
     # Set up
-    consumer, resource = findnz(F.ω)
-    n_interactions = length(consumer) # number of trophic interactions
-    F_matrix = spzeros(S, S)
+    S = size(F.ω, 1) #! Care: your functional response should have a parameter ω
+    isa(B, AbstractVector) || (B = fill(B, S))
+    @check_equal_richness length(B) S
 
     # Fill functional response matrix
-    for n in 1:n_interactions
-        i, j = consumer[n], resource[n]
+    F_matrix = spzeros(S, S)
+    consumer, resource = findnz(F.ω)
+    for (i, j) in zip(consumer, resource)
         F_matrix[i, j] = F(B, i, j)
     end
-
     F_matrix
 end
-
-function (F::FunctionalResponse)(B, network::EcologicalNetwork)
-
-    # Safety checks and format
-    S = richness(network)
-    length(B) ∈ [1, S] || throw(ArgumentError("B wrong length: should be of length 1 or S
-        (species richness)."))
-    length(B) == S || (B = repeat([B], S))
-
-    # Set up
-    consumer, resource = findnz(F.ω)
-    n_interactions = length(consumer) # number of trophic interactions
-    F_matrix = spzeros(S, S)
-
-    # Fill functional response matrix
-    for n in 1:n_interactions
-        i, j = consumer[n], resource[n]
-        F_matrix[i, j] = F(B, i, j, network)
-    end
-
-    F_matrix
+function (F::FunctionalResponse)(B, _::EcologicalNetwork)
+    F(B)
 end
 
 function (F::ClassicResponse)(B, network::MultiplexNetwork)
 
-    # Safety checks and format
+    # Set up and safety checks
     S = richness(network)
-    length(B) ∈ [1, S] || throw(ArgumentError("B wrong length: should be of length 1 or S
-        (species richness)."))
-    length(B) == S || (B = repeat([B], S))
+    isa(B, AbstractVector) || (B = fill(B, S))
+    @check_equal_richness length(B) S
 
-    # Set up
-    consumer, resource = findnz(F.ω)
-    n_interactions = length(consumer) # number of trophic interactions
-    F_matrix = spzeros(S, S)
-
-    # Effect of refuge on aᵣ
+    # Effect of refuge on the attack rate
     aᵣ = F.aᵣ
     A_refuge = network.refuge_layer.A
     r0 = network.refuge_layer.intensity
     aᵣ = aᵣ_refuge(aᵣ, r0, A_refuge, B)
 
     # Fill functional response matrix
-    for n in 1:n_interactions
-        i, j = consumer[n], resource[n]
+    F_matrix = spzeros(S, S)
+    consumer, resource = findnz(F.ω)
+    for (i, j) in zip(consumer, resource)
         F_matrix[i, j] = F(B, i, j, aᵣ, network)
     end
-
     F_matrix
 end
 
@@ -418,8 +357,8 @@ function BioenergeticResponse(
     c=0.0
 )
     S = richness(network)
-    length(c) == S || (c = repeat([c], S))
-    length(B0) == S || (B0 = repeat([B0], S))
+    isa(c, AbstractArray) || (c = fill(c, S))
+    isa(B0, AbstractArray) || (B0 = fill(B0, S))
     BioenergeticResponse(h, ω, c, B0)
 end
 
@@ -431,49 +370,27 @@ function ClassicResponse(
     ω=homogeneous_preference(network),
     c=0.0
 )
-
-    # Safety checks
     S = richness(network)
-    size(hₜ) ∈ [(), (S, S)] || throw(ArgumentError("hₜ wrong size: should be a scalar or a
-        of size (S, S) with S the species richness."))
-    size(aᵣ) ∈ [(), (S, S)] || throw(ArgumentError("aᵣ wrong size: should be a scalar or a
-        of size (S, S) with S the species richness."))
-    length(c) ∈ [1, S] || throw(ArgumentError("c wrong length: should be of length 1 or S
-        (species richness)."))
-    size(ω) == (S, S) || throw(ArgumentError("ω wrong size: should be of size (S, S)
-        with S the species richness."))
-
-    # Format
     A_trophic = get_trophic_adjacency(network)
-    size(hₜ) == (S, S) || (hₜ = scalar_to_sparsematrix(hₜ, A_trophic))
-    size(aᵣ) == (S, S) || (aᵣ = scalar_to_sparsematrix(aᵣ, A_trophic))
-    aᵣ = sparse(aᵣ)
-    hₜ = sparse(hₜ)
-    length(c) == S || (c = repeat([c], S))
-
-    ClassicResponse(Float64(h), Float64.(ω), Float64.(c), Float64.(hₜ), Float64.(aᵣ))
+    isa(hₜ, AbstractMatrix) || (hₜ = fill_sparsematrix(hₜ, A_trophic))
+    isa(aᵣ, AbstractMatrix) || (aᵣ = fill_sparsematrix(aᵣ, A_trophic))
+    isa(c, AbstractArray) || (c = fill(c, S))
+    @check_size_is_richness² hₜ S
+    @check_size_is_richness² aᵣ S
+    @check_size_is_richness² ω S
+    @check_equal_richness length(c) S
+    ClassicResponse(h, ω, c, hₜ, aᵣ)
 end
 
 function LinearResponse(
-    network::EcologicalNetwork;
-    ω=homogeneous_preference(network),
+    net::EcologicalNetwork;
+    ω=homogeneous_preference(net),
     α=1.0
 )
-
-    # Safety checks
-    S = richness(network)
-    size(ω) == (S, S) || throw(ArgumentError("ω wrong size: should be of size (S, S)
-        with S the species richness."))
-    length(α) ∈ [1, S] || throw(ArgumentError("α wrong length: should be of length 1 or S
-        (species richness)."))
-
-    # Format
-    if length(α) == 1
-        α_vec = spzeros(S)
-        α_vec[predators(network)] .= α
-        α = α_vec
-    end
-
+    S = richness(net)
+    isa(α, AbstractVector) || (α = fill_sparsematrix(α, [ispredator(i, net) for i in 1:S]))
+    @check_size_is_richness² ω S
+    @check_equal_richness length(α) S
     LinearResponse(sparse(ω), sparse(α))
 end
 
