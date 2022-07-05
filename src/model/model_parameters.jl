@@ -75,7 +75,7 @@ BioenergeticResponse:
   B0: [0.5, 0.5]
   c: [0.0, 0.0]
   h: 2.0
-  ω: 2x2 sparse matrix
+  ω: (2, 2) sparse matrix
 
 julia> classic_response = ClassicResponse(foodweb); # choose classic functional response
 
@@ -85,9 +85,9 @@ julia> p.functional_response # check that the functional response is now "classi
 ClassicResponse:
   c: [0.0, 0.0]
   h: 2.0
-  ω: 2x2 sparse matrix
-  hₜ: 2x2 sparse matrix
-  aᵣ: 2x2 sparse matrix
+  ω: (2, 2) sparse matrix
+  hₜ: (2, 2) sparse matrix
+  aᵣ: (2, 2) sparse matrix
 ```
 """
 function ModelParameters(
