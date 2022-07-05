@@ -36,15 +36,12 @@ end
 
 "Multiline BioenergeticResponse display."
 function Base.show(io::IO, ::MIME"text/plain", response::BioenergeticResponse)
-
     S = size(response.ω, 1)
-
-    # Display output
     println(io, "BioenergeticResponse:")
     println(io, "  B0: " * vector_to_string(response.B0))
     println(io, "  c: " * vector_to_string(response.c))
     println(io, "  h: $(response.h)")
-    print(io, "  ω: $(S)x$(S) sparse matrix")
+    print(io, "  ω: ($S, $S) sparse matrix")
 end
 
 "Multiline ClassicResponse display."
@@ -56,9 +53,9 @@ function Base.show(io::IO, ::MIME"text/plain", response::ClassicResponse)
     println(io, "ClassicResponse:")
     println(io, "  c: " * vector_to_string(response.c))
     println(io, "  h: $(response.h)")
-    println(io, "  ω: $(S)x$(S) sparse matrix")
-    println(io, "  hₜ: $(S)x$(S) sparse matrix")
-    print(io, "  aᵣ: $(S)x$(S) sparse matrix")
+    println(io, "  ω: ($S, $S) sparse matrix")
+    println(io, "  hₜ: ($S, $S) sparse matrix")
+    print(io, "  aᵣ: ($S, $S) sparse matrix")
 end
 
 "Multiline LinearResponse display."
@@ -69,7 +66,7 @@ function Base.show(io::IO, ::MIME"text/plain", response::LinearResponse)
     # Display output
     println(io, "LinearResponse:")
     println(io, "  α: " * vector_to_string(response.α))
-    print(io, "  ω: $(S)x$(S) sparse matrix")
+    print(io, "  ω: ($S, $S) sparse matrix")
 end
 #### end ####
 
@@ -141,7 +138,7 @@ BioenergeticResponse:
   B0: [0.5, 0.5]
   c: [0.0, 0.0]
   h: 2.0
-  ω: 2x2 sparse matrix
+  ω: (2, 2) sparse matrix
 
 julia> F([1, 1], 1, 2) # no interaction, 1 does not eat 2
 0.0
@@ -195,9 +192,9 @@ julia> F = ClassicResponse(foodweb)
 ClassicResponse:
   c: [0.0, 0.0]
   h: 2.0
-  ω: 2x2 sparse matrix
-  hₜ: 2x2 sparse matrix
-  aᵣ: 2x2 sparse matrix
+  ω: (2, 2) sparse matrix
+  hₜ: (2, 2) sparse matrix
+  aᵣ: (2, 2) sparse matrix
 
 julia> F([1, 1], 1, 2) # no interaction, 1 does not eat 2
 0.0
@@ -274,7 +271,7 @@ julia> foodweb = FoodWeb([0 0; 1 0]);
 julia> F = LinearResponse(foodweb)
 LinearResponse:
   α: [⋅, 1.0]
-  ω: 2x2 sparse matrix
+  ω: (2, 2) sparse matrix
 
 julia> F([1, 1], 1, 2) # no interaction, 1 does not eat 2
 0.0
@@ -317,7 +314,7 @@ BioenergeticResponse:
   B0: [0.5, 0.5]
   c: [0.0, 0.0]
   h: 2.0
-  ω: 2x2 sparse matrix
+  ω: (2, 2) sparse matrix
 
 julia> F([1, 1]) # providing a species biomass vector
 2×2 SparseArrays.SparseMatrixCSC{Float64, Int64} with 1 stored entry:
