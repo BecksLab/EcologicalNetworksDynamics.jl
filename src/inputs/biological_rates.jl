@@ -19,17 +19,12 @@ end
 
 "Multiline [`BioRates`](@ref) display."
 function Base.show(io::IO, ::MIME"text/plain", biorates::BioRates)
-
-    # Specify parameters
     e = biorates.e
     r = biorates.r
     x = biorates.x
     y = biorates.y
-    S = size(e, 1)
-
-    # Display output
     println(io, "BioRates:")
-    println(io, "  e: $(S)x$(S) sparse matrix")
+    println(io, "  e: $(size(e)) sparse matrix")
     println(io, "  r: " * vector_to_string(r))
     println(io, "  x: " * vector_to_string(x))
     print(io, "  y: " * vector_to_string(y))
@@ -140,21 +135,21 @@ julia> foodweb = FoodWeb([0 1; 0 0]); # sp. 1 "invertebrate", sp. 2 "producer"
 
 julia> BioRates(foodweb) # default
 BioRates:
-  e: 2x2 sparse matrix
+  e: (2, 2) sparse matrix
   r: [0.0, 1.0]
   x: [0.314, 0.0]
   y: [8.0, 0.0]
 
 julia> BioRates(foodweb; r = [1.0, 1.0]) # specify custom vector for growth rate
 BioRates:
-  e: 2x2 sparse matrix
+  e: (2, 2) sparse matrix
   r: [1.0, 1.0]
   x: [0.314, 0.0]
   y: [8.0, 0.0]
 
 julia> BioRates(foodweb; x = 2.0) # if single value, fill the rate vector with it
 BioRates:
-  e: 2x2 sparse matrix
+  e: (2, 2) sparse matrix
   r: [0.0, 1.0]
   x: [2.0, 2.0]
   y: [8.0, 0.0]
@@ -163,7 +158,7 @@ julia> custom_params = AllometricParams(3, 0, 0, 0, 0, 0); # use custom allometr
 
 julia> BioRates(foodweb; y=allometric_rate(foodweb, custom_params)) # ...with allometric_rate
 BioRates:
-  e: 2x2 sparse matrix
+  e: (2, 2) sparse matrix
   r: [0.0, 1.0]
   x: [0.314, 0.0]
   y: [0.0, 3.0]
