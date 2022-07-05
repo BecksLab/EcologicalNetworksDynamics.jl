@@ -22,13 +22,24 @@ macro check_greater_than(var, min)
 end
 
 "Check that `var` is between `min` and `max` (bounds included)."
-macro check_between(var, min, max)
+macro check_is_between(var, min, max)
     :(
-        if !($min <= $(esc(var)) <= $max)
-            line1 = $(string(var)) * " should be between $($min) and $($max).\n"
-            line2_1 = "  Evaluated: " * $(string(var)) * " = "
-            line2_2 = "$($(esc(var))) ∉ [$($min),$($max)]"
-            throw(ArgumentError(line1 * line2_1 * line2_2))
+        if !($(esc(min)) <= $(esc(var)) <= $(esc(max)))
+            line1 = $(string(var)) * " out of bounds.\n"
+            line2 = "  Evaluated: $($(string(var))) = $($(esc(var)))\n"
+            line3 = "  Expected: $($(string(var))) ∈ [$($(esc(min))), $($(esc(max)))]"
+            throw(ArgumentError(line1 * line2 * line3))
+        end
+    )
+end
+
+macro check_is_even(x)
+    :(
+        if ($(esc(x)) % 2 != 0)
+            line1 = $(string(x)) * " should be even.\n"
+            line2 = "  Evaluated: $($(string(x))) = $($(esc(x)))\n"
+            line3 = "  Expected: $($(string(x))) % 2 = 0"
+            throw(ArgumentError(line1 * line2 * line3))
         end
     )
 end
