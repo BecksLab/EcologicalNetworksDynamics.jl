@@ -147,25 +147,23 @@ function MultiplexNetwork(
     # Safety checks.
     S = richness(foodweb)
     for A in [A_competition, A_facilitation, A_interference, A_refuge]
-        size(A) == (S, S) || throw(ArgumentError("Wrong size $(size(A)):
-            adjacency matrix should be of size (S,S) with S the species richness (S=$S)."))
+        @check_size_is_richness² A S
     end
-    #!Todo: test validity of custom matrices (e.g. facilitation: only prod. are facilitated)
 
-    # Information from FoodWeb.
+    # Information from FoodWeb
     A_trophic = foodweb.A
     M = foodweb.M
     species = foodweb.species
     metabolic_class = foodweb.metabolic_class
 
-    # Building layers.
+    # Building layers
     trophic_layer = Layer(A_trophic, nothing)
     competition_layer = Layer(A_competition, c0)
     facilitation_layer = Layer(A_facilitation, f0)
     interference_layer = Layer(A_interference, i0)
     refuge_layer = Layer(A_refuge, r0)
 
-    # Create the resulting multiplex network.
+    # Create the resulting multiplex network
     MultiplexNetwork(
         trophic_layer,
         competition_layer,
