@@ -21,8 +21,8 @@ mutable struct MultiplexNetwork <: EcologicalNetwork
     facilitation_layer::Layer
     interference_layer::Layer
     refuge_layer::Layer
-    bodymass::Vector{Float64}
-    species_id::Vector{String}
+    M::Vector{Float64}
+    species::Vector{String}
     metabolic_class::Vector{String}
 end
 
@@ -154,8 +154,8 @@ function MultiplexNetwork(
 
     # Information from FoodWeb.
     A_trophic = foodweb.A
-    bodymass = foodweb.M
-    species_id = foodweb.species
+    M = foodweb.M
+    species = foodweb.species
     metabolic_class = foodweb.metabolic_class
 
     # Building layers.
@@ -172,8 +172,8 @@ function MultiplexNetwork(
         facilitation_layer,
         interference_layer,
         refuge_layer,
-        bodymass,
-        species_id,
+        M,
+        species,
         metabolic_class
     )
 end
@@ -231,7 +231,7 @@ Convert a [`MultiplexNetwork`](@ref) to a [`FoodWeb`](@ref).
 The convertion consists in removing the non-trophic layers of the multiplex networks.
 """
 function convert(::Type{FoodWeb}, net::MultiplexNetwork)
-    FoodWeb(net.trophic_layer.A, species=net.species_id, M=net.bodymass,
+    FoodWeb(net.trophic_layer.A, species=net.species, M=net.M,
         metabolic_class=net.metabolic_class)
 end
 

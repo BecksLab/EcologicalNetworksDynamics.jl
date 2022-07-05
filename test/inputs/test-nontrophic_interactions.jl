@@ -11,8 +11,8 @@
         @test isempty(A.nzval)
     end
     @test multiplex_net.trophic_layer.A == foodweb.A
-    @test multiplex_net.bodymass == foodweb.M
-    @test multiplex_net.species_id == foodweb.species
+    @test multiplex_net.M == foodweb.M
+    @test multiplex_net.species == foodweb.species
 
     # Build from connectance.
     foodweb = FoodWeb(nichemodel, 20, C=0.1)

@@ -92,9 +92,9 @@ note that the [`MultiplexNetwork`](@ref) contains, in the same way as the [`Food
 information about the species identities, the metabolic classes, and the body-masses:
 
 ```@repl befwm2
-multiplex_network.species_id # species identities
+multiplex_network.species # species identities
 multiplex_network.metabolic_class # metabolic classes
-multiplex_network.bodymass # individual body mass
+multiplex_network.M # individual body mass
 ```
 
 ## Competition for space
