@@ -297,10 +297,7 @@ i.e. ``i`` interacts with ``j`` ⇏ ``j`` interacts with ``i``.
 """
 function draw_asymmetric_links(potential_links, L::Integer)
     Lmax = length(potential_links)
-    L >= 0 || throw(ArgumentError("L too small: L=$L whereas L should be positive."))
-    L <= Lmax || throw(ArgumentError("L too large:
-        L=$L whereas L should be lower or equal to $Lmax,
-        the maximum number of potential interactions."))
+    @check_is_between L 0 Lmax
     sample(potential_links, L, replace=false)
 end
 
@@ -312,8 +309,7 @@ Links are drawn asymmetrically,
 i.e. ``i`` interacts with ``j`` ⇏ ``j`` interacts with ``i``.
 """
 function draw_asymmetric_links(potential_links, C::AbstractFloat)
-    0 <= C <= 1 || throw(ArgumentError("Connectance out of bounds:
-    C=$C whereas connectance should be in [0,1]."))
+    @check_is_between C 0 1
     Lmax = length(potential_links)
     L = round(Int64, C * Lmax)
     draw_asymmetric_links(potential_links, L)
@@ -328,14 +324,9 @@ i.e. ``i`` interacts with ``j`` ⇒ ``j`` interacts with ``i``.
 """
 function draw_symmetric_links(potential_links, L::Integer)
     Lmax = length(potential_links)
-    L >= 0 || throw(ArgumentError("L too small: L=$L whereas L should be positive."))
-    L <= Lmax || throw(ArgumentError("L too large:
-        L=$L whereas L should be lower or equal to $Lmax,
-        the maximum number of potential interactions."))
-    L % 2 == 0 || throw(ArgumentError("Odd number of links (L=$L):
-    interaction should be symmetric."))
-    Lmax % 2 == 0 || throw(ArgumentError("Odd total number of links (L=$L):
-    interaction should be symmetric."))
+    @check_is_between L 0 Lmax
+    @check_is_even L
+    @check_is_even Lmax
     potential_links = asymmetrize(potential_links)
     potential_links = sample(potential_links, L ÷ 2, replace=false)
     symmetrize(potential_links)
@@ -349,8 +340,7 @@ Links are drawn symmetrically,
 i.e. ``i`` interacts with ``j`` ⇒ ``j`` interacts with ``i``.
 """
 function draw_symmetric_links(potential_links, C::AbstractFloat)
-    0 <= C <= 1 || throw(ArgumentError("Connectance out of bounds:
-        C=$C whereas connectance should be in [0,1]."))
+    @check_is_between C 0 1
     Lmax = length(potential_links)
     L = C * Lmax
     L = 2 * round(Int64, L / 2) # round to an even number
@@ -404,21 +394,16 @@ function nontrophic_adjacency_matrix(
     foodweb::FoodWeb,
     find_potential_links::Function,
     n;
-    symmetric=false)
-
-    # Initialization.
+    symmetric=false
+)
     S = richness(foodweb)
     A = spzeros(Bool, S, S)
     potential_links = find_potential_links(foodweb)
-
     draw_links = symmetric ? draw_symmetric_links : draw_asymmetric_links
     realized_links = draw_links(potential_links, n)
-
-    # Fill matrix with corresponding links.
     for (i, j) in realized_links
         A[i, j] = 1
     end
-
     A
 end
 #### end ####
