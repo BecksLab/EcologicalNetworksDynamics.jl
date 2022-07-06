@@ -6,7 +6,7 @@ function dBdt!(dB, B, params::ModelParameters, t)
 
     # Set up - Unpack parameters
     S = richness(params.network)
-    fᵣmatrix = params.functional_response(B, params.network) # functional response matrix
+    response_matrix = params.functional_response(B, params.network)
     r = params.biorates.r # vector of intrinsic growth rates
     K = params.environment.K # vector of carrying capacities
     network = params.network
@@ -16,7 +16,7 @@ function dBdt!(dB, B, params::ModelParameters, t)
 
         # Compute ODE terms
         growth = logisticgrowth(i, B, r[i], K[i], network)
-        eating, being_eaten = consumption(i, B, params, fᵣmatrix)
+        eating, being_eaten = consumption(i, B, params, response_matrix)
         metabolism_loss = metabolic_loss(i, B, params)
         net_growth_rate = growth + eating - metabolism_loss
         cᵢ = net_growth_rate >= 0 ? competition_factor(i, B, network) : 1

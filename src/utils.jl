@@ -80,6 +80,21 @@ function number_of_resource(net::EcologicalNetwork)
 end
 #### end ####
 
+#### Conversion between network types ####
+"""
+Convert a [`MultiplexNetwork`](@ref) to a [`FoodWeb`](@ref).
+The convertion consists in removing the non-trophic layers of the multiplex network.
+"""
+function Base.convert(::Type{FoodWeb}, net::MultiplexNetwork)
+    FoodWeb(net.trophic_layer.A, net.species, net.M, net.metabolic_class)
+end
+
+"""
+Convert a [`FoodWeb`](@ref) to its `UnipartiteNetwork` equivalent.
+"""
+Base.convert(::Type{UnipartiteNetwork}, fw::FoodWeb) = UnipartiteNetwork(fw.A, fw.species)
+### end ####
+
 """
     fill_sparsematrix(scalar, template_matrix)
 
