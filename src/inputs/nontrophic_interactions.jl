@@ -221,27 +221,6 @@ function Base.show(io::IO, ::MIME"text/plain", multiplex_net::MultiplexNetwork)
 end
 #### end ####
 
-#### Conversion FoodWeb ↔ MultiplexNetwork ####
-import Base.convert
-
-"""
-Convert a [`MultiplexNetwork`](@ref) to a [`FoodWeb`](@ref).
-The convertion consists in removing the non-trophic layers of the multiplex networks.
-"""
-function convert(::Type{FoodWeb}, net::MultiplexNetwork)
-    FoodWeb(net.trophic_layer.A, species=net.species, M=net.M,
-        metabolic_class=net.metabolic_class)
-end
-
-"""
-Convert a [`FoodWeb`](@ref) to a [`MultiplexNetwork`](@ref).
-The convertion consists in adding empty non-trophic layers to the foodweb.
-"""
-function convert(::Type{MultiplexNetwork}, net::FoodWeb)
-    MultiplexNetwork(net)
-end
-### end ####
-
 #### List potential interactions ####
 """
     potential_facilitation_links(foodweb::FoodWeb)
