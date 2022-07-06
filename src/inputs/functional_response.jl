@@ -5,7 +5,6 @@ Functional response
 #### Type definition ####
 abstract type FunctionalResponse end
 #! Children of abstract type FunctionalResponse are all expected to have a .ω member.
-#! Otherwise homogeneous_preference will fail.
 
 struct BioenergeticResponse <: FunctionalResponse
     h::Float64 # hill exponent
@@ -46,10 +45,7 @@ end
 
 "Multiline ClassicResponse display."
 function Base.show(io::IO, ::MIME"text/plain", response::ClassicResponse)
-
     S = size(response.ω, 1)
-
-    # Display output
     println(io, "ClassicResponse:")
     println(io, "  c: " * vector_to_string(response.c))
     println(io, "  h: $(response.h)")
@@ -60,10 +56,7 @@ end
 
 "Multiline LinearResponse display."
 function Base.show(io::IO, ::MIME"text/plain", response::LinearResponse)
-
     S = size(response.ω, 1)
-
-    # Display output
     println(io, "LinearResponse:")
     println(io, "  α: " * vector_to_string(response.α))
     print(io, "  ω: ($S, $S) sparse matrix")
@@ -403,22 +396,15 @@ The new attack rates are given by:
 ``aᵣ'  = \\frac{aᵣ}{1 + r_0 \\sum_{k \\in \\{\\text{ref.}\\} B_k}``
 """
 function aᵣ_refuge(aᵣ, r0, A_refuge, B)
-
-    # Early checks
     r0 > 0 || return aᵣ # r0 = 0 ⇒ no effect of refuge
     links(A_refuge) > 0 || return aᵣ # no refuge links ⇒ no effect of refuge
-
-    # Set up
     S = richness(A_refuge)
     prey = preys(aᵣ)
     aᵣ_refuge = spzeros(Float64, S, S)
-
-    # Updating attack rate matrix (aᵣ)
     for i in prey
         providing_refuge = A_refuge[:, i] # species providing a refuge to 'prey'
         refuge_ratio = 1 + r0 * sum(providing_refuge .* B)
         aᵣ_refuge[:, i] .= aᵣ[:, i] / refuge_ratio
     end
-
     aᵣ_refuge
 end
