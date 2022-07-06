@@ -76,15 +76,15 @@ end
     multiplex_network = MultiplexNetwork(foodweb, n_facilitation=1.0)
 
     # Default intensity: f0 = 1.0
-    @test BEFWM2.r_facilitated(1, 1, [1, 0], multiplex_network) == 1
-    @test BEFWM2.r_facilitated(10, 1, [1, 0], multiplex_network) == 10
-    @test BEFWM2.r_facilitated(10, 1, [1, 1], multiplex_network) == 20
-    @test BEFWM2.r_facilitated(10, 1, [1, 2], multiplex_network) == 30
+    @test BEFWM2.effect_facilitation(1, 1, [1, 0], multiplex_network) == 1
+    @test BEFWM2.effect_facilitation(10, 1, [1, 0], multiplex_network) == 10
+    @test BEFWM2.effect_facilitation(10, 1, [1, 1], multiplex_network) == 20
+    @test BEFWM2.effect_facilitation(10, 1, [1, 2], multiplex_network) == 30
 
     # Non default intensity: f0 = 5.0
     multiplex_network.facilitation_layer.intensity = 5.0
-    @test BEFWM2.r_facilitated(1, 1, [1, 0], multiplex_network) == 1
-    @test BEFWM2.r_facilitated(10, 1, [1, 0], multiplex_network) == 10
-    @test BEFWM2.r_facilitated(10, 1, [1, 1], multiplex_network) == 60
-    @test BEFWM2.r_facilitated(10, 1, [1, 2], multiplex_network) == 110
+    @test BEFWM2.effect_facilitation(1, 1, [1, 0], multiplex_network) == 1
+    @test BEFWM2.effect_facilitation(10, 1, [1, 0], multiplex_network) == 10
+    @test BEFWM2.effect_facilitation(10, 1, [1, 1], multiplex_network) == 60
+    @test BEFWM2.effect_facilitation(10, 1, [1, 2], multiplex_network) == 110
 end

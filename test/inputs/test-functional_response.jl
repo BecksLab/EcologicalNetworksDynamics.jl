@@ -300,10 +300,11 @@ end
     # 1 refuge link
     A_refuge = net_refuge.refuge_layer.A # adjacency matrix of refuge interactions
     B = [1, 1, 1]
+    f_refuge = net_refuge.refuge_layer.f
     for aᵣ in [0.1, 0.2, 0.3, 0.4, 0.5], r0 in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
         aᵣ_matrix = sparse([0 0 0; aᵣ 0 0; aᵣ aᵣ 0])
         aᵣ_refuge_matrix = sparse([0 0 0; aᵣ 0 0; aᵣ aᵣ/(1+r0) 0])
-        @test BEFWM2.aᵣ_refuge(aᵣ_matrix, r0, A_refuge, B) == aᵣ_refuge_matrix
+        @test BEFWM2.effect_refuge(aᵣ_matrix, r0, A_refuge, B, f_refuge) == aᵣ_refuge_matrix
     end
 
     # 2 refuge links
@@ -316,6 +317,6 @@ end
         aᵣ42 = aᵣ / (1 + 1 * r0)
         aᵣ43 = aᵣ / (1 + 1 * r0 + 2 * r0)
         aᵣ_refuge_matrix = sparse([0 0 0 0; 0 0 0 0; aᵣ31 0 0 0; aᵣ41 aᵣ42 aᵣ43 0])
-        @test BEFWM2.aᵣ_refuge(aᵣ_matrix, r0, A_refuge, B) == aᵣ_refuge_matrix
+        @test BEFWM2.effect_refuge(aᵣ_matrix, r0, A_refuge, B, f_refuge) == aᵣ_refuge_matrix
     end
 end
