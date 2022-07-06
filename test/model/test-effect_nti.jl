@@ -1,3 +1,50 @@
+@testset "Effect of competition on net growth rate" begin
+    foodweb = FoodWeb([0 0 0; 0 0 0; 1 1 0])
+
+    # If network is a FoodWeb, expect no effect on G_net
+    for G_net in 1:10
+        @test BEFWM2.effect_competition(G_net, nothing, nothing, foodweb) == G_net
+    end
+
+    multi_net = MultiplexNetwork(foodweb, n_competition=1.0)
+    B = [2, 1, 1]
+    for G_net in 1:10
+        # Low intensity
+        for c0 in [0.1, 0.2, 0.3]
+            multi_net.competition_layer.intensity = c0
+            @test BEFWM2.effect_competition(G_net, 1, B, multi_net) == G_net * (1 - c0 * 1)
+            @test BEFWM2.effect_competition(G_net, 2, B, multi_net) == G_net * (1 - c0 * 2)
+            @test BEFWM2.effect_competition(G_net, 3, B, multi_net) == G_net
+        end
+        # Strong intensity
+        for c0 in [1, 2, 3]
+            multi_net.competition_layer.intensity = c0
+            @test BEFWM2.effect_competition(G_net, 1, B, multi_net) == 0
+            @test BEFWM2.effect_competition(G_net, 2, B, multi_net) == 0
+            @test BEFWM2.effect_competition(G_net, 3, B, multi_net) == G_net
+        end
+    end
+
+    # If G_net is negative, no effect
+    G_net = -1
+    @test BEFWM2.effect_competition(G_net, 1, B, multi_net) == G_net
+    @test BEFWM2.effect_competition(G_net, 2, B, multi_net) == G_net
+    @test BEFWM2.effect_competition(G_net, 3, B, multi_net) == G_net
+
+    # Custom functional form
+    multi_net.competition_layer.f = (x, δx) -> x * (1 - δx^2)
+    B = [2, 1, 1]
+    for G in 1:10
+        for c0 in [0.1, 0.2, 0.3]
+            multi_net.competition_layer.intensity = c0
+            @test BEFWM2.effect_competition(G, 1, B, multi_net) == G * (1 - (c0 * 1)^2)
+            @test BEFWM2.effect_competition(G, 2, B, multi_net) == G * (1 - (c0 * 2)^2)
+            @test BEFWM2.effect_competition(G, 3, B, multi_net) == G
+        end
+    end
+end
+
+
 @testset "Effect of facilitation on intrinsic growth rate" begin
     foodweb = FoodWeb([0 0; 1 0])
     multi_net = MultiplexNetwork(foodweb, n_facilitation=1.0)
