@@ -383,30 +383,3 @@ function LinearResponse(
     @check_equal_richness length(α) S
     LinearResponse(sparse(ω), sparse(α))
 end
-
-"""
-Compute the matrix of the attack rates (`aᵣ`)
-by considering the effect of refuge provisioning.
-Rows are predators and columns preys,
-i.e. `aᵣ[i,j]` is the attack rate of predator `i` on prey `j`.
-The new attack rates are given by:
-``aᵣ'  = \\frac{aᵣ}{1 + r_0 \\sum_{k \\in \\{\\text{ref.}\\} B_k}``
-"""
-function effect_refuge(aᵣ, B, network::MultiplexNetwork)
-    r0 = network.refuge_layer.intensity
-    r0 > 0 || return aᵣ # r0 = 0 ⇒ no effect of refuge
-    A_refuge = network.refuge_layer.A
-    links(A_refuge) > 0 || return aᵣ # no refuge links ⇒ no effect of refuge
-    f_refuge = network.refuge_layer.f
-    S = richness(A_refuge)
-    prey = preys(aᵣ)
-    aᵣ_refuge = spzeros(Float64, S, S)
-    for i in prey
-        providing_refuge = A_refuge[:, i] # species providing a refuge to 'prey'
-        δaᵣ = r0 * sum(providing_refuge .* B)
-        for j in aᵣ[:, i].nzind
-            aᵣ_refuge[j, i] = f_refuge(aᵣ[j, i], δaᵣ)
-        end
-    end
-    aᵣ_refuge
-end
