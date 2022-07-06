@@ -24,6 +24,7 @@ test_files = [
     "inputs/test-nontrophic_interactions.jl",
     "model/test-productivity.jl",
     "model/test-metabolic_loss.jl",
+    "model/test-effect_nti.jl",
     "model/test-model_parameters.jl",
     "model/test-consumption.jl",
     "model/test-simulate.jl"
