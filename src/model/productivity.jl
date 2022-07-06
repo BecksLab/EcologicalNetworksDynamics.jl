@@ -2,26 +2,22 @@
 Productivity
 =#
 
-logisticgrowth(i, B, rᵢ, Kᵢ, _::FoodWeb) = logisticgrowth(B[i], rᵢ, Kᵢ)
 
-function logisticgrowth(i, B, rᵢ, Kᵢ, network::MultiplexNetwork)
-    rᵢ = r_facilitated(rᵢ, i, B, network)
-    logisticgrowth(B[i], rᵢ, Kᵢ)
+function logisticgrowth(i, B, r, K, network::MultiplexNetwork)
+    r = effect_facilitation(r, i, B, network)
+    logisticgrowth(B[i], r, K)
 end
+logisticgrowth(i, B, r, K, _::FoodWeb) = logisticgrowth(B[i], r, K)
 
 function logisticgrowth(B, r, K)
     !isnothing(K) || return 0
     r * B * (1 - B / K)
 end
 
-"""
-Intrinsic growth rate of species i increased by facilitation.
-The new intrinsic growth rate `r_facilitated` is given by:
-``r'  = r (1 + f_0 \\sum_{k \\in \\{\\text{fac.}\\} B_k``
-"""
-function r_facilitated(r, i, B, network::MultiplexNetwork)
-    A_facilitation = network.facilitation_layer.A
-    facilitating_species = A_facilitation[:, i]
+"Effect of facilitation on intrinsic growth rate."
+function effect_facilitation(r, i, B, network::MultiplexNetwork)
     f0 = network.facilitation_layer.intensity
-    r * (1 + f0 * sum(B .* facilitating_species))
+    facilitating_species = network.facilitation_layer.A[:, i]
+    δr = f0 * sum(B .* facilitating_species)
+    network.facilitation_layer.f(r, δr)
 end

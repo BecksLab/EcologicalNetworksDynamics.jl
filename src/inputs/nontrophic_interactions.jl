@@ -6,6 +6,7 @@ A `Layer` of an interaction type contains
 two pieces of information concerning this interaction:
 - `A`: where the interactions occur given by the adjacency matrix
 - `intensity`: the intensity of the interaction
+- `f`: the functional form of the non-trophic effect on the adequate parameter
 
 The intensity is only defined for non-trophic interactions and is set to `nothing` for
 trophic interactions.
@@ -13,6 +14,7 @@ trophic interactions.
 mutable struct Layer
     A::AdjacencyMatrix
     intensity::Union{Nothing,Float64}
+    f::Union{Nothing,Function}
 end
 
 mutable struct MultiplexNetwork <: EcologicalNetwork
@@ -141,7 +143,12 @@ function MultiplexNetwork(
     c0=1.0,
     f0=1.0,
     i0=1.0,
-    r0=1.0
+    r0=1.0,
+    f_trophic=nothing,
+    f_competition=(x, δx) -> x < 0 ? x : max(0, x * (1 - δx)),
+    f_facilitation=(x, δx) -> x * (1 + δx),
+    f_interference=nothing,
+    f_refuge=(x, δx) -> x / (1 + δx)
 )
 
     # Safety checks.
@@ -157,11 +164,11 @@ function MultiplexNetwork(
     metabolic_class = foodweb.metabolic_class
 
     # Building layers
-    trophic_layer = Layer(A_trophic, nothing)
-    competition_layer = Layer(A_competition, c0)
-    facilitation_layer = Layer(A_facilitation, f0)
-    interference_layer = Layer(A_interference, i0)
-    refuge_layer = Layer(A_refuge, r0)
+    trophic_layer = Layer(A_trophic, nothing, f_trophic)
+    competition_layer = Layer(A_competition, c0, f_competition)
+    facilitation_layer = Layer(A_facilitation, f0, f_facilitation)
+    interference_layer = Layer(A_interference, i0, f_interference)
+    refuge_layer = Layer(A_refuge, r0, f_refuge)
 
     # Create the resulting multiplex network
     MultiplexNetwork(
