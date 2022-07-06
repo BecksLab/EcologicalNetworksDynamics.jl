@@ -327,11 +327,7 @@ function (F::ClassicResponse)(B, network::MultiplexNetwork)
     @check_equal_richness length(B) S
 
     # Effect of refuge on the attack rate
-    aᵣ = F.aᵣ
-    A_refuge = network.refuge_layer.A
-    r0 = network.refuge_layer.intensity
-    f_refuge = network.refuge_layer.f
-    aᵣ = effect_refuge(aᵣ, r0, A_refuge, B, f_refuge)
+    aᵣ = effect_refuge(F.aᵣ, B, network)
 
     # Fill functional response matrix
     F_matrix = spzeros(S, S)
@@ -396,9 +392,12 @@ i.e. `aᵣ[i,j]` is the attack rate of predator `i` on prey `j`.
 The new attack rates are given by:
 ``aᵣ'  = \\frac{aᵣ}{1 + r_0 \\sum_{k \\in \\{\\text{ref.}\\} B_k}``
 """
-function effect_refuge(aᵣ, r0, A_refuge, B, f_refuge)
+function effect_refuge(aᵣ, B, network::MultiplexNetwork)
+    r0 = network.refuge_layer.intensity
     r0 > 0 || return aᵣ # r0 = 0 ⇒ no effect of refuge
+    A_refuge = network.refuge_layer.A
     links(A_refuge) > 0 || return aᵣ # no refuge links ⇒ no effect of refuge
+    f_refuge = network.refuge_layer.f
     S = richness(A_refuge)
     prey = preys(aᵣ)
     aᵣ_refuge = spzeros(Float64, S, S)
