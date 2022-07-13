@@ -100,11 +100,29 @@ end
 
 #### Species extinction callback ####
 "Callback to extinguish species under the `extinction_threshold`."
-function ExtinguishSpecies(extinction_threshold)
+function ExtinguishSpecies(extinction_threshold::Number)
 
     # Condition to trigger the callback: a species biomass goes below the threshold.
     function species_under_threshold(u, t, integrator)
         any(u[u.>0] .< extinction_threshold)
+    end
+
+    # Effect of the callback: the species biomass below the threshold are set to 0.
+    function extinguish_species!(integrator)
+        integrator.u[integrator.u.<=extinction_threshold] .= 0.0
+        extinct_sp = (1:length(integrator.u))[integrator.u.<=extinction_threshold]
+        t = round(integrator.t, digits=2)
+        @info "Species $extinct_sp are extinct (t=$t)."
+    end
+
+    DiscreteCallback(species_under_threshold, extinguish_species!)
+end
+
+function ExtinguishSpecies(extinction_threshold::AbstractVector)
+
+    # Condition to trigger the callback: a species biomass goes below the threshold.
+    function species_under_threshold(u, t, integrator)
+        any(u[u.>0] .< extinction_threshold[u.>0])
     end
 
     # Effect of the callback: the species biomass below the threshold are set to 0.
