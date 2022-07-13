@@ -271,6 +271,112 @@ function potential_interference_links(foodweb::FoodWeb)
     preds = predators(foodweb)
     [(i, j) for i in preds, j in preds if i != j && share_prey(i, j, foodweb)]
 end
+
+"Adjacency matrix of potential links given by the `potential_links` function in `net`."
+function adjacency_potential_links(net::EcologicalNetwork, potential_links::Function)
+    foodweb = convert(FoodWeb, net)
+    S = richness(foodweb)
+    potential_links = potential_links(foodweb)
+    A = spzeros((S,S))
+    for (i,j) in potential_links
+        A[i,j] = 1
+    end 
+    A
+end 
+
+"""
+    adjacency_potential_competition_links(net)
+
+Adjacency matrix of all possible competition links in the network `net`.
+
+# Example
+```jldoctest
+julia> foodweb = FoodWeb([0 0; 0 0]); # 2 producers
+
+julia> adjacency_potential_competition_links(foodweb)
+2×2 SparseArrays.SparseMatrixCSC{Float64, Int64} with 2 stored entries:
+  ⋅   1.0
+ 1.0   ⋅ 
+```
+
+See also [`adjacency_potential_interference_links`](@ref), 
+[`adjacency_potential_facilitation_links`](@ref), 
+[`adjacency_potential_refuge_links`](@ref).
+"""
+function adjacency_potential_competition_links(net) 
+    adjacency_potential_links(net, potential_competition_links)
+end
+
+"""
+    adjacency_potential_interference_links(net)
+
+Adjacency matrix of all possible interference links in the network `net`.
+
+# Example
+```jldoctest
+julia> foodweb = FoodWeb([0 0 0; 1 0 0; 1 0 0]); # 2 consumers eating producer 1
+
+julia> adjacency_potential_interference_links(foodweb)
+3×3 SparseArrays.SparseMatrixCSC{Float64, Int64} with 2 stored entries:
+  ⋅    ⋅    ⋅ 
+  ⋅    ⋅   1.0
+  ⋅   1.0   ⋅ 
+```
+
+See also [`adjacency_potential_competition_links`](@ref), 
+[`adjacency_potential_facilitation_links`](@ref), 
+[`adjacency_potential_refuge_links`](@ref).
+"""
+function adjacency_potential_interference_links(net) 
+    adjacency_potential_links(net, potential_interference_links)
+end
+
+"""
+    adjacency_potential_facilitation_links(net)
+
+Adjacency matrix of all possible facilitation links in the network `net`.
+
+# Example
+```jldoctest
+julia> foodweb = FoodWeb([0 0; 0 0]); # 2 producers
+
+julia> adjacency_potential_facilitation_links(foodweb)
+2×2 SparseArrays.SparseMatrixCSC{Float64, Int64} with 2 stored entries:
+  ⋅   1.0
+ 1.0   ⋅ 
+```
+
+See also [`adjacency_potential_competition_links`](@ref), 
+[`adjacency_potential_interference_links`](@ref), 
+[`adjacency_potential_refuge_links`](@ref).
+"""
+function adjacency_potential_facilitation_links(net) 
+    adjacency_potential_links(net, potential_facilitation_links)
+end 
+
+"""
+    adjacency_potential_refuge_links(net)
+
+Adjacency matrix of all possible refuge links in the network `net`.
+
+# Example
+```jldoctest
+julia> foodweb = FoodWeb([0 0 0; 0 0 0; 1 0 0]); # consumer 3 eats producer 1 
+
+julia> adjacency_potential_refuge_links(foodweb)
+3×3 SparseArrays.SparseMatrixCSC{Float64, Int64} with 1 stored entry:
+  ⋅    ⋅    ⋅ 
+ 1.0   ⋅    ⋅ 
+  ⋅    ⋅    ⋅ 
+```
+
+See also [`adjacency_potential_competition_links`](@ref), 
+[`adjacency_potential_interference_links`](@ref), 
+[`adjacency_potential_facilitation_links`](@ref).
+"""
+function adjacency_potential_refuge_links(net) 
+    adjacency_potential_links(net, potential_refuge_links)
+end 
 #### end ####
 
 #### Sample potential interactions ####
