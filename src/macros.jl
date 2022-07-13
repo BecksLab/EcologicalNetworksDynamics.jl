@@ -2,9 +2,9 @@
 "Check that `var` is lower or equal than `max`."
 macro check_lower_than(var, max)
     :(
-        if $(esc(var)) > $max
-            line1 = $(string(var)) * " should be lower or equal to $($max).\n"
-            line2 = "  Evaluated: " * $(string(var)) * " = $($(esc(var))) > $($max)"
+        if $(esc(var)) > $(esc(max))
+            line1 = $(string(var)) * " should be lower or equal to " * $(string(max)) * ".\n"
+            line2 = "  Evaluated: " * $(string(var)) * " = $($(esc(var))) > $($(esc(max)))"
             throw(ArgumentError(line1 * line2))
         end
     )
@@ -13,9 +13,9 @@ end
 "Check that `var` is greater or equal than `min`."
 macro check_greater_than(var, min)
     :(
-        if $(esc(var)) < $min
-            line1 = $(string(var)) * " should be greater or equal to $($min).\n"
-            line2 = "  Evaluated: " * $(string(var)) * " = $($(esc(var))) < $($min)"
+        if $(esc(var)) < $(esc(min))
+            line1 = $(string(var)) * " should be greater or equal to " * $(string(min)) * ".\n"
+            line2 = "  Evaluated: " * $(string(var)) * " = $($(esc(var))) < $($(esc(min)))"
             throw(ArgumentError(line1 * line2))
         end
     )

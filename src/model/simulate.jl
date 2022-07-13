@@ -84,11 +84,9 @@ function simulate(
 
     # Check for consistency and format input arguments
     S = richness(params.network)
-    length(B0) ∈ [1, S] || throw(ArgumentError("B0 of size $(length(B0)) instead of $S:
-        B0 should be of length 1 or S (species richness)."))
-    length(B0) == S || (B0 = repeat(B0, S))
-    t0 < tmax || throw(ArgumentError("'t0' ($t0) should be smaller than
-        'tmax' ($tmax)."))
+    length(B0) == 1 && (B0 = repeat(B0, S))
+    @check_equal_richness length(B0) S
+    @check_lower_than t0 tmax
 
     # Define ODE problem and solve
     timespan = (t0, tmax)
