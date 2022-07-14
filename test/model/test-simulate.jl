@@ -24,4 +24,17 @@
     # If biomass start at 0, biomass stay at 0
     solution_null = simulate(params, [0.0, 0.0])
     @test all(hcat(solution_null.u...) .== 0)
+
+    # Extinction threshold
+    ## Both species below extinction threshold
+    solution = simulate(params, [1e-2], extinction_threshold=0.1, tmax=1) # B0 < extinction
+    @test solution.u[end] == [0.0, 0.0] # both species have gone extinct
+    ## One species below extinction thresold
+    solution = simulate(params, [1, 1e-2], extinction_threshold=0.1, tmax=1)
+    @test solution.u[end][2] == 0 # species 2 is extinct
+    @test solution.u[end][1] > 0 # species 1 is alive
+    ## Provide a vector of extinction threshold (one threshold per species)
+    solution = simulate(params, [0.1], extinction_threshold=[1e-2, 1], tmax=1)
+    @test solution.u[end][2] == 0 # species 2 is extinct
+    @test solution.u[end][1] > 0 # species 1 is alive
 end
