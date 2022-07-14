@@ -30,9 +30,15 @@ test_files = [
     "model/test-simulate.jl"
 ]
 
+# Set up text formatting
+highlight = "\033[7m"
+bold = "\033[1m"
+green = "\033[32m"
+reset = "\033[0m"
+
 for test in test_files
-    println("\033[7m$(test)\033[0m")
-    include(test)
-    println("\033[1m\033[32mPASSED\033[0m")
+    println("$(highlight)$(test)$(reset)")
+    include(test) # if a test fails, the loop is broken
+    println("$(bold)$(green)PASSED$(reset)")
     println("------------------------------------------")
 end
