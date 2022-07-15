@@ -6,7 +6,7 @@
         @test BEFWM2.effect_competition(G_net, nothing, nothing, foodweb) == G_net
     end
 
-    multi_net = MultiplexNetwork(foodweb, n_competition=1.0)
+    multi_net = MultiplexNetwork(foodweb, c_competition=1.0)
     B = [2, 1, 1]
     for G_net in 1:10
         # Low intensity
@@ -47,7 +47,7 @@ end
 
 @testset "Effect of facilitation on intrinsic growth rate" begin
     foodweb = FoodWeb([0 0; 1 0])
-    multi_net = MultiplexNetwork(foodweb, n_facilitation=1.0)
+    multi_net = MultiplexNetwork(foodweb, c_facilitation=1.0)
 
     # Default intensity: f0 = 1.0
     @test BEFWM2.effect_facilitation(1, 1, [1, 0], multi_net) == 1

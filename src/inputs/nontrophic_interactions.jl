@@ -31,10 +31,14 @@ end
 """
     MultiplexNetwork(
         foodweb::FoodWeb;
-        n_competition=0.0,
-        n_facilitation=0.0,
-        n_interference=0.0,
-        n_refuge=0.0,
+        l_competition=0,
+        l_facilitation=0,
+        l_interference=0,
+        l_refuge=0,
+        c_competition=0.0,
+        c_facilitation=0.0,
+        c_interference=0.0,
+        c_refuge=0.0,
         A_competition=nontrophic_adjacency_matrix(foodweb, potential_competition_links,
             n_competition, symmetric=true),
         A_facilitation=nontrophic_adjacency_matrix(foodweb, potential_facilitation_links,
@@ -46,7 +50,9 @@ end
         c0=1.0,
         f0=1.0,
         i0=1.0,
-        r0=1.0
+        r0=1.0,
+        nti_symmetry=Dict(:competition => true, :facilitation => false,
+            :interference => true, :refuge => false)
     )
 
 Build the `MultiplexNetwork` from a [`FoodWeb`](@ref).
@@ -58,13 +64,13 @@ To fill them 3 methods are possible.
 
 # Fill non-trophic layers
 
-First you can provide a number of links (should be an `Integer`).
-For instance to have two facilitation links you can specify `n_facilitation=2`.
+First you can provide a number of links.
+For instance to have two facilitation links you can specify `l_facilitation=2`.
 
 ```jldoctest 1
 julia> foodweb = FoodWeb([0 0 0; 0 0 0; 1 1 0]); # 2 producers and 1 consumer
 
-julia> MultiplexNetwork(foodweb, n_facilitation=2)
+julia> MultiplexNetwork(foodweb, l_facilitation=2)
 MultiplexNetwork of 3 species:
   trophic_layer: 2 links
   competition_layer: 0 links
@@ -73,12 +79,12 @@ MultiplexNetwork of 3 species:
   refuge_layer: 0 links
 ```
 
-Secondly, you can provide a connectance (should be an `AbstractFloat`).
+Secondly, you can provide a connectance.
 For instance, to fill as much as possible the competition layer you can specify
-`n_competition=1.0`.
+`c_competition=1.0`.
 
 ```jldoctest 1
-julia> MultiplexNetwork(foodweb, n_competition=1.0)
+julia> MultiplexNetwork(foodweb, c_competition=1.0)
 MultiplexNetwork of 3 species:
   trophic_layer: 2 links
   competition_layer: 2 links
@@ -118,28 +124,43 @@ For instance, if you want to set the facilitation intensity to `2.0`.
 ```jldoctest
 julia> foodweb = FoodWeb([0 0 0; 0 0 0; 1 1 0]); # 2 producers and 1 consumer
 
-julia> multiplex_network = MultiplexNetwork(foodweb, n_facilitation=1, f0=2.0);
+julia> multiplex_network = MultiplexNetwork(foodweb, l_facilitation=1, f0=2.0);
 
 julia> multiplex_network.facilitation_layer
 Layer(A=AdjacencyMatrix(L=1), intensity=2.0)
 ```
 
+# Change assumptions about the symmetry of non-trophic interactions
+
+An interaction is said to be symmetric if ``i`` interacts with ``j``
+implies ``j`` interacts with ``i``.
+In other words, an interaction is symmetric if the adjacency matrix of that interaction
+is symmetric.
+
+By default, we assume that:
+- competition is symmetric
+- facilitation is not symmetric
+- interference is symmetric
+- refuge is not symmetric
+
+These assumptions can be changed by modifying the `nti_symmetry` dictionnary.
+
 See also [`FoodWeb`](@ref), [`Layer`](@ref).
 """
 function MultiplexNetwork(
     foodweb::FoodWeb;
-    n_competition=0.0,
-    n_facilitation=0.0,
-    n_interference=0.0,
-    n_refuge=0.0,
-    A_competition=nontrophic_adjacency_matrix(foodweb, potential_competition_links,
-        n_competition, symmetric=true),
-    A_facilitation=nontrophic_adjacency_matrix(foodweb, potential_facilitation_links,
-        n_facilitation, symmetric=false),
-    A_interference=nontrophic_adjacency_matrix(foodweb, potential_interference_links,
-        n_interference, symmetric=true),
-    A_refuge=nontrophic_adjacency_matrix(foodweb, potential_refuge_links,
-        n_refuge, symmetric=false),
+    l_competition=0,
+    l_facilitation=0,
+    l_interference=0,
+    l_refuge=0,
+    c_competition=0.0,
+    c_facilitation=0.0,
+    c_interference=0.0,
+    c_refuge=0.0,
+    A_competition=spzeros(richness(foodweb), richness(foodweb)),
+    A_facilitation=spzeros(richness(foodweb), richness(foodweb)),
+    A_interference=spzeros(richness(foodweb), richness(foodweb)),
+    A_refuge=spzeros(richness(foodweb), richness(foodweb)),
     c0=1.0,
     f0=1.0,
     i0=1.0,
@@ -148,13 +169,50 @@ function MultiplexNetwork(
     f_competition=(x, δx) -> x < 0 ? x : max(0, x * (1 - δx)),
     f_facilitation=(x, δx) -> x * (1 + δx),
     f_interference=nothing,
-    f_refuge=(x, δx) -> x / (1 + δx)
+    f_refuge=(x, δx) -> x / (1 + δx),
+    nti_symmetry=Dict(:competition => true, :facilitation => false,
+        :interference => true, :refuge => false)
 )
+
+    # Create adjacency matrices for each non-trophic interaction
+    A = Dict(
+        :competition => sparse(A_competition),
+        :facilitation => sparse(A_facilitation),
+        :interference => sparse(A_interference),
+        :refuge => sparse(A_refuge)
+    )
+    l = Dict(
+        :competition => Int64(l_competition),
+        :facilitation => Int64(l_facilitation),
+        :interference => Int64(l_interference),
+        :refuge => Int64(l_refuge)
+    )
+    c = Dict(
+        :competition => Float64(c_competition),
+        :facilitation => Float64(c_facilitation),
+        :interference => Float64(c_interference),
+        :refuge => Float64(c_refuge)
+    )
+    potential_links = Dict(
+        :competition => potential_competition_links,
+        :facilitation => potential_facilitation_links,
+        :interference => potential_interference_links,
+        :refuge => potential_refuge_links
+    )
+    for nti in [:competition, :facilitation, :interference, :refuge]
+        if isempty(A[nti].nzval) # no adjacency matrix has been given
+            (l[nti] > 0 && c[nti] > 0.0) && throw(ArgumentError("Should provide a number of
+            links OR a connectance for $nti, not both simultaneously."))
+            n = l[nti] > 0 ? l[nti] : c[nti] # which arg has been provided by the user?
+            A[nti] = nontrophic_adjacency_matrix(foodweb, potential_links[nti], n;
+                symmetric=nti_symmetry[nti])
+        end
+    end
 
     # Safety checks.
     S = richness(foodweb)
-    for A in [A_competition, A_facilitation, A_interference, A_refuge]
-        @check_size_is_richness² A S
+    for A_nti in values(A)
+        @check_size_is_richness² A_nti S
     end
 
     # Information from FoodWeb
@@ -165,10 +223,10 @@ function MultiplexNetwork(
 
     # Building layers
     trophic_layer = Layer(A_trophic, nothing, f_trophic)
-    competition_layer = Layer(A_competition, c0, f_competition)
-    facilitation_layer = Layer(A_facilitation, f0, f_facilitation)
-    interference_layer = Layer(A_interference, i0, f_interference)
-    refuge_layer = Layer(A_refuge, r0, f_refuge)
+    competition_layer = Layer(A[:competition], c0, f_competition)
+    facilitation_layer = Layer(A[:facilitation], f0, f_facilitation)
+    interference_layer = Layer(A[:interference], i0, f_interference)
+    refuge_layer = Layer(A[:refuge], r0, f_refuge)
 
     # Create the resulting multiplex network
     MultiplexNetwork(

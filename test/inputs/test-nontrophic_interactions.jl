@@ -17,7 +17,7 @@
     # Build from connectance.
     foodweb = FoodWeb(nichemodel, 20, C=0.1)
     # - Only facilitation on.
-    multiplex_net = MultiplexNetwork(foodweb, n_facilitation=0.5)
+    multiplex_net = MultiplexNetwork(foodweb, c_facilitation=0.5)
     A_competition = multiplex_net.competition_layer.A
     A_facilitation = multiplex_net.facilitation_layer.A
     A_interference = multiplex_net.interference_layer.A
@@ -27,7 +27,7 @@
         @test f(A.nzval)
     end
     # - Refuge and competition on.
-    multiplex_net = MultiplexNetwork(foodweb, n_competition=0.5, n_refuge=0.5)
+    multiplex_net = MultiplexNetwork(foodweb, c_competition=0.5, c_refuge=0.5)
     A_competition = multiplex_net.competition_layer.A
     A_facilitation = multiplex_net.facilitation_layer.A
     A_interference = multiplex_net.interference_layer.A
@@ -37,8 +37,8 @@
         @test f(A.nzval)
     end
     # - Everything on.
-    multiplex_net = MultiplexNetwork(foodweb, n_facilitation=0.5, n_competition=0.5,
-        n_refuge=0.5, n_interference=0.5)
+    multiplex_net = MultiplexNetwork(foodweb, c_facilitation=0.5, c_competition=0.5,
+        c_refuge=0.5, c_interference=0.5)
     A_competition = multiplex_net.competition_layer.A
     A_facilitation = multiplex_net.facilitation_layer.A
     A_interference = multiplex_net.interference_layer.A
@@ -50,7 +50,7 @@
     # Build from links.
     foodweb = FoodWeb([0 0 0 0; 0 0 0 0; 1 0 0 0; 1 0 0 0])
     # - Only facilitation on.
-    multiplex_net = MultiplexNetwork(foodweb, n_facilitation=1)
+    multiplex_net = MultiplexNetwork(foodweb, l_facilitation=1)
     A_competition = multiplex_net.competition_layer.A
     A_facilitation = multiplex_net.facilitation_layer.A
     A_interference = multiplex_net.interference_layer.A
@@ -59,19 +59,27 @@
     for (L, A) in zip([0, 1, 0, 0], A_list)
         @test length(A.nzval) == L
     end
+
     # - Refuge and competition on.
-    multiplex_net = MultiplexNetwork(foodweb, n_competition=2, n_refuge=1)
-    A_competition = multiplex_net.competition_layer.A
-    A_facilitation = multiplex_net.facilitation_layer.A
-    A_interference = multiplex_net.interference_layer.A
-    A_refuge = multiplex_net.refuge_layer.A
-    A_list = [A_competition, A_facilitation, A_interference, A_refuge]
-    for (L, A) in zip([2, 0, 0, 1], A_list)
-        @test length(A.nzval) == L
+    multiplex_net_l = MultiplexNetwork(foodweb, l_competition=2, l_refuge=1)
+    multiplex_net_lc = MultiplexNetwork(foodweb, c_competition=1.0, l_refuge=1)
+    for multiplex_net in [multiplex_net_l, multiplex_net_lc]
+        A_competition = multiplex_net.competition_layer.A
+        A_facilitation = multiplex_net.facilitation_layer.A
+        A_interference = multiplex_net.interference_layer.A
+        A_refuge = multiplex_net.refuge_layer.A
+        A_list = [A_competition, A_facilitation, A_interference, A_refuge]
+        for (L, A) in zip([2, 0, 0, 1], A_list)
+            @test length(A.nzval) == L
+        end
     end
+
+    # Error if provide connectance and number of links for the same interaction
+    @test_throws ArgumentError MultiplexNetwork(foodweb, l_refuge=1, c_refuge=0.5)
+
     # - Everything on.
-    multiplex_net = MultiplexNetwork(foodweb, n_facilitation=1, n_competition=2,
-        n_refuge=1, n_interference=2)
+    multiplex_net = MultiplexNetwork(foodweb, l_facilitation=1, l_competition=2,
+        l_refuge=1, l_interference=2)
     A_competition = multiplex_net.competition_layer.A
     A_facilitation = multiplex_net.facilitation_layer.A
     A_interference = multiplex_net.interference_layer.A
@@ -95,7 +103,7 @@
         @test isempty(A.nzval)
     end
     # - Refuge custom, facilitation on.
-    multiplex_net = MultiplexNetwork(foodweb, A_refuge=custom_matrix, n_facilitation=0.5)
+    multiplex_net = MultiplexNetwork(foodweb, A_refuge=custom_matrix, c_facilitation=0.5)
     @test multiplex_net.refuge_layer.A == sparse(custom_matrix)
     A_competition = multiplex_net.competition_layer.A
     A_facilitation = multiplex_net.facilitation_layer.A
