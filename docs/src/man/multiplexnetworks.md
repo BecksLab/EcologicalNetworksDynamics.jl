@@ -143,9 +143,9 @@ With:
 
 Non-trophic layers can be filled in three ways, either by providing a:
 
-- number of non-trophic links
-- connectance of non-trophic links
-- custom adjacency matrix
+- number of non-trophic links (`l_nti`)
+- connectance of non-trophic links (`c_nti`)
+- custom adjacency matrix (`A_nti`)
 
 Let's illustrate this with a community of 2 producers.
 
@@ -157,10 +157,10 @@ For this community the two possible competition links are the two interspecific 
 between 1 and 2 (``1 \rightarrow 2`` and ``2 \rightarrow 1``).
 
 You can make the producers compete
-by giving a number of links (integer) to `n_competition`:
+by giving a number of links to `l_competition`:
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, n_competition=2)
+multiplex_network = MultiplexNetwork(foodweb, l_competition=2)
 ```
 
 !!! note
@@ -169,11 +169,10 @@ multiplex_network = MultiplexNetwork(foodweb, n_competition=2)
 
 Instead of providing a number of links,
 you can provide a connectance.
-The syntax remains the same, but instead of giving an integer to `n_competition`
-give a float:
+To do so use the `c_competition` instead:
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, n_competition=1.0)
+multiplex_network = MultiplexNetwork(foodweb, c_competition=1.0)
 ```
 
 !!! note "Connectance definition"
@@ -207,7 +206,7 @@ For instance, if you want to put two competitive links
 and set the intensity of competition to 0.1, you can do:
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, n_competition=2, c0=0.1);
+multiplex_network = MultiplexNetwork(foodweb, l_competition=2, c0=0.1);
 multiplex_network.competition_layer
 ```
 
@@ -247,16 +246,16 @@ between each of the consumers and the plant
 (``2 \rightarrow 1`` and ``3 \rightarrow 1``).
 
 To fill the facilitation layer,
-you can give a number of links (integer) to `n_facilitation`:
+you can give a number of links `l_facilitation`:
 
 ```@repl befwm2
-MultiplexNetwork(foodweb, n_facilitation=1)
+MultiplexNetwork(foodweb, l_facilitation=1)
 ```
 
-Or a connectance (float)  to `n_facilitation`:
+Or a connectance to `c_facilitation`:
 
 ```@repl befwm2
-MultiplexNetwork(foodweb, n_facilitation=0.5)
+MultiplexNetwork(foodweb, c_facilitation=0.5)
 ```
 
 Or an adjacency matrix to `A_facilitation`:
@@ -332,19 +331,19 @@ For this community, potential interference links can happen between species 2 an
 (``3 \rightarrow 2`` and ``2 \rightarrow 3``).
 
 To fill the interference layer,
-you can either provide a number of links (integer) to `n_interference`:
+you can either provide a number of links to `l_interference`:
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, n_interference=2)
+multiplex_network = MultiplexNetwork(foodweb, l_interference=2)
 ```
 
 !!! note
     The number of links should be even since interference is symmetric.
 
-Equivalently, you can provide a connectance (float) to `n_interference`:
+Equivalently, you can provide a connectance to `c_interference`:
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, n_interference=1.0)
+multiplex_network = MultiplexNetwork(foodweb, c_interference=1.0)
 ```
 
 Or you can provide an adjacency matrix to `A_interference`:
@@ -360,7 +359,7 @@ you can specify a value to `i0` (default set to 1).
 For instance, you can do:
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, n_interference=1.0, i0=0.6);
+multiplex_network = MultiplexNetwork(foodweb, c_interference=1.0, i0=0.6);
 multiplex_network.interference_layer
 ```
 
@@ -399,16 +398,16 @@ foodweb = FoodWeb([0 0 0; 1 0 0; 0 1 0]); # 2 eats 1 - 3 eats 2
 
 In this simple case, only one refuge link is possible ``1 \rightarrow 2``.
 
-To fill the refuge layer, you can provide a number of links (integer) to `n_refuge`:
+To fill the refuge layer, you can provide a number of links to `l_refuge`:
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, n_refuge=1)
+multiplex_network = MultiplexNetwork(foodweb, l_refuge=1)
 ```
 
-Or you can provide a connectance (float) to `n_refuge`:
+Or you can provide a connectance to `c_refuge`:
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, n_refuge=1.0)
+multiplex_network = MultiplexNetwork(foodweb, c_refuge=1.0)
 ```
 
 Or you can provide an adjacency matrix to `A_refuge`:
@@ -424,7 +423,7 @@ you can specify a value to `r0` (the default value is set to 1).
 For instance, you can do:
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, n_refuge=1.0, r0=1.3);
+multiplex_network = MultiplexNetwork(foodweb, c_refuge=1.0, r0=1.3);
 multiplex_network.refuge_layer
 ```
 
@@ -441,33 +440,22 @@ foodweb = FoodWeb([0 0 0 0; 0 0 0 0; 1 1 0 0; 1 1 0 0]);
 You can add two competition links and one facilitation link at the same time:
 
 ```@repl befwm2
-MultiplexNetwork(foodweb, n_competition=2, n_facilitation=1)
+MultiplexNetwork(foodweb, l_competition=2, l_facilitation=1)
 ```
 
 Moreover, for more flexibility, you can mix the different filling methods
 (number of links, connectance, adjaceny matrix).
 Keeping the same community,
-let's assume that you want all producers to compete (`n_competition=1.0`),
-one facilitation link (`n_facilitation=1`),
+let's assume that you want all producers to compete (`c_competition=1`),
+one facilitation link (`l_facilitation=1`),
 and the interference links between predators to occur according to a given adjacency matrix
 (`A_interference=[0 0 0 0; 0 0 0 0; 0 0 0 1; 0 0 1 0]`).
 To create such a [`MultiplexNetwork`](@ref), you can do:
 
 ```@repl befwm2
 A_i = [0 0 0 0; 0 0 0 0; 0 0 0 1; 0 0 1 0]; # prepare interference adjacency matrix
-MultiplexNetwork(foodweb, n_competition=1.0, n_facilitation=1, A_interference=A_i)
+MultiplexNetwork(foodweb, c_competition=1, l_facilitation=1, A_interference=A_i)
 ```
-
-!!! warning
-    This design allows you to flexibly create your multiplex network.
-    However this flexibility comes at a cost:
-    you should be careful about the type of the `n_...`
-    arguments because floats are interpreted as a connectance
-    and integers as numbers of links.
-    `MultiplexNetwork(foodweb, n_facilitation=1)` is very different from
-    `MultiplexNetwork(foodweb, n_facilitation=1.0)`.
-    The first reads *'put one facilitation link'*,
-    whereas the second reads *'put as many facilitation links as possible'*.
 
 In the next part, you will see how to parametrize the system
 given the network of your community (either a [`FoodWeb`](@ref)

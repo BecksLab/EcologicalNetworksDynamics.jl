@@ -29,7 +29,7 @@
     @test BEFWM2.logisticgrowth(3, B, r[3], K[3], foodweb) == 0
 
     # Extern method with facilitation
-    multiplex_network = MultiplexNetwork(foodweb, n_facilitation=1.0)
+    multiplex_network = MultiplexNetwork(foodweb, c_facilitation=1.0)
     # Facilitation to 0 <=> the growth is unchanged (compared to above section)
     multiplex_network.facilitation_layer.intensity = 0.0
     response = ClassicResponse(multiplex_network) # avoid warning
