@@ -1,13 +1,15 @@
 module BEFWM2
 
 # Dependencies
-using EcologicalNetworks
-using SparseArrays
+import DifferentialEquations.Rodas4
+import DifferentialEquations.SSRootfind
+import DifferentialEquations.Tsit5
 using DiffEqBase
 using DiffEqCallbacks
+using EcologicalNetworks
 using Mangal
+using SparseArrays
 using Statistics
-import DifferentialEquations.Tsit5, DifferentialEquations.Rodas4, DifferentialEquations.SSRootfind
 
 # Include scripts
 include(joinpath(".", "macros.jl"))
@@ -29,17 +31,48 @@ include(joinpath(".", "measures/stability.jl"))
 include(joinpath(".", "utils.jl"))
 
 # Export public functions
-export FoodWeb, ModelParameters, FunctionalResponse, BioRates, Environment, MultiplexNetwork
-export potential_facilitation_links, potential_competition_links, potential_refuge_links
-export potential_interference_links, NonTrophicIntensity, Layer
-export draw_symmetric_links, draw_asymmetric_links, nontrophic_adjacency_matrix
-export homogeneous_preference, BioEnergeticFunctionalResponse
-export FunctionalResponse, ClassicResponse, BioenergeticResponse, LinearResponse
-export allometric_rate, AllometricParams
-export DefaultGrowthParams, DefaultMaxConsumptionParams, DefaultMetabolismParams
-export simulate, find_steady_state
-export cascademodel, nichemodel, nestedhierarchymodel, mpnmodel, richness, links
-export @check_lower_than, @check_greater_than, @check_between, @check_in, @check_size
-export A_competition_full, A_interference_full, A_facilitation_full, A_refuge_full
+export @check_between
+export @check_greater_than
+export @check_in
+export @check_lower_than
+export @check_size
+export A_competition_full
+export A_facilitation_full
+export A_interference_full
+export A_refuge_full
+export allometric_rate
+export AllometricParams
+export BioEnergeticFunctionalResponse
+export BioenergeticResponse
+export BioRates
+export cascademodel
+export ClassicResponse
+export DefaultGrowthParams
+export DefaultMaxConsumptionParams
+export DefaultMetabolismParams
+export draw_asymmetric_links
+export draw_symmetric_links
+export Environment
+export find_steady_state
+export FoodWeb
+export FunctionalResponse
+export FunctionalResponse
+export homogeneous_preference
+export Layer
+export LinearResponse
+export links
+export ModelParameters
+export mpnmodel
+export MultiplexNetwork
+export nestedhierarchymodel
+export nichemodel
+export nontrophic_adjacency_matrix
+export NonTrophicIntensity
+export potential_competition_links
+export potential_facilitation_links
+export potential_interference_links
+export potential_refuge_links
+export richness
+export simulate
 
 end
