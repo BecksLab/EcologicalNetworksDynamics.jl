@@ -109,8 +109,9 @@ function ExtinguishSpecies(extinction_threshold::Number)
     function extinguish_species!(integrator)
         integrator.u[integrator.u.<=extinction_threshold] .= 0.0
         extinct_sp = (1:length(integrator.u))[integrator.u.<=extinction_threshold]
-        t = round(integrator.t, digits=2)
-        @info "Species $extinct_sp are extinct (t=$t)."
+        t = integrator.t
+        is_or_are = length(extinct_sp) > 1 ? "are" : "is"
+        @info "Species $extinct_sp " * is_or_are * " exinct. t=$t"
     end
 
     DiscreteCallback(species_under_threshold, extinguish_species!)
@@ -127,8 +128,9 @@ function ExtinguishSpecies(extinction_threshold::AbstractVector)
     function extinguish_species!(integrator)
         integrator.u[integrator.u.<=extinction_threshold] .= 0.0
         extinct_sp = (1:length(integrator.u))[integrator.u.<=extinction_threshold]
-        t = round(integrator.t, digits=2)
-        @info "Species $extinct_sp are extinct (t=$t)."
+        t = integrator.t
+        is_or_are = length(extinct_sp) > 1 ? "are" : "is"
+        @info "Species $extinct_sp " * is_or_are * " exinct. t=$t"
     end
 
     DiscreteCallback(species_under_threshold, extinguish_species!)
