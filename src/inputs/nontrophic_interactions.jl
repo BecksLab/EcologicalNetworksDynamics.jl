@@ -17,60 +17,148 @@ mutable struct Layer
     f::Union{Nothing,Function}
 end
 
+
+# The official list of supported interactions (one per possible layer),
+# their aliases (typically shortened names)
+# and their canonical order .
+include("../aliasing_dict.jl")
+create_aliased_dict_type(:InteractionDict, "interaction", (
+    :trophic => [:t, :trh],
+    :competition => [:c, :cpt],
+    :facilitation => [:f, :fac],
+    :interference => [:i, :itf],
+    :refuge => [:r, :ref],
+))
+
 mutable struct MultiplexNetwork <: EcologicalNetwork
-    trophic_layer::Layer
-    competition_layer::Layer
-    facilitation_layer::Layer
-    interference_layer::Layer
-    refuge_layer::Layer
+    layers::InteractionDict{Layer}
     M::Vector{Float64}
     species::Vector{String}
     metabolic_class::Vector{String}
 end
 
+# The MultiplexNetwork input signature is sophisticated,
+# with most arguments dynamically parsed based on their names.
+# There are also constraints on the 'parameter' part,
+# because not all of them can be correctly combined together.
+
+create_aliased_dict_type(:MultiplexParametersDict, "layer_parameter", (
+    # This mirrors fields in Layer type..
+    :adjacency_matrix => [:A, :matrix, :adj_matrix],
+    :intensity => [:I, :int],
+    :functional_form => [:F, :fn],
+    # .. but the matrix can alternately be specified by number of links XOR connectance..
+    :connectance => [:C, :conn],
+    :number_of_links => [:L, :n_links],
+    # .. in this case, it requires a symmetry specification.
+    :symmetry => [:s, :sym, :symmetric],
+))
+
+# Export aliases cheat-sheets to users:
+interaction_names() = aliases(InteractionDict)
+multiplex_network_parameters_names() = aliases(MultiplexParametersDict)
+
+# Load all boilerplate code to make the API work,
+# parsing MultiplexNetwork arguments into 2 nested AliasingDicts.
+include("MultiplexNetwork_signature.jl")
+
+# Define default values for all parameters.
+zero_layer_A(fw::FoodWeb) = spzeros(richness(fw), richness(fw))
+
+defaults = MultiplexParametersDict(
+    A = InteractionDict(
+        competition = zero_layer_A,
+        facilitation = zero_layer_A,
+        interference = zero_layer_A,
+        refuge = zero_layer_A,
+        trophic = fw -> fw.A,
+    ),
+    intensity = InteractionDict(
+        competition = 1.0,
+        facilitation = 1.0,
+        interference = 1.0,
+        refuge = 1.0,
+        trophic = nothing,
+    ),
+    functional_form = InteractionDict(
+        competition = (x, δx) -> x < 0 ? x : max(0, x * (1 - δx)),
+        facilitation = (x, δx) -> x * (1 + δx),
+        interference = nothing,
+        refuge = (x, δx) -> x / (1 + δx),
+        trophic = nothing,
+    ),
+    symmetry = InteractionDict(
+        competition = true,
+        facilitation = false,
+        interference = true,
+        refuge = false,
+        trophic = nothing,
+    ),
+)
+
 """
-    MultiplexNetwork(
-        foodweb::FoodWeb;
-        l_competition=0,
-        l_facilitation=0,
-        l_interference=0,
-        l_refuge=0,
-        c_competition=0.0,
-        c_facilitation=0.0,
-        c_interference=0.0,
-        c_refuge=0.0,
-        A_competition=nontrophic_adjacency_matrix(foodweb, potential_competition_links,
-            n_competition, symmetric=true),
-        A_facilitation=nontrophic_adjacency_matrix(foodweb, potential_facilitation_links,
-            n_facilitation, symmetric=false),
-        A_interference=nontrophic_adjacency_matrix(foodweb, potential_interference_links,
-            n_interference, symmetric=true),
-        A_refuge=nontrophic_adjacency_matrix(foodweb, potential_refuge_links,
-            n_refuge, symmetric=false),
-        c0=1.0,
-        f0=1.0,
-        i0=1.0,
-        r0=1.0,
-        nti_symmetry=Dict(:competition => true, :facilitation => false,
-            :interference => true, :refuge => false)
-    )
+    MultiplexNetwork(foodweb::FoodWeb; args...)
 
 Build the `MultiplexNetwork` from a [`FoodWeb`](@ref).
-A multiplex is composed of a `trophic_layer` and several non-trophic [`Layer`](@ref)
-(`competition_layer`, `facilitation_layer`, `interference_layer` and `refuge_layer`).
-The `trophic_layer` is given by the [`FoodWeb`](@ref) and, by default,
-the non-trophic layers are assumed to be empty.
-To fill them 3 methods are possible.
+A multiplex is composed of a `trophic_layer`
+and several non-trophic [`Layer`](@ref) indexed by interaction types:
+(`:competition`,
+`:facilitation`,
+`:interference` and
+`:refuge`).
+The `:trophic` layer is given by the [`FoodWeb`](@ref),
+and other, non-trophic layers are empty by default.
+
+There are various ways to specify non-trophic layers to be not-empty,
+using variably-named `args` whose general form is either:
+
+    <parameter_name>_<interaction_name> = value
+    eg.                intensity_refuge = 4.0
+    or equivalently:                I_r = 4.0
+
+to set up `parameter` for layer `interaction`, or:
+
+    <parameter_name> = (<interaction1>=value1, <interaction2>=value2, ...)
+ eg.       intensity = (facilitation = 2.0, interference = 1.5)
+ or equivalently:  I = (f = 2.0, i = 1.5)
+
+to set up `parameter` for all layers `interaction1`, `interaction2`, etc., or again:
+
+    <interaction_name> = (<parameter1>=value1, <parameter2>=value2, ...)
+ eg.       competition = (connectance = 4, symmetry = false)
+ or equivalently:    c = (L = 4, s = false)
+
+to set up `parameter1` and `parameter2` for the layer `interaction.
+
+Valid interactions and parameters names
+can be retrieved with the following two cheat-sheets:
+```jldoctest
+julia> interaction_names()
+OrderedCollections.OrderedDict{Symbol, Vector{Symbol}} with 5 entries:
+  :trophic      => [:t, :trh]
+  :competition  => [:c, :cpt]
+  :facilitation => [:f, :fac]
+  :interference => [:i, :itf]
+  :refuge       => [:r, :ref]
+
+julia> multiplex_network_parameters_names()
+OrderedCollections.OrderedDict{Symbol, Vector{Symbol}} with 6 entries:
+  :adjacency_matrix => [:A, :matrix, :adj_matrix]
+  :intensity        => [:I, :int]
+  :functional_form  => [:F, :fn]
+  :connectance      => [:C, :conn]
+  :number_of_links  => [:L, :n_links]
+  :symmetry         => [:s, :sym, :symmetric]
+```
 
 # Fill non-trophic layers
 
-First you can provide a number of links.
-For instance to have two facilitation links you can specify `l_facilitation=2`.
+Specify a number of desired links to generate a non-trophic layer.
 
 ```jldoctest 1
 julia> foodweb = FoodWeb([0 0 0; 0 0 0; 1 1 0]); # 2 producers and 1 consumer
 
-julia> MultiplexNetwork(foodweb, l_facilitation=2)
+julia> MultiplexNetwork(foodweb, L_facilitation=2) #  or 'n_links_f', or 'L_fac', etc.
 MultiplexNetwork of 3 species:
   trophic_layer: 2 links
   competition_layer: 0 links
@@ -79,12 +167,11 @@ MultiplexNetwork of 3 species:
   refuge_layer: 0 links
 ```
 
-Secondly, you can provide a connectance.
-For instance, to fill as much as possible the competition layer you can specify
-`c_competition=1.0`.
+Alternately, specify desired connectance for the layer
+(a value of `1.0` creates as many links as possible).
 
 ```jldoctest 1
-julia> MultiplexNetwork(foodweb, c_competition=1.0)
+julia> MultiplexNetwork(foodweb, C_cpt=1.0) #  or 'C_competition', or 'connectance_c', etc.
 MultiplexNetwork of 3 species:
   trophic_layer: 2 links
   competition_layer: 2 links
@@ -93,14 +180,12 @@ MultiplexNetwork of 3 species:
   refuge_layer: 0 links
 ```
 
-Lastly, you can provide a custom adjacency matrix.
-For instance, to fill the interference layer
-according to your custom adjacency matrix you can specify this matrix to `A_interference`.
+Alternately, provide an explicit adjacency matrix.
 
 ```jldoctest
 julia> foodweb = FoodWeb([0 0 0; 1 0 0; 1 0 0]); # 2 consumers feeding on producer 1
 
-julia> MultiplexNetwork(foodweb, A_interference=[0 0 0; 0 0 1; 0 1 0])
+julia> MultiplexNetwork(foodweb, A_interference=[0 0 0; 0 0 1; 0 1 0]) #  or 'matrix_i' etc.
 MultiplexNetwork of 3 species:
   trophic_layer: 2 links
   competition_layer: 0 links
@@ -111,133 +196,58 @@ MultiplexNetwork of 3 species:
 
 # Set non-trophic intensity
 
-The intensities of non-trophic interactions is governed by the four arguments:
-- `c0` for competition
-- `f0` for facilitation
-- `i0` for interference
-- `r0` for refuge
-
-By default all intensities are set to `1.0`.
-However, they can be easily modified by specifying a value to the adequate argument.
-For instance, if you want to set the facilitation intensity to `2.0`.
+Non-trophic layers intensities default to '1.0'.
+Modify them with corresponding arguments:
 
 ```jldoctest
 julia> foodweb = FoodWeb([0 0 0; 0 0 0; 1 1 0]); # 2 producers and 1 consumer
 
-julia> multiplex_network = MultiplexNetwork(foodweb, l_facilitation=1, f0=2.0);
+julia> multiplex_network = MultiplexNetwork(foodweb, facilitation=(L=1, I=2.0));
 
-julia> multiplex_network.facilitation_layer
+julia> multiplex_network.layers[:facilitation] #  or [:f] or [:fac] etc.
 Layer(A=AdjacencyMatrix(L=1), intensity=2.0)
 ```
 
 # Change assumptions about the symmetry of non-trophic interactions
 
-An interaction is said to be symmetric if ``i`` interacts with ``j``
-implies ``j`` interacts with ``i``.
-In other words, an interaction is symmetric if the adjacency matrix of that interaction
-is symmetric.
+An interaction is symmetric iif
+"``i`` interacts with ``j``" implies that "``j`` interacts with ``i``".
+In other words, an interaction is symmetric
+iif the adjacency matrix of that interaction is symmetric.
 
-By default, we assume that:
+With default settings:
 - competition is symmetric
 - facilitation is not symmetric
 - interference is symmetric
 - refuge is not symmetric
 
-These assumptions can be changed by modifying the `nti_symmetry` dictionnary.
+Change the defaults with the appropriate arguments.
+
+TODO: provide an example of `MultiplexNetwork(foodweb, <int>=(L=?, sym=?))` here
+with an interesting value for `foodweb`.
 
 See also [`FoodWeb`](@ref), [`Layer`](@ref).
 """
 function MultiplexNetwork(
     foodweb::FoodWeb;
-    l_competition=0,
-    l_facilitation=0,
-    l_interference=0,
-    l_refuge=0,
-    c_competition=0.0,
-    c_facilitation=0.0,
-    c_interference=0.0,
-    c_refuge=0.0,
-    A_competition=spzeros(richness(foodweb), richness(foodweb)),
-    A_facilitation=spzeros(richness(foodweb), richness(foodweb)),
-    A_interference=spzeros(richness(foodweb), richness(foodweb)),
-    A_refuge=spzeros(richness(foodweb), richness(foodweb)),
-    c0=1.0,
-    f0=1.0,
-    i0=1.0,
-    r0=1.0,
-    f_trophic=nothing,
-    f_competition=(x, δx) -> x < 0 ? x : max(0, x * (1 - δx)),
-    f_facilitation=(x, δx) -> x * (1 + δx),
-    f_interference=nothing,
-    f_refuge=(x, δx) -> x / (1 + δx),
-    nti_symmetry=Dict(:competition => true, :facilitation => false,
-        :interference => true, :refuge => false)
+    # The parameters to parse into actual layers.
+    args...
 )
+    all_parms = parse_MultiplexNetwork_arguments(foodweb, args)
 
-    # Create adjacency matrices for each non-trophic interaction
-    A = Dict(
-        :competition => sparse(A_competition),
-        :facilitation => sparse(A_facilitation),
-        :interference => sparse(A_interference),
-        :refuge => sparse(A_refuge)
-    )
-    l = Dict(
-        :competition => Int64(l_competition),
-        :facilitation => Int64(l_facilitation),
-        :interference => Int64(l_interference),
-        :refuge => Int64(l_refuge)
-    )
-    c = Dict(
-        :competition => Float64(c_competition),
-        :facilitation => Float64(c_facilitation),
-        :interference => Float64(c_interference),
-        :refuge => Float64(c_refuge)
-    )
-    potential_links = Dict(
-        :competition => potential_competition_links,
-        :facilitation => potential_facilitation_links,
-        :interference => potential_interference_links,
-        :refuge => potential_refuge_links
-    )
-    for nti in [:competition, :facilitation, :interference, :refuge]
-        if isempty(A[nti].nzval) # no adjacency matrix has been given
-            (l[nti] > 0 && c[nti] > 0.0) && throw(ArgumentError("Should provide a number of
-            links OR a connectance for $nti, not both simultaneously."))
-            n = l[nti] > 0 ? l[nti] : c[nti] # which arg has been provided by the user?
-            A[nti] = nontrophic_adjacency_matrix(foodweb, potential_links[nti], n;
-                symmetric=nti_symmetry[nti])
-        end
-    end
-
-    # Safety checks.
-    S = richness(foodweb)
-    for A_nti in values(A)
-        @check_size_is_richness² A_nti S
-    end
-
-    # Information from FoodWeb
-    A_trophic = foodweb.A
-    M = foodweb.M
-    species = foodweb.species
-    metabolic_class = foodweb.metabolic_class
-
-    # Building layers
-    trophic_layer = Layer(A_trophic, nothing, f_trophic)
-    competition_layer = Layer(A[:competition], c0, f_competition)
-    facilitation_layer = Layer(A[:facilitation], f0, f_facilitation)
-    interference_layer = Layer(A[:interference], i0, f_interference)
-    refuge_layer = Layer(A[:refuge], r0, f_refuge)
+    # Build layers.
+    layers = InteractionDict(int => Layer(
+        all_parms[:A][int][2],
+        all_parms[:intensity][int][2],
+        all_parms[:F][int][2],
+    ) for int in istandards())
 
     # Create the resulting multiplex network
     MultiplexNetwork(
-        trophic_layer,
-        competition_layer,
-        facilitation_layer,
-        interference_layer,
-        refuge_layer,
-        M,
-        species,
-        metabolic_class
+        layers,
+        foodweb.M,
+        foodweb.species,
+        foodweb.metabolic_class
     )
 end
 
@@ -257,12 +267,12 @@ end
 "One line [`MultiplexNetwork`](@ref) display."
 function Base.show(io::IO, multiplex_net::MultiplexNetwork)
     S = richness(multiplex_net)
-    Lt = count(multiplex_net.trophic_layer.A)
-    Lr = count(multiplex_net.refuge_layer.A)
-    Lf = count(multiplex_net.facilitation_layer.A)
-    Li = count(multiplex_net.interference_layer.A)
-    Lc = count(multiplex_net.competition_layer.A)
-    print(io, "MultiplexNetwork(S=$S, Lt=$Lt, Lf=$Lf, Lc=$Lc, Lr=$Lr, Li=$Li)")
+    layers = ""
+    for int in istandards()
+        short = shortest(std, InteractionDict)
+        layers *= ", L$(short)= $(count(multiplex_net.layers[int].A))"
+    end
+    print(io, "MultiplexNetwork(S=$S, $layers)")
 end
 
 "Multiline [`MultiplexNetwork`](@ref) display."
@@ -270,19 +280,11 @@ function Base.show(io::IO, ::MIME"text/plain", multiplex_net::MultiplexNetwork)
 
     # Specify parameters
     S = richness(multiplex_net)
-    Lt = count(multiplex_net.trophic_layer.A)
-    Lc = count(multiplex_net.competition_layer.A)
-    Lf = count(multiplex_net.facilitation_layer.A)
-    Li = count(multiplex_net.interference_layer.A)
-    Lr = count(multiplex_net.refuge_layer.A)
-
-    # Display output
-    println(io, "MultiplexNetwork of $S species:")
-    println(io, "  trophic_layer: $Lt links")
-    println(io, "  competition_layer: $Lc links")
-    println(io, "  facilitation_layer: $Lf links")
-    println(io, "  interference_layer: $Li links")
-    print(io, "  refuge_layer: $Lr links")
+    print(io, "MultiplexNetwork of $S species:")
+    for int in istandards()
+        L = count(multiplex_net.layers[int].A)
+        print(io, "\n  $(int)_layer: $L links")
+    end
 end
 #### end ####
 
@@ -448,7 +450,7 @@ i.e. ``i`` interacts with ``j`` ⇏ ``j`` interacts with ``i``.
 function draw_asymmetric_links(potential_links, L::Integer)
     Lmax = length(potential_links)
     @check_is_between L 0 Lmax
-    sample(potential_links, L, replace=false)
+    sample(potential_links, L, replace = false)
 end
 
 """
@@ -478,7 +480,7 @@ function draw_symmetric_links(potential_links, L::Integer)
     @check_is_even L
     @check_is_even Lmax
     potential_links = asymmetrize(potential_links)
-    potential_links = sample(potential_links, L ÷ 2, replace=false)
+    potential_links = sample(potential_links, L ÷ 2, replace = false)
     symmetrize(potential_links)
 end
 
@@ -544,7 +546,7 @@ function nontrophic_adjacency_matrix(
     foodweb::FoodWeb,
     find_potential_links::Function,
     n;
-    symmetric=false
+    symmetric = false
 )
     S = richness(foodweb)
     A = spzeros(Bool, S, S)

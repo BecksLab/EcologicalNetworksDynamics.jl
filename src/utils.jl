@@ -6,7 +6,7 @@ Convert a [`MultiplexNetwork`](@ref) to a [`FoodWeb`](@ref).
 The convertion consists in removing the non-trophic layers of the multiplex network.
 """
 function Base.convert(::Type{FoodWeb}, net::MultiplexNetwork)
-    FoodWeb(net.trophic_layer.A, net.species, net.M, net.metabolic_class, "unspecified")
+    FoodWeb(net.layers[:trophic].A, net.species, net.M, net.metabolic_class, "unspecified")
 end
 
 """
@@ -53,4 +53,4 @@ end
 
 "Return the adjacency matrix of the trophic interactions."
 get_trophic_adjacency(net::FoodWeb) = net.A
-get_trophic_adjacency(net::MultiplexNetwork) = net.trophic_layer.A
+get_trophic_adjacency(net::MultiplexNetwork) = net.layers[:trophic].A

@@ -105,8 +105,8 @@ end
     @test eatingᵢ3 < eating3 # decrease of species 3 consumption
 
     # Classic with interspecific interference
-    multiplex_network = MultiplexNetwork(foodweb, c_interference=1.0) # add interference
-    multiplex_network.interference_layer.intensity = 0.0 # but set i0 to zero in a 1st time
+    multiplex_network = MultiplexNetwork(foodweb, C_interference=1.0) # add interference
+    multiplex_network.layers[:interference].intensity = 0.0 # but set i0 to zero in a 1st time
     response = ClassicResponse(multiplex_network, c=[0, 0, 0.5]) # intra interference
     p = ModelParameters(multiplex_network, functional_response=response)
     fᵣmatrix = p.functional_response(B, multiplex_network)
@@ -118,7 +118,7 @@ end
     @test (eating2_i0_0, being_eaten2_i0_0) == (eatingᵢ2, being_eatenᵢ2)
     @test (eating3_i0_0, being_eaten3_i0_0) == (eatingᵢ3, being_eatenᵢ3)
     # Now set i0 > 0
-    multiplex_network.interference_layer.intensity = 1.0
+    multiplex_network.layers[:interference].intensity = 1.0
     response = ClassicResponse(multiplex_network, c=[0, 0, 0.5]) # intra interference
     p = ModelParameters(multiplex_network, functional_response=response)
     fᵣmatrix = p.functional_response(B, multiplex_network)

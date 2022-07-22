@@ -29,9 +29,9 @@
     @test BEFWM2.logisticgrowth(3, B, r[3], K[3], foodweb) == 0
 
     # Extern method with facilitation
-    multiplex_network = MultiplexNetwork(foodweb, c_facilitation=1.0)
+    multiplex_network = MultiplexNetwork(foodweb, C_facilitation=1.0)
     # Facilitation to 0 <=> the growth is unchanged (compared to above section)
-    multiplex_network.facilitation_layer.intensity = 0.0
+    multiplex_network.layers[:facilitation].intensity = 0.0
     response = ClassicResponse(multiplex_network) # avoid warning
     p = ModelParameters(multiplex_network, functional_response=response)
     K, r = p.environment.K, p.biorates.r
@@ -51,7 +51,7 @@
     @test BEFWM2.logisticgrowth(3, B, r[3], K[3], multiplex_network) == 0
     # Facilitation > 0 <=> the growth is changed (compared to above section)
     for f0 in [1.0, 2.0, 5.0, 10.0]
-        multiplex_network.facilitation_layer.intensity = f0
+        multiplex_network.layers[:facilitation].intensity = f0
         p = ModelParameters(multiplex_network, functional_response=response)
         K, r = p.environment.K, p.biorates.r
         B = [1, 1, 1]
