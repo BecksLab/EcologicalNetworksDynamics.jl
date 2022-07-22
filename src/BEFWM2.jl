@@ -8,6 +8,7 @@ using DiffEqBase
 using DiffEqCallbacks
 using EcologicalNetworks
 using Mangal
+using OrderedCollections
 using SparseArrays
 using Statistics
 
@@ -58,11 +59,13 @@ export FoodWeb
 export FunctionalResponse
 export FunctionalResponse
 export homogeneous_preference
+export interaction_names
 export Layer
 export LinearResponse
 export links
 export ModelParameters
 export mpnmodel
+export multiplex_network_parameters_names
 export MultiplexNetwork
 export nestedhierarchymodel
 export nichemodel

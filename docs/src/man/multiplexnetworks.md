@@ -1,5 +1,7 @@
 # How to generate multiplex networks?
 
+TODO: update doc with the new MultiplexNetwork API!
+
 ```@setup befwm2
 using BEFWM2
 ```
@@ -160,7 +162,7 @@ You can make the producers compete
 by giving a number of links to `l_competition`:
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, l_competition=2)
+multiplex_network = MultiplexNetwork(foodweb, L_competition=2)
 ```
 
 !!! note
@@ -172,7 +174,7 @@ you can provide a connectance.
 To do so use the `c_competition` instead:
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, c_competition=1.0)
+multiplex_network = MultiplexNetwork(foodweb, C_competition=1.0)
 ```
 
 !!! note "Connectance definition"
@@ -206,7 +208,7 @@ For instance, if you want to put two competitive links
 and set the intensity of competition to 0.1, you can do:
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, l_competition=2, c0=0.1);
+multiplex_network = MultiplexNetwork(foodweb, competition=(L=2, intensity=0.1));
 multiplex_network.competition_layer
 ```
 
@@ -249,13 +251,13 @@ To fill the facilitation layer,
 you can give a number of links `l_facilitation`:
 
 ```@repl befwm2
-MultiplexNetwork(foodweb, l_facilitation=1)
+MultiplexNetwork(foodweb, L_facilitation=1)
 ```
 
 Or a connectance to `c_facilitation`:
 
 ```@repl befwm2
-MultiplexNetwork(foodweb, c_facilitation=0.5)
+MultiplexNetwork(foodweb, C_facilitation=0.5)
 ```
 
 Or an adjacency matrix to `A_facilitation`:
@@ -271,7 +273,7 @@ by specifying a value to `f0` (default set to 1).
 For instance, the previous example can be rewritten as:
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, A_facilitation=[0 0 0; 1 0 0; 0 0 0], f0=0.5);
+multiplex_network = MultiplexNetwork(foodweb, fac=(A=[0 0 0; 1 0 0; 0 0 0], I=0.5));
 multiplex_network.facilitation_layer
 ```
 
@@ -334,7 +336,7 @@ To fill the interference layer,
 you can either provide a number of links to `l_interference`:
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, l_interference=2)
+multiplex_network = MultiplexNetwork(foodweb, L_interference=2)
 ```
 
 !!! note
@@ -343,7 +345,7 @@ multiplex_network = MultiplexNetwork(foodweb, l_interference=2)
 Equivalently, you can provide a connectance to `c_interference`:
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, c_interference=1.0)
+multiplex_network = MultiplexNetwork(foodweb, C_interference=1.0)
 ```
 
 Or you can provide an adjacency matrix to `A_interference`:
@@ -359,7 +361,7 @@ you can specify a value to `i0` (default set to 1).
 For instance, you can do:
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, c_interference=1.0, i0=0.6);
+multiplex_network = MultiplexNetwork(foodweb, interference=(C=1.0, intensity=0.6));
 multiplex_network.interference_layer
 ```
 
@@ -401,13 +403,13 @@ In this simple case, only one refuge link is possible ``1 \rightarrow 2``.
 To fill the refuge layer, you can provide a number of links to `l_refuge`:
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, l_refuge=1)
+multiplex_network = MultiplexNetwork(foodweb, L_refuge=1)
 ```
 
 Or you can provide a connectance to `c_refuge`:
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, c_refuge=1.0)
+multiplex_network = MultiplexNetwork(foodweb, C_refuge=1.0)
 ```
 
 Or you can provide an adjacency matrix to `A_refuge`:
@@ -423,7 +425,7 @@ you can specify a value to `r0` (the default value is set to 1).
 For instance, you can do:
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, c_refuge=1.0, r0=1.3);
+multiplex_network = MultiplexNetwork(foodweb, refuge=(C=1.0, intensity=1.3));
 multiplex_network.refuge_layer
 ```
 
@@ -440,7 +442,7 @@ foodweb = FoodWeb([0 0 0 0; 0 0 0 0; 1 1 0 0; 1 1 0 0]);
 You can add two competition links and one facilitation link at the same time:
 
 ```@repl befwm2
-MultiplexNetwork(foodweb, l_competition=2, l_facilitation=1)
+MultiplexNetwork(foodweb, L=(competition=2, facilitation=1))
 ```
 
 Moreover, for more flexibility, you can mix the different filling methods
@@ -454,7 +456,7 @@ To create such a [`MultiplexNetwork`](@ref), you can do:
 
 ```@repl befwm2
 A_i = [0 0 0 0; 0 0 0 0; 0 0 0 1; 0 0 1 0]; # prepare interference adjacency matrix
-MultiplexNetwork(foodweb, c_competition=1, l_facilitation=1, A_interference=A_i)
+MultiplexNetwork(foodweb, C_competition=1, L_facilitation=1, A_interference=A_i)
 ```
 
 In the next part, you will see how to parametrize the system

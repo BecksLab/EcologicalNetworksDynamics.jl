@@ -18,7 +18,7 @@ Base.map(f, net::EcologicalNetwork) = map(i -> f(i, net), 1:richness(net))
 "Is species `i` of the network (`net`) a producer?"
 isproducer(i, A::AdjacencyMatrix) = isempty(A[i, :].nzval)
 isproducer(i, net::FoodWeb) = isproducer(i, net.A)
-isproducer(i, net::MultiplexNetwork) = isproducer(i, net.trophic_layer.A)
+isproducer(i, net::MultiplexNetwork) = isproducer(i, net.layers[:trophic].A)
 
 "Return indexes of the producers of the given `network`."
 producers(net::EcologicalNetwork) = filter(isproducer, net)
@@ -28,12 +28,12 @@ producers(net::EcologicalNetwork) = filter(isproducer, net)
 "Return indexes of the predators of species `i`."
 predators_of(i, A::AdjacencyMatrix) = A[:, i].nzind
 predators_of(i, net::FoodWeb) = predators_of(i, net.A)
-predators_of(i, net::MultiplexNetwork) = predators_of(i, net.trophic_layer.A)
+predators_of(i, net::MultiplexNetwork) = predators_of(i, net.layers[:trophic].A)
 
 "Is species `i` of the network (`net`) a predator?"
 ispredator(i, A::AdjacencyMatrix) = !isproducer(i, A)
 ispredator(i, net::FoodWeb) = ispredator(i, net.A)
-ispredator(i, net::MultiplexNetwork) = ispredator(i, net.trophic_layer.A)
+ispredator(i, net::MultiplexNetwork) = ispredator(i, net.layers[:trophic].A)
 
 "Return indexes of the predators of the given `network`."
 predators(net::EcologicalNetwork) = filter(ispredator, net)
@@ -43,12 +43,12 @@ predators(net::EcologicalNetwork) = filter(ispredator, net)
 "Return indexes of the preys of species `i`."
 preys_of(i, A::AdjacencyMatrix) = A[i, :].nzind
 preys_of(i, net::FoodWeb) = preys_of(i, net.A)
-preys_of(i, net::MultiplexNetwork) = preys_of(i, net.trophic_layer.A)
+preys_of(i, net::MultiplexNetwork) = preys_of(i, net.layers[:trophic].A)
 
 "Is species `i` a prey?"
 isprey(i, A::AdjacencyMatrix) = !isempty(A[:, i].nzind)
 isprey(i, net::FoodWeb) = isprey(i, net.A)
-isprey(i, net::MultiplexNetwork) = isprey(i, net.trophic_layer.A)
+isprey(i, net::MultiplexNetwork) = isprey(i, net.layers[:trophic].A)
 
 "Return indexes of the preys of the network (`net`)."
 preys(net::EcologicalNetwork) = filter(isprey, net)
@@ -57,7 +57,7 @@ preys(A::AbstractSparseMatrix) = [i for i in 1:size(A, 1) if !isempty(A[:, i].nz
 "Do species `i` and `j` share at least one prey?"
 share_prey(i, j, A::AdjacencyMatrix) = !isempty(intersect(preys_of(i, A), preys_of(j, A)))
 share_prey(i, j, net::FoodWeb) = share_prey(i, j, net.A)
-share_prey(i, j, net::MultiplexNetwork) = share_prey(i, j, net.trophic_layer.A)
+share_prey(i, j, net::MultiplexNetwork) = share_prey(i, j, net.layers[:trophic].A)
 #### end ####
 
 #### Find verterbrates & invertebrates ####
@@ -78,7 +78,7 @@ invertebrates(net::EcologicalNetwork) = filter(isinvertebrate, net)
 "Number of resource species `i` is feeding on."
 number_of_resource(i, A::AdjacencyMatrix) = length(A[i, :].nzval)
 number_of_resource(i, net::FoodWeb) = number_of_resource(i, net.A)
-number_of_resource(i, net::MultiplexNetwork) = number_of_resource(i, net.trophic_layer.A)
+number_of_resource(i, net::MultiplexNetwork) = number_of_resource(i, net.layers[:trophic].A)
 
 "Return a vector where element i is the number of resource(s) of species i."
 function number_of_resource(net::EcologicalNetwork)
