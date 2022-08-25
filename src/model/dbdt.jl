@@ -32,3 +32,49 @@ function dBdt!(dB, B, p, t)
         B[sp] = 0.0
     end
 end
+
+function stoch_dBdt!(dB, B, params::ModelParameters, t)
+
+    # Set up - Unpack parameters
+    S = richness(params.network)
+    fᵣmatrix = params.functional_response(B[1:S], params.network) # functional response matrix
+    r = params.biorates.r # vector of intrinsic growth rates
+    K = params.environment.K # vector of carrying capacities
+    stochasticity = params.stochasticity
+
+    # Loop over species
+    for i in 1:S
+
+        # Compute ODE terms
+        growth = stoch_logistic_growth(i, B, r[i], K[i], S, stochasticity)
+        eating, being_eaten = stoch_consumption(i, B, params, fᵣmatrix)
+        metabolism_loss = stoch_metabolic_loss(i, B, params)
+
+        # Update dB/dt
+        dB[i] = growth + eating - being_eaten - metabolism_loss
+    end
+
+    # Loop over stochastic parameters
+    for i in S+1:S+length(stochasticity.stochspecies)
+        dB[i] = stochasticity.θ[i-S] * (stochasticity.μ[i-S] - B[i])
+    end
+end
+
+function noise_equations(dW, B, params::ModelParameters, t)
+
+    FW = params.network
+    S = richness(FW)
+
+    for i in 1:S # These will be the biomass dynamics, and demographic stochasticity
+        if B[i] <= 0.0
+            dW[i] = 0.0
+        else
+            dW[i] = 1 / sqrt(B[i] / FW.M[i])
+        end
+    end
+
+    for i in S+1:length(B)
+        dW[i] = 1.0
+    end
+
+end

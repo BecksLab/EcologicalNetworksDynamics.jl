@@ -206,3 +206,42 @@ function consumption(::Union{ClassicResponse,LinearResponse}, parms::ModelParame
 
     code, data
 end
+
+
+function stoch_consumption(i, B, p::ModelParameters, fᵣmatrix)  #  (dispatch)
+    stoch_consumption(p.functional_response, i, B, p, fᵣmatrix)
+end
+function stoch_consumption(::BioenergeticResponse, i, B, params::ModelParameters, fᵣmatrix)
+
+    # Set up
+    foodweb = convert(FoodWeb, params.network)
+    prey = preys_of(i, foodweb) # resource of species i
+    pred = predators_of(i, foodweb) # consumer of species i
+    S = richness(params.network)
+
+    stochcons = intersect(pred, params.stochasticity.stochconsumers)
+    determcons = setdiff(pred, stochcons)
+
+    if i ∈ params.stochasticity.stochconsumers
+        x = B[S+first(findall(x -> x == i, params.stochasticity.stochspecies))]
+    else
+        x = params.biorates.x # metabolic rate
+    end
+
+    y = params.biorates.y # max. consumption
+    e = params.biorates.e # assimilation efficiency
+
+    # Compute consumption terms
+    eating = x[i] * y[i] * B[i] * sum(fᵣmatrix[i, prey])
+    being_eaten_by_deterministic = sum(
+        x[determcons] .* y[determcons] .* B[determcons] .* fᵣmatrix[determcons, i] ./
+        e[determcons, i],
+    )
+    being_eaten_by_stochastic = sum(
+        B[S.+findall(x -> x ∈ stochcons, params.stochasticity.stochspecies)] .*
+        y[stochcons] .* B[stochcons] .* fᵣmatrix[stochcons, i] ./ e[stochcons, i],
+    )
+    being_eaten = being_eaten_by_deterministic + being_eaten_by_stochastic
+
+    eating, being_eaten
+end

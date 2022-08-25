@@ -80,3 +80,25 @@ function growth(parms::ModelParameters, ::Symbol)
 
     code, data
 end
+
+#=
+If biomass is over carrying capacity (which would have G go negative)
+and intrinsic growth rate  is negative (possible with stochasticity)
+then the double negative sends biomass to infinity
+So now we are breaking G into two parts,
+Adding stochasticity to the growth part but not the density dependent loss part
+=#
+
+function stoch_logistic_growth(i, B, rᵢ, Kᵢ, S, stochasticity::AddStochasticity)
+    if i ∈ stochasticity.stochproducers
+        pᵢ = B[S+first(findall(x -> x == i, stochasticity.stochspecies))] # stochastic intrinsic growth rate of species i
+        separatedlogisticgrowth(B[i], rᵢ, pᵢ, Kᵢ)
+    else
+        logisticgrowth(B[i], rᵢ, Kᵢ)
+    end
+end
+
+function separatedlogisticgrowth(B, r, p, K)
+    !isnothing(K) || return 0 # if carrying capacity is null, growth is null too (avoid NaNs)
+    (p * B) - ((r * B^2) / K)
+end

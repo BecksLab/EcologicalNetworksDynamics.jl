@@ -40,3 +40,16 @@ end
 # Code generation version (compact) is integrated to `consumption`
 # because it needs one full iteration over 1:S.
 # This is about to change in upcoming refactorization of the boost option.
+
+
+function stoch_metabolic_loss(i, B, params::ModelParameters)
+    if i ∈ params.stochasticity.stochconsumers
+        xᵢ = B[S+first(findall(x -> x == i, params.stochasticity.stochspecies))] # metabolic rate of species i
+        Bᵢ = B[i] # biomass of species i
+        xᵢ * Bᵢ
+    else
+        xᵢ = params.biorates.x[i] # metabolic rate of species i
+        Bᵢ = B[i] # biomass of species i
+        xᵢ * Bᵢ
+    end
+end

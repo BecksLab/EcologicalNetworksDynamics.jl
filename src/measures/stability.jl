@@ -145,3 +145,51 @@ function population_stability(solution; threshold::Float64 = eps(), last = 1000)
     stability = -mapslices(coefficient_of_variation, measure_on; dims = 2)
     return mean(stability)
 end
+
+
+"""
+**Dominant eigenvalue**
+"""
+
+"""
+Calculation of the jacobian using finite differences takes two arguments;
+    Need the equations, and the biomass
+
+    'When an equilibrium is linearly stable, the real parts of all of the eigenvalues are negative.
+     The dominant eigenvalue is the one with the least negative real part' - Patterson 2021
+
+BEFW_equations rephrases dBdt! such that it only takes B(iomass) as an argument.
+To ensure the correct biomass at equilibrium is matched with the correct equations, dominant_eigenvalue takes a simulate output as an argument
+"""
+function BEFW_equations(B)
+
+    # Set up - Unpack parameters
+    S = richness(params.network)
+    fᵣmatrix = params.functional_response(B, params.network) # functional response matrix
+    r = params.biorates.r # vector of intrinsic growth rates
+    K = params.environment.K # vector of carrying capacities
+    network = params.network
+    dB = copy(B)
+
+    # Loop over species
+    for i in 1:S
+
+        # Compute ODE terms
+        growth = logisticgrowth(i, B, r[i], K[i], network)
+        eating, being_eaten = consumption(i, B, params, fᵣmatrix)
+        metabolism_loss = metabolic_loss(i, B, params)
+        net_growth_rate = growth + eating - metabolism_loss
+        cᵢ = net_growth_rate >= 0 ? competition_factor(i, B, network) : 1
+
+        # Update dB/dt
+        dB[i] = cᵢ * net_growth_rate - being_eaten
+    end
+    return dB
+end
+
+function dominant_eigenvalue(params::ModelParameters, B::Vector{Float64})
+
+    jac = FiniteDiff.finite_difference_jacobian(BEFW_equations, B)
+
+    return maximum(real.(eigvals(jac)))
+end

@@ -1,12 +1,16 @@
 module BEFWM2
 
 # Dependencies
+import DifferentialEquations.CorrelatedWienerProcess
 import DifferentialEquations.Rodas4
 import DifferentialEquations.SSRootfind
 import DifferentialEquations.Tsit5
+using DataFrames
 using DiffEqBase
 using DiffEqCallbacks
 using EcologicalNetworks
+using FiniteDiff
+using LinearAlgebra
 using Mangal
 using OrderedCollections
 using SparseArrays
@@ -20,11 +24,13 @@ include(joinpath(".", "inputs/foodwebs.jl"))
 include(joinpath(".", "inputs/nontrophic_interactions.jl"))
 include(joinpath(".", "inputs/functional_response.jl"))
 include(joinpath(".", "inputs/biological_rates.jl"))
+include(joinpath(".", "inputs/stochasticity.jl"))
 include(joinpath(".", "inputs/environment.jl"))
 include(joinpath(".", "inputs/producer_competition.jl"))
 include(joinpath(".", "model/model_parameters.jl"))
 include(joinpath(".", "model/productivity.jl"))
 include(joinpath(".", "model/consumption.jl"))
+include(joinpath(".", "model/covariance_matrix.jl"))
 include(joinpath(".", "model/metabolic_loss.jl"))
 include(joinpath(".", "model/dbdt.jl"))
 include(joinpath(".", "model/generate_dbdt.jl"))
@@ -47,6 +53,7 @@ export A_competition_full
 export A_facilitation_full
 export A_interference_full
 export A_refuge_full
+export AddStochasticity
 export allometric_rate
 export AllometricParams
 export attack_rate
@@ -108,6 +115,7 @@ export richness
 export simulate
 export species_persistence
 export species_richness
+export tidy_output
 export total_biomass
 export trophic_levels
 

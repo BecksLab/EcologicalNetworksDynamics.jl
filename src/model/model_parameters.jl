@@ -9,6 +9,7 @@ mutable struct ModelParameters
     environment::Environment
     functional_response::FunctionalResponse
     producer_competition::ProducerCompetition
+    stochasticity::AddStochasticity
 end
 #### end ####
 
@@ -35,6 +36,7 @@ function Base.show(io::IO, ::MIME"text/plain", params::ModelParameters)
     println(io, "  biorates: ", params.biorates)
     println(io, "  functional_response: ", params.functional_response)
     println(io, "  producer_competition: ", params.producer_competition)
+    println(io, "  stochasticity: ", params.stochasticity)
 end
 #### end ####
 
@@ -45,6 +47,7 @@ end
         environment::Environment=Environment(foodweb),
         functional_response::FunctionalResponse=BioenergeticResponse(foodweb),
         producer_competition::ProducerCompetition=ProducerCompetition(foodweb),
+        Stochasticity::AddStochasticity=AddStochasticity(foodweb),
     )
 
 Generate the parameters of the species community.
@@ -107,6 +110,7 @@ function ModelParameters(
     environment::Environment = Environment(network),
     functional_response::FunctionalResponse = BioenergeticResponse(network),
     producer_competition::ProducerCompetition = ProducerCompetition(network),
+    stochasticity::AddStochasticity = AddStochasticity(network),
 )
     if isa(network, MultiplexNetwork) & !(isa(functional_response, ClassicResponse))
         type_response = typeof(functional_response)
@@ -119,5 +123,6 @@ function ModelParameters(
         environment,
         functional_response,
         producer_competition,
+        stochasticity,
     )
 end
