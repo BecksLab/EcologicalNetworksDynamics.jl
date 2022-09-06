@@ -7,10 +7,11 @@
         tmax::Number=500,
         δt::Number=0.25,
         extinction_threshold=1e-6,
+        verbose=true,
         callback=CallbackSet(
             PositiveDomain(),
             TerminateSteadyState(1e-5, 1e-3),
-            ExtinctionCallback(extinction_threshold)
+            ExtinctionCallback(extinction_threshold, verbose)
         ),
         kwargs...
     )
@@ -66,6 +67,19 @@ julia> round.(solution[end], digits=2) # steady state biomass
  0.19
  0.22
 ```
+
+By default, the extinction callback throw a message when a species goes extinct.
+
+```julia
+julia> foodweb = FoodWeb([0 0; 1 0]);
+
+julia> params = ModelParameters(foodweb);
+
+julia> simulate(params, [0.5, 1e-12], verbose=true); # default: a message is thrown
+[ Info: Species [2] is exinct. t=0.12316364776188903
+
+julia> simulate(params, [0.5, 1e-12], verbose=true); # no message thrown
+```
 """
 function simulate(
     params::ModelParameters,
@@ -74,10 +88,11 @@ function simulate(
     tmax::Number=500,
     δt::Number=0.25,
     extinction_threshold=1e-5,
+    verbose=true,
     callback=CallbackSet(
         PositiveDomain(),
         TerminateSteadyState(1e-6, 1e-4),
-        ExtinguishSpecies(extinction_threshold)
+        ExtinguishSpecies(extinction_threshold, verbose)
     ),
     kwargs...
 )
@@ -98,7 +113,7 @@ end
 
 #### Species extinction callback ####
 "Callback to extinguish species under the `extinction_threshold`."
-function ExtinguishSpecies(extinction_threshold::Number)
+function ExtinguishSpecies(extinction_threshold::Number, verbose::Bool)
 
     # Condition to trigger the callback: a species biomass goes below the threshold.
     function species_under_threshold(u, t, integrator)
@@ -111,13 +126,15 @@ function ExtinguishSpecies(extinction_threshold::Number)
         extinct_sp = (1:length(integrator.u))[integrator.u.<=extinction_threshold]
         t = integrator.t
         is_or_are = length(extinct_sp) > 1 ? "are" : "is"
-        @info "Species $extinct_sp " * is_or_are * " exinct. t=$t"
+        if verbose
+            @info "Species $extinct_sp " * is_or_are * " exinct. t=$t"
+        end
     end
 
     DiscreteCallback(species_under_threshold, extinguish_species!)
 end
 
-function ExtinguishSpecies(extinction_threshold::AbstractVector)
+function ExtinguishSpecies(extinction_threshold::AbstractVector, verbose::Bool)
 
     # Condition to trigger the callback: a species biomass goes below the threshold.
     function species_under_threshold(u, t, integrator)
@@ -130,7 +147,9 @@ function ExtinguishSpecies(extinction_threshold::AbstractVector)
         extinct_sp = (1:length(integrator.u))[integrator.u.<=extinction_threshold]
         t = integrator.t
         is_or_are = length(extinct_sp) > 1 ? "are" : "is"
-        @info "Species $extinct_sp " * is_or_are * " exinct. t=$t"
+        if verbose
+            @info "Species $extinct_sp " * is_or_are * " exinct. t=$t"
+        end
     end
 
     DiscreteCallback(species_under_threshold, extinguish_species!)

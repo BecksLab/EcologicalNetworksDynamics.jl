@@ -157,7 +157,7 @@ C_list = [] # consumer final biomass
 for K in K_list
     e = Environment(foodweb, K=K)
     p = ModelParameters(foodweb, functional_response=response, environment=e)
-    out = simulate(p, [1,1])
+    out = simulate(p, [1,1], verbose=false)
     append!(R_list, out.u[end][1])
     append!(C_list, out.u[end][2])
 end
