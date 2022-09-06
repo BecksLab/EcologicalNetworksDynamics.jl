@@ -25,6 +25,13 @@
     solution_null = simulate(params, [0.0, 0.0])
     @test all(hcat(solution_null.u...) .== 0)
 
+    # Verbose - Is there a log message to inform the user of species going extinct?
+    foodweb = FoodWeb([0 0; 1 0])
+    params = ModelParameters(foodweb)
+    @test_nowarn simulate(params, [0.5, 1e-12], verbose=false)
+    log_msg = "Species [2] is exinct. t=0.12316364776188903"
+    @test_warn (log_msg) simulate(params, [0.5, 1e-12], verbose=true)
+
     # Extinction threshold
     ## Both species below extinction threshold
     solution = simulate(params, [1e-2], extinction_threshold=0.1, tmax=1) # B0 < extinction
