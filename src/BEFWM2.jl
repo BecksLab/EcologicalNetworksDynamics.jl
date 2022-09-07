@@ -62,12 +62,12 @@ export homogeneous_preference
 export interaction_names
 export Layer
 export LinearResponse
-export links
 export ModelParameters
 export mpnmodel
 export multiplex_network_parameters_names
 export MultiplexNetwork
 export nestedhierarchymodel
+export n_links
 export nichemodel
 export nontrophic_adjacency_matrix
 export NonTrophicIntensity

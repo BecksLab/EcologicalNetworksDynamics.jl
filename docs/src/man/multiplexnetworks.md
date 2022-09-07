@@ -1,7 +1,5 @@
 # How to generate multiplex networks?
 
-TODO: update doc with the new MultiplexNetwork API!
-
 ```@setup befwm2
 using BEFWM2
 ```
@@ -42,7 +40,7 @@ In the following,
 after a short introduction on how to build a minimal multiplex network from a foodweb,
 we go over the four types of non-trophic interactions one by one.
 
-!!! warning
+!!! warning "Non-trophic interactions require `ClassicResponse`
     The non-trophic interactions are only available for the functional response:
     [`ClassicResponse`](@ref).
     For more details about the different functional responses
@@ -50,54 +48,215 @@ we go over the four types of non-trophic interactions one by one.
 
 ## Introduction to [`MultiplexNetwork`](@ref)
 
-As previously explained, we will build a multiplex network from a foodweb,
-In other words, we will add non-trophic interactions on top of a foodweb.
-Therefore, the first step to create your first multiplex network is to generate a foodweb,
-(for more details see [How to generate foodwebs?](@ref))
-which is the backbone of the multiplex network.
+As previously explained we will build a [`MultiplexNetwork`](@ref) from a [`FoodWeb`](@ref),
+In other words, we will add non-trophic interactions on top of a [`FoodWeb`](@ref).
+Therefore, the first step to create your first [`MultiplexNetwork`](@ref) is
+to generate a [`FoodWeb`](@ref),
+which is the backbone of the [`MultiplexNetwork`](@ref)
+(for more details on food web generation, see [How to generate foodwebs?](@ref)).
 
 ```@repl befwm2
-A = [0 0 0; 1 0 0; 0 1 0]; # 1 producer ⋅ 2 eats 1 ⋅ 3 eats 2
-foodweb = FoodWeb(A) # build foodweb from adjacency matrix
+A = [0 0 0; 1 0 0; 0 1 0]; # 1 <- 2 <- 3
+foodweb = FoodWeb(A); # build food web from adjacency matrix
 ```
 
-Now that your foodweb is created, you can create a [`MultiplexNetwork`](@ref)
-as follows:
+Now that your [`FoodWeb`](@ref) is created,
+you can directly create a [`MultiplexNetwork`](@ref) as follows:
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb)
+multi_net = MultiplexNetwork(foodweb);
 ```
 
-As we only gave the foodweb to the [`MultiplexNetwork`](@ref) method
+As you only gave the food web to the [`MultiplexNetwork`](@ref) method
 without any additional arguments,
 the number of non-trophic links is set to zero.
-Indeed, by default the multiplex network contains only trophic interactions
-which are stored in the `trophic_layer` field,
-and the non-trophic layers
-(`competition_layer`, `facilitation_layer`, `interference_layer` and `refuge_layer`)
-are empty.
 
-Each [`Layer`](@ref) contains two fields:
-
-- `A`: the adjacency matrix that defines where
-    (i.e. between which pair of species) the interactions occur;
-- `intensity`: the intensity of the non-trophic interactions
-    (one value per non-trophic interaction)
-
-Information about a layer can be retrieved as follows:
 ```@repl befwm2
-multiplex_network.trophic_layer
+n_links(multi_net)
+```
+
+You can see that you have as expected 2 trophic links
+and 0 link for all non-trophic interactions.
+
+The layers of the multiplex network are stored in the `layers` field.
+This field is a special dictionary
+because its values can be accessed either with the full key
+or a alias of the key.
+For instance if you want to access the trophic layer you can either use the full key...
+
+```@repl befwm2
+multi_net.layers[:trophic]
+```
+
+... or an alias of the `:trophic` key (e.g. `:t`)
+
+```@repl befwm2
+multi_net.layers[:t]
+```
+
+Hopefully there is a cheat-sheet to know what are the aliases of each interaction.
+
+```@repl befwm2
+interaction_names()
+```
+
+Now coming back to the trophic [`Layer`](@ref), you can see that it has three fields:
+
+- `A`: the adjacency matrix that the species pairs between which
+    the interactions occur;
+- `intensity`: the strength of the non-trophic interaction;
+- `f`: the functional form of the non-trophic effect on the corresponding parameter
+    (for more details see [Specifying non-trophic functional forms](@ref))
+
+```@repl befwm2
+multi_net.layers[:facilitation].A # empty
+multi_net.layers[:facilitation].intensity # 1.0 by default
+multi_net.layers[:facilitation].f # (r,B_f) -> r(1+B_f) ++ of growth rate
 ```
 
 Before explaining how to fill the non-trophic layers,
-note that the [`MultiplexNetwork`](@ref) contains, in the same way as the [`FoodWeb`](@ref),
+note that the [`MultiplexNetwork`](@ref) contains, like the [`FoodWeb`](@ref),
 information about the species identities, the metabolic classes, and the body-masses:
 
 ```@repl befwm2
-multiplex_network.species # species identities
-multiplex_network.metabolic_class # metabolic classes
-multiplex_network.M # individual body mass
+multi_net.species; # species identities
+multi_net.metabolic_class; # metabolic classes
+multi_net.M; # individual body mass
 ```
+
+## Specifying non-trophic layers
+
+### General rules
+
+There are various ways to specify non-trophic layer parameters.
+The key point is to use `arguments` whose general form is
+```
+<parameter_name>_<interaction_name> = value
+```
+where `<parameter_name>` is the full name or an alias of a parameter
+(e.g. `connectance` or its alias `C`)
+and `<interaction_name>` is the full name or an alias of an interaction
+(e.g. `facilitation` or `f`).
+Thus if you want to set the connectance of the facilitation layer to `1.0` you can do:
+
+```@repl befwm2
+foodweb = FoodWeb([0 0 0; 1 0 0; 1 0 0]); # 2 and 3 consumes 1
+net1 = MultiplexNetwork(foodweb, connectance_facilitation=1.0); # full names
+net2 = MultiplexNetwork(foodweb, C_f=1.0); # aliases
+net3 = MultiplexNetwork(foodweb, C_facilitation=1.0); # full name and alias
+n_links(net1)[:f] == n_links(net2)[:f] == n_links(net3)[:f]
+```
+
+As for the interactions, there is a cheat-sheet to retrieve the aliases
+of the [`MultiplexNetwork`](@ref) parameters.
+
+```@repl befwm2
+multiplex_network_parameters_names()
+```
+
+Moreover if you want to specify the same parameters
+for two or more interaction you can group them as follow
+
+```@repl befwm2
+net1 = MultiplexNetwork(foodweb, C=(facilitation=0.5, interference=1.0));
+```
+
+Here we have set the connectance of the facilitation and interference layer
+to `0.5` and `1.0` respectively.
+This is equivalent to
+
+```@repl befwm2
+net2 = MultiplexNetwork(foodweb, C_facilitation=0.5, C_interference=1.0);
+n_links(net1) == n_links(net2) # both ways are equivalent
+```
+
+Reversely if you want to specify two or more parameters for the same interaction
+you can group them as follow
+
+```@repl befwm2
+net1 = MultiplexNetwork(foodweb, facilitation=(C=0.5, intensity=0.1));
+```
+
+Here we have set the connectance and the intensity of the facilitation layer
+to `0.5` and `0.1` respectively.
+This is equivalent to
+
+```@repl befwm2
+net2 = MultiplexNetwork(foodweb, C_facilitation=0.5, intensity_facilitation=0.1);
+n_links(net1) == n_links(net2) # both ways are equivalent
+```
+
+### Specifying the structure of non-trophic interaction layers
+
+*The structure of the trophic layer cannot be specified,*
+*because that latter is given*
+*by the adjacency of the [`FoodWeb`](@ref).*
+*Thus you can only specify the structure of non-trophic interactions.*
+
+For each non-trophic interaction there are 3 ways to define the structure of the layer,
+either with the:
+
+- adjacency matrix
+- connectance
+- number of links
+
+!!! note
+    If either a number of links or the connectance is provided,
+    the layer is filled randomly.
+
+For a given interaction, you can only choose one of these methods because
+only one of these 3 parameters is sufficient to describe the structure.
+For instance it does not make sense to
+define the connectance *and* the number of links of the same layer.
+Thus if you don't respect this rule an error will be thrown.
+
+```@repl befwm2
+MultiplexNetwork(foodweb, facilitation=(C=0.5, L=2))
+```
+
+!!! note "Definition of connectance"
+    Here, the connectance of non-trophic interactions is not defined as
+    ``C=\frac{L}{S^2}`` where ``L`` is the number of competitive links
+    and ``S`` the total number of species in the community.
+    Instead, connectance is defined as ``C=\frac{L}{L_\text{max}}``
+    where ``L_\text{max}`` is the maximum number of possible competitive links
+    in the community.
+    Indeed, as only pairs of sessile species can compete with each other,
+    all species pairs are not eligible for competition (e.g. a pair of mobile species).
+    This definition ensures you that if you provide a connectance of `1.0`,
+    the adjacency matrix will be filled as much as possible,
+    given the rules that govern the interaction.
+    The definition applies to the four non-trophic interaction types
+    with ``L_\text{max}`` depending on the non-trophic interaction considered.
+
+
+### Specifying the intensity of non-trophic layers
+
+To change the intensity `value` simply specify `intensity_<interaction_name>=value`.
+For instance if you want to set the intensity of refuge interactions to `2.0` you can do
+
+```@repl befwm2
+multi_net = MultiplexNetwork(foodweb, intensity_refuge=2.0);
+multi_net.layers[:refuge].intensity
+```
+
+But you can also use aliases either for the interaction (`refuge`)
+or the parameter (`intensity`), for instance
+
+```@repl befwm2
+multi_net1 = MultiplexNetwork(foodweb, intensity_r=2.0);
+multi_net2 = MultiplexNetwork(foodweb, I_r=2.0);
+multi_net1.layers[:refuge].intensity == multi_net2.layers[:refuge].intensity == 2.0
+```
+
+!!! note "Aliases of `intensity`"
+    Aliases of `intensity` parameter can be accessed with
+    `multiplex_network_parameters_names()[:intensity]`.
+
+In the following we go over each non-trophic interactions in more details.
+Specifically, we explain
+how they are translated in the ODEs equations and
+what are the assumptions underlying them.
 
 ## Competition for space
 
@@ -137,80 +296,62 @@ With:
 - ``c_0`` the intensity of competition
 - ``B_k`` the biomass of species ``k``
 
-!!! note
+!!! note "Case of negative net growth rates"
     If ``G_\text{net}`` is negative, even if a competition link is present,
     ``G_\text{net}`` is unchanged.
 
-### Adding competitive interactions to the [`MultiplexNetwork`](@ref)
+### Example of a community with competition interactions
 
-Non-trophic layers can be filled in three ways, either by providing a:
-
-- number of non-trophic links (`l_nti`)
-- connectance of non-trophic links (`c_nti`)
-- custom adjacency matrix (`A_nti`)
-
-Let's illustrate this with a community of 2 producers.
+Let's create a small [`MultiplexNetwork`](@ref) that contains competition interactions.
+To illustrate let's use the apparent competition module (1 consumer feeding on 2 plants).
 
 ```@repl befwm2
-foodweb = FoodWeb([0 0; 0 0]);
+comp_module = FoodWeb([0 0 0; 0 0 0; 1 1 0]);
 ```
 
-For this community the two possible competition links are the two interspecific links
-between 1 and 2 (``1 \rightarrow 2`` and ``2 \rightarrow 1``).
-
-You can make the producers compete
-by giving a number of links to `l_competition`:
+The possible competition interactions can occur between the two producers
+i.e. species 1 and 2.
+These potential links can be accessed with:
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, L_competition=2)
+A_competition_full(comp_module)
 ```
 
-!!! note
-    Since competition is assumed to be symmetric, the number of links should be even,
-    if you provide an odd number, the function will throw an error.
+!!! note "Access possible non-trophic interactions"
+    More generally, to access the possible non-trophic interactions of your `foodweb`
+    use `A_<interaction_name>_full(foodweb)`.
 
-Instead of providing a number of links,
-you can provide a connectance.
-To do so use the `c_competition` instead:
+Now you can create a [`MultiplexNetwork`](@ref) including competition interactions.
+For instance, if you want to add competition interactions as much as possible,
+you can do
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, C_competition=1.0)
+multi_net = MultiplexNetwork(comp_module, C_competition=1.0);
+multi_net.layers[:competition].A == A_competition_full(comp_module)
 ```
 
-!!! note "Connectance definition"
-    Here, the connectance of non-trophic interactions is not defined as
-    ``C=\frac{L}{S^2}`` where ``L`` is the number of competitive links
-    and ``S`` the total number of species in the community.
-    Instead, connectance is defined as ``C=\frac{L}{L_\text{max}}``
-    where ``L_\text{max}`` is the maximum number of possible competitive links
-    in the community.
-    Indeed, as only pairs of sessile species can compete with each other,
-    all species pairs are not eligible for competition (e.g. a pair of mobile species).
-    This definition ensures you that if you provide a connectance of `1.0`,
-    the adjacency matrix will be filled as much as possible,
-    given the rules that govern the interaction.
-    The definition applies to the four non-trophic interaction types
-    with ``L_\text{max}`` depending on the non-trophic interaction considered.
-
-Lastly, you can also provide your own custom adjacency matrix to `A_competition`.
+Now let's say that you want to only add 1 competition link
 
 ```@repl befwm2
-custom_matrix = [0 1; 1 0]; # 1 competes with 2 and reversely
-multiplex_network = MultiplexNetwork(foodweb, A_competition=custom_matrix)
+multi_net = MultiplexNetwork(comp_module, L_competition=1)
 ```
 
-### Setting the competition intensity
-
-In addition to the structure of competition links,
-you can also customize the intensity of the competitive interactions
-by providing a number to `c0` (the default value is set to 1).
-For instance, if you want to put two competitive links
-and set the intensity of competition to 0.1, you can do:
+You have an error because because
+the competition links are assumed by default to be symmetric
+which implies that number of competition links has to be even.
+If you want to change that assumption because
+to add an odd number of competition links
+you can simply specify `sym_competition=false`.
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, competition=(L=2, intensity=0.1));
-multiplex_network.competition_layer
+multi_net = MultiplexNetwork(comp_module, L_competition=1, sym_competition=false);
+multi_net.layers[:competition].A # only one link
 ```
+
+!!! note "Aliases of `symmetry`"
+    As for the other [`MultiplexNetwork`](@ref) parameters,
+    `symmetry` has aliases that you can use.
+    To get them do `multiplex_network_parameters_names()[:symmetry]`.
 
 ## Plant facilitation
 
@@ -234,48 +375,34 @@ With:
     The multiplicative factor due to facilitation is always greater than one,
     thus the intrinsic growth is always increased by facilitation.
 
-### Adding facilitative interactions to the [`MultiplexNetwork`](@ref)
+### Example of a community with facilitation interactions
 
-For illustration, let's consider a community
-of one producer and two consumers feeding on that single producer.
-
-```@repl befwm2
-foodweb = FoodWeb([0 0 0; 1 0 0; 1 0 0]);
-```
-
-Here, the potential facilitation links can happen
-between each of the consumers and the plant
-(``2 \rightarrow 1`` and ``3 \rightarrow 1``).
-
-To fill the facilitation layer,
-you can give a number of links `l_facilitation`:
+Let's create a small [`MultiplexNetwork`](@ref) that contains competition interactions.
+We can consider the food chain module (of length 3).
 
 ```@repl befwm2
-MultiplexNetwork(foodweb, L_facilitation=1)
+food_chain = FoodWeb([0 0 0; 1 0 0; 0 1 0]); # 1 <- 2 <- 3
 ```
 
-Or a connectance to `c_facilitation`:
+Let's have look where possible facilitation interactions can occur
 
 ```@repl befwm2
-MultiplexNetwork(foodweb, C_facilitation=0.5)
+A_facilitation_full(food_chain)
 ```
 
-Or an adjacency matrix to `A_facilitation`:
+Now you can create a [`MultiplexNetwork`](@ref) that includes facilitation links.
+This time let's specify the links with and adjacency matrix.
+We want to have only one link which occurs from species 2 to species 1.
 
 ```@repl befwm2
-MultiplexNetwork(foodweb, A_facilitation=[0 0 0; 1 0 0; 0 0 0])
+A_facilitation = [0 0 0; 1 0 0; 0 0 0];
+multi_net = MultiplexNetwork(food_chain, A_facilitation=A_facilitation);
+multi_net.layers[:facilitation].A == A_facilitation
 ```
 
-### Setting the facilitation intensity
-
-The intensity of facilitative interactions can be changed
-by specifying a value to `f0` (default set to 1).
-For instance, the previous example can be rewritten as:
-
-```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, fac=(A=[0 0 0; 1 0 0; 0 0 0], I=0.5));
-multiplex_network.facilitation_layer
-```
+!!! note "Symmetry of facilitation"
+    As the facilitation interaction is not assumed to be symmetric
+    you can specify an odd number of facilitation links.
 
 ## Interference between predators
 
@@ -321,48 +448,36 @@ With:
 Concretely, interference between predators adds a positive term to the denominator
 of the functional response that leads to a decrease in the consumption terms.
 
-### Adding interference interactions to the [`MultiplexNetwork`](@ref)
+### Example of a community with interference interactions
 
-For illustration, let's consider two consumers (2-3) feeding on one producer (1):
+Let's create a small [`MultiplexNetwork`](@ref) that contains interference interactions.
+We can consider the exploitative competition module
+(2 consumers feeding on the same resource).
 
 ```@repl befwm2
-foodweb = FoodWeb([0 0 0; 1 0 0; 1 0 0]);
+exp_module = FoodWeb([0 0 0; 1 0 0; 1 0 0]);
 ```
 
-For this community, potential interference links can happen between species 2 and 3
-(``3 \rightarrow 2`` and ``2 \rightarrow 3``).
-
-To fill the interference layer,
-you can either provide a number of links to `l_interference`:
+The interference links can occur between the two consumers.
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, L_interference=2)
+A_interference_full(exp_module)
 ```
 
-!!! note
-    The number of links should be even since interference is symmetric.
-
-Equivalently, you can provide a connectance to `c_interference`:
+Now you can create a [`MultiplexNetwork`](@ref)
+which includes interspecific interference links.
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, C_interference=1.0)
+multi_net = MultiplexNetwork(exp_module, L_i=2);
+n_links(multi_net)[:interference]
 ```
 
-Or you can provide an adjacency matrix to `A_interference`:
+As for competition, interference is assumed by default to be symmetric
+but this can be modified.
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, A_interference=[0 0 0; 0 0 1; 0 1 0])
-```
-
-### Setting the interference intensity
-
-To customize the intensity of interference interactions,
-you can specify a value to `i0` (default set to 1).
-For instance, you can do:
-
-```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, interference=(C=1.0, intensity=0.6));
-multiplex_network.interference_layer
+multi_net = MultiplexNetwork(exp_module, i=(sym=false, L=1));
+multi_net.layers[:interference].A
 ```
 
 ## Refuge provisioning
@@ -388,76 +503,62 @@ With:
 - ``r_0`` the refuge interaction intensity
 - ``A_\text{ref}`` the adjacency matrix of refuge links
 
-### Adding refuge interactions to the [`MultiplexNetwork`](@ref)
+### Example of a community with refuge interactions
 
-For illustration, let's consider a community of
-one producer eaten by an intermediate consumer
-which is himself eaten by a top predator:
-
-```@repl befwm2
-foodweb = FoodWeb([0 0 0; 1 0 0; 0 1 0]); # 2 eats 1 - 3 eats 2
-```
-
-In this simple case, only one refuge link is possible ``1 \rightarrow 2``.
-
-To fill the refuge layer, you can provide a number of links to `l_refuge`:
+Let's create a small [`MultiplexNetwork`](@ref) that contains refuge interactions.
+To illustrate, we consider the intraguild predation module.
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, L_refuge=1)
+intraguild_module = FoodWeb([0 0 0; 1 0 0; 1 1 0]);
 ```
 
-Or you can provide a connectance to `c_refuge`:
+In this module, the producer (species 1) can possibly provide a refuge
+to the intermediate predator (species 2)
+who is eaten by the top predator (species 3).
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, C_refuge=1.0)
+A_refuge_full(intraguild_module)
 ```
 
-Or you can provide an adjacency matrix to `A_refuge`:
+You can create a [`MultiplexNetwork`](@ref) that includes this refuge link.
+Moreover let's say that you also want to set the intensity of refuge interaction to `3.0`.
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, A_refuge=[0 1 0; 0 0 0; 0 0 0])
+multi_net = MultiplexNetwork(intraguild_module, r=(L=1, intensity=3.0))
 ```
 
-### Setting the refuge intensity
+## Specifying non-trophic functional forms
 
-To customize the intensity of refuge interactions,
-you can specify a value to `r0` (the default value is set to 1).
-For instance, you can do:
+You have seen above that the non-trophic interactions are translated
+in the dynamical equations by a modification of the model parameters.
+For instance, a facilitation interaction change
+the initially fixed growth rate of the producer (``r``)
+into a function of the facilitating species biomass
+(``r (1 + f_0 \sum_{k \in \{\text{fac}\}} (A_\text{fac})_{ik} B_k)``).
+The default form of these functions have been set to what is written above *but*
+can be customized.
+For instance if you want that growth rate function becomes quadratic i.e.
+``r (1 + (f_0 \sum_{k \in \{\text{fac}\}} (A_\text{fac})_{ik} B_k)^2)``
+you can do
 
 ```@repl befwm2
-multiplex_network = MultiplexNetwork(foodweb, refuge=(C=1.0, intensity=1.3));
-multiplex_network.refuge_layer
+foodweb = FoodWeb([0 0; 1 0]); # define a simple food web to illustrate
+custom_f(x,δx) = x*(1+δx^2) # default is x*(1+δx);
+multi_net = MultiplexNetwork(foodweb, L_f=1, functional_form_facilitation=custom_f);
 ```
 
-## Adding several non-trophic interactions simultaneously
+!!! note "Aliases of `functional_form`"
+    `multiplex_network_parameters_names()[:functional_form]`
 
-Several non-trophic layers can also be added simultaneously.
-Let's say that you have a community of two producers (1-2)
-and two consumers (3-4), which each feed on both producers:
+Some remarks on these functional forms,
+they always take two arguments `x` (initial parameters)
+and `δx` (by how much the parameter is changed).
+We warn you when redefining these forms to ensure that they make sense,
+because a inadequate form can totally destroy the consistency of your model.
 
-```@repl befwm2
-foodweb = FoodWeb([0 0 0 0; 0 0 0 0; 1 1 0 0; 1 1 0 0]);
-```
-
-You can add two competition links and one facilitation link at the same time:
-
-```@repl befwm2
-MultiplexNetwork(foodweb, L=(competition=2, facilitation=1))
-```
-
-Moreover, for more flexibility, you can mix the different filling methods
-(number of links, connectance, adjaceny matrix).
-Keeping the same community,
-let's assume that you want all producers to compete (`c_competition=1`),
-one facilitation link (`l_facilitation=1`),
-and the interference links between predators to occur according to a given adjacency matrix
-(`A_interference=[0 0 0 0; 0 0 0 0; 0 0 0 1; 0 0 1 0]`).
-To create such a [`MultiplexNetwork`](@ref), you can do:
-
-```@repl befwm2
-A_i = [0 0 0 0; 0 0 0 0; 0 0 0 1; 0 0 1 0]; # prepare interference adjacency matrix
-MultiplexNetwork(foodweb, C_competition=1, L_facilitation=1, A_interference=A_i)
-```
+!!! note "Interference functional form"
+    The form of the interference interaction cannot be changed
+    because the interference terms is defined by the functional response.
 
 In the next part, you will see how to parametrize the system
 given the network of your community (either a [`FoodWeb`](@ref)

@@ -23,7 +23,7 @@ function effect_refuge(aᵣ, B, network::MultiplexNetwork)
     r0 = network.layers[:refuge].intensity
     r0 > 0 || return aᵣ # r0 = 0 ⇒ no effect of refuge
     A_refuge = network.layers[:refuge].A
-    links(A_refuge) > 0 || return aᵣ # no refuge links ⇒ no effect of refuge
+    n_links(A_refuge) > 0 || return aᵣ # no refuge links ⇒ no effect of refuge
     f_refuge = network.layers[:refuge].f
     S = richness(A_refuge)
     prey = preys(aᵣ)
