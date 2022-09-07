@@ -66,33 +66,33 @@ include("MultiplexNetwork_signature.jl")
 zero_layer_A(fw::FoodWeb) = spzeros(richness(fw), richness(fw))
 
 defaults = MultiplexParametersDict(
-    A = InteractionDict(
-        competition = zero_layer_A,
-        facilitation = zero_layer_A,
-        interference = zero_layer_A,
-        refuge = zero_layer_A,
-        trophic = fw -> fw.A,
+    A=InteractionDict(
+        competition=zero_layer_A,
+        facilitation=zero_layer_A,
+        interference=zero_layer_A,
+        refuge=zero_layer_A,
+        trophic=fw -> fw.A,
     ),
-    intensity = InteractionDict(
-        competition = 1.0,
-        facilitation = 1.0,
-        interference = 1.0,
-        refuge = 1.0,
-        trophic = nothing,
+    intensity=InteractionDict(
+        competition=1.0,
+        facilitation=1.0,
+        interference=1.0,
+        refuge=1.0,
+        trophic=nothing,
     ),
-    functional_form = InteractionDict(
-        competition = (x, δx) -> x < 0 ? x : max(0, x * (1 - δx)),
-        facilitation = (x, δx) -> x * (1 + δx),
-        interference = nothing,
-        refuge = (x, δx) -> x / (1 + δx),
-        trophic = nothing,
+    functional_form=InteractionDict(
+        competition=(x, δx) -> x < 0 ? x : max(0, x * (1 - δx)),
+        facilitation=(x, δx) -> x * (1 + δx),
+        interference=nothing,
+        refuge=(x, δx) -> x / (1 + δx),
+        trophic=nothing,
     ),
-    symmetry = InteractionDict(
-        competition = true,
-        facilitation = false,
-        interference = true,
-        refuge = false,
-        trophic = nothing,
+    symmetry=InteractionDict(
+        competition=true,
+        facilitation=false,
+        interference=true,
+        refuge=false,
+        trophic=nothing,
     ),
 )
 
@@ -223,8 +223,24 @@ With default settings:
 
 Change the defaults with the appropriate arguments.
 
-TODO: provide an example of `MultiplexNetwork(foodweb, <int>=(L=?, sym=?))` here
-with an interesting value for `foodweb`.
+For example, competition is assumed to be symmetric,
+then the number of competition links has to be even. 
+But you can change this default as follow:
+
+```jldoctest
+julia> foodweb = FoodWeb([0 0 0; 0 0 0; 1 1 0]);
+
+julia> MultiplexNetwork(foodweb, competition=(sym=false, L=1))
+MultiplexNetwork of 3 species:
+  trophic_layer: 2 links
+  competition_layer: 1 links
+  facilitation_layer: 0 links
+  interference_layer: 0 links
+  refuge_layer: 0 links
+```
+
+!!! note 
+    If you don't specify `sym=false` an error will be thrown.
 
 See also [`FoodWeb`](@ref), [`Layer`](@ref).
 """
@@ -450,7 +466,7 @@ i.e. ``i`` interacts with ``j`` ⇏ ``j`` interacts with ``i``.
 function draw_asymmetric_links(potential_links, L::Integer)
     Lmax = length(potential_links)
     @check_is_between L 0 Lmax
-    sample(potential_links, L, replace = false)
+    sample(potential_links, L, replace=false)
 end
 
 """
@@ -480,7 +496,7 @@ function draw_symmetric_links(potential_links, L::Integer)
     @check_is_even L
     @check_is_even Lmax
     potential_links = asymmetrize(potential_links)
-    potential_links = sample(potential_links, L ÷ 2, replace = false)
+    potential_links = sample(potential_links, L ÷ 2, replace=false)
     symmetrize(potential_links)
 end
 
@@ -546,7 +562,7 @@ function nontrophic_adjacency_matrix(
     foodweb::FoodWeb,
     find_potential_links::Function,
     n;
-    symmetric = false
+    symmetric=false
 )
     S = richness(foodweb)
     A = spzeros(Bool, S, S)

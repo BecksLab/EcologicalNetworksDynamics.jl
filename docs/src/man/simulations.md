@@ -25,14 +25,14 @@ We begin by explaining how you can handle the time span of the simulation.
 
 ## Handle time
 
-The dynamic of the system is simulated between t=`start` and t=`stop`.
-By default `start=0` and `stop=500`.
+The dynamic of the system is simulated between t=`t0` and t=`tmax`.
+By default `t0=0` and `tmax=500`.
 However these values depends on the simulated system.
-If your system has a fast dynamic you can decrease `stop` value,
-by contrary if your system has slow dynamic you can increase `stop` value.
+If your system has a fast dynamic you can decrease `tmax` value,
+by contrary if your system has slow dynamic you can increase `tmax` value.
 
 ```@repl befwm2
-solution = simulate(params, B0, stop=50); # fast dynamic => decrease 'stop'
+solution = simulate(params, B0, tmax=50); # fast dynamic => decrease 'tmax'
 show(IOContext(stdout, :limit=>true, :displaysize=>(10, 10)), "text/plain", solution)
 ```
 
@@ -45,7 +45,7 @@ solution.t == collect(0:0.25:50)
 But the timestep can be changed if you want to have lower or higher time resolution.
 
 ```@repl befwm2
-solution = simulate(params, B0, stop=50, δt=0.5); # lower time resolution
+solution = simulate(params, B0, tmax=50, δt=0.5); # lower time resolution
 solution.t == collect(0:0.5:50)
 ```
 

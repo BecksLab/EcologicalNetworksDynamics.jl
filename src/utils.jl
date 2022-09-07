@@ -46,9 +46,53 @@ function fill_sparsematrix(x, template)
     out
 end
 
-"Number of links of an adjacency matrix."
-function links(A::AdjacencyMatrix)
-    count(A)
+"""
+    n_links(network)
+
+Compute the number of links of a network.
+If the argument is an adjacency matrix or a [`Layer`](@ref), 
+then an integer corresponding to the number of links (i.e. 1s) is returned.
+If the argument is a [`FoodWeb`](@ref), 
+then an integer corresponding to the number of trophic links is returned.
+If the argument is a [`MultiplexNetwork`](@ref),
+then a dictionnary is returned where `Dict[:interaction_type]` contains 
+the number of links of the selected interactions 
+
+# Examples 
+
+```jldoctest
+julia> foodweb = FoodWeb([0 0 0; 1 0 0; 0 1 0]); # food chain of length 3 (2 links)
+
+julia> n_links(foodweb) == n_links(foodweb.A) == 2
+true
+
+julia> multi_net = MultiplexNetwork(foodweb, L_facilitation=1); # + 1 facilitation link
+
+julia> n_links(multi_net)
+BEFWM2.InteractionDict{Int64} with 5 entries:
+  :trophic      => 2
+  :facilitation => 1
+  :competition  => 0
+  :refuge       => 0
+  :interference => 0
+```
+
+"""
+n_links(A::AdjacencyMatrix) = count(A)
+n_links(foodweb::FoodWeb) = n_links(foodweb.A)
+n_links(layer::Layer) = n_links(layer.A)
+function n_links(multi_net::MultiplexNetwork)
+    links = InteractionDict(
+        trophic=0,
+        competition=0,
+        facilitation=0,
+        interference=0,
+        refuge=0
+    )
+    for (interaction_name, layer) in multi_net.layers
+        links[interaction_name] = n_links(layer)
+    end
+    links
 end
 
 "Return the adjacency matrix of the trophic interactions."
