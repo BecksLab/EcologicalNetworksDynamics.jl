@@ -28,40 +28,40 @@ that will return you the corresponding `FoodWeb` object.
 using BEFWM2
 ```
 
-```@repl befwm2
+```@example befwm2
 A = [0 0 0; 1 0 0; 0 1 0] # 1 producer ⋅ 2 eats 1 ⋅ 3 eats 2
 foodweb = FoodWeb(A)
 ```
 
 We can check that adjacency matrix stored in `foodweb` corresponds to the one we provided.
 
-```@repl befwm2
+```@example befwm2
 foodweb.A
 ```
 
 As we did not use a method (e.g. the `nichemodel`) to create the foodweb,
 the method is said to be `unspecified`.
 
-```@repl befwm2
+```@example befwm2
 foodweb.method
 ```
 
 Moreover, by default:
 - the consumers are assumed to be inverterbrates
 
-```@repl befwm2
+```@example befwm2
 foodweb.metabolic_class
 ```
 
 - all body-mass are set to 1
 
-```@repl befwm2
+```@example befwm2
 foodweb.M
 ```
 
 - the `species` vector stores only species indexes as no identities were provided.
 
-```@repl befwm2
+```@example befwm2
 foodweb.species
 ```
 
@@ -76,7 +76,7 @@ it is more suited to create the foodweb using structural models.
 implements various structural models to build foodwebs.
 You can pass any of those models, with the adequate arguments, to generate foodwebs.
 
-```@repl befwm2
+```@example befwm2
 using EcologicalNetworks
 S = 20; # number of species
 C = 0.2; # connectance
@@ -100,7 +100,7 @@ so you can directly give a `UnipartiteNetwork` object to the [`FoodWeb`](@ref) m
     This function is not yet able to attribute metabolic classes or a mass to species,
     it just pass the adjacency matrix.
 
-```@repl befwm2
+```@example befwm2
 unipartite_network = EcologicalNetworks.nz_stream_foodweb()[1] # load network
 foodweb = FoodWeb(unipartite_network, method="NZ stream")
 ```
@@ -110,7 +110,7 @@ foodweb = FoodWeb(unipartite_network, method="NZ stream")
 By default all species mass are set to 1.
 However, you cange that either by giving your own body-mass vector (`M`).
 
-```@repl befwm2
+```@example befwm2
 A = [0 0 0; 1 0 0; 0 1 0]; # define adjacency matrix
 M = rand(3) # body-mass are drawn randomly in [0,1]
 foodweb = FoodWeb(A, M=M)
@@ -121,7 +121,7 @@ Or by using a consumer-resource mass ratio `Z`,
 then mass will be computed using species trophic levels (``t_l``)
 such that: ``M = Z^{t_l - 1}``.
 
-```@repl befwm2
+```@example befwm2
 A = [0 0 0; 1 0 0; 0 1 0]; # trophic levels are respectively 1, 2 and 3
 foodweb = FoodWeb(A, Z=10)
 foodweb.M

@@ -19,7 +19,7 @@ and check that our simulations fit with analytical predictions.
 
 We consider a 2-species system with one resource (``R``) and one consumer (``C``).
 
-```@repl befwm2
+```@example befwm2
 foodweb = FoodWeb([0 0; 1 0]); # 2 eats 1
 ```
 
@@ -29,7 +29,7 @@ Here we choose the [`ClassicResponse`](@ref)
 with a handling time (`hₜ`), an attack rate (`aᵣ`), and a hill exponent (`h`) equal to one
 to simplify analytical derivations.
 
-```@repl befwm2
+```@example befwm2
 response = ClassicResponse(foodweb, aᵣ=1, hₜ=1, h=1);
 ```
 

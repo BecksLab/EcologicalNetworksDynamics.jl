@@ -11,7 +11,7 @@ By default, this can be done in one line
 and with no other arguments than the [`ModelParameters`](@ref)
 and the initial biomass (`B0`).
 
-```@repl befwm2
+```@example befwm2
 foodweb = FoodWeb([0 0; 1 0]); # step 1: create the foodweb
 params = ModelParameters(foodweb); # step 2: generate model parameters
 B0 = [0.5, 0.5]; # set initial biomass
@@ -31,20 +31,20 @@ However these values depends on the simulated system.
 If your system has a fast dynamic you can decrease `tmax` value,
 by contrary if your system has slow dynamic you can increase `tmax` value.
 
-```@repl befwm2
+```@example befwm2
 solution = simulate(params, B0, tmax=50); # fast dynamic => decrease 'tmax'
 show(IOContext(stdout, :limit=>true, :displaysize=>(10, 10)), "text/plain", solution)
 ```
 
 Moreover we can note that trajectories are saved every `δt=0.25`.
 
-```@repl befwm2
+```@example befwm2
 solution.t == collect(0:0.25:50)
 ```
 
 But the timestep can be changed if you want to have lower or higher time resolution.
 
-```@repl befwm2
+```@example befwm2
 solution = simulate(params, B0, tmax=50, δt=0.5); # lower time resolution
 solution.t == collect(0:0.5:50)
 ```

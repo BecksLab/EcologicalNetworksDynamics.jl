@@ -25,7 +25,7 @@ but can also be easily customized if wanted.
     Simulations of biomass dynamics in community food webs
 - [Miele et al., 2019, PLOS](https://doi.org/10.1371/journal.pcbi.1007269) -
     Effect of non-trophic interactions on diversity-productivity relationship
-- [Kefi et al. 2018, Ecology Letters]( https://doi.org/10.1111/j.1461-0248.2011.01732.x) -
+- [Kefi et al. 2018, Ecology Letters](https://doi.org/10.1111/j.1461-0248.2011.01732.x) -
     More than a meal... integrating non-feeding interactions into food webs
 
 !!! note "Todo"

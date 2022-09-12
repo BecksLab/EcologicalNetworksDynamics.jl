@@ -55,7 +55,7 @@ to generate a [`FoodWeb`](@ref),
 which is the backbone of the [`MultiplexNetwork`](@ref)
 (for more details on food web generation, see [How to generate foodwebs?](@ref)).
 
-```@repl befwm2
+```@example befwm2
 A = [0 0 0; 1 0 0; 0 1 0]; # 1 <- 2 <- 3
 foodweb = FoodWeb(A); # build food web from adjacency matrix
 ```
@@ -63,7 +63,7 @@ foodweb = FoodWeb(A); # build food web from adjacency matrix
 Now that your [`FoodWeb`](@ref) is created,
 you can directly create a [`MultiplexNetwork`](@ref) as follows:
 
-```@repl befwm2
+```@example befwm2
 multi_net = MultiplexNetwork(foodweb);
 ```
 
@@ -71,7 +71,7 @@ As you only gave the food web to the [`MultiplexNetwork`](@ref) method
 without any additional arguments,
 the number of non-trophic links is set to zero.
 
-```@repl befwm2
+```@example befwm2
 n_links(multi_net)
 ```
 
@@ -84,19 +84,19 @@ because its values can be accessed either with the full key
 or a alias of the key.
 For instance if you want to access the trophic layer you can either use the full key...
 
-```@repl befwm2
+```@example befwm2
 multi_net.layers[:trophic]
 ```
 
 ... or an alias of the `:trophic` key (e.g. `:t`)
 
-```@repl befwm2
+```@example befwm2
 multi_net.layers[:t]
 ```
 
 Hopefully there is a cheat-sheet to know what are the aliases of each interaction.
 
-```@repl befwm2
+```@example befwm2
 interaction_names()
 ```
 
@@ -108,7 +108,7 @@ Now coming back to the trophic [`Layer`](@ref), you can see that it has three fi
 - `f`: the functional form of the non-trophic effect on the corresponding parameter
     (for more details see [Specifying non-trophic functional forms](@ref))
 
-```@repl befwm2
+```@example befwm2
 multi_net.layers[:facilitation].A # empty
 multi_net.layers[:facilitation].intensity # 1.0 by default
 multi_net.layers[:facilitation].f # (r,B_f) -> r(1+B_f) ++ of growth rate
@@ -118,7 +118,7 @@ Before explaining how to fill the non-trophic layers,
 note that the [`MultiplexNetwork`](@ref) contains, like the [`FoodWeb`](@ref),
 information about the species identities, the metabolic classes, and the body-masses:
 
-```@repl befwm2
+```@example befwm2
 multi_net.species; # species identities
 multi_net.metabolic_class; # metabolic classes
 multi_net.M; # individual body mass
@@ -139,7 +139,7 @@ and `<interaction_name>` is the full name or an alias of an interaction
 (e.g. `facilitation` or `f`).
 Thus if you want to set the connectance of the facilitation layer to `1.0` you can do:
 
-```@repl befwm2
+```@example befwm2
 foodweb = FoodWeb([0 0 0; 1 0 0; 1 0 0]); # 2 and 3 consumes 1
 net1 = MultiplexNetwork(foodweb, connectance_facilitation=1.0); # full names
 net2 = MultiplexNetwork(foodweb, C_f=1.0); # aliases
@@ -150,14 +150,14 @@ n_links(net1)[:f] == n_links(net2)[:f] == n_links(net3)[:f]
 As for the interactions, there is a cheat-sheet to retrieve the aliases
 of the [`MultiplexNetwork`](@ref) parameters.
 
-```@repl befwm2
+```@example befwm2
 multiplex_network_parameters_names()
 ```
 
 Moreover if you want to specify the same parameters
 for two or more interaction you can group them as follow
 
-```@repl befwm2
+```@example befwm2
 net1 = MultiplexNetwork(foodweb, C=(facilitation=0.5, interference=1.0));
 ```
 
@@ -165,7 +165,7 @@ Here we have set the connectance of the facilitation and interference layer
 to `0.5` and `1.0` respectively.
 This is equivalent to
 
-```@repl befwm2
+```@example befwm2
 net2 = MultiplexNetwork(foodweb, C_facilitation=0.5, C_interference=1.0);
 n_links(net1) == n_links(net2) # both ways are equivalent
 ```
@@ -173,7 +173,7 @@ n_links(net1) == n_links(net2) # both ways are equivalent
 Reversely if you want to specify two or more parameters for the same interaction
 you can group them as follow
 
-```@repl befwm2
+```@example befwm2
 net1 = MultiplexNetwork(foodweb, facilitation=(C=0.5, intensity=0.1));
 ```
 
@@ -181,7 +181,7 @@ Here we have set the connectance and the intensity of the facilitation layer
 to `0.5` and `0.1` respectively.
 This is equivalent to
 
-```@repl befwm2
+```@example befwm2
 net2 = MultiplexNetwork(foodweb, C_facilitation=0.5, intensity_facilitation=0.1);
 n_links(net1) == n_links(net2) # both ways are equivalent
 ```
@@ -210,8 +210,9 @@ For instance it does not make sense to
 define the connectance *and* the number of links of the same layer.
 Thus if you don't respect this rule an error will be thrown.
 
-```@repl befwm2
-MultiplexNetwork(foodweb, facilitation=(C=0.5, L=2))
+```jldoctest befwm2; setup = :(using BEFWM2; foodweb=FoodWeb([0 0; 0 1]))
+julia> MultiplexNetwork(foodweb, facilitation=(C=0.5, L=2))
+ERROR: ArgumentError: Ambiguous specifications for facilitation matrix adjacency: both connectance ('C' within a 'facilitation' argument) and number_of_links ('L' within a 'facilitation' argument) have been specified. Consider removing one.
 ```
 
 !!! note "Definition of connectance"
@@ -235,7 +236,7 @@ MultiplexNetwork(foodweb, facilitation=(C=0.5, L=2))
 To change the intensity `value` simply specify `intensity_<interaction_name>=value`.
 For instance if you want to set the intensity of refuge interactions to `2.0` you can do
 
-```@repl befwm2
+```@example befwm2
 multi_net = MultiplexNetwork(foodweb, intensity_refuge=2.0);
 multi_net.layers[:refuge].intensity
 ```
@@ -243,7 +244,7 @@ multi_net.layers[:refuge].intensity
 But you can also use aliases either for the interaction (`refuge`)
 or the parameter (`intensity`), for instance
 
-```@repl befwm2
+```@example befwm2
 multi_net1 = MultiplexNetwork(foodweb, intensity_r=2.0);
 multi_net2 = MultiplexNetwork(foodweb, I_r=2.0);
 multi_net1.layers[:refuge].intensity == multi_net2.layers[:refuge].intensity == 2.0
@@ -305,7 +306,7 @@ With:
 Let's create a small [`MultiplexNetwork`](@ref) that contains competition interactions.
 To illustrate let's use the apparent competition module (1 consumer feeding on 2 plants).
 
-```@repl befwm2
+```@example befwm2
 comp_module = FoodWeb([0 0 0; 0 0 0; 1 1 0]);
 ```
 
@@ -313,7 +314,7 @@ The possible competition interactions can occur between the two producers
 i.e. species 1 and 2.
 These potential links can be accessed with:
 
-```@repl befwm2
+```@example befwm2
 A_competition_full(comp_module)
 ```
 
@@ -325,15 +326,18 @@ Now you can create a [`MultiplexNetwork`](@ref) including competition interactio
 For instance, if you want to add competition interactions as much as possible,
 you can do
 
-```@repl befwm2
+```@example befwm2
 multi_net = MultiplexNetwork(comp_module, C_competition=1.0);
 multi_net.layers[:competition].A == A_competition_full(comp_module)
 ```
 
 Now let's say that you want to only add 1 competition link
 
-```@repl befwm2
-multi_net = MultiplexNetwork(comp_module, L_competition=1)
+```jldoctest befwm2; setup = :(using BEFWM2; comp_module = FoodWeb([0 0 0; 0 0 0; 1 1 0]))
+julia> multi_net = MultiplexNetwork(comp_module, L_competition=1)
+ERROR: ArgumentError: L should be even.
+  Evaluated: L = 1
+  Expected: L % 2 = 0
 ```
 
 You have an error because because
@@ -343,7 +347,7 @@ If you want to change that assumption because
 to add an odd number of competition links
 you can simply specify `sym_competition=false`.
 
-```@repl befwm2
+```@example befwm2
 multi_net = MultiplexNetwork(comp_module, L_competition=1, sym_competition=false);
 multi_net.layers[:competition].A # only one link
 ```
@@ -380,13 +384,13 @@ With:
 Let's create a small [`MultiplexNetwork`](@ref) that contains competition interactions.
 We can consider the food chain module (of length 3).
 
-```@repl befwm2
+```@example befwm2
 food_chain = FoodWeb([0 0 0; 1 0 0; 0 1 0]); # 1 <- 2 <- 3
 ```
 
 Let's have look where possible facilitation interactions can occur
 
-```@repl befwm2
+```@example befwm2
 A_facilitation_full(food_chain)
 ```
 
@@ -394,7 +398,7 @@ Now you can create a [`MultiplexNetwork`](@ref) that includes facilitation links
 This time let's specify the links with and adjacency matrix.
 We want to have only one link which occurs from species 2 to species 1.
 
-```@repl befwm2
+```@example befwm2
 A_facilitation = [0 0 0; 1 0 0; 0 0 0];
 multi_net = MultiplexNetwork(food_chain, A_facilitation=A_facilitation);
 multi_net.layers[:facilitation].A == A_facilitation
@@ -454,20 +458,20 @@ Let's create a small [`MultiplexNetwork`](@ref) that contains interference inter
 We can consider the exploitative competition module
 (2 consumers feeding on the same resource).
 
-```@repl befwm2
+```@example befwm2
 exp_module = FoodWeb([0 0 0; 1 0 0; 1 0 0]);
 ```
 
 The interference links can occur between the two consumers.
 
-```@repl befwm2
+```@example befwm2
 A_interference_full(exp_module)
 ```
 
 Now you can create a [`MultiplexNetwork`](@ref)
 which includes interspecific interference links.
 
-```@repl befwm2
+```@example befwm2
 multi_net = MultiplexNetwork(exp_module, L_i=2);
 n_links(multi_net)[:interference]
 ```
@@ -475,7 +479,7 @@ n_links(multi_net)[:interference]
 As for competition, interference is assumed by default to be symmetric
 but this can be modified.
 
-```@repl befwm2
+```@example befwm2
 multi_net = MultiplexNetwork(exp_module, i=(sym=false, L=1));
 multi_net.layers[:interference].A
 ```
@@ -508,7 +512,7 @@ With:
 Let's create a small [`MultiplexNetwork`](@ref) that contains refuge interactions.
 To illustrate, we consider the intraguild predation module.
 
-```@repl befwm2
+```@example befwm2
 intraguild_module = FoodWeb([0 0 0; 1 0 0; 1 1 0]);
 ```
 
@@ -516,14 +520,14 @@ In this module, the producer (species 1) can possibly provide a refuge
 to the intermediate predator (species 2)
 who is eaten by the top predator (species 3).
 
-```@repl befwm2
+```@example befwm2
 A_refuge_full(intraguild_module)
 ```
 
 You can create a [`MultiplexNetwork`](@ref) that includes this refuge link.
 Moreover let's say that you also want to set the intensity of refuge interaction to `3.0`.
 
-```@repl befwm2
+```@example befwm2
 multi_net = MultiplexNetwork(intraguild_module, r=(L=1, intensity=3.0))
 ```
 
@@ -541,7 +545,7 @@ For instance if you want that growth rate function becomes quadratic i.e.
 ``r (1 + (f_0 \sum_{k \in \{\text{fac}\}} (A_\text{fac})_{ik} B_k)^2)``
 you can do
 
-```@repl befwm2
+```@example befwm2
 foodweb = FoodWeb([0 0; 1 0]); # define a simple food web to illustrate
 custom_f(x,δx) = x*(1+δx^2) # default is x*(1+δx);
 multi_net = MultiplexNetwork(foodweb, L_f=1, functional_form_facilitation=custom_f);
