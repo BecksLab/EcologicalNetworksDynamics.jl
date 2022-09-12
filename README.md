@@ -22,14 +22,14 @@ Expected features on top of the core model:
 
 From the Julia REPL package mode (accessed with `]`), run:
 
-```julia
+```pkg-julia
 add BioenergeticFoodwebs
 ```
 
 To use BioenergeticFoodwebs.jl at its full potential you probably want to install
 [EcologicalNetworks.jl](http://docs.ecojulia.org/EcologicalNetworks.jl/stable/):
 
-```julia
+```pkg-julia
 add EcologicalNetworks
 ```
 

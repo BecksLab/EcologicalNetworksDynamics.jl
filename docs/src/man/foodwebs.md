@@ -140,7 +140,7 @@ want to use different classes (such as endotherm vertebrates), you can, but note
 should then provide the corresponding parameters or biological rates when defining the model
 parameters.
 
-~~~julia-repl
+~~~outdated-snippet
 julia> N = [
  0  0  0  0  0  ;
  0  0  0  0  0  ;
@@ -163,7 +163,7 @@ julia> fw = FoodWeb(N, metabolic_class = metab)
 Note that if you provide a metabolic class other than producer for any basal species,
 this will automatically be changed to producer (and return a Warning):
 
-~~~julia-repl
+~~~outdated-snippet
 julia> metab = ["producer", "invertebrate", "invertebrate", "ectotherm vertebrate", "ectotherm vertebrate"]
 5-element Vector{String}:
  "producer"
@@ -188,7 +188,7 @@ julia> fw.metabolic_class
 If you specify "vertebrate" instead of "ectotherm vertebrate", we will ask whether you want
 to change that to "ectotherm vertebrate", you can decide to change (type y) or not (type n):
 
-~~~julia-repl
+~~~outdated-snippet
 julia> metab = ["producer", "producer", "invertebrate", "vertebrate", "vertebrate"]
 5-element Vector{String}:
  "producer"
@@ -212,7 +212,7 @@ julia> fw.metabolic_class
 Finally, if you decide to use classes other than those 3, we will send you a Warning message
 but will not change anything:
 
-~~~julia-repl
+~~~outdated-snippet
 julia> metab = ["producer", "producer", "invertebrate", "endotherm vertebrate", "endotherm vertebrate"]
 5-element Vector{String}:
  "producer"
