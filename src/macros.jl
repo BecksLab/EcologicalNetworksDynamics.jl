@@ -1,5 +1,5 @@
 #### Macros ####
-"Check that `var` is lower or equal than `max`."
+# Check that `var` is lower or equal than `max`.
 macro check_lower_than(var, max)
     :(
         if $(esc(var)) > $(esc(max))
@@ -10,7 +10,7 @@ macro check_lower_than(var, max)
     )
 end
 
-"Check that `var` is greater or equal than `min`."
+# Check that `var` is greater or equal than `min`.
 macro check_greater_than(var, min)
     :(
         if $(esc(var)) < $(esc(min))
@@ -21,7 +21,7 @@ macro check_greater_than(var, min)
     )
 end
 
-"Check that `var` is between `min` and `max` (bounds included)."
+# Check that `var` is between `min` and `max` (bounds included).
 macro check_is_between(var, min, max)
     :(
         if !($(esc(min)) <= $(esc(var)) <= $(esc(max)))
@@ -44,7 +44,7 @@ macro check_is_even(x)
     )
 end
 
-"Check that `var` takes one value of the vector `values`."
+# Check that `var` takes one value of the vector `values`.
 macro check_in(var, values)
     :(
         if $(esc(var)) ∉ $values
@@ -87,7 +87,7 @@ macro check_size_is_richness²(mat, S)
     )
 end
 
-"Check that `mat` has a size `size`."
+# Check that `mat` has a size `size`.
 macro check_size(mat, size)
     :(
         if size($(esc(mat))) != $size

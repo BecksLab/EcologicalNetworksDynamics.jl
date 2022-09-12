@@ -41,7 +41,7 @@ The linear response and its parameters
 can be accessed by calling the [`LinearResponse`](@ref) method
 with the [`FoodWeb`](@ref) as a mandatory argument.
 
-```@repl befwm2
+```@example befwm2
 foodweb = FoodWeb([0 0 0; 1 0 0; 0 1 0]); # 1 producer ⋅ 2 eats 1 ⋅ 3 eats 2
 f = LinearResponse(foodweb);
 f.ω # preferency
@@ -51,7 +51,7 @@ f.α # consumption rate
 Above parameters take default values, but you can specify custom values.
 For instance if you want to double the attack rate of predator 3, you can do:
 
-```@repl befwm2
+```@example befwm2
 f = LinearResponse(foodweb, α=[0.0,1.0,2.0]);
 f.α # custom attack rates
 ```
@@ -62,7 +62,7 @@ corresponding to the linear functional response.
 To do so, you just need to provide the species biomass vector (`B`),
 where `B[i]` is the biomass of species ``i``.
 
-```@repl befwm2
+```@example befwm2
 f = LinearResponse(foodweb);
 B = [1, 1, 1]; # defining species biomass
 f(B) # F matrix, F[i,j] = Fᵢⱼ
@@ -118,7 +118,7 @@ The bioenergetic response and its parameters
 can be accessed by calling the [`BioenergeticResponse`](@ref) method
 with the [`FoodWeb`](@ref) as a mandatory argument.
 
-```@repl befwm2
+```@example befwm2
 foodweb = FoodWeb([0 0 0; 1 0 0; 0 1 0]); # 1 producer ⋅ 2 eats 1 ⋅ 3 eats 2
 f = BioenergeticResponse(foodweb);
 f.ω # preferency
@@ -130,7 +130,7 @@ f.h # hill exponent
 Above parameters take default values, but you can specify custom values.
 For instance if you want to set the hill exponent (`h`) to 1 instead of 2, you can do:
 
-```@repl befwm2
+```@example befwm2
 f = BioenergeticResponse(foodweb, h=1);
 f.h # custom hill exponent
 ```
@@ -141,7 +141,7 @@ corresponding to the bioenergetic functional response.
 To do so, you just need to provide the species biomass vector (`B`),
 where `B[i]` is the biomass of species ``i``.
 
-```@repl befwm2
+```@example befwm2
 f = BioenergeticResponse(foodweb);
 B = [1, 1, 1]; # defining species biomass
 f(B) # F matrix, F[i,j] = Fᵢⱼ
@@ -192,7 +192,7 @@ The classic response and its parameters
 can be accessed by calling the [`ClassicResponse`](@ref) method
 with the [`FoodWeb`](@ref) as a mandatory argument.
 
-```@repl befwm2
+```@example befwm2
 foodweb = FoodWeb([0 0 0; 1 0 0; 0 1 0]); # 1 producer ⋅ 2 eats 1 ⋅ 3 eats 2
 f = ClassicResponse(foodweb);
 f.ω # preferency
@@ -205,7 +205,7 @@ f.hₜ # handling time
 Above parameters take default values, but you can specify custom values.
 For instance if you want to set the handling time (`h`) to 0.1 instead of 1, you can do:
 
-```@repl befwm2
+```@example befwm2
 f = ClassicResponse(foodweb, hₜ=0.1);
 f.hₜ # custom handling time
 ```
@@ -216,7 +216,7 @@ corresponding to the classic functional response.
 To do so, you just need to provide the species biomass vector (`B`),
 where `B[i]` is the biomass of species ``i``.
 
-```@repl befwm2
+```@example befwm2
 f = ClassicResponse(foodweb);
 B = [1, 1, 1]; # defining species biomass
 f(B) # F matrix, F[i,j] = Fᵢⱼ
