@@ -4,6 +4,7 @@ using Test
 using SparseArrays
 using Random
 using EcologicalNetworks
+using JuliaFormatter
 
 # Set and print seed
 seed = sample(1:100000)
@@ -36,9 +37,31 @@ bold = "\033[1m"
 green = "\033[32m"
 reset = "\033[0m"
 
+no_break = true
 for test in test_files
     println("$(highlight)$(test)$(reset)")
+    no_break = false
     include(test) # if a test fails, the loop is broken
+    no_break = true
     println("$(bold)$(green)PASSED$(reset)")
     println("------------------------------------------")
+end
+
+if no_break
+    @info "Checking source code formatting.."
+    for (folder, _, files) in walkdir("..")
+        for file in files
+            if !any(endswith(file, ext) for ext in [".jl", ".md", ".jmd", ".qmd"])
+                continue
+            end
+            path = joinpath(folder, file)
+            println(path)
+            if !format(path; overwrite = false, format_markdown = true)
+                @warn "Source code in $path is not formatted according \
+                to the project style defined in ../.JuliaFormatter.toml. \
+                Consider formatting it using your editor's autoformatter or with \
+                `using JuliaFormatter; format(\"path/to/BEFWM2\", format_markdown=true)`."
+            end
+        end
+    end
 end
