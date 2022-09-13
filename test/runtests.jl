@@ -28,6 +28,7 @@ test_files = [
     "inputs/test-environment.jl",
     "inputs/test-nontrophic_interactions.jl",
     "inputs/test-producer_competition.jl",
+    "inputs/test-stochasticity.jl",
     "model/test-productivity.jl",
     "model/test-metabolic_loss.jl",
     "model/test-effect_nti.jl",
