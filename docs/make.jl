@@ -1,25 +1,24 @@
 using BEFWM2
 using Documenter
 
-DocMeta.setdocmeta!(BEFWM2, :DocTestSetup, :(using BEFWM2); recursive=true)
+DocMeta.setdocmeta!(BEFWM2, :DocTestSetup, :(using BEFWM2); recursive = true)
 
 makedocs(;
-    modules=[BEFWM2],
-    authors=
-    "Eva Delmas"
-    * ", Ismaël Lajaaiti"
-    * ", Thomas Malpas"
-    * ", Hana Mayall"
-    * ", Iago Bonnici"
-    * ", Sonia Kéfi"
-    * ", Andrew Beckerman",
-    repo="https://github.com/BecksLab/BEFWM2/blob/{commit}{path}#{line}",
-    sitename="BEFWM2.jl",
-    format=Documenter.HTML(;
-        prettyurls=get(ENV, "CI", "false") == "true",
-        assets=String[]
+    modules = [BEFWM2],
+    authors = "Eva Delmas" *
+              ", Ismaël Lajaaiti" *
+              ", Thomas Malpas" *
+              ", Hana Mayall" *
+              ", Iago Bonnici" *
+              ", Sonia Kéfi" *
+              ", Andrew Beckerman",
+    repo = "https://github.com/BecksLab/BEFWM2/blob/{commit}{path}#{line}",
+    sitename = "BEFWM2.jl",
+    format = Documenter.HTML(;
+        prettyurls = get(ENV, "CI", "false") == "true",
+        assets = String[],
     ),
-    pages=[
+    pages = [
         "Home" => "index.md",
         "Manual" => [
             "Generate foodwebs" => "man/foodwebs.md",
@@ -27,20 +26,14 @@ makedocs(;
             "Generate model parameters" => "man/modelparameters.md",
             "Choose a functional reponse" => "man/functionalresponse.md",
             "Run simulations" => "man/simulations.md",
-            "Measure stability" => "man/stability.md"
+            "Measure stability" => "man/stability.md",
         ],
         "Examples" => [
             "Paradox of enrichment" => "example/paradox_enrichment.md",
-            "Intraspecific competition and stability" => "example/intracomp_stability.md"
+            "Intraspecific competition and stability" => "example/intracomp_stability.md",
         ],
-        "Library" => [
-            "Public" => "lib/public.md",
-            "Internals" => "lib/internals.md"
-        ]
-    ]
+        "Library" => ["Public" => "lib/public.md", "Internals" => "lib/internals.md"],
+    ],
 )
 
-deploydocs(;
-    repo="github.com/BecksLab/BEFWM2.jl.git",
-    devbranch="doc"
-)
+deploydocs(; repo = "github.com/BecksLab/BEFWM2.jl.git", devbranch = "doc")

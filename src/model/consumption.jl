@@ -22,7 +22,7 @@ function consumption(
     i,
     B,
     params::Union{ModelParameters{ClassicResponse},ModelParameters{LinearResponse}},
-    fᵣmatrix
+    fᵣmatrix,
 )
     # Set up
     net = params.network

@@ -84,17 +84,17 @@ julia> simulate(params, [0.5, 1e-12], verbose=true); # no message thrown
 function simulate(
     params::ModelParameters,
     B0::AbstractVector;
-    t0::Number=0,
-    tmax::Number=500,
-    δt::Number=0.25,
-    extinction_threshold=1e-5,
-    verbose=true,
-    callback=CallbackSet(
+    t0::Number = 0,
+    tmax::Number = 500,
+    δt::Number = 0.25,
+    extinction_threshold = 1e-5,
+    verbose = true,
+    callback = CallbackSet(
         PositiveDomain(),
         TerminateSteadyState(1e-6, 1e-4),
-        ExtinguishSpecies(extinction_threshold, verbose)
+        ExtinguishSpecies(extinction_threshold, verbose),
     ),
-    kwargs...
+    kwargs...,
 )
 
     # Check for consistency and format input arguments
@@ -107,7 +107,7 @@ function simulate(
     timespan = (t0, tmax)
     timesteps = collect(t0:δt:tmax)
     problem = ODEProblem(dBdt!, B0, timespan, params)
-    solve(problem, saveat=timesteps, callback=callback; kwargs...)
+    solve(problem; saveat = timesteps, callback = callback, kwargs...)
 end
 #### end ####
 
@@ -116,9 +116,7 @@ end
 function ExtinguishSpecies(extinction_threshold::Number, verbose::Bool)
 
     # Condition to trigger the callback: a species biomass goes below the threshold.
-    function species_under_threshold(u, t, integrator)
-        any(u[u.>0] .< extinction_threshold)
-    end
+    species_under_threshold(u, t, integrator) = any(u[u.>0] .< extinction_threshold)
 
     # Effect of the callback: the species biomass below the threshold are set to 0.
     function extinguish_species!(integrator)
@@ -137,9 +135,7 @@ end
 function ExtinguishSpecies(extinction_threshold::AbstractVector, verbose::Bool)
 
     # Condition to trigger the callback: a species biomass goes below the threshold.
-    function species_under_threshold(u, t, integrator)
-        any(u[u.>0] .< extinction_threshold[u.>0])
-    end
+    species_under_threshold(u, t, integrator) = any(u[u.>0] .< extinction_threshold[u.>0])
 
     # Effect of the callback: the species biomass below the threshold are set to 0.
     function extinguish_species!(integrator)
@@ -190,15 +186,11 @@ julia> round.(solution.steady_state, digits=2) # steady state biomass
  0.22
 ```
 """
-function find_steady_state(
-    params::ModelParameters,
-    B0::AbstractVector;
-    kwargs...
-)
+function find_steady_state(params::ModelParameters, B0::AbstractVector; kwargs...)
     solution = simulate(params, B0; kwargs...)
     terminated = has_terminated(solution)
     steady_state = terminated ? solution.u[end] : nothing
-    (steady_state=steady_state, terminated=terminated)
+    (steady_state = steady_state, terminated = terminated)
 end
 
 has_terminated(solution) = solution.retcode == :Terminated

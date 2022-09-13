@@ -16,7 +16,7 @@ foodweb = FoodWeb([0 0; 1 0]); # step 1: create the foodweb
 params = ModelParameters(foodweb); # step 2: generate model parameters
 B0 = [0.5, 0.5]; # set initial biomass
 solution = simulate(params, B0); # step 3: run simulation
-show(IOContext(stdout, :limit=>true, :displaysize=>(10, 10)), "text/plain", solution)
+show(IOContext(stdout, :limit => true, :displaysize => (10, 10)), "text/plain", solution)
 ```
 
 In the following sections we explain what is happening inside [`simulate`](@ref)
@@ -32,8 +32,8 @@ If your system has a fast dynamic you can decrease `tmax` value,
 by contrary if your system has slow dynamic you can increase `tmax` value.
 
 ```@example befwm2
-solution = simulate(params, B0, tmax=50); # fast dynamic => decrease 'tmax'
-show(IOContext(stdout, :limit=>true, :displaysize=>(10, 10)), "text/plain", solution)
+solution = simulate(params, B0; tmax = 50); # fast dynamic => decrease 'tmax'
+show(IOContext(stdout, :limit => true, :displaysize => (10, 10)), "text/plain", solution)
 ```
 
 Moreover we can note that trajectories are saved every `δt=0.25`.
@@ -45,11 +45,12 @@ solution.t == collect(0:0.25:50)
 But the timestep can be changed if you want to have lower or higher time resolution.
 
 ```@example befwm2
-solution = simulate(params, B0, tmax=50, δt=0.5); # lower time resolution
+solution = simulate(params, B0; tmax = 50, δt = 0.5); # lower time resolution
 solution.t == collect(0:0.5:50)
 ```
 
 !!! note
+    
     `δt` does not correspond to the timesteps of the solver.
     That latter is handled automatically by the solving algorithm.
     `δt` is the timestep at which trajectory points are *saved*,
@@ -65,11 +66,13 @@ you choose to simulate your system.
 ## Choice of the solver algorithm
 
 !!! warning
+    
     Work in progress.
 
 ## Extinction threshold
 
 !!! warning
+    
     Work in progress.
 
 ## Solution handling

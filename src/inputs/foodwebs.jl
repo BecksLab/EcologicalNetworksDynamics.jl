@@ -25,9 +25,18 @@ mutable struct FoodWeb <: EcologicalNetwork
     method::String
     function FoodWeb(A, species, M, metabolic_class, method)
         S = size(A, 1)
-        isequal(size(A, 1))(size(A, 2)) || throw(ArgumentError("The adjacency matrix should be square"))
-        isless(S, length(species)) && throw(ArgumentError("That's too many species... there is more species defined than specified in the adjacency matrix"))
-        length(species) < S && throw(ArgumentError("That's too few species... there is less species defined than specified in the adjacency matrix"))
+        isequal(size(A, 1))(size(A, 2)) ||
+            throw(ArgumentError("The adjacency matrix should be square"))
+        isless(S, length(species)) && throw(
+            ArgumentError(
+                "That's too many species... there is more species defined than specified in the adjacency matrix",
+            ),
+        )
+        length(species) < S && throw(
+            ArgumentError(
+                "That's too few species... there is less species defined than specified in the adjacency matrix",
+            ),
+        )
         _cleanmetabolicclass!(metabolic_class, A)
         new(A, species, M, metabolic_class, method)
     end
@@ -137,9 +146,10 @@ end
 
 function _cleanmetabolicclass!(metabolic_class, A)
     # Check that producers are identified as such / replace and send a warning if not
-    id_producers = vec(sum(A, dims=2) .== 0)
+    id_producers = vec(sum(A; dims = 2) .== 0)
     are_producer_valid = all(metabolic_class[id_producers] .== "producer")
-    are_producer_valid || @warn "You provided a metabolic class for basal species - replaced by producer"
+    are_producer_valid ||
+        @warn "You provided a metabolic class for basal species - replaced by producer"
     metabolic_class[id_producers] .= "producer"
     # Warn that only ectotherm vertebrate have default methods
     id_vertebrates = lowercase.(metabolic_class) .== "vertebrate"
@@ -150,7 +160,8 @@ function _cleanmetabolicclass!(metabolic_class, A)
     for (i, m) in enumerate(metabolic_class)
         is_valid_class[i] = m ∈ valid_class ? true : false
     end
-    all(is_valid_class) || @warn "No default methods for metabolic classes outside of producers, invertebrates and ectotherm vertebrates, proceed with caution"
+    all(is_valid_class) ||
+        @warn "No default methods for metabolic classes outside of producers, invertebrates and ectotherm vertebrates, proceed with caution"
 end
 
 function _masscalculation(A, M, Z)
@@ -162,7 +173,11 @@ function _masscalculation(A, M, Z)
             M = Z .^ (tl .- 1)
         end
     else
-        isa(Z, Nothing) || throw(ArgumentError("You provided both a vector of body mass (M) and a predator-prey body mass ratio (Z), please only provide one or the other"))
+        isa(Z, Nothing) || throw(
+            ArgumentError(
+                "You provided both a vector of body mass (M) and a predator-prey body mass ratio (Z), please only provide one or the other",
+            ),
+        )
     end
     return M
 end
@@ -175,11 +190,11 @@ end
 function _makevertebratevec(A, metabolic_class)
     if isa(metabolic_class, Nothing)
         metabolic_class = repeat(["invertebrate"], size(A, 1))
-        isP = vec(sum(A, dims=2) .== 0)
+        isP = vec(sum(A; dims = 2) .== 0)
         metabolic_class[isP] .= "producer"
     elseif isa(metabolic_class, String)
         metabolic_class = repeat([metabolic_class], size(A, 1))
-        isP = vec(sum(A, dims=2) .== 0)
+        isP = vec(sum(A; dims = 2) .== 0)
         metabolic_class[isP] .= "producer"
     end
     return metabolic_class
@@ -192,7 +207,11 @@ function _modelfoodweb(model, S, C, forbidden, adbm_parameters)
     elseif smodel == "mpnmodel"
         A = model(S, C, forbidden)
     elseif smodel == "adbmodel"
-        isa(adbm_parameters, Nothing) && throw(ArgumentError("If using the adbmodel you need to provide either a method to generate parameters or a NamedTuple with the parameters, see the help."))
+        isa(adbm_parameters, Nothing) && throw(
+            ArgumentError(
+                "If using the adbmodel you need to provide either a method to generate parameters or a NamedTuple with the parameters, see the help.",
+            ),
+        )
         if isa(adbm_parameters, Symbol)
             println("Not implemented yet")
         elseif isa(adbm_parameters, NamedTuple)
@@ -201,7 +220,11 @@ function _modelfoodweb(model, S, C, forbidden, adbm_parameters)
             println("Not implemented yet")
         end
     else
-        throw(ArgumentError("Only models implemented are nichemodel, nestedhierarchymodel, cascademodel and mpnmodel."))
+        throw(
+            ArgumentError(
+                "Only models implemented are nichemodel, nestedhierarchymodel, cascademodel and mpnmodel.",
+            ),
+        )
     end
     return A
 end
@@ -240,8 +263,14 @@ julia> FW = FoodWeb(A)
 Method: unspecified
 ```
 """
-function FoodWeb(A::Union{AbstractMatrix{Bool},AdjacencyMatrix}
-    ; species::Union{Nothing,Vector{String}}=nothing, M::Union{Nothing,Vector{T}}=nothing, metabolic_class::Union{Nothing,Vector{String},String}=nothing, method::String="unspecified", Z::Union{Nothing,T}=nothing) where {T<:Real}
+function FoodWeb(
+    A::Union{AbstractMatrix{Bool},AdjacencyMatrix};
+    species::Union{Nothing,Vector{String}} = nothing,
+    M::Union{Nothing,Vector{T}} = nothing,
+    metabolic_class::Union{Nothing,Vector{String},String} = nothing,
+    method::String = "unspecified",
+    Z::Union{Nothing,T} = nothing,
+) where {T<:Real}
 
     M = _masscalculation(A, M, Z)
     species = _makespeciesid(A, species)
@@ -252,21 +281,36 @@ function FoodWeb(A::Union{AbstractMatrix{Bool},AdjacencyMatrix}
     return FoodWeb(A, species, M, metabolic_class, method)
 end
 
-function FoodWeb(A::AbstractMatrix{Int64}
-    ; species::Union{Nothing,Vector{String}}=nothing, M::Union{Nothing,Vector{T}}=nothing, metabolic_class::Union{Nothing,Vector{String},String}=nothing, method::String="unspecified", Z::Union{Nothing,Real}=nothing) where {T<:Real}
+function FoodWeb(
+    A::AbstractMatrix{Int64};
+    species::Union{Nothing,Vector{String}} = nothing,
+    M::Union{Nothing,Vector{T}} = nothing,
+    metabolic_class::Union{Nothing,Vector{String},String} = nothing,
+    method::String = "unspecified",
+    Z::Union{Nothing,Real} = nothing,
+) where {T<:Real}
 
     M = _masscalculation(A, M, Z)
     species = _makespeciesid(A, species)
     metabolic_class = _makevertebratevec(A, metabolic_class)
 
-    all([a ∈ [0, 1] for a in A]) || throw(ArgumentError("The adjacency matrix should only contain 0 (no interaction between i and j) and 1 (i eats i)"))
+    all([a ∈ [0, 1] for a in A]) || throw(
+        ArgumentError(
+            "The adjacency matrix should only contain 0 (no interaction between i and j) and 1 (i eats i)",
+        ),
+    )
     A = sparse(Bool.(A))
 
     return FoodWeb(A, species, M, metabolic_class, method)
 end
 
-function FoodWeb(A::UnipartiteNetwork
-    ; M::Union{Nothing,Vector{T}}=nothing, metabolic_class::Union{Nothing,Vector{String},String}=nothing, method::String="unspecified", Z::Union{Nothing,Real}=nothing) where {T<:Real}
+function FoodWeb(
+    A::UnipartiteNetwork;
+    M::Union{Nothing,Vector{T}} = nothing,
+    metabolic_class::Union{Nothing,Vector{String},String} = nothing,
+    method::String = "unspecified",
+    Z::Union{Nothing,Real} = nothing,
+) where {T<:Real}
 
     if isa(A.S, Vector{Mangal.MangalNode})
         species = [split(string(s), ": ")[2] for s in A.S]
@@ -309,8 +353,18 @@ julia> FW = FoodWeb(nichemodel, 10, C = 0.2, Z = 10)
 Method: unspecified
 ```
 """
-function FoodWeb(model::Function, S::Int64
-    ; C::Union{Nothing,Float64}=nothing, forbidden::Union{Nothing,Float64}=nothing, adbm_parameters::Union{Nothing,NamedTuple,Symbol}=nothing, species::Union{Nothing,Vector{String}}=nothing, M::Union{Nothing,Vector{T}}=nothing, metabolic_class::Union{Nothing,Vector{String},String}=nothing, method::String="unspecified", Z::Union{Nothing,Real}=nothing) where {T<:Real}
+function FoodWeb(
+    model::Function,
+    S::Int64;
+    C::Union{Nothing,Float64} = nothing,
+    forbidden::Union{Nothing,Float64} = nothing,
+    adbm_parameters::Union{Nothing,NamedTuple,Symbol} = nothing,
+    species::Union{Nothing,Vector{String}} = nothing,
+    M::Union{Nothing,Vector{T}} = nothing,
+    metabolic_class::Union{Nothing,Vector{String},String} = nothing,
+    method::String = "unspecified",
+    Z::Union{Nothing,Real} = nothing,
+) where {T<:Real}
 
     N = _modelfoodweb(model, S, C, forbidden, adbm_parameters)
     A = N.edges

@@ -19,8 +19,10 @@ for p in p_references(), i in i_references()
     if i == p
         I = istandard(i)
         P = pstandard(p)
-        throw("Ambiguous parametrization aliasing for MultiplexNetwork: " *
-              "'$p' either means '$I' or '$P'.")
+        throw(
+            "Ambiguous parametrization aliasing for MultiplexNetwork: " *
+            "'$p' either means '$I' or '$P'.",
+        )
     end
 end
 
@@ -80,9 +82,11 @@ function ambiguity_guard(arg)
         if length(different) > 1
             # That's a true semantic ambiguity.
             (p1, i1), (p2, i2) = different
-            throw("Ambiguous parametrization aliasing for MultiplexNetwork: " *
-                  "argument '$arg' would either mean $(parse_message(p1, i1)), " *
-                  "or $(parse_message(p2, i2)).")
+            throw(
+                "Ambiguous parametrization aliasing for MultiplexNetwork: " *
+                "argument '$arg' would either mean $(parse_message(p1, i1)), " *
+                "or $(parse_message(p2, i2)).",
+            )
         end
     end
 end
@@ -107,8 +111,7 @@ for T in [:BasalArg, :ParmIntNestedArg, :IntParmNestedArg]
         p::Symbol # Parameter argument part (:A, :sym, :connectance..)
         i::Symbol # Interaction argument part (:i, :fac, :refuge..)
         $T(p, i) = new(Symbol(p), Symbol(i))
-    end
-    ))
+    end))
 end
 
 # Reconstruct original input.
@@ -131,12 +134,14 @@ end
 function error(a::MultiplexNetworkArg, b::MultiplexNetworkArg)
     parm = pstandard(a.p)
     int = istandard(a.i)
-    throw(AliasingError(
-        "Ambiguous or redundant specification in MultiplexNetwork: " *
-        "$parm value for $int interaction is specified as $(name(a)), " *
-        "but it has already been specified as $(name(b)). " *
-        "Consider removing either one."
-    ))
+    throw(
+        AliasingError(
+            "Ambiguous or redundant specification in MultiplexNetwork: " *
+            "$parm value for $int interaction is specified as $(name(a)), " *
+            "but it has already been specified as $(name(b)). " *
+            "Consider removing either one.",
+        ),
+    )
 end
 
 function parse_MultiplexNetwork_arguments(foodweb, args)
@@ -148,7 +153,7 @@ function parse_MultiplexNetwork_arguments(foodweb, args)
     ta(T) = Tuple{un(MultiplexNetworkArg),T}
 
     # Start with empty dicts (all the values we could possibly collect).
-    all_parms = MultiplexParametersDict(
+    all_parms = MultiplexParametersDict(;
         A = InteractionDict{ta(AdjacencyMatrix)}(),
         intensity = InteractionDict{ta(un(AbstractFloat))}(),
         F = InteractionDict{ta(un(Function))}(),
@@ -170,13 +175,19 @@ function parse_MultiplexNetwork_arguments(foodweb, args)
                 found_transversal = true
                 try
                     # Scroll sub-arguments within the nested specification.
-                    if (!applicable(keys, value) ||
+                    if (
+                        !applicable(keys, value) ||
                         (typeof(first(keys(value))) <: Integer) ||
-                        !applicable(iterate, value))
+                        !applicable(iterate, value)
+                    )
                         fname = titlecase(name(FirstDict))
                         nname = name(NestedDict)
-                        throw(ArgumentError("$fname argument '$arg' " *
-                                            "cannot be iterated as ($nname=value,) pairs."))
+                        throw(
+                            ArgumentError(
+                                "$fname argument '$arg' " *
+                                "cannot be iterated as ($nname=value,) pairs.",
+                            ),
+                        )
                     end
                     for (nested_arg, val) in zip(keys(value), value)
                         parm, int = ro(arg, nested_arg)
@@ -189,8 +200,11 @@ function parse_MultiplexNetwork_arguments(foodweb, args)
                     end
                 catch e
                     if isa(e, AliasingError)
-                        throw(AliasingError("During parsing of '$arg' argument: " *
-                                            e.message))
+                        throw(
+                            AliasingError(
+                                "During parsing of '$arg' argument: " * e.message,
+                            ),
+                        )
                     end
                     rethrow()
                 end
@@ -205,8 +219,12 @@ function parse_MultiplexNetwork_arguments(foodweb, args)
         # Otherwise, expect basal specification with parameter of the form <parm>_<int>.
         splits = arg_parses(arg)
         if length(splits) == 0
-            throw(AliasingError("Could not recognize interaction type or layer parameter " *
-                                "within argument name '$arg'."))
+            throw(
+                AliasingError(
+                    "Could not recognize interaction type or layer parameter " *
+                    "within argument name '$arg'.",
+                ),
+            )
         end
         ((parm, int),) = splits #  There may be several ones, but only one meaning.
         basal = BasalArg(parm, int)
@@ -226,10 +244,14 @@ function parse_MultiplexNetwork_arguments(foodweb, args)
                 if already(parm, int)
                     (arg, _) = all_parms[parm][int]
                     arg = name(arg)
-                    throw(ArgumentError("No need to specify $parm parameter " *
-                                        "for the trophic layer ($arg) " *
-                                        "since the adjacency matrix " *
-                                        "is already specified in the foodweb."))
+                    throw(
+                        ArgumentError(
+                            "No need to specify $parm parameter " *
+                            "for the trophic layer ($arg) " *
+                            "since the adjacency matrix " *
+                            "is already specified in the foodweb.",
+                        ),
+                    )
                 end
             end
             continue
@@ -239,39 +261,48 @@ function parse_MultiplexNetwork_arguments(foodweb, args)
         A_specs = [all_parms[parm][int] for parm in [:A, :C, :L] if already(parm, int)]
         if length(A_specs) > 1
             (x, X), (y, Y) = ((name(arg), pstandard(arg.p)) for (arg, _) in A_specs)
-            throw(ArgumentError("Ambiguous specifications for $int matrix adjacency: " *
-                                "both $X ($x) and $Y ($y) have been specified. " *
-                                "Consider removing one."))
+            throw(
+                ArgumentError(
+                    "Ambiguous specifications for $int matrix adjacency: " *
+                    "both $X ($x) and $Y ($y) have been specified. " *
+                    "Consider removing one.",
+                ),
+            )
         end
         # Don't specify both symmetry and an explicit matrix.
         if already(:sym, int) && already(:A, int)
             s = name(all_parms[:sym][int][1])
             A = name(all_parms[:A][int][1])
-            throw(ArgumentError("Symmetry has been specified " *
-                                "for $int matrix adjacency ($s) " *
-                                "but the matrix has also been explicitly given ($A). " *
-                                "Consider removing symmetry specification."))
+            throw(
+                ArgumentError(
+                    "Symmetry has been specified " *
+                    "for $int matrix adjacency ($s) " *
+                    "but the matrix has also been explicitly given ($A). " *
+                    "Consider removing symmetry specification.",
+                ),
+            )
         end
         # Don't specify symmetry without a mean to construct a matrix.
-        if (already(:sym, int)
-            && !already(:L, int)
-            && !already(:C, int))
+        if (already(:sym, int) && !already(:L, int) && !already(:C, int))
             s = name(all_parms[:sym][int][1])
             c = shortest(:connectance, MultiplexParametersDict)
             n = shortest(:n_links, MultiplexParametersDict)
-            throw(ArgumentError("Symmetry has been specified " *
-                                "for $int matrix adjacency ($s) " *
-                                "but it is unspecified " *
-                                "how the matrix is supposed to be generated. " *
-                                "Consider specifying connectance " *
-                                "(eg. with '$(c)_$(int)') " *
-                                "or the number of desired links " *
-                                "(eg. with '$(n)_$(int)')."))
+            throw(
+                ArgumentError(
+                    "Symmetry has been specified " *
+                    "for $int matrix adjacency ($s) " *
+                    "but it is unspecified " *
+                    "how the matrix is supposed to be generated. " *
+                    "Consider specifying connectance " *
+                    "(eg. with '$(c)_$(int)') " *
+                    "or the number of desired links " *
+                    "(eg. with '$(n)_$(int)').",
+                ),
+            )
         end
         if !already(:A, int)
             # The matrix needs to be constructed.
-            sym = (already(:symmetry, int) ?
-                   all_parms[:sym][int][2] : defaults[:sym][int])
+            sym = (already(:symmetry, int) ? all_parms[:sym][int][2] : defaults[:sym][int])
             # Pick the right functions.
             potential_links = eval(Symbol("potential_$(int)_links"))
             if already(:connectance, int)
@@ -279,14 +310,14 @@ function parse_MultiplexNetwork_arguments(foodweb, args)
                     foodweb,
                     potential_links,
                     all_parms[:conn][int][2]::AbstractFloat;
-                    symmetric = sym
+                    symmetric = sym,
                 )
             elseif already(:n_links, int)
                 A = nontrophic_adjacency_matrix(
                     foodweb,
                     potential_links,
                     all_parms[:L][int][2]::Integer;
-                    symmetric = sym
+                    symmetric = sym,
                 )
             else
                 # Nothing has actually been specified for this matrix,

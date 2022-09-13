@@ -4,19 +4,17 @@
 [![codecov.io](http://codecov.io/github/BecksLab/BEFWM2.jl/coverage.svg?branch=main)](http://codecov.io/github/BecksLab/BEFWM2.jl?branch=main)
 
 BioenergeticFoodwebs is a Julia package that implements the bioenergetic
-consumer-resource model from [Yodzis and Innès (1992)][Yodzis1992] adapted to foodwebs
-(see [Williams et al., 2008][Williams2008] for more details).
-
-[Yodzis1992]: https://www.journals.uchicago.edu/doi/abs/10.1086/285380
-[Williams2008]: https://link.springer.com/chapter/10.1007/978-1-4020-5337-5_2
+consumer-resource model from [Yodzis and Innès (1992)](https://www.journals.uchicago.edu/doi/abs/10.1086/285380) adapted to foodwebs
+(see [Williams et al., 2008](https://link.springer.com/chapter/10.1007/978-1-4020-5337-5_2) for more details).
 
 Expected features on top of the core model:
-- [ ] various models for basal species growth, including a nutrient uptake function
-- [ ] 3 different adaptive rewiring methods of trophic interactions following extinctions or
+
+  - [ ] various models for basal species growth, including a nutrient uptake function
+  - [ ] 3 different adaptive rewiring methods of trophic interactions following extinctions or
     changes in species biomass
-- [ ] models accounting for temperature effect on species mass or on biological rates
-- [ ] choice of different functional response (linear, classic and bioenergetic)
-- [ ] measuring system stability according to several metrics
+  - [ ] models accounting for temperature effect on species mass or on biological rates
+  - [ ] choice of different functional response (linear, classic and bioenergetic)
+  - [ ] measuring system stability according to several metrics
 
 ## Install the package
 
@@ -45,7 +43,6 @@ more elaborated examples in the package [Documentation](https://docs-url).
 using BioenergeticFoodwebs
 using EcologicalNetworks
 ```
-
 
 ### Generate a foodweb
 
@@ -95,10 +92,10 @@ For our minimal example, it can be done as follow:
 
 ```julia
 using Plots
-t, B1, B2, B3 = sim.t, sim.B[:,1], sim.B[:,2], sim.B[:,3]; # unpack variables
-plot(t, B1, lw = 3, label="Producer", xlabel = "Time", ylabel = "Biomass")
-plot!(t, B2, lw = 3, label="Consumer")
-plot!(t, B3, lw = 3, label="Top consumer")
+t, B1, B2, B3 = sim.t, sim.B[:, 1], sim.B[:, 2], sim.B[:, 3]; # unpack variables
+plot(t, B1; lw = 3, label = "Producer", xlabel = "Time", ylabel = "Biomass")
+plot!(t, B2; lw = 3, label = "Consumer")
+plot!(t, B3; lw = 3, label = "Top consumer")
 ```
 
 ![Biomass trajectories](biomass_trajectory_example.png)

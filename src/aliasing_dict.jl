@@ -86,7 +86,7 @@ struct AliasingSystem
         for (std, aliases) in g
             std = Symbol(std)
             refs = vcat([Symbol(a) for a in aliases], [std])
-            references[std] = sort!(sort!(refs), by = x -> length(string(x)))
+            references[std] = sort!(sort!(refs); by = x -> length(string(x)))
             for ref in refs
                 # Protect from ambiguity.
                 if ref in keys(surjection)
@@ -94,8 +94,12 @@ struct AliasingSystem
                     if target == std
                         throw(AliasingError("Duplicated $name alias for '$std': '$ref'."))
                     end
-                    throw(AliasingError("Ambiguous $name reference: " *
-                                        "'$ref' either means '$target' or '$std'."))
+                    throw(
+                        AliasingError(
+                            "Ambiguous $name reference: " *
+                            "'$ref' either means '$target' or '$std'.",
+                        ),
+                    )
                 end
                 surjection[ref] = std
             end
@@ -113,8 +117,8 @@ name(a::AliasingSystem) = string(a.name)
 standards(a::AliasingSystem) = (r for r in keys(a._references))
 references(a::AliasingSystem) = (r for refs in values(a._references) for r in refs)
 # One cheat-sheet with all standards, their order and aliases.
-aliases(a::AliasingSystem) = OrderedDict(s => [r for r in references(s, a) if r != s]
-                                         for s in standards(a))
+aliases(a::AliasingSystem) =
+    OrderedDict(s => [r for r in references(s, a) if r != s] for s in standards(a))
 function standardize(ref, a::AliasingSystem)
     key = Symbol(ref)
     if key in references(a)
@@ -128,8 +132,8 @@ references(ref, a::AliasingSystem) = (r for r in a._references[standardize(ref, 
 shortest(ref, a::AliasingSystem) = first(references(ref, a))
 # Match reference to others, regardless of aliasing.
 is(ref_a, ref_b, a::AliasingSystem) = standardize(ref_a, a) == standardize(ref_b, a)
-isin(ref, refs, a::AliasingSystem) = any(standardize(ref, a) == standardize(r, a)
-                                         for r in refs)
+isin(ref, refs, a::AliasingSystem) =
+    any(standardize(ref, a) == standardize(r, a) for r in refs)
 
 
 """
@@ -218,79 +222,88 @@ function create_aliased_dict_type(type_name, system_name, g)
     # Mutable, but protected here as a mute variable within this function.
     alias_system = AliasingSystem(system_name, g)
 
-    eval(quote
+    eval(
+        quote
 
-        # A "newtype" pattern just wrapping a plain Dict.
-        struct $DictName{T} <: AbstractDict{Symbol,T}
-            _d::Dict{Symbol,T}
+            # A "newtype" pattern just wrapping a plain Dict.
+            struct $DictName{T} <: AbstractDict{Symbol,T}
+                _d::Dict{Symbol,T}
 
-        end
-
-        # Defer basic interface to the interface of dict.
-        Base.length(adict::$DictName) = length(adict._d)
-        Base.merge(a::$DictName, b::$DictName) = $DictName(merge(a._d, b._d))
-        Base.iterate(adict::$DictName) = Base.iterate(adict._d)
-        Base.iterate(adict::$DictName, state) = Base.iterate(adict._d, state)
-        Base.haskey(adict::$DictName, ref) = Base.haskey(adict._d, standardize(ref, adict))
-        Base.:(==)(a::$DictName, b::$DictName) = a._d == b._d
-
-        # Correct data access with aliasing ystem.
-        Base.getindex(adict::$DictName, ref) = (
-            Base.getindex(adict._d, standardize(ref, $alias_system)))
-        Base.setindex!(adict::$DictName, v, ref) = (
-            Base.setindex!(adict._d, v, standardize(ref, $alias_system)))
-
-        # Construct.
-        $DictName{T}() where {T} = $DictName{T}(Dict{Symbol,T}())
-        $DictName(args...) = $DictName((k => v) for (k, v) in args)
-        $DictName(; args...) = $DictName((k => v) for (k, v) in args)
-        function $DictName(g::Base.Generator)
-            T = pair_second_type(Dict(g))
-            d = Dict{Symbol,T}()
-            # Guard against redundant/ambiguous specifications.
-            norm = Dict() #  standard => ref
-            for (ref, value) in g
-                standard = standardize(ref, $alias_system)
-                if standard in keys(norm)
-                    aname = titlecase($alias_system.name)
-                    throw(AliasingError("$aname type '$standard' specified twice: " *
-                                        "once with '$(norm[standard])' " *
-                                        "and once with '$ref'."))
-                end
-                norm[standard] = ref
-                d[standard] = value
             end
-            $DictName{T}(d)
-        end
 
-        # Access underlying AliasingSystem information.
-        for (fn, first_args) in [
-            (:name, [()]),
-            (:standards, [()]),
-            (:aliases, [()]),
-            (:references, [(), (:ref,)]),
-            (:standardize, [(:ref,)]),
-            (:shortest, [(:ref,)]),
-            (:is, [(:ref_a, :ref_b)]),
-            (:isin, [(:ref, :refs)]),
-        ]
-            for code in [
-                    # Versions from the raw unspecialized type.
-                    :($fn(::Type{$$DictName}) where {} = $fn($$alias_system)),
-                    # Versions from the specialized type.
-                    :($fn(::Type{$$DictName{T}}) where {T} = $fn($$alias_system)),
-                    # Versions from an instance.
-                    :($fn(::$$DictName{T}) where {T} = $fn($$DictName)),
-                ], fargs in first_args
-                for a in fargs
-                    insert!(code.args[1].args[1].args, 2, a)
-                    insert!(code.args[2].args[2].args, 2, a)
+            # Defer basic interface to the interface of dict.
+            Base.length(adict::$DictName) = length(adict._d)
+            Base.merge(a::$DictName, b::$DictName) = $DictName(merge(a._d, b._d))
+            Base.iterate(adict::$DictName) = Base.iterate(adict._d)
+            Base.iterate(adict::$DictName, state) = Base.iterate(adict._d, state)
+            Base.haskey(adict::$DictName, ref) =
+                Base.haskey(adict._d, standardize(ref, adict))
+            Base.:(==)(a::$DictName, b::$DictName) = a._d == b._d
+
+            # Correct data access with aliasing ystem.
+            Base.getindex(adict::$DictName, ref) =
+                (Base.getindex(adict._d, standardize(ref, $alias_system)))
+            Base.setindex!(adict::$DictName, v, ref) =
+                (Base.setindex!(adict._d, v, standardize(ref, $alias_system)))
+
+            # Construct.
+            $DictName{T}() where {T} = $DictName{T}(Dict{Symbol,T}())
+            $DictName(args...) = $DictName((k => v) for (k, v) in args)
+            $DictName(; args...) = $DictName((k => v) for (k, v) in args)
+            function $DictName(g::Base.Generator)
+                T = pair_second_type(Dict(g))
+                d = Dict{Symbol,T}()
+                # Guard against redundant/ambiguous specifications.
+                norm = Dict() #  standard => ref
+                for (ref, value) in g
+                    standard = standardize(ref, $alias_system)
+                    if standard in keys(norm)
+                        aname = titlecase($alias_system.name)
+                        throw(
+                            AliasingError(
+                                "$aname type '$standard' specified twice: " *
+                                "once with '$(norm[standard])' " *
+                                "and once with '$ref'.",
+                            ),
+                        )
+                    end
+                    norm[standard] = ref
+                    d[standard] = value
                 end
-                eval(code)
+                $DictName{T}(d)
             end
-        end
 
-    end)
+            # Access underlying AliasingSystem information.
+            for (fn, first_args) in [
+                (:name, [()]),
+                (:standards, [()]),
+                (:aliases, [()]),
+                (:references, [(), (:ref,)]),
+                (:standardize, [(:ref,)]),
+                (:shortest, [(:ref,)]),
+                (:is, [(:ref_a, :ref_b)]),
+                (:isin, [(:ref, :refs)]),
+            ]
+                for code in [
+                        # Versions from the raw unspecialized type.
+                        :($fn(::Type{$$DictName}) where {} = $fn($$alias_system)),
+                        # Versions from the specialized type.
+                        :($fn(::Type{$$DictName{T}}) where {T} = $fn($$alias_system)),
+                        # Versions from an instance.
+                        :($fn(::$$DictName{T}) where {T} = $fn($$DictName)),
+                    ],
+                    fargs in first_args
+
+                    for a in fargs
+                        insert!(code.args[1].args[1].args, 2, a)
+                        insert!(code.args[2].args[2].args, 2, a)
+                    end
+                    eval(code)
+                end
+            end
+
+        end,
+    )
 end
 # Utility to the above.
 pair_second_type(::Dict{A,B}) where {A,B} = B

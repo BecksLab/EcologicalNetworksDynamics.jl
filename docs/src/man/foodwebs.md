@@ -4,14 +4,15 @@ As indicated by its name,
 the key input for the bioenergetic foodweb model is the foodweb.
 Foodwebs can be generated with different methods that all return
 a [`FoodWeb`](@ref) object containing the 5 following fields:
-- `A`: the foodweb adjacency matrix with 0s and 1s
+
+  - `A`: the foodweb adjacency matrix with 0s and 1s
     indicating respectively the absence and presence of trophic interactions.
     Rows are consumers and columns resources,
     thus `A[i,j] = 1` reads "species `i` eats species `j`"
-- `species`: vector containing species identities
-- `M`: vector containing species body-mass
-- `metabolic_class`: vector containing species metabolic class (e.g. "producer")
-- `method`: the method used to build the food web.
+  - `species`: vector containing species identities
+  - `M`: vector containing species body-mass
+  - `metabolic_class`: vector containing species metabolic class (e.g. "producer")
+  - `method`: the method used to build the food web.
     This is especially useful when using a method
     (e.g. `nichemodel` from EcologicalNetworks.jl)
     because method will then take automatically take the name of the model,
@@ -47,19 +48,20 @@ foodweb.method
 ```
 
 Moreover, by default:
-- the consumers are assumed to be inverterbrates
+
+  - the consumers are assumed to be inverterbrates
 
 ```@example befwm2
 foodweb.metabolic_class
 ```
 
-- all body-mass are set to 1
+  - all body-mass are set to 1
 
 ```@example befwm2
 foodweb.M
 ```
 
-- the `species` vector stores only species indexes as no identities were provided.
+  - the `species` vector stores only species indexes as no identities were provided.
 
 ```@example befwm2
 foodweb.species
@@ -80,12 +82,13 @@ You can pass any of those models, with the adequate arguments, to generate foodw
 using EcologicalNetworks
 S = 20; # number of species
 C = 0.2; # connectance
-foodweb = FoodWeb(nichemodel, S, C=C)
+foodweb = FoodWeb(nichemodel, S; C = C)
 ```
 
 !!! note
+    
     The `method` field has automatically stored the model used to generate the foodweb.
-
+    
     ```julia-repl
     julia> foodweb.method
     "nichemodel"
@@ -97,12 +100,13 @@ BioenergeticFoodwebs.jl is compatible with EcologicalNetworks.jl,
 so you can directly give a `UnipartiteNetwork` object to the [`FoodWeb`](@ref) method.
 
 !!! note
+    
     This function is not yet able to attribute metabolic classes or a mass to species,
     it just pass the adjacency matrix.
 
 ```@example befwm2
 unipartite_network = EcologicalNetworks.nz_stream_foodweb()[1] # load network
-foodweb = FoodWeb(unipartite_network, method="NZ stream")
+foodweb = FoodWeb(unipartite_network; method = "NZ stream")
 ```
 
 ## Specify species mass
@@ -113,7 +117,7 @@ However, you cange that either by giving your own body-mass vector (`M`).
 ```@example befwm2
 A = [0 0 0; 1 0 0; 0 1 0]; # define adjacency matrix
 M = rand(3) # body-mass are drawn randomly in [0,1]
-foodweb = FoodWeb(A, M=M)
+foodweb = FoodWeb(A; M = M)
 foodweb.M
 ```
 
@@ -123,13 +127,14 @@ such that: ``M = Z^{t_l - 1}``.
 
 ```@example befwm2
 A = [0 0 0; 1 0 0; 0 1 0]; # trophic levels are respectively 1, 2 and 3
-foodweb = FoodWeb(A, Z=10)
+foodweb = FoodWeb(A; Z = 10)
 foodweb.M
 ```
 
 ## Specify species metabolic classes
 
 !!! note "Todo"
+    
     Update this subsection.
 
 Species metabolic classes are important properties in the context of the bioenergetic model

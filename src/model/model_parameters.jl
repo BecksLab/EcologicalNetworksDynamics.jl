@@ -92,9 +92,9 @@ ClassicResponse:
 """
 function ModelParameters(
     network::EcologicalNetwork;
-    biorates::BioRates=BioRates(network),
-    environment::Environment=Environment(network),
-    functional_response::FunctionalResponse=BioenergeticResponse(network)
+    biorates::BioRates = BioRates(network),
+    environment::Environment = Environment(network),
+    functional_response::FunctionalResponse = BioenergeticResponse(network),
 )
     if isa(network, MultiplexNetwork) & !(isa(functional_response, ClassicResponse))
         type_response = typeof(functional_response)

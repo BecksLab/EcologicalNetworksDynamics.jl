@@ -82,12 +82,12 @@ n_links(A::AdjacencyMatrix) = count(A)
 n_links(foodweb::FoodWeb) = n_links(foodweb.A)
 n_links(layer::Layer) = n_links(layer.A)
 function n_links(multi_net::MultiplexNetwork)
-    links = InteractionDict(
-        trophic=0,
-        competition=0,
-        facilitation=0,
-        interference=0,
-        refuge=0
+    links = InteractionDict(;
+        trophic = 0,
+        competition = 0,
+        facilitation = 0,
+        interference = 0,
+        refuge = 0,
     )
     for (interaction_name, layer) in multi_net.layers
         links[interaction_name] = n_links(layer)
