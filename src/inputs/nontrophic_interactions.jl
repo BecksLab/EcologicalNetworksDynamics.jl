@@ -358,7 +358,7 @@ function A_nti_full(net::EcologicalNetwork, potential_links::Function)
     foodweb = convert(FoodWeb, net)
     S = richness(foodweb)
     potential_links = potential_links(foodweb)
-    A = spzeros((S, S))
+    A = spzeros(S, S)
     for (i, j) in potential_links
         A[i, j] = 1
     end

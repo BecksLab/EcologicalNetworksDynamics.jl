@@ -40,7 +40,9 @@ julia> BEFWM2.fill_sparsematrix(10, template_matrix)
 ```
 """
 function fill_sparsematrix(x, template)
-    out = spzeros(size(template))
+    length(size(template)) == 2 || throw(DimensionMismatch("Should provide a 2-d matrix."))
+    x, y = size(template)
+    out = spzeros(x, y)
     nzind = findall(!iszero, template)
     out[nzind] .= x
     out
