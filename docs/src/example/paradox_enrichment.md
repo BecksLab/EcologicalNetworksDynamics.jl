@@ -30,7 +30,7 @@ with a handling time (`hₜ`), an attack rate (`aᵣ`), and a hill exponent (`h`
 to simplify analytical derivations.
 
 ```@example befwm2
-response = ClassicResponse(foodweb, aᵣ=1, hₜ=1, h=1);
+response = ClassicResponse(foodweb; aᵣ = 1, hₜ = 1, h = 1);
 ```
 
 Then, the system dynamic is governed by the following set of ODEs:
@@ -44,25 +44,25 @@ Then, the system dynamic is governed by the following set of ODEs:
 
 with:
 
-- ``r`` the intrinsic growth of the resource
-- ``K`` the carrying capacity of the resource
-- ``e`` the assimilation efficiency of the predator
-- ``x`` the metabolic demand of the predator
+  - ``r`` the intrinsic growth of the resource
+  - ``K`` the carrying capacity of the resource
+  - ``e`` the assimilation efficiency of the predator
+  - ``x`` the metabolic demand of the predator
 
 ## Stability analysis
 
 The system has three equilibria:
 
-1. ``(R_1 = 0, C_1 = 0)`` the trivial equilibria were both species are extinct
-2. ``(R_2 = K, C_2 = 0)`` the consumer is extinct and the resource is at its carrying capacity
-3. ``(R_3 = \frac{\frac{x}{e}}{1 - \frac{x}{e}}, C_3 = r (1 + R_3) (1 - \frac{R_3}{K}))``
+ 1. ``(R_1 = 0, C_1 = 0)`` the trivial equilibria were both species are extinct
+ 2. ``(R_2 = K, C_2 = 0)`` the consumer is extinct and the resource is at its carrying capacity
+ 3. ``(R_3 = \frac{\frac{x}{e}}{1 - \frac{x}{e}}, C_3 = r (1 + R_3) (1 - \frac{R_3}{K}))``
     both species can coexist
 
 !!! note
+    
     Surprisingly, for the third equilibrium the resource biomass does not depend at all on
     its carrying capacity (``K``) or its intrinsic growth rate (``r``),
     but the consumer biomass does.
-
 
 To go further we can compute the Jacobian of our system
 to characterize the stability of the equilibria points.
@@ -104,12 +104,13 @@ J(R_2, C_2) =
 \end{pmatrix}
 ```
 
-This equilibrium is stable if ``K \leq K_c =  \frac{\frac{x}{e}}{1 - \frac{x}{e}}``.
+This equilibrium is stable if ``K \leq K_c = \frac{\frac{x}{e}}{1 - \frac{x}{e}}``.
 In other words, when the carrying capacity becomes large enough
 the consumer can coexist with resource,
 and ``K_c`` is the minimal capacity needed to maintain the consumer alive.
 
 !!! note
+    
     ``K_c`` is positive if and only if ``e \geq x``
     which is the second condition for the consumer to survive.
     Its assimilation of the resource has to be high enough to fulfill its metabolic demand.
@@ -142,33 +143,40 @@ All the system behavior can be summarized in one plot, that we call an *orbit di
 The orbit diagram represent the evolution of system (stable) equilibrium
 depending on the carrying capacity.
 
-
 ```@example befwm2
 using Plots # hide
 ENV["GKSwstype"] = "100" # don't open a plot window while building the documentation # hide
 
 # Setup
-K_list = [1 + 0.1*i for i in 1:46]
-append!(K_list, [5.6 + i*0.01 for i in 1:440])
+K_list = [1 + 0.1 * i for i in 1:46]
+append!(K_list, [5.6 + i * 0.01 for i in 1:440])
 R_list = [] # resource final biomass
 C_list = [] # consumer final biomass
 
 # Run simulations
 for K in K_list
-    e = Environment(foodweb, K=K)
-    p = ModelParameters(foodweb, functional_response=response, environment=e)
-    out = simulate(p, [1,1], verbose=false)
+    e = Environment(foodweb; K = K)
+    p = ModelParameters(foodweb; functional_response = response, environment = e)
+    out = simulate(p, [1, 1]; verbose = false)
     append!(R_list, out.u[end][1])
     append!(C_list, out.u[end][2])
 end
 
 # Plot orbit diagram
-plot(K_list, R_list, label="resource", xlabel="K", ylabel="B", seriestype=:scatter,
-title="Orbit diagram")
-plot!(K_list, C_list, label="consumer", seriestype=:scatter, legend=:topleft)
-vline!([2.3], linestyle=:dashdot, lw=3, color=:grey, label="Kc")
-vline!([1 + 2*2.3], linestyle=:dashdot, lw=3, color=:darkgrey, label="1 + 2Kc")
-savefig("enrichment_orbit-diagram.svg"); nothing # hide
+plot(
+    K_list,
+    R_list;
+    label = "resource",
+    xlabel = "K",
+    ylabel = "B",
+    seriestype = :scatter,
+    title = "Orbit diagram",
+)
+plot!(K_list, C_list; label = "consumer", seriestype = :scatter, legend = :topleft)
+vline!([2.3]; linestyle = :dashdot, lw = 3, color = :grey, label = "Kc")
+vline!([1 + 2 * 2.3]; linestyle = :dashdot, lw = 3, color = :darkgrey, label = "1 + 2Kc")
+savefig("enrichment_orbit-diagram.svg");
+nothing; # hide
 ```
 
 ![](enrichment_orbit-diagram.svg)

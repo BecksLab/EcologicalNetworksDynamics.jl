@@ -11,7 +11,7 @@
     @test typeof(p.functional_response) == BioenergeticResponse
 
     # Custom biorates
-    p = ModelParameters(foodweb, biorates=BioRates(foodweb, x=1))
+    p = ModelParameters(foodweb; biorates = BioRates(foodweb; x = 1))
     @test p.biorates.x == [1, 1, 1] # changed
     @test p.biorates.r == [1, 0, 0] # unchanged
     @test p.environment.K == [1, nothing, nothing] # unchanged
@@ -19,7 +19,7 @@
     @test typeof(p.functional_response) == BioenergeticResponse # unchanged
 
     # Classic Functional Response
-    p = ModelParameters(foodweb, functional_response=ClassicResponse(foodweb))
+    p = ModelParameters(foodweb; functional_response = ClassicResponse(foodweb))
     @test p.biorates.x == [0, 0.314, 0.314] # unchanged
     @test p.biorates.r == [1, 0, 0] # unchanged
     @test p.environment.K == [1, nothing, nothing] # unchanged
@@ -27,7 +27,7 @@
     @test typeof(p.functional_response) == ClassicResponse # changed
 
     # Linear Functional Response
-    p = ModelParameters(foodweb, functional_response=LinearResponse(foodweb))
+    p = ModelParameters(foodweb; functional_response = LinearResponse(foodweb))
     @test typeof(p.functional_response) == LinearResponse
 
     # Warning if not ClassicResponse and MultiplexNetwork
@@ -39,7 +39,13 @@
             Use a functional response of type 'ClassicResponse' instead."
     biomsg = "Non-trophic interactions aren't implented for 'BioenergeticResponse'.
             Use a functional response of type 'ClassicResponse' instead."
-    @test_logs (:warn, linmsg) ModelParameters(multiplex_network, functional_response=lresp)
-    @test_logs (:warn, biomsg) ModelParameters(multiplex_network, functional_response=bresp)
-    @test_nowarn ModelParameters(multiplex_network, functional_response=cresp)
+    @test_logs (:warn, linmsg) ModelParameters(
+        multiplex_network,
+        functional_response = lresp,
+    )
+    @test_logs (:warn, biomsg) ModelParameters(
+        multiplex_network,
+        functional_response = bresp,
+    )
+    @test_nowarn ModelParameters(multiplex_network, functional_response = cresp)
 end

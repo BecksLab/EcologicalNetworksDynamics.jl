@@ -5,6 +5,7 @@ CurrentModule = BEFWM2
 # EcologicalNetworkDynamics
 
 !!! warning "Work in progress"
+    
     🚧🚧🚧
 
 This package provides tools to easily simulate ecological network dynamics using Julia.
@@ -16,19 +17,21 @@ Default community parameters are taken from the literature,
 but can also be easily customized if wanted.
 
 !!! note "Todo"
+    
     Complete the package description and explain in more detail the package features and the
     package "philosophy".
 
 ## References
 
-- [Delmas et al., 2016, MEE](https://doi.org/10.1111/2041-210X.12713) -
+  - [Delmas et al., 2016, MEE](https://doi.org/10.1111/2041-210X.12713) -
     Simulations of biomass dynamics in community food webs
-- [Miele et al., 2019, PLOS](https://doi.org/10.1371/journal.pcbi.1007269) -
+  - [Miele et al., 2019, PLOS](https://doi.org/10.1371/journal.pcbi.1007269) -
     Effect of non-trophic interactions on diversity-productivity relationship
-- [Kefi et al. 2018, Ecology Letters](https://doi.org/10.1111/j.1461-0248.2011.01732.x) -
+  - [Kefi et al. 2018, Ecology Letters](https://doi.org/10.1111/j.1461-0248.2011.01732.x) -
     More than a meal... integrating non-feeding interactions into food webs
 
 !!! note "Todo"
+    
     Add other references.
 
 ## How can I contribute?
@@ -40,6 +43,7 @@ start working from the `develop` branch,
 and when ready, submit a pull request.
 
 !!! note "Todo"
+    
     Update url address if needed when the package is released.
 
 ## Citing

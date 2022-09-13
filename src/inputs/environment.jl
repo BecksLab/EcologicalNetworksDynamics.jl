@@ -66,8 +66,8 @@ See also [`ModelParameters`](@ref).
 """
 function Environment(
     net::EcologicalNetwork;
-    K::Union{Tp,Vector{Union{Nothing,Tp}},Vector{Tp}}=1,
-    T::Real=293.15
+    K::Union{Tp,Vector{Union{Nothing,Tp}},Vector{Tp}} = 1,
+    T::Real = 293.15,
 ) where {Tp<:Real}
     S = richness(net)
     isa(K, AbstractVector) || (K = [isproducer(i, net) ? K : nothing for i in 1:S])

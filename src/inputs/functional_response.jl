@@ -29,9 +29,7 @@ end
 
 #### Type display ####
 "One line display FunctionalResponse"
-function Base.show(io::IO, response::FunctionalResponse)
-    print(io, "$(typeof(response))")
-end
+Base.show(io::IO, response::FunctionalResponse) = print(io, "$(typeof(response))")
 
 "Multiline BioenergeticResponse display."
 function Base.show(io::IO, ::MIME"text/plain", response::BioenergeticResponse)
@@ -97,7 +95,7 @@ The efficiency depends on the metabolic class of the prey:
 
 Default values are taken from *add ref*.
 """
-function efficiency(net::EcologicalNetwork; e_herb=0.45, e_carn=0.85)
+function efficiency(net::EcologicalNetwork; e_herb = 0.45, e_carn = 0.85)
     S = richness(net)
     E = spzeros(Float64, S, S)
     A = get_trophic_adjacency(net)
@@ -258,9 +256,7 @@ julia> F([1, 1.5], 2, 1) # but not with consumer biomass
 See also [`BioenergeticResponse`](@ref), [`ClassicResponse`](@ref)
 and [`FunctionalResponse`](@ref).
 """
-function (F::LinearResponse)(B, i, j)
-    F.ω[i, j] * F.α[i] * B[j]
-end
+(F::LinearResponse)(B, i, j) = F.ω[i, j] * F.α[i] * B[j]
 
 """
     FunctionalResponse(B)
@@ -315,9 +311,7 @@ function (F::FunctionalResponse)(B)
     end
     F_matrix
 end
-function (F::FunctionalResponse)(B, _::EcologicalNetwork)
-    F(B)
-end
+(F::FunctionalResponse)(B, _::EcologicalNetwork) = F(B)
 
 function (F::ClassicResponse)(B, network::MultiplexNetwork)
 
@@ -341,10 +335,10 @@ end
 # Methods to build Classic and Bionergetic structs
 function BioenergeticResponse(
     network::EcologicalNetwork;
-    B0=0.5,
-    h=2.0,
-    ω=homogeneous_preference(network),
-    c=0.0
+    B0 = 0.5,
+    h = 2.0,
+    ω = homogeneous_preference(network),
+    c = 0.0,
 )
     S = richness(network)
     isa(c, AbstractArray) || (c = fill(c, S))
@@ -354,11 +348,11 @@ end
 
 function ClassicResponse(
     network::EcologicalNetwork;
-    aᵣ=0.5,
-    hₜ=1.0,
-    h=2.0,
-    ω=homogeneous_preference(network),
-    c=0.0
+    aᵣ = 0.5,
+    hₜ = 1.0,
+    h = 2.0,
+    ω = homogeneous_preference(network),
+    c = 0.0,
 )
     S = richness(network)
     A_trophic = get_trophic_adjacency(network)
@@ -372,11 +366,7 @@ function ClassicResponse(
     ClassicResponse(h, ω, c, hₜ, aᵣ)
 end
 
-function LinearResponse(
-    net::EcologicalNetwork;
-    ω=homogeneous_preference(net),
-    α=1.0
-)
+function LinearResponse(net::EcologicalNetwork; ω = homogeneous_preference(net), α = 1.0)
     S = richness(net)
     isa(α, AbstractVector) || (α = fill_sparsematrix(α, [ispredator(i, net) for i in 1:S]))
     @check_size_is_richness² ω S

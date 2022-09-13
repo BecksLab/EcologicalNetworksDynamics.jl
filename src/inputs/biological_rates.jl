@@ -13,9 +13,7 @@ end
 
 #### Type display ####
 "One line [`BioRates`](@ref) display."
-function Base.show(io::IO, b::BioRates)
-    print(io, "BioRates(e, r, x, y)")
-end
+Base.show(io::IO, b::BioRates) = print(io, "BioRates(e, r, x, y)")
 
 "Multiline [`BioRates`](@ref) display."
 function Base.show(io::IO, ::MIME"text/plain", biorates::BioRates)
@@ -166,10 +164,13 @@ BioRates:
 """
 function BioRates(
     network::EcologicalNetwork;
-    r::Union{Vector{<:Real},<:Real}=allometric_rate(network, DefaultGrowthParams()),
-    x::Union{Vector{<:Real},<:Real}=allometric_rate(network, DefaultMetabolismParams()),
-    y::Union{Vector{<:Real},<:Real}=allometric_rate(network, DefaultMaxConsumptionParams()),
-    e=efficiency(network)
+    r::Union{Vector{<:Real},<:Real} = allometric_rate(network, DefaultGrowthParams()),
+    x::Union{Vector{<:Real},<:Real} = allometric_rate(network, DefaultMetabolismParams()),
+    y::Union{Vector{<:Real},<:Real} = allometric_rate(
+        network,
+        DefaultMaxConsumptionParams(),
+    ),
+    e = efficiency(network),
 )
     S = richness(network)
     Rates = [r, x, y]
@@ -186,10 +187,7 @@ function BioRates(
 end
 
 "Compute rate vector (one value per species) with allometric scaling."
-function allometric_rate(
-    net::EcologicalNetwork,
-    allometricparams::AllometricParams
-)
+function allometric_rate(net::EcologicalNetwork, allometricparams::AllometricParams)
     params = allometricparams_to_vec(net, allometricparams)
     a, b = params.a, params.b
     allometricscale.(a, b, net.M)
@@ -204,10 +202,7 @@ allometricscale(a, b, M) = a * M^b
 Create species parameter vectors for a, b of length S (species richness) given the
 allometric parameters for the different metabolic classes (aₚ,aᵢ,...).
 """
-function allometricparams_to_vec(
-    net::EcologicalNetwork,
-    params::AllometricParams
-)
+function allometricparams_to_vec(net::EcologicalNetwork, params::AllometricParams)
 
     # Test
     validclasses = ["producer", "invertebrate", "ectotherm vertebrate"]
@@ -227,6 +222,6 @@ function allometricparams_to_vec(
     b[invertebrates(net)] .= params.bᵢ
     b[vertebrates(net)] .= params.bₑ
 
-    (a=a, b=b)
+    (a = a, b = b)
 end
 #### end ####

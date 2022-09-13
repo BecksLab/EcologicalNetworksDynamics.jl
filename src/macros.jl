@@ -3,7 +3,8 @@
 macro check_lower_than(var, max)
     :(
         if $(esc(var)) > $(esc(max))
-            line1 = $(string(var)) * " should be lower or equal to " * $(string(max)) * ".\n"
+            line1 =
+                $(string(var)) * " should be lower or equal to " * $(string(max)) * ".\n"
             line2 = "  Evaluated: " * $(string(var)) * " = $($(esc(var))) > $($(esc(max)))"
             throw(ArgumentError(line1 * line2))
         end
@@ -14,7 +15,8 @@ end
 macro check_greater_than(var, min)
     :(
         if $(esc(var)) < $(esc(min))
-            line1 = $(string(var)) * " should be greater or equal to " * $(string(min)) * ".\n"
+            line1 =
+                $(string(var)) * " should be greater or equal to " * $(string(min)) * ".\n"
             line2 = "  Evaluated: " * $(string(var)) * " = $($(esc(var))) < $($(esc(min)))"
             throw(ArgumentError(line1 * line2))
         end
@@ -59,7 +61,8 @@ macro check_is_one_or_richness(var, S)
     :(
         if $(esc(var)) ∉ [1, $(esc(S))]
             line1 = $(string(var)) * " should be 1 or richness=$($(esc(S))).\n"
-            line2 = "  Evaluated: " * $(string(var)) * " = $($(esc(var))) ∉ {1, $($(esc(S)))}."
+            line2 =
+                "  Evaluated: " * $(string(var)) * " = $($(esc(var))) ∉ {1, $($(esc(S)))}."
             throw(ArgumentError(line1 * line2))
         end
     )

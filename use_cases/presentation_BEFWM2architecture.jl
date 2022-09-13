@@ -36,13 +36,13 @@ end
 
 # ╔═╡ 7ef5c3d3-aae8-4e06-ae70-35d4b74fece2
 function Base.show(io, mime::MIME"text/html", fld::Foldable)
-    write(io,"<details><summary>$(fld.title)</summary><p>")
+    write(io, "<details><summary>$(fld.title)</summary><p>")
     show(io, mime, fld.content)
-    write(io,"</p></details>")
+    write(io, "</p></details>")
 end
 
 # ╔═╡ ba6c073b-30e3-4c81-93f6-29e3c729b2e3
-struct TwoColumn{L, R}
+struct TwoColumn{L,R}
     left::L
     right::R
 end
@@ -95,7 +95,10 @@ BEFWM is still based on a `ModelParameters` function with a default behavior, bu
 """
 
 # ╔═╡ ca50e4a9-359a-4506-a946-7177100ff9ad
-TwoColumn(md""" $(LocalResource("modules_befwm1.png")) """, md""" $(LocalResource("modules_befwm2.png")) """)
+TwoColumn(
+    md""" $(LocalResource("modules_befwm1.png")) """,
+    md""" $(LocalResource("modules_befwm2.png")) """,
+)
 
 # ╔═╡ f4445127-bf56-425d-b1dd-44041e97803c
 TwoColumn(html""" <center>BEFWM v.1 </center> """, html""" <center>BEFWM v.2 </center> """)
@@ -130,7 +133,7 @@ md"""
 """
 
 # ╔═╡ 576c0953-b3c4-433f-80e3-a9931b986ad6
-A = [0 1 0 ; 0 0 1 ; 0 0 0] #linear food chain
+A = [0 1 0; 0 0 1; 0 0 0] #linear food chain
 
 # ╔═╡ 5d0fe4ea-bfd9-4ab9-bc72-c25417fcc3e5
 fw = FoodWeb(A)
@@ -168,7 +171,7 @@ md"""
 md"Use the generative food web models from `EcologicalNetworks`:"
 
 # ╔═╡ 087c709d-2c9a-4d56-a25a-7bc417e1c3f5
-fw_niche = FoodWeb(nichemodel, 10, C = 0.2)
+fw_niche = FoodWeb(nichemodel, 10; C = 0.2)
 
 # ╔═╡ 2e6f135a-c720-4bdb-8312-609d564c7fd1
 fw_niche.method
@@ -180,7 +183,7 @@ N = convert(UnipartiteNetwork, fw_niche)
 fw_niche2 = FoodWeb(N)
 
 # ╔═╡ 2396c1a3-6f1e-45ed-9d34-96b2423570ed
-fw_cascade = FoodWeb(cascademodel, 20, C = 0.15)
+fw_cascade = FoodWeb(cascademodel, 20; C = 0.15)
 
 # ╔═╡ c4a18605-6fca-4d3d-9c09-35c59f9a94cd
 md"Use the methods from `EcologicalNetworks`:"
@@ -201,13 +204,13 @@ md"## `FoodWeb`: species mass"
 md"Modify species mass by passing a vector of mass or a consumer-resource mass ratio."
 
 # ╔═╡ aea56578-974e-4f1b-8bad-18dfd8b9f879
-fw_z = FoodWeb(A, Z = 10)
+fw_z = FoodWeb(A; Z = 10)
 
 # ╔═╡ 18270383-afd8-412b-b8ce-2d56c47bf7ee
 fw_z.M
 
 # ╔═╡ f85846d2-318f-43c2-a0c1-cb0d523ba842
-fw_m = FoodWeb(A, M = [12.43, 7.3, 1.9])
+fw_m = FoodWeb(A; M = [12.43, 7.3, 1.9])
 
 # ╔═╡ 3231b6a8-96ca-4c73-a0df-d87b8b90ca83
 fw_m.M
@@ -217,24 +220,25 @@ md"## `FoodWeb`: metabolic class"
 
 # ╔═╡ b97c56c6-3e0c-47e3-92db-1591ad8540bd
 A2 = [
- 0  0  0  0  0  ;
- 0  0  0  0  0  ;
- 1  1  0  0  0  ;
- 0  0  1  0  0  ;
- 0  0  1  1  0  
+    0 0 0 0 0
+    0 0 0 0 0
+    1 1 0 0 0
+    0 0 1 0 0
+    0 0 1 1 0
 ]
 
 # ╔═╡ c8c388eb-596d-454f-875d-a4bdf386f727
-metab = ["producer", "producer", "invertebrate", "ectotherm vertebrate", "ectotherm vertebrate"]
+metab =
+    ["producer", "producer", "invertebrate", "ectotherm vertebrate", "ectotherm vertebrate"]
 
 # ╔═╡ 56ac9f8e-f196-4d0f-a8a6-be1d10c70e6b
-fw_mc = FoodWeb(A2, metabolic_class = metab)
+fw_mc = FoodWeb(A2; metabolic_class = metab)
 
 # ╔═╡ e5ecc542-5212-463d-b03b-a5d4c6e1ca1b
 metab[2] = "invertebrate"
 
 # ╔═╡ a32ff3b4-fd81-4a0d-b320-7a3d36282af5
-fw_mcwrg = FoodWeb(A2, metabolic_class = metab)
+fw_mcwrg = FoodWeb(A2; metabolic_class = metab)
 
 # ╔═╡ 067ab6e6-4bc1-4f76-aa3c-2f2d15c84f8e
 md"""` Warning: You provided a metabolic class for basal species - replaced by producer @BEFWM2 ~/projets/BEFWM2/src/inputs/foodwebs.jl:28`"""
@@ -246,7 +250,7 @@ fw_mcwrg.metabolic_class[2]
 md"## `ModelParameters`"
 
 # ╔═╡ 94498c6a-7770-45ae-a0ed-934c6fe2383f
-mp =  ModelParameters(fw) #model parameters for the linear 3-species food chain
+mp = ModelParameters(fw) #model parameters for the linear 3-species food chain
 
 # ╔═╡ 82448e7e-b359-475f-912b-d64b29cfe6cf
 md"""
@@ -294,19 +298,19 @@ md"## `BioRates`"
 md"Each biological rate can be controlled individually, by changing the method used and the corresponding parameters:"
 
 # ╔═╡ 8bb78900-d0bd-44c3-9b5d-f5965ac06911
-r = allometricgrowth(fw_mc, a = 0.5, b = -0.2) #change the constant and the exponent, same for all producers
+r = allometricgrowth(fw_mc; a = 0.5, b = -0.2) #change the constant and the exponent, same for all producers
 
 # ╔═╡ 9936d56b-0770-447a-a287-033a74c6bfc1
-x = allometricmetabolism(fw_mc, b_p = -0.25, b_ect = -0.3, b_inv = -0.3) #p: producers, ect: ectotherm vertebrates, inv: invertebrates. Pass different exponents for each
+x = allometricmetabolism(fw_mc; b_p = -0.25, b_ect = -0.3, b_inv = -0.3) #p: producers, ect: ectotherm vertebrates, inv: invertebrates. Pass different exponents for each
 
 # ╔═╡ 0f5baf53-a7f1-4830-97c6-844414414e2e
 y = fill(8.0, richness(fw_mc))
 
 # ╔═╡ b9bd28a1-a87e-403d-96e7-c0e00784510e
-br_spe = BioRates(fw_mc, r = r, x = x, y = y)
+br_spe = BioRates(fw_mc; r = r, x = x, y = y)
 
 # ╔═╡ 7f150ee1-351b-4e37-86b3-f1342150c37e
-br_spe2 = BioRates(fw_mc, rmodel = allometricgrowth, rparameters = (a = 0.5,))
+br_spe2 = BioRates(fw_mc; rmodel = allometricgrowth, rparameters = (a = 0.5,))
 
 # ╔═╡ 5381f9eb-ae6f-4070-bf7d-babc583d8f0f
 md"## `FunctionalResponse`"
@@ -396,28 +400,36 @@ fw_benguela.species
 md"## Quick example"
 
 # ╔═╡ 45e966ad-3ee1-467d-9c92-48d8a25d369b
-Env = Environment(fw_benguela, K = 10)
+Env = Environment(fw_benguela; K = 10)
 
 # ╔═╡ 71f1594e-a94c-426e-8046-d318ad8f509a
-p = ModelParameters(fw_benguela, E = Env)
+p = ModelParameters(fw_benguela; E = Env)
 
 # ╔═╡ b1663b39-4040-4d2b-9e31-f70854799fae
 b_init = rand(richness(fw_benguela))
 
 # ╔═╡ 258a7cec-e624-4bdb-b7f7-e74890a87ff6
-sim = simulate(p, b_init, stop = 500, use = :nonstiff)
+sim = simulate(p, b_init; stop = 500, use = :nonstiff)
 
 # ╔═╡ 687476f8-710c-4915-8471-71db46c501e1
 md"## Quick example"
 
 # ╔═╡ 4143616c-ad28-491e-aa46-27fd4c5d0c00
-sp_order = sortperm(sim.B[end,:], rev = true)
+sp_order = sortperm(sim.B[end, :]; rev = true)
 
 # ╔═╡ beebd888-d289-4c27-9433-839787224e4c
 spnames_ord = fw_benguela.species[sp_order]
 
 # ╔═╡ e7cb3275-1538-431f-b51f-010e193d3e2e
-plot(sim.t, sim.B[:,sp_order], labels = permutedims(spnames_ord), legend = :outertopright, xlabel = "time (relative)", ylabel = "species biomass", size = (750,450))
+plot(
+    sim.t,
+    sim.B[:, sp_order];
+    labels = permutedims(spnames_ord),
+    legend = :outertopright,
+    xlabel = "time (relative)",
+    ylabel = "species biomass",
+    size = (750, 450),
+)
 
 # ╔═╡ 357ad23b-6f1a-445e-8b1c-c67112897a35
 

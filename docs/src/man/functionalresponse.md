@@ -32,10 +32,12 @@ The linear response for consumer ``i`` eating resource ``j`` writes:
 ```math
 F_{ij} = \omega_{ij} \alpha_i B_j
 ```
+
 with:
-- ``B_j`` the biomass of resource ``j``
-- ``\alpha_{i}`` the consumption rate of predator ``i``
-- ``\omega_{ij}`` preferency of consumer ``i`` on resource ``j``
+
+  - ``B_j`` the biomass of resource ``j``
+  - ``\alpha_{i}`` the consumption rate of predator ``i``
+  - ``\omega_{ij}`` preferency of consumer ``i`` on resource ``j``
 
 The linear response and its parameters
 can be accessed by calling the [`LinearResponse`](@ref) method
@@ -52,7 +54,7 @@ Above parameters take default values, but you can specify custom values.
 For instance if you want to double the attack rate of predator 3, you can do:
 
 ```@example befwm2
-f = LinearResponse(foodweb, α=[0.0,1.0,2.0]);
+f = LinearResponse(foodweb; α = [0.0, 1.0, 2.0]);
 f.α # custom attack rates
 ```
 
@@ -76,6 +78,7 @@ And the corresponding ODEs system is:
     - \sum_{j \in \{ \text{cons.} \}} B_j F_{ji}
     - x_i B_i
 ```
+
 The first term is a growth term (*e.g.* logistic growth)
 that is non-zero only for producers.
 The second term translates the biomass gained by eating resources,
@@ -100,17 +103,19 @@ Formally, the bioenergetic response is written:
 F_{ij} = \frac{\omega_{ij} B_j^h}{B_0^h + c_i B_i B_0^h
     + \sum_{k \in \{ \text{res.} \}} \omega_{ik} B_k^h}
 ```
-with:
-- ``\omega_{ij}`` preferency of consumer ``i`` on resource ``j``
-- ``B_0`` the half-saturation density
-- ``c_i`` the intensity of intraspecific predator interference
-- ``h`` the hill-exponent
 
+with:
+
+  - ``\omega_{ij}`` preferency of consumer ``i`` on resource ``j``
+  - ``B_0`` the half-saturation density
+  - ``c_i`` the intensity of intraspecific predator interference
+  - ``h`` the hill-exponent
 
 !!! note
-    - ``\lim_{B_j \to +\infty} F_{ij} = 1``
-
-    - ``F_{ij}(B_0) = \frac{1}{2}`` if considering a consumer feeding only one resource
+    
+      - ``\lim_{B_j \to +\infty} F_{ij} = 1``
+    
+      - ``F_{ij}(B_0) = \frac{1}{2}`` if considering a consumer feeding only one resource
         and no predator interference (``c_i=0``),
         hence the name 'half-saturation density' for ``B_0``.
 
@@ -131,7 +136,7 @@ Above parameters take default values, but you can specify custom values.
 For instance if you want to set the hill exponent (`h`) to 1 instead of 2, you can do:
 
 ```@example befwm2
-f = BioenergeticResponse(foodweb, h=1);
+f = BioenergeticResponse(foodweb; h = 1);
 f.h # custom hill exponent
 ```
 
@@ -181,12 +186,14 @@ Formally the classic response is written:
 F_{ij} = \frac{\omega_{ij} a_{ij} B_j^h}{1 + c_i B_i
     + h_t \sum_{k \in \{ \text{res.} \}} \omega_{ik} a_{ij} B_k^h}
 ```
+
 with:
-- ``\omega_{ij}`` preferency of consumer ``i`` on resource ``j``
-- ``c_i`` the intensity of intraspecific predator interference
-- ``h`` the hill-exponent
-- ``a_{ij}`` the attack rate of consumer ``i`` on resource ``j``
-- ``h_t`` the handling time
+
+  - ``\omega_{ij}`` preferency of consumer ``i`` on resource ``j``
+  - ``c_i`` the intensity of intraspecific predator interference
+  - ``h`` the hill-exponent
+  - ``a_{ij}`` the attack rate of consumer ``i`` on resource ``j``
+  - ``h_t`` the handling time
 
 The classic response and its parameters
 can be accessed by calling the [`ClassicResponse`](@ref) method
@@ -206,7 +213,7 @@ Above parameters take default values, but you can specify custom values.
 For instance if you want to set the handling time (`h`) to 0.1 instead of 1, you can do:
 
 ```@example befwm2
-f = ClassicResponse(foodweb, hₜ=0.1);
+f = ClassicResponse(foodweb; hₜ = 0.1);
 f.hₜ # custom handling time
 ```
 

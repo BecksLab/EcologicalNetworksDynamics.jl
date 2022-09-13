@@ -15,9 +15,9 @@
     @test multiplex_net.species == foodweb.species
 
     # Build from connectance.
-    foodweb = FoodWeb(nichemodel, 20, C=0.1)
+    foodweb = FoodWeb(nichemodel, 20; C = 0.1)
     # - Only facilitation on.
-    multiplex_net = MultiplexNetwork(foodweb, C_facilitation=0.5)
+    multiplex_net = MultiplexNetwork(foodweb; C_facilitation = 0.5)
     A_competition = multiplex_net.layers[:competition].A
     A_facilitation = multiplex_net.layers[:facilitation].A
     A_interference = multiplex_net.layers[:interference].A
@@ -27,7 +27,7 @@
         @test f(A.nzval)
     end
     # - Refuge and competition on.
-    multiplex_net = MultiplexNetwork(foodweb, C_competition=0.5, C_refuge=0.5)
+    multiplex_net = MultiplexNetwork(foodweb; C_competition = 0.5, C_refuge = 0.5)
     A_competition = multiplex_net.layers[:competition].A
     A_facilitation = multiplex_net.layers[:facilitation].A
     A_interference = multiplex_net.layers[:interference].A
@@ -37,7 +37,7 @@
         @test f(A.nzval)
     end
     # - Everything on.
-    multiplex_net = MultiplexNetwork(foodweb, C=(f=0.5, c=0.5, r=0.5, i=0.5))
+    multiplex_net = MultiplexNetwork(foodweb; C = (f = 0.5, c = 0.5, r = 0.5, i = 0.5))
     A_competition = multiplex_net.layers[:competition].A
     A_facilitation = multiplex_net.layers[:facilitation].A
     A_interference = multiplex_net.layers[:interference].A
@@ -49,7 +49,7 @@
     # Build from links.
     foodweb = FoodWeb([0 0 0 0; 0 0 0 0; 1 0 0 0; 1 0 0 0])
     # - Only facilitation on.
-    multiplex_net = MultiplexNetwork(foodweb, L_facilitation=1)
+    multiplex_net = MultiplexNetwork(foodweb; L_facilitation = 1)
     A_competition = multiplex_net.layers[:competition].A
     A_facilitation = multiplex_net.layers[:facilitation].A
     A_interference = multiplex_net.layers[:interference].A
@@ -60,8 +60,8 @@
     end
 
     # - Refuge and competition on.
-    multiplex_net_l = MultiplexNetwork(foodweb, L_competition=2, L_refuge=1)
-    multiplex_net_lc = MultiplexNetwork(foodweb, C_competition=1.0, L_refuge=1)
+    multiplex_net_l = MultiplexNetwork(foodweb; L_competition = 2, L_refuge = 1)
+    multiplex_net_lc = MultiplexNetwork(foodweb; C_competition = 1.0, L_refuge = 1)
     for multiplex_net in [multiplex_net_l, multiplex_net_lc]
         A_competition = multiplex_net.layers[:competition].A
         A_facilitation = multiplex_net.layers[:facilitation].A
@@ -74,10 +74,10 @@
     end
 
     # Error if provide connectance and number of links for the same interaction
-    @test_throws ArgumentError MultiplexNetwork(foodweb, L_refuge=1, C_refuge=0.5)
+    @test_throws ArgumentError MultiplexNetwork(foodweb, L_refuge = 1, C_refuge = 0.5)
 
     # - Everything on.
-    multiplex_net = MultiplexNetwork(foodweb, L=(f=1, c=2, r=1, i=2))
+    multiplex_net = MultiplexNetwork(foodweb; L = (f = 1, c = 2, r = 1, i = 2))
     A_competition = multiplex_net.layers[:competition].A
     A_facilitation = multiplex_net.layers[:facilitation].A
     A_interference = multiplex_net.layers[:interference].A
@@ -88,11 +88,11 @@
     end
 
     # Build with specifying specific non-trophic matrices.
-    foodweb = FoodWeb(nichemodel, 20, C=0.1)
+    foodweb = FoodWeb(nichemodel, 20; C = 0.1)
     custom_matrix = zeros(20, 20)
     custom_matrix[4, 5] = 1
     # - Only facilitation.
-    multiplex_net = MultiplexNetwork(foodweb, A_facilitation=custom_matrix)
+    multiplex_net = MultiplexNetwork(foodweb; A_facilitation = custom_matrix)
     @test multiplex_net.layers[:facilitation].A == sparse(custom_matrix)
     A_competition = multiplex_net.layers[:competition].A
     A_interference = multiplex_net.layers[:interference].A
@@ -101,7 +101,8 @@
         @test isempty(A.nzval)
     end
     # - Refuge custom, facilitation on.
-    multiplex_net = MultiplexNetwork(foodweb, A_refuge=custom_matrix, C_facilitation=0.5)
+    multiplex_net =
+        MultiplexNetwork(foodweb; A_refuge = custom_matrix, C_facilitation = 0.5)
     @test multiplex_net.layers[:refuge].A == sparse(custom_matrix)
     A_competition = multiplex_net.layers[:competition].A
     A_facilitation = multiplex_net.layers[:facilitation].A
@@ -205,14 +206,24 @@ end
     Lmax = length(potential_links)
 
     # - From number of links.
-    A = nontrophic_adjacency_matrix(foodweb, potential_facilitation_links, 5, symmetric=false)
+    A = nontrophic_adjacency_matrix(
+        foodweb,
+        potential_facilitation_links,
+        5;
+        symmetric = false,
+    )
     row, col = findnz(A)
     subset = Set([(row[i], col[i]) for i in 1:length(row)])
     @test length(A.nzval) == 5
     @test subset ⊆ Set(potential_links)
 
     # - From connectance.
-    A = nontrophic_adjacency_matrix(foodweb, potential_facilitation_links, 6 / Lmax, symmetric=false)
+    A = nontrophic_adjacency_matrix(
+        foodweb,
+        potential_facilitation_links,
+        6 / Lmax;
+        symmetric = false,
+    )
     row, col = findnz(A)
     subset = Set([(row[i], col[i]) for i in 1:length(row)])
     @test length(A.nzval) == 6
@@ -223,14 +234,24 @@ end
     Lmax = length(potential_links)
 
     # - From number of links.
-    A = nontrophic_adjacency_matrix(foodweb, potential_competition_links, 4, symmetric=true)
+    A = nontrophic_adjacency_matrix(
+        foodweb,
+        potential_competition_links,
+        4;
+        symmetric = true,
+    )
     row, col = findnz(A)
     subset = Set([(row[i], col[i]) for i in 1:length(row)])
     @test length(A.nzval) == 4
     @test subset ⊆ Set(potential_links)
 
     # - From connectance.
-    A = nontrophic_adjacency_matrix(foodweb, potential_competition_links, 6 / Lmax, symmetric=true)
+    A = nontrophic_adjacency_matrix(
+        foodweb,
+        potential_competition_links,
+        6 / Lmax;
+        symmetric = true,
+    )
     row, col = findnz(A)
     subset = Set([(row[i], col[i]) for i in 1:length(row)])
     @test length(A.nzval) == 6

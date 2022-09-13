@@ -6,7 +6,7 @@
         @test BEFWM2.effect_competition(G_net, nothing, nothing, foodweb) == G_net
     end
 
-    multi_net = MultiplexNetwork(foodweb, C_competition=1.0)
+    multi_net = MultiplexNetwork(foodweb; C_competition = 1.0)
     B = [2, 1, 1]
     for G_net in 1:10
         # Low intensity
@@ -47,7 +47,7 @@ end
 
 @testset "Effect of facilitation on intrinsic growth rate" begin
     foodweb = FoodWeb([0 0; 1 0])
-    multi_net = MultiplexNetwork(foodweb, C_facilitation=1.0)
+    multi_net = MultiplexNetwork(foodweb; C_facilitation = 1.0)
 
     # Default intensity: f0 = 1.0
     @test BEFWM2.effect_facilitation(1, 1, [1, 0], multi_net) == 1
@@ -83,8 +83,8 @@ end
 
     # 2 refuge links
     A_refuge = sparse(Bool[0 1 1 0; 1 0 1 0; 0 0 0 0; 0 0 0 0])
-    foodweb = FoodWeb(nichemodel, 4, C=0.3)
-    net = MultiplexNetwork(foodweb, A_refuge=A_refuge)
+    foodweb = FoodWeb(nichemodel, 4; C = 0.3)
+    net = MultiplexNetwork(foodweb; A_refuge = A_refuge)
     B = [1, 2, 3, 4]
     for aᵣ in [0.1, 0.2, 0.3, 0.4, 0.5], r0 in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
         net.layers[:refuge].intensity = r0

@@ -21,8 +21,8 @@
     @test being_eaten₂1 > being_eaten1 #... and more producer biomass is consumed
 
     # Bioenergetic with intraspecific interference
-    F = BioenergeticResponse(foodweb, c=[0, 0, 0.5]) # intra interference for species 3
-    p = ModelParameters(foodweb, functional_response=F)
+    F = BioenergeticResponse(foodweb; c = [0, 0, 0.5]) # intra interference for species 3
+    p = ModelParameters(foodweb; functional_response = F)
     fᵣmatrix = p.functional_response(B)
     eatingᵢ1, being_eatenᵢ1 = BEFWM2.consumption(1, B, p, fᵣmatrix)
     eatingᵢ2, being_eatenᵢ2 = BEFWM2.consumption(2, B, p, fᵣmatrix)
@@ -37,7 +37,7 @@ end
     foodweb = FoodWeb([0 0 0; 1 0 0; 1 1 0])
 
     # Classic default
-    p = ModelParameters(foodweb, functional_response=ClassicResponse(foodweb))
+    p = ModelParameters(foodweb; functional_response = ClassicResponse(foodweb))
     B = [1, 1, 1]
     fᵣmatrix = p.functional_response(B)
     eating1, being_eaten1 = BEFWM2.consumption(1, B, p, fᵣmatrix)
@@ -56,8 +56,8 @@ end
     @test being_eaten₂1 > being_eaten1 #... and more producer biomass is consumed
 
     # Classic with intraspecific interference
-    F = ClassicResponse(foodweb, c=[0, 0, 0.5]) # intra interference for species 3
-    p = ModelParameters(foodweb, functional_response=F)
+    F = ClassicResponse(foodweb; c = [0, 0, 0.5]) # intra interference for species 3
+    p = ModelParameters(foodweb; functional_response = F)
     fᵣmatrix = p.functional_response(B)
     eatingᵢ1, being_eatenᵢ1 = BEFWM2.consumption(1, B, p, fᵣmatrix)
     eatingᵢ2, being_eatenᵢ2 = BEFWM2.consumption(2, B, p, fᵣmatrix)
@@ -74,7 +74,7 @@ end
     # Classic default (no non-trophic interactions)
     multiplex_network = MultiplexNetwork(foodweb) # by default no non-trophic interactions
     response = ClassicResponse(multiplex_network)
-    p = ModelParameters(multiplex_network, functional_response=response)
+    p = ModelParameters(multiplex_network; functional_response = response)
     B = [1, 1, 1]
     fᵣmatrix = p.functional_response(B, multiplex_network)
     eating1, being_eaten1 = BEFWM2.consumption(1, B, p, fᵣmatrix)
@@ -93,8 +93,8 @@ end
     @test being_eaten₂1 > being_eaten1 #... and more producer biomass is consumed
 
     # Classic with intraspecific interference
-    response = ClassicResponse(multiplex_network, c=[0, 0, 0.5]) # intra interference for species 3
-    p = ModelParameters(multiplex_network, functional_response=response)
+    response = ClassicResponse(multiplex_network; c = [0, 0, 0.5]) # intra interference for species 3
+    p = ModelParameters(multiplex_network; functional_response = response)
     fᵣmatrix = p.functional_response(B, multiplex_network)
     eatingᵢ1, being_eatenᵢ1 = BEFWM2.consumption(1, B, p, fᵣmatrix)
     eatingᵢ2, being_eatenᵢ2 = BEFWM2.consumption(2, B, p, fᵣmatrix)
@@ -105,10 +105,10 @@ end
     @test eatingᵢ3 < eating3 # decrease of species 3 consumption
 
     # Classic with interspecific interference
-    multiplex_network = MultiplexNetwork(foodweb, C_interference=1.0) # add interference
+    multiplex_network = MultiplexNetwork(foodweb; C_interference = 1.0) # add interference
     multiplex_network.layers[:interference].intensity = 0.0 # but set i0 to zero in a 1st time
-    response = ClassicResponse(multiplex_network, c=[0, 0, 0.5]) # intra interference
-    p = ModelParameters(multiplex_network, functional_response=response)
+    response = ClassicResponse(multiplex_network; c = [0, 0, 0.5]) # intra interference
+    p = ModelParameters(multiplex_network; functional_response = response)
     fᵣmatrix = p.functional_response(B, multiplex_network)
     # Do we recover previous results?
     eating1_i0_0, being_eaten1_i0_0 = BEFWM2.consumption(1, B, p, fᵣmatrix)
@@ -119,8 +119,8 @@ end
     @test (eating3_i0_0, being_eaten3_i0_0) == (eatingᵢ3, being_eatenᵢ3)
     # Now set i0 > 0
     multiplex_network.layers[:interference].intensity = 1.0
-    response = ClassicResponse(multiplex_network, c=[0, 0, 0.5]) # intra interference
-    p = ModelParameters(multiplex_network, functional_response=response)
+    response = ClassicResponse(multiplex_network; c = [0, 0, 0.5]) # intra interference
+    p = ModelParameters(multiplex_network; functional_response = response)
     fᵣmatrix = p.functional_response(B, multiplex_network)
     eating1_i0_pos, being_eaten1_i0_pos = BEFWM2.consumption(1, B, p, fᵣmatrix)
     eating2_i0_pos, being_eaten2_i0_pos = BEFWM2.consumption(2, B, p, fᵣmatrix)
@@ -137,7 +137,7 @@ end
     foodweb = FoodWeb([0 0 0; 1 0 0; 1 1 0])
 
     # Bioenergetic - default
-    p = ModelParameters(foodweb, functional_response=LinearResponse(foodweb))
+    p = ModelParameters(foodweb; functional_response = LinearResponse(foodweb))
     B = [1, 1, 1]
     fᵣmatrix = p.functional_response(B)
     eating1, being_eaten1 = BEFWM2.consumption(1, B, p, fᵣmatrix)

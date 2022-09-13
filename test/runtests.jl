@@ -11,7 +11,7 @@ Random.seed!(seed)
 @info "Seed set to $seed."
 
 # Run doctests first
-DocMeta.setdocmeta!(BEFWM2, :DocTestSetup, :(using BEFWM2); recursive=true)
+DocMeta.setdocmeta!(BEFWM2, :DocTestSetup, :(using BEFWM2); recursive = true)
 doctest(BEFWM2)
 println("------------------------------------------")
 
@@ -27,7 +27,7 @@ test_files = [
     "model/test-effect_nti.jl",
     "model/test-model_parameters.jl",
     "model/test-consumption.jl",
-    "model/test-simulate.jl"
+    "model/test-simulate.jl",
 ]
 
 # Set up text formatting
