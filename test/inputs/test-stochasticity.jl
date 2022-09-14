@@ -9,7 +9,7 @@ A = [
 input_σ = [0.1, 0.2]
 input_θ = [0.2, 0.5, 0.3, 0.4]
 foodweb = FoodWeb(A; Z = 10)
-producer = whoisproducer(A)
+producer = BEFWM2.producers(foodweb)
 biorates = BioRates(foodweb)
 
 stochasticity = AddStochasticity(
@@ -23,7 +23,7 @@ stochasticity = AddStochasticity(
 )
 
 @testset "Correct sampling of stochastic species" begin
-    @test stochasticity.stochspecies == findall(x -> x == 1, producer)
+    @test stochasticity.stochspecies == producer
     @test stochasticity.stochconsumers == []
     @test stochasticity.stochproducers == stochasticity.stochspecies
 end
