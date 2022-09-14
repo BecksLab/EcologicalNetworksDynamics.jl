@@ -382,3 +382,26 @@ function AddStochasticity(
         stochproducers,
     )
 end
+
+function AddStochasticity(
+    MN::MultiplexNetwork
+)
+    addstochasticity = false
+    θ = Float64[]
+    μ = Float64[]
+    σe = Float64[]
+    σd = Float64[]
+    stochspecies = Int64[]
+    stochconsumers = Int64[]
+    stochproducers = Int64[]
+    return AddStochasticity(
+        addstochasticity,
+        θ,
+        μ,
+        σe,
+        σd,
+        stochspecies,
+        stochconsumers,
+        stochproducers,
+    )
+end
