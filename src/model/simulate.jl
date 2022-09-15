@@ -73,7 +73,13 @@ julia> round.(solution[end], digits=2) # steady state biomass
  0.19
  0.22
 
-julia> xpr, data = generate_dbdt(params, :raw); # generate specialized code (same simulation)
+julia> import Logging; # TODO: remove when warnings removed from `generate_dbdt`.
+
+julia> # generate specialized code (same simulation)
+
+julia> xpr, data = Logging.with_logger(Logging.NullLogger()) do
+          generate_dbdt(params, :raw)
+       end;
 
 julia> solution = simulate(params, B0; diff_code_data = (eval(xpr), data));
 
@@ -88,7 +94,11 @@ julia> round.(solution[end], digits=2)
  0.19
  0.22
 
-julia> xpr, data = generate_dbdt(params, :compact); # Same with alternate style.
+julia> # Same with alternate style.
+
+julia> xpr, data = Logging.with_logger(Logging.NullLogger()) do
+          generate_dbdt(params, :compact)
+       end;
 
 julia> solution = simulate(params, B0; diff_code_data = (eval(xpr), data));
 
