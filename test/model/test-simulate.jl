@@ -83,6 +83,22 @@
     @test keys(get_extinct_species(solution)) == Set([2])
     ## Error if extinction threshold is not a Number or an AbstractVector
     @test_throws TypeError simulates(params, [1]; extinction_threshold = Set([1e-5]))
+
+    # Does simulate still run with stochasticity?
+    foodweb = FoodWeb([0 0; 1 0])
+    stochasticity = AddStochasticity(
+    foodweb,
+    BioRates(foodweb);
+    addstochasticity = true,
+    wherestochasticity = "producers",
+    nstochasticity = "all",
+    σe = 0.5,
+    θ = 0.5,
+    )
+    params = ModelParameters(foodweb, stochasticity = stochasticity)
+    # TODO: use `simulates` to check against boosted versions when available.
+    solution = BEFWM2.simulate(params, [0.5, 0.5])
+    @test solution.retcode == :Success
 end
 
 # Test inspired by this issue:
