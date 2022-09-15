@@ -48,6 +48,7 @@ export BioenergeticResponse
 export BioRates
 export cascademodel
 export ClassicResponse
+export connectance
 export DefaultGrowthParams
 export DefaultMaxConsumptionParams
 export DefaultMetabolismParams
@@ -75,7 +76,9 @@ export potential_competition_links
 export potential_facilitation_links
 export potential_interference_links
 export potential_refuge_links
+export producers
 export richness
 export simulate
+export trophic_levels
 
 end

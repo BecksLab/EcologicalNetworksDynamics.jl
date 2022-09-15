@@ -56,6 +56,10 @@ foodweb_2links.metabolic_class =
     @test BEFWM2.preys(foodweb_2links) == [1, 2]
     @test BEFWM2.preys(foodweb_3links) == [1, 2, 3]
     @test BEFWM2.preys(foodweb_5links) == [1, 2, 3]
+
+    @test trophic_levels(foodweb_2links) == [1.0, 1.0, 2.0, 2.0]
+    @test trophic_levels(foodweb_3links) == [1.0, 1.0, 2.0, 3.0]
+    @test trophic_levels([0 1 0; 0 0 0; 1 0 0]) == [2.0, 1.0, 3.0]
 end
 
 @testset "Find predators and preys of a given species" begin
