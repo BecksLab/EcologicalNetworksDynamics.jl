@@ -1,4 +1,5 @@
 using SyntaxTree
+using Logging #  TODO: remove once warnings are removed from `generate_dbdt`.
 
 # Wrap 'simulate' in a routine testing identity between
 # generic simulation code and generated code.
@@ -6,7 +7,7 @@ function simulates(parms, B0; kwargs...)
     g = simulate(parms, B0; verbose = false, kwargs...)
 
     # Compare with raw specialized code.
-    xp, data = generate_dbdt(parms, :raw)
+    xp, data = Logging.with_logger(() -> generate_dbdt(parms, :raw), Logging.NullLogger())
     # Guard against explosive compilation times with this approach.
     if SyntaxTree.callcount(xp) <= 20_000 #  wild rule of thumb
         dbdt = eval(xp)
@@ -15,7 +16,8 @@ function simulates(parms, B0; kwargs...)
     end
 
     # Compare with compact specialized code.
-    xp, data = generate_dbdt(parms, :compact)
+    xp, data =
+        Logging.with_logger(() -> generate_dbdt(parms, :compact), Logging.NullLogger())
     dbdt = eval(xp)
     s = simulate(parms, B0; diff_code_data = (dbdt, data), verbose = false, kwargs...)
     compare_generic_vs_specialized(g, s)

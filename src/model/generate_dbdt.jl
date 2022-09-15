@@ -140,17 +140,50 @@ There are two possible code generation styles:
 
 """
 function generate_dbdt(parms::ModelParameters, type)
-    type = Symbol(type)
+    style = Symbol(type)
 
-    if type == :raw
+    # TEMP: Summary of working and convincingly tested implementations.
+    resp = typeof(parms.functional_response)
+    net = typeof(parms.network)
+    function to_test()
+        @warn "Automatic generated :$style specialized code for $resp ($net) \
+               has not been rigorously tested yet.\n\
+               If you are using it for non-trivial simulation, \
+               please make sure that the resulting trajectories \
+               do match the ones generated with traditional generic code \
+               with the same parameters:\n$parms\n\
+               If they are, then consider adding that simulation to the packages tests set \
+               so this warning can be removed in future upgrades."
+    end
+    unimplemented() = throw("Automatic generated :$style specialized code for $resp ($net) \
+                             is not implemented yet.")
+    ok() = nothing
+    #! format: off
+    Dict(
+        (FoodWeb         , :raw    , LinearResponse)       => unimplemented,
+        (FoodWeb         , :raw    , ClassicResponse)      => unimplemented,
+        (FoodWeb         , :raw    , BioenergeticResponse) => to_test,
+        (FoodWeb         , :compact, LinearResponse)       => unimplemented,
+        (FoodWeb         , :compact, ClassicResponse)      => unimplemented,
+        (FoodWeb         , :compact, BioenergeticResponse) => to_test,
+        (MultiplexNetwork, :raw    , LinearResponse)       => unimplemented,
+        (MultiplexNetwork, :raw    , ClassicResponse)      => unimplemented,
+        (MultiplexNetwork, :raw    , BioenergeticResponse) => unimplemented,
+        (MultiplexNetwork, :compact, LinearResponse)       => unimplemented,
+        (MultiplexNetwork, :compact, ClassicResponse)      => unimplemented,
+        (MultiplexNetwork, :compact, BioenergeticResponse) => unimplemented,
+    )[(net, style, resp)]()
+    #! format: on
+
+    if style == :raw
         return generate_dbdt_raw(parms)
     end
 
-    if type == :compact
+    if style == :compact
         return generate_dbdt_compact(parms)
     end
 
-    throw("Unknown code generation style: '$type'.")
+    throw("Unknown code generation style: '$style'.")
 end
 
 include("./generate_dbdt_compact.jl")
