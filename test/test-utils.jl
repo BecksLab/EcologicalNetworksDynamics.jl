@@ -45,6 +45,9 @@ foodweb_2links.metabolic_class =
     @test BEFWM2.producers(foodweb_2links) == [1, 2]
     @test BEFWM2.producers(foodweb_3links) == [1, 2]
     @test BEFWM2.producers(foodweb_5links) == [1]
+    @test BEFWM2.producers(foodweb_2links.A) == [1, 2]
+    @test BEFWM2.producers(foodweb_3links.A) == [1, 2]
+    @test BEFWM2.producers(foodweb_5links.A) == [1]
 
     @test BEFWM2.predators(foodweb_2links) == [3, 4]
     @test BEFWM2.predators(foodweb_3links) == [3, 4]
