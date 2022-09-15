@@ -66,8 +66,8 @@ export ModelParameters
 export mpnmodel
 export multiplex_network_parameters_names
 export MultiplexNetwork
-export nestedhierarchymodel
 export n_links
+export nestedhierarchymodel
 export nichemodel
 export nontrophic_adjacency_matrix
 export NonTrophicIntensity

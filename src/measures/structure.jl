@@ -4,7 +4,7 @@ Quantifying food webs structural properties
 
 "Number of species in the network."
 richness(net::EcologicalNetwork) = richness(get_trophic_adjacency(net))
-richness(A::AdjacencyMatrix) = size(A, 1)
+richness(A::AbstractMatrix) = size(A, 1)
 
 #### Overloading Base methods ####
 "Filter species of the network (`net`) for which `f(species_index, net) = true`."
@@ -21,7 +21,8 @@ isproducer(i, net::FoodWeb) = isproducer(i, net.A)
 isproducer(i, net::MultiplexNetwork) = isproducer(i, net.layers[:trophic].A)
 
 "Return indexes of the producers of the given `network`."
-producers(net::EcologicalNetwork) = filter(isproducer, net)
+producers(net) = filter(isproducer, net)
+producers(A::AbstractMatrix) = (1:richness(A))[all(A .== 0; dims = 2)|>vec]
 #### end ####
 
 #### Find predators ####
