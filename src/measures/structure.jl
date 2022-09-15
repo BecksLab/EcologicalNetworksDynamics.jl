@@ -6,6 +6,11 @@ Quantifying food webs structural properties
 richness(net::EcologicalNetwork) = richness(get_trophic_adjacency(net))
 richness(A::AbstractMatrix) = size(A, 1)
 
+"Connectance of network: number of links / (number of species)^2"
+connectance(A::AbstractMatrix) = sum(A) / richness(A)^2
+connectance(foodweb::FoodWeb) = connectance(foodweb.A)
+#TODO: Add methods for MultiplexNetwork
+
 #### Overloading Base methods ####
 "Filter species of the network (`net`) for which `f(species_index, net) = true`."
 Base.filter(f, net::EcologicalNetwork) = filter(i -> f(i, net), 1:richness(net))
@@ -98,17 +103,16 @@ function _ftl(A::AbstractMatrix)
     end
 end
 
-function _gettrophiclevels(A::AbstractMatrix)
-    if isa(A, AbstractMatrix{Int64})
-        A = Bool.(A)
-    end
-    tl = trophic_level(UnipartiteNetwork(A))
-    tl_val = collect(values(tl))
-    tl_keys = keys(tl)
-    tl_species = parse.(Int64, [split(t, "s")[2] for t in tl_keys])
-    tl_sp = sortperm(tl_species)
-    return tl_val[tl_sp]
+"Trophic level of each species."
+function trophic_levels(A::AbstractMatrix)
+    A = Bool.(A)
+    trophiclvl_dict = trophic_level(UnipartiteNetwork(A))
+    trophiclvl_val = trophiclvl_dict |> values |> collect
+    trophiclvl_keys = trophiclvl_dict |> keys
+    species_idx = parse.(Int64, [split(t, "s")[2] for t in trophiclvl_keys])
+    trophiclvl_val[sortperm(species_idx)]
 end
+trophic_levels(net::EcologicalNetwork) = trophic_levels(get_trophic_adjacency(net))
 
 function massratio(obj::Union{ModelParameters,FoodWeb})
 

@@ -2,44 +2,153 @@
 Generating FoodWeb objects
 =#
 
-#### Type definition ####
+#### Type definition and FoodWeb functions ####
 const AdjacencyMatrix = SparseMatrixCSC{Bool,Int64} # alias for comfort
 
-"""
-    A FoodWeb is a collection of the following fields:
-
-- `A` is the (sparse) interaction matrix of boolean values
-- `species` is a vector of species identities
-- `M` is a vector of species body mass
-- `metabolic_class` is a vector of species metabolic classes
-- `method` is a String describing the model (if any) used to generate the food web, but can also contain whatever String users want to input (food web source, etc...)
-"""
-
 abstract type EcologicalNetwork end
-
 mutable struct FoodWeb <: EcologicalNetwork
     A::AdjacencyMatrix
     species::Vector{String}
     M::Vector{Real}
     metabolic_class::Vector{String}
     method::String
-    function FoodWeb(A, species, M, metabolic_class, method)
-        S = size(A, 1)
-        isequal(size(A, 1))(size(A, 2)) ||
-            throw(ArgumentError("The adjacency matrix should be square"))
-        isless(S, length(species)) && throw(
-            ArgumentError(
-                "That's too many species... there is more species defined than specified in the adjacency matrix",
-            ),
-        )
-        length(species) < S && throw(
-            ArgumentError(
-                "That's too few species... there is less species defined than specified in the adjacency matrix",
-            ),
-        )
-        _cleanmetabolicclass!(metabolic_class, A)
-        new(A, species, M, metabolic_class, method)
+end
+
+"""
+    FoodWeb(
+        A::AbstractMatrix;
+        species::Vector{String} = default_speciesid(A),
+        Z::Real = 1,
+        M::Vector{<:Real} = compute_mass(A, Z),
+        metabolic_class::Vector{String} = default_metabolic_class(A),
+        method::String = "unspecified",
+    )
+
+# Generate a `FoodWeb` from an adjacency matrix 
+
+This is the most direct way to generate a `FoodWeb`.
+You only need to provide and adjacency matrix filled with 0s and 1s,
+that respectively indicate the absence (presence) of an interaction 
+between the corresponding species pair. 
+For instance `A = [0 0; 1 0]` corresponds to a system of 2 species
+in which species 2 eats species 1.
+
+```jldoctest
+julia> FoodWeb([0 0; 1 0])
+FoodWeb of 2 species:
+  A: sparse matrix with 1 links
+  M: [1.0, 1.0]
+  metabolic_class: 1 producers, 1 invertebrates, 0 vertebrates
+  method: unspecified
+  species: [s1, s2]
+```
+
+You can also provide optional arguments e.g. change the species names.
+
+```jldoctest
+julia> foodweb = FoodWeb([0 0; 1 0], species=["plant", "herbivore"]);
+
+julia> foodweb.species == ["plant", "herbivore"]
+true
+```
+
+# Generate a `FoodWeb` from a structural model
+
+For larger communities it can be convenient to rely on a structural model.
+The structural model implemented are: 
+`nichemodel(S; C)`, `cascademodel(S; C)`, nestedhierarchymodel(S; C) and
+`mpnmodel(S; C, p_forbidden)`.
+
+To generate a model with one of these model you have to follow this syntax:
+`FoodWeb(model_name, model_arguments, optional_FoodWeb_arguments)`.
+
+For instance: 
+
+```jldoctest
+julia> foodweb = FoodWeb(nichemodel, 20, C = 0.1, Z = 50);
+
+julia> richness(foodweb) # the FoodWeb of 20 sp. has been well generated
+20
+
+julia> foodweb.method == "nichemodel"
+true 
+```
+
+# Generate a `FoodWeb` from a `UnipartiteNetwork`
+
+Lastly, EcologicalNetworkDynamics.jl has been designed to interact nicely 
+with EcologicalNetworks.jl. 
+Thus you can also create a `FoodWeb` from a `UnipartiteNetwork`
+
+```jldoctest
+julia> uni_net = cascademodel(10, 0.1); # generate a UnipartiteNetwork 
+
+julia> foodweb = FoodWeb(uni_net);
+
+julia> foodweb.A == uni_net.edges # same adjacency matrices
+true
+```
+
+# `FoodWeb` struct 
+    
+The function returns a `FoodWeb` which is a collection of the following fields:
+
+- `A` the adjacency matrix
+- `species` the vector of species identities
+- `M` the vector of species body mass
+- `metabolic_class` the vector of species metabolic classes
+- `method` describes which model (e.g. niche model) was used to generate `A`
+    if no model has been used `method="unspecified"`
+
+See also [`MultiplexNetwork`](@ref).
+"""
+function FoodWeb(
+    A::AbstractMatrix;
+    species::Vector{String} = default_speciesid(A),
+    Z::Real = 1,
+    M::Vector{<:Real} = compute_mass(A, Z),
+    metabolic_class::Vector{String} = default_metabolic_class(A),
+    method::String = "unspecified",
+)
+    S = richness(A)
+    @check_size_is_richness² A S
+    @check_equal_richness length(species) S
+    clean_metabolic_class!(metabolic_class, A)
+    FoodWeb(sparse(A), species, M, metabolic_class, method)
+end
+
+function FoodWeb(
+    uni_net::UnipartiteNetwork;
+    Z::Real = 1,
+    M::AbstractVector = compute_mass(uni_net.edges, Z),
+    metabolic_class::Vector{String} = default_metabolic_class(uni_net.edges),
+    method::String = "unspecified",
+)
+    is_from_mangal = isa(uni_net.S, Vector{Mangal.MangalNode})
+    species = is_from_mangal ? [split(string(s), ": ")[2] for s in uni_net.S] : uni_net.S
+    A = sparse(uni_net.edges)
+    FoodWeb(A, species, M, metabolic_class, method)
+end
+
+function FoodWeb(
+    model::Function,
+    S = nothing;
+    C = nothing,
+    p_forbidden = nothing,
+    Z::Real = 1,
+    M::Union{Nothing,AbstractVector} = nothing,
+)
+
+    uni_net = model_foodweb(model, S, C, p_forbidden)
+    A = uni_net.edges
+    species = uni_net.S
+    metabolic_class = default_metabolic_class(A)
+    species = default_speciesid(A)
+    if isnothing(M)
+        M = compute_mass(A, Z)
     end
+    method = string(Symbol(model))
+    FoodWeb(A, species, M, metabolic_class, method)
 end
 #### end ####
 
@@ -125,254 +234,60 @@ function display_spvalue(value)
 end
 #### end ####
 
-#=
-Misc functions for generating default values, cleaning some arguments, etc
-=#
-
-function _replacevertebrates!(metabolic_class, id_vertebrates) #User input - does user want to replace vertebrates by ectotherm vertebrates
-    print("Do you want to replace vertebrates by ectotherm vertebrates (y or n)?")
-    n = readline()
-    if n ∈ ["y", "Y", "yes", "Yes", "YES"]
-        vertreplace = true
-    elseif n ∈ ["n", "N", "no", "No", "NO"]
-        vertreplace = false
+#### Utility functions for generating default values, cleaning some arguments, etc.
+"Does the user want to replace 'vertebrates' by 'ectotherm vertebrates'?"
+function replace_vertebrates!(metabolic_class, vertebrates)
+    println("Do you want to replace 'vertebrate' by 'ectotherm vertebrate'? (y or n)")
+    answer = readline()
+    if answer ∈ ["y", "Y", "yes", "Yes", "YES"]
+        replace = true
+    elseif answer ∈ ["n", "N", "no", "No", "NO"]
+        replace = false
     else
-        ErrorException("Please answer yes (y) or no (n)")
+        throw(ErrorException("Invalid answer. Please enter yes (y) or no (n)."))
     end
-    if vertreplace
-        metabolic_class[id_vertebrates] .= "ectotherm vertebrate"
+    if replace
+        metabolic_class[vertebrates] .= "ectotherm vertebrate"
     end
 end
 
-function _cleanmetabolicclass!(metabolic_class, A)
-    # Check that producers are identified as such / replace and send a warning if not
-    id_producers = vec(sum(A; dims = 2) .== 0)
-    are_producer_valid = all(metabolic_class[id_producers] .== "producer")
+"Check that provided metabolic classes are valid."
+function clean_metabolic_class!(metabolic_class, A)
+    # Check that producers are identified as such. If not correct and send a warning.
+    prod = producers(A)
+    are_producer_valid = all(metabolic_class[prod] .== "producer")
     are_producer_valid ||
-        @warn "You provided a metabolic class for basal species - replaced by producer"
-    metabolic_class[id_producers] .= "producer"
-    # Warn that only ectotherm vertebrate have default methods
-    id_vertebrates = lowercase.(metabolic_class) .== "vertebrate"
-    !any(id_vertebrates) || _replacevertebrates!(metabolic_class, id_vertebrates)
+        @warn "You provided a metabolic class for basal species: replaced by 'producer'."
+    metabolic_class[prod] .= "producer"
+
+    # Replace 'vertebrate' by 'ectotherm vertebrate' if user accept. 
+    vertebrates = (1:richness(A))[lowercase.(metabolic_class).=="vertebrate"]
+    isempty(vertebrates) || replace_vertebrates!(metabolic_class, vertebrates)
+
+    # Check that metabolic class are valid.
     metabolic_class .= lowercase.(metabolic_class)
     valid_class = ["producer", "ectotherm vertebrate", "invertebrate"]
-    is_valid_class = falses(length(metabolic_class))
-    for (i, m) in enumerate(metabolic_class)
-        is_valid_class[i] = m ∈ valid_class ? true : false
-    end
-    all(is_valid_class) ||
-        @warn "No default methods for metabolic classes outside of producers, invertebrates and ectotherm vertebrates, proceed with caution"
+    are_class_valid = [class ∈ valid_class for class in metabolic_class]
+    all(are_class_valid) ||
+        @warn "An invalid metabolic class has been given, class should be in $valid_class."
 end
 
-function _masscalculation(A, M, Z)
-    if isa(M, Nothing)
-        if isa(Z, Nothing)
-            M = ones(size(A, 1))
-        else
-            tl = _gettrophiclevels(A)
-            M = Z .^ (tl .- 1)
-        end
-    else
-        isa(Z, Nothing) || throw(
-            ArgumentError(
-                "You provided both a vector of body mass (M) and a predator-prey body mass ratio (Z), please only provide one or the other",
-            ),
-        )
-    end
-    return M
+compute_mass(A, Z) = Z .^ (trophic_levels(A) .- 1)
+
+default_speciesid(A) = ["s$i" for i in 1:richness(A)]
+
+function default_metabolic_class(A)
+    metabolic_class = repeat(["invertebrate"], richness(A))
+    metabolic_class[producers(A)] .= "producer"
+    metabolic_class
 end
 
-function _makespeciesid(A, species)
-    species = isa(species, Nothing) ? "s" .* string.(1:size(A, 1)) : species
-    return species
+function model_foodweb(model, args...)
+    model_name = model |> Symbol |> string
+    implemented_models = ["nichemodel", "nestedhierarchymodel", "cascademodel", "mpnmodel"]
+    model_name ∈ implemented_models ||
+        throw(ArgumentError("Invalid 'model': should be in $implemented_models."))
+    args = filter(!isnothing, args) # only keep non-nothing arguments
+    model(args...)
 end
-
-function _makevertebratevec(A, metabolic_class)
-    if isa(metabolic_class, Nothing)
-        metabolic_class = repeat(["invertebrate"], size(A, 1))
-        isP = vec(sum(A; dims = 2) .== 0)
-        metabolic_class[isP] .= "producer"
-    elseif isa(metabolic_class, String)
-        metabolic_class = repeat([metabolic_class], size(A, 1))
-        isP = vec(sum(A; dims = 2) .== 0)
-        metabolic_class[isP] .= "producer"
-    end
-    return metabolic_class
-end
-
-function _modelfoodweb(model, S, C, forbidden, adbm_parameters)
-    smodel = string(Symbol(model))
-    if smodel ∈ ["nichemodel", "nestedhierarchymodel", "cascademodel"]
-        A = model(S, C)
-    elseif smodel == "mpnmodel"
-        A = model(S, C, forbidden)
-    elseif smodel == "adbmodel"
-        isa(adbm_parameters, Nothing) && throw(
-            ArgumentError(
-                "If using the adbmodel you need to provide either a method to generate parameters or a NamedTuple with the parameters, see the help.",
-            ),
-        )
-        if isa(adbm_parameters, Symbol)
-            println("Not implemented yet")
-        elseif isa(adbm_parameters, NamedTuple)
-            println("Not implemented yet")
-        else
-            println("Not implemented yet")
-        end
-    else
-        throw(
-            ArgumentError(
-                "Only models implemented are nichemodel, nestedhierarchymodel, cascademodel and mpnmodel.",
-            ),
-        )
-    end
-    return A
-end
-
-#=
-FoodWeb functions
-=#
-
-"""
-    FoodWeb(A; species, M, metabolic_class, method, Z)
-
-Generate a FoodWeb object using the interaction matrix A. A can be
-- an AbstractMatrix{T} where T is either Bool or Int64, with `A[i,j] = true` or `A[i,j] = 1` if i eats j and `false` or `0` otherwise.
-- a UnipartiteNetwork (see EcologicalNetworks documentation)
-
-Note that consumers are rows and resources are columns.
-
-Keyword arguments:
-- `species`: a Vector{String} of species identities. If `species` is unspecified, species identity are automatically created as "si" where i is species i's number
-- `M`: a Vector of species body mass. If unspecified, mass are calculated using `Z` (the consumer-resource body size ratio) and trophic rank
-- `metabolic_class`: a vector of species metabolic classes. As of yet, only "producer", "invertebrate" and "ectotherm vertebrate" have default parameters, use another class only if you have the corresponding allometric parameters that you want to input. If you provide a metabolic class other than "producer" for basal species, it will be replaced by "producer"
-- `method`: a String specifying the method used to generate the food web, you can use that field to specify the food web source. Default is "unspecified"
-- `Z`: A number specifying the predator-prey body mass ratio. If specified, body masses are calculated as `M = Z .^ (trophic_rank .- 1)`
-
-Note: If both `Z` and `M` are unspecified, all species will be attributed a mass of 1.0
-
-# Examples
-```julia-repl
-julia> A = [
-    false true true ;
-    false false false ;
-    false false false
-    ] #exploitative competition motif
-julia> FW = FoodWeb(A)
-3 species - 2 links.
-Method: unspecified
-```
-"""
-function FoodWeb(
-    A::Union{AbstractMatrix{Bool},AdjacencyMatrix};
-    species::Union{Nothing,Vector{String}} = nothing,
-    M::Union{Nothing,Vector{T}} = nothing,
-    metabolic_class::Union{Nothing,Vector{String},String} = nothing,
-    method::String = "unspecified",
-    Z::Union{Nothing,T} = nothing,
-) where {T<:Real}
-
-    M = _masscalculation(A, M, Z)
-    species = _makespeciesid(A, species)
-    metabolic_class = _makevertebratevec(A, metabolic_class)
-
-    A = sparse(A)
-
-    return FoodWeb(A, species, M, metabolic_class, method)
-end
-
-function FoodWeb(
-    A::AbstractMatrix{Int64};
-    species::Union{Nothing,Vector{String}} = nothing,
-    M::Union{Nothing,Vector{T}} = nothing,
-    metabolic_class::Union{Nothing,Vector{String},String} = nothing,
-    method::String = "unspecified",
-    Z::Union{Nothing,Real} = nothing,
-) where {T<:Real}
-
-    M = _masscalculation(A, M, Z)
-    species = _makespeciesid(A, species)
-    metabolic_class = _makevertebratevec(A, metabolic_class)
-
-    all([a ∈ [0, 1] for a in A]) || throw(
-        ArgumentError(
-            "The adjacency matrix should only contain 0 (no interaction between i and j) and 1 (i eats i)",
-        ),
-    )
-    A = sparse(Bool.(A))
-
-    return FoodWeb(A, species, M, metabolic_class, method)
-end
-
-function FoodWeb(
-    A::UnipartiteNetwork;
-    M::Union{Nothing,Vector{T}} = nothing,
-    metabolic_class::Union{Nothing,Vector{String},String} = nothing,
-    method::String = "unspecified",
-    Z::Union{Nothing,Real} = nothing,
-) where {T<:Real}
-
-    if isa(A.S, Vector{Mangal.MangalNode})
-        species = [split(string(s), ": ")[2] for s in A.S]
-    else
-        species = A.S
-    end
-    A = A.edges
-    M = _masscalculation(A, M, Z)
-    metabolic_class = _makevertebratevec(A, metabolic_class)
-
-    return FoodWeb(A, species, M, metabolic_class, method)
-end
-
-"""
-    FoodWeb(model, S; C, forbidden, adbm_parameters, species, M, metabolic_class, method, Z)
-
-Generate a `FoodWeb` object using the model specified, with S species. Possible models are the ones implemented in EcologicalNetworks (nichemodel, etc).
-
-Keyword arguments:
-- `C`: (Float64) connectance needs to be specified for some models
-- `forbidden`: (Float64) probability of forbidden links occurring (for the mpnmodel)
-- `adbm_parameters`: NOT IMPLEMENTED YET!!! a NamedTuple with the parameters needed to generate a food web with the Allometric Diet Breadth Model.
-- `species`: a Vector{String} of species identities. If `species` is unspecified, species identity are automatically created as "si" where i is species i's number
-- `M`: a Vector of species body mass. If unspecified, mass are calculated using `Z` (the consumer-resource body size ratio) and trophic rank
-- `metabolic_class`: a vector of species metabolic classes. As of yet, only "producer", "invertebrate" and "ectotherm vertebrate" have default parameters, use another class only if you have the corresponding allometric parameters that you want to input. If you provide a metabolic class other than "producer" for basal species, it will be replaced by "producer"
-- `method`: a String specifying the name of the model used
-- `Z`: A number specifying the predator-prey body mass ratio. If specified, body masses are calculated as `M = Z .^ (trophic_rank .- 1)`
-
-Note: If both `Z` and `M` are unspecified, all species will be attributed a mass of 1.0
-
-# Examples
-```julia-repl
-julia> A = [
-    false true true ;
-    false false false ;
-    false false false
-    ] #exploitative competition motif
-julia> FW = FoodWeb(nichemodel, 10, C = 0.2, Z = 10)
-3 species - 2 links.
-Method: unspecified
-```
-"""
-function FoodWeb(
-    model::Function,
-    S::Int64;
-    C::Union{Nothing,Float64} = nothing,
-    forbidden::Union{Nothing,Float64} = nothing,
-    adbm_parameters::Union{Nothing,NamedTuple,Symbol} = nothing,
-    species::Union{Nothing,Vector{String}} = nothing,
-    M::Union{Nothing,Vector{T}} = nothing,
-    metabolic_class::Union{Nothing,Vector{String},String} = nothing,
-    method::String = "unspecified",
-    Z::Union{Nothing,Real} = nothing,
-) where {T<:Real}
-
-    N = _modelfoodweb(model, S, C, forbidden, adbm_parameters)
-    A = N.edges
-    species = N.S
-    metabolic_class = _makevertebratevec(A, metabolic_class)
-    species = _makespeciesid(A, species)
-    M = _masscalculation(A, M, Z)
-    method = string(Symbol(model))
-
-    return FoodWeb(A, species, M, metabolic_class, method)
-end
+#### end #### 
