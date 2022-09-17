@@ -57,6 +57,7 @@ export draw_symmetric_links
 export Environment
 export find_steady_state
 export FoodWeb
+export foodweb_evenness
 export FunctionalResponse
 export FunctionalResponse
 export homogeneous_preference
@@ -72,6 +73,7 @@ export nestedhierarchymodel
 export nichemodel
 export nontrophic_adjacency_matrix
 export NonTrophicIntensity
+export population_stability
 export potential_competition_links
 export potential_facilitation_links
 export potential_interference_links
@@ -79,6 +81,9 @@ export potential_refuge_links
 export producers
 export richness
 export simulate
+export species_persistence
+export species_richness
+export total_biomass
 export trophic_levels
 
 end
