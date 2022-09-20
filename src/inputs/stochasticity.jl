@@ -23,76 +23,92 @@ end
 
 "One line AddStochasticity display."
 function Base.show(io::IO, stochasticity::AddStochasticity)
-    if stochasticity.addstochasticity == true
-        n = length(stochasticity.stochspecies)
-        print(io, "Stochasticity added to $n species")
+    if stochasticity.addstochasticity == true && length(stochasticity.σe) > 0 && sum(stochasticity.σd) > 0
+        print(io, " Environmental and demographic stochasticity added")
+    elseif stochasticity.addstochasticity == true && sum(stochasticity.σd) > 0
+        print(io, " Demographic stochasticity added")
+    elseif stochasticity.addstochasticity == true && length(stochasticity.σe) > 0
+        print(io, " Environmental stochasticity added")
     else
-        print(io, "Stochasticity not added")
+        print(io, " Stochasticity not added")
     end
 end
 
 "Multiline AddStochasticity display."
 function Base.show(io::IO, ::MIME"text/plain", stochasticity::AddStochasticity)
-    if stochasticity.addstochasticity == true
-        println(io, " Adding stochasticity?: true")
-        println(io, " θ (rate of return to mean): " * vector_to_string(stochasticity.θ))
+    if stochasticity.addstochasticity == true && length(stochasticity.σe) > 0 && sum(stochasticity.σd) > 0
+        println(io, "Stochasticity:")
+        println(io, "  Adding stochasticity?: true")
+        println(io, "  θ (rate of return to mean): " * vector_to_string(stochasticity.θ))
         println(
             io,
-            " μ (mean of stochastic parameter): " * vector_to_string(stochasticity.μ),
+            "  μ (mean of stochastic parameter): " * vector_to_string(stochasticity.μ),
         )
         println(
             io,
-            " σe (environmental noise scaling parameter): " *
+            "  σe (environmental noise scaling parameter): " *
             vector_to_string(stochasticity.σe),
         )
         println(
             io,
-            " σd (demographic noise scaling parameter): " *
+            "  σd (demographic noise scaling parameter): " *
             vector_to_string(stochasticity.σd),
         )
-        print(io, " Stochastic species: " * vector_to_string(stochasticity.stochspecies))
+        print(io, "  Stochastic species: " * vector_to_string(stochasticity.stochspecies))
+
+    elseif stochasticity.addstochasticity == true && sum(stochasticity.σd) > 0
+        println(io, "Stochasticity:")
+        println(io, "  Adding stochasticity?: true")
+        print(
+            io,
+            "  σd (demographic noise scaling parameter): " *
+            vector_to_string(stochasticity.σd),
+        )
+
+    elseif stochasticity.addstochasticity == true && length(stochasticity.σe) > 0
+        println(io, "Stochasticity:")
+        println(io, "  Adding stochasticity?: true")
+        println(io, "  θ (rate of return to mean): " * vector_to_string(stochasticity.θ))
+        println(
+            io,
+            "  μ (mean of stochastic parameter): " * vector_to_string(stochasticity.μ),
+        )
+        println(
+            io,
+            "  σe (environmental noise scaling parameter): " *
+            vector_to_string(stochasticity.σe),
+        )
+        print(io, "  Stochastic species: " * vector_to_string(stochasticity.stochspecies))
 
     else
-        println(io, "Adding stochasticity?: false")
-        println(io, "θ (rate of return to mean): Empty")
-        println(io, "μ (mean of stochastic parameter): Empty")
-        println(io, "σe (environmental noise scaling parameter): Empty")
-        print(io, "σd (demographic noise scaling parameter): Empty")
+        println(io, "Stochasticity:")
+        print(io, "  Stochasticity not added")
     end
 end
 
 #=
-This internal function returns a vector of the species stochasticity will be added to
-It needs to be provided with:
- a FoodWeb object
- a list of which species stochasticity will be added to (wherestochasticity)
- - this can be "producers", "consumers", "allspecies", an integer or vector of integers
- how many species in the above group will stochasticity be added to
- - this can be "all", "random" or an integer
-
-There are a lot of ifs here because there are so many options...
+Returns a vector (species pool) containing species stochasticity can be added to.
+Various versions of the function take the target input of different types
 =#
 
 #### Potential stochastic species ####
 
-function stochastic_species_pool(FW::FoodWeb, wherestochasticity::String)
+function stochastic_species_pool(foodweb::FoodWeb, target::String)
 
-    idp = producers(FW)
+    # Collect species that match the target input into 'selected_species'
 
-    # Collect species that match the wherestochasticity input into 'selected_species'
+    if target == "producers"
+        selected_species = producers(foodweb)
 
-    if wherestochasticity == "producers"
-        selected_species = producers(FW)
+    elseif target == "consumers"
+        selected_species = predators(foodweb)
 
-    elseif wherestochasticity == "consumers"
-        selected_species = predators(FW)
-
-    elseif wherestochasticity == "allspecies"
-        selected_species = [1:1:(richness(FW));]
+    elseif target == "allspecies"
+        selected_species = [1:1:(richness(foodweb));]
     else
         throw(
             ArgumentError(
-                "wherestochasticity group not recognised. wherestochasticity can be one of: \n producers, consumers, or allspecies",
+                "target group not recognised. target can be one of: \n producers, consumers, or allspecies",
             ),
         )
     end
@@ -100,50 +116,50 @@ function stochastic_species_pool(FW::FoodWeb, wherestochasticity::String)
     selected_species
 end
 
-function stochastic_species_pool(FW::FoodWeb, wherestochasticity::Vector{Int64})
+function stochastic_species_pool(foodweb::FoodWeb, target::Vector{Int64})
 
-    wherestochasticity
+    target
 end
 
-function stochastic_species_pool(FW::FoodWeb, wherestochasticity::Int64)
+function stochastic_species_pool(foodweb::FoodWeb, target::Int64)
 
-    [wherestochasticity]
+    [target]
 end
 
 #### end ####
 
 #### Sample from above species pools ####
 
-function sampled_stochastic_species(species_pool, nstochasticity::String)
-    # Sample from these selected species to get a vector of length nstochasticity
+function sampled_stochastic_species(species_pool, n_species::String)
+    # Sample from these selected species to get a vector of length n_species
 
-    if nstochasticity == "all"
+    if n_species == "all"
         out = species_pool
 
-    elseif nstochasticity == "random"
-        if typeof(wherestochasticity) == Int64
+    elseif n_species == "random"
+        if typeof(target) == Int64
             throw(ArgumentError("You can't randomly sample from 1 species"))
         end
-        nstochasticity = sample(1:length(species_pool))
-        out = sample(species_pool, nstochasticity; replace = false)
+        n_species = sample(1:length(species_pool))
+        out = sample(species_pool, n_species; replace = false)
     else
         throw(
             ArgumentError(
-                "nstochasticity group not recognised. nstochasticity can be one of: \n all, or random",
+                "n_species group not recognised. n_species can be one of: \n all, or random",
             ),
         )
     end
 
 end
 
-function sampled_stochastic_species(species_pool, nstochasticity::Int64)
+function sampled_stochastic_species(species_pool, n_species::Int64)
 
-    if nstochasticity > length(species_pool)
-        nstochasticity = length(species_pool)
-        @warn "nstochasticity greater than number of species. \n Adding stochasticity to all species"
-        out = sample(species_pool, nstochasticity; replace = false)
-    else # number of species specified by nstochasticity is less than number of potential stochastic species in species_pool
-        out = sample(species_pool, nstochasticity; replace = false)
+    if n_species > length(species_pool)
+        n_species = length(species_pool)
+        @warn "n_species greater than number of species. \n Adding stochasticity to all species"
+        out = sample(species_pool, n_species; replace = false)
+    else # number of species specified by n_species is less than number of potential stochastic species in species_pool
+        out = sample(species_pool, n_species; replace = false)
     end
 end
 
@@ -159,75 +175,68 @@ If addstochasticity = true...
     Be trimmed or repeated to be the size of stochspecies
 
 edit: σd is edited so that it is either applied to all species or none. Therefore...
-    needs an integer or vector of length richness(FW) - other lengths not allowed
+    needs an integer or vector of length richness(foodweb) - other lengths not allowed
     still has to be positive
     now defaults to 0.0
 =#
 
 function thetacheck(
     stochspecies::Vector{Int64},
-    addstochasticity::Bool = false,
     θ::Union{Float64,Vector{Float64},Nothing} = nothing,
 )
 
-    if addstochasticity == false
-        θ = Float64[]
+    if isnothing(θ)
+        throw(
+            ArgumentError("There are no defaults for θ - provide a value or a vector"),
+        )
+    elseif all(>=(0), θ) == false
+        throw(ArgumentError("All values of θ must be positive"))
+    end
+
+    if isa(θ, Vector)
+        ls = length(stochspecies)
+        lθ = length(θ)
+
+        if length(θ) > length(stochspecies)
+            @warn "You have provided $lθ θ values and there are $ls stochastic species. \n Using the first $ls values of θ"
+            θ = θ[1:length(stochspecies)]
+        end
+
+        if length(θ) < length(stochspecies)
+            @warn "You have provided $lθ θ values and there are $ls stochastic species. \n Repeating θ until there are $ls values of θ"
+            θ = repeat(θ; outer = length(stochspecies))
+            θ = θ[1:length(stochspecies)]
+        end
     else
-        if isnothing(θ)
-            throw(
-                ArgumentError("There are no defaults for θ - provide a value or a vector"),
-            )
-        elseif all(>=(0), θ) == false
-            throw(ArgumentError("All values of θ must be positive"))
-        end
-
-        if isa(θ, Vector)
-            ls = length(stochspecies)
-            lθ = length(θ)
-
-            if length(θ) > length(stochspecies)
-                @warn "You have provided $lθ θ values and there are $ls stochastic species. \n Using the first $ls values of θ"
-                θ = θ[1:length(stochspecies)]
-            end
-
-            if length(θ) < length(stochspecies)
-                @warn "You have provided $lθ θ values and there are $ls stochastic species. \n Repeating θ until there are $ls values of θ"
-                θ = repeat(θ; outer = length(stochspecies))
-                θ = θ[1:length(stochspecies)]
-            end
-        else
-            θ = repeat([θ], length(stochspecies))
-        end
+        θ = repeat([θ], length(stochspecies))
     end
 
     return θ
 end
 
 function sigmadcheck(
-    FW,
-    stochspecies::Vector{Int64},
+    foodweb,
     addstochasticity::Bool = false,
-    σd::Union{Float64,Vector{Float64},Nothing} = nothing,
+    σd::Union{Float64,Vector{Float64},Nothing} = nothing
 )
-
     if addstochasticity == false
         σd = Float64[]
     else
         if isnothing(σd)
-            σd = repeat([0.0], richness(FW))
+            σd = repeat([0.0], richness(foodweb))
         elseif all(>=(0), σd) == false
             throw(ArgumentError("All values of σd must be positive"))
         end
 
         if isa(σd, Vector)
-            ns = richness(FW) # For the ArgumentError below
-            isequal(length(σd), richness(FW)) || throw(
+            ns = richness(foodweb) # For the ArgumentError below
+            isequal(length(σd), richness(foodweb)) || throw(
                 ArgumentError(
                     "σd should be either a single value or a vector of length $ns",
                 ),
             )
         else
-            σd = repeat([σd], richness(FW))
+            σd = repeat([σd], richness(foodweb))
         end
     end
 
@@ -236,38 +245,33 @@ end
 
 function sigmaecheck(
     stochspecies::Vector{Int64},
-    addstochasticity::Bool = false,
     σe::Union{Float64,Vector{Float64},Nothing} = nothing,
 )
 
-    if addstochasticity == false
-        σe = Float64[]
+    if isnothing(σe)
+        throw(
+            ArgumentError("There are no defaults for σe - provide a value or a vector"),
+        )
+    elseif all(>=(0), σe) == false
+        throw(ArgumentError("All values of σe must be positive"))
+    end
+
+    if isa(σe, Vector)
+        ls = length(stochspecies)
+        lσe = length(σe)
+
+        if length(σe) > length(stochspecies)
+            @warn "You have provided $lσe σe values and there are $ls stochastic species. \n Using the first $ls values of σe"
+            σe = σe[1:length(stochspecies)]
+        end
+
+        if length(σe) < length(stochspecies)
+            @warn "You have provided $lσe σe values and there are $ls stochastic species. \n Repeating σe until there are $ls values of σe"
+            σe = repeat(σe; outer = length(stochspecies))
+            σe = σe[1:length(stochspecies)]
+        end
     else
-        if isnothing(σe)
-            throw(
-                ArgumentError("There are no defaults for σe - provide a value or a vector"),
-            )
-        elseif all(>=(0), σe) == false
-            throw(ArgumentError("All values of σe must be positive"))
-        end
-
-        if isa(σe, Vector)
-            ls = length(stochspecies)
-            lσe = length(σe)
-
-            if length(σe) > length(stochspecies)
-                @warn "You have provided $lσe σe values and there are $ls stochastic species. \n Using the first $ls values of σe"
-                σe = σe[1:length(stochspecies)]
-            end
-
-            if length(σe) < length(stochspecies)
-                @warn "You have provided $lσe σe values and there are $ls stochastic species. \n Repeating σe until there are $ls values of σe"
-                σe = repeat(σe; outer = length(stochspecies))
-                σe = σe[1:length(stochspecies)]
-            end
-        else
-            σe = repeat([σe], length(stochspecies))
-        end
+        σe = repeat([σe], length(stochspecies))
     end
 
     return σe
@@ -276,100 +280,98 @@ end
 
 
 """
-AddStochasticity(FW::FoodWeb, BR::Union{BioRates, Nothing} = nothing; addstochasticity::Bool = false, wherestochasticity::Union{String, Vector{String}, Int64, Vector{Int64}, Nothing} = nothing, nstochasticity::Union{Int64, String, Nothing} = nothing, θ::Union{Float64, Vector{Float64}, Nothing} = nothing, σe::Union{Float64, Vector{Float64}, Nothing} = nothing, σd::Union{Float64, Vector{Float64}, Nothing} = nothing)
+    AddStochasticity(foodweb::FoodWeb; args...)
 
-Creates an object of Type AddStochasticity to hold all parameters related to adding stochasticity into the BEFW
+Creates an object of Type AddStochasticity to hold all parameters related to adding stochasticity into the BEFW. Arguments are as follows:
 
-- FW is a FoodWeb object
-- BR is a BioRates object
-- addstochasticity is a boolean indicating whether stochasticity will be added or not - if true the following arguments will need to be supplied; there are no defaults
-- wherestochasticity contains information about which species stochasticity will be added to
-    This may be "producers", "consumers", "allspecies", or an integer or vector of integers (relating to the position of species in the interaction matrix)
-- nstochasticity provides the number of species stochasticity will be added to
-    This may be "all", "random" or a number
+Arguments required for all types of stochasticity:
+- foodweb - a FoodWeb object (MultiplexNetwork objects not compatible)
+- addstochasticity - a boolean indicating whether stochasticity will be implemented or not. Defaults to false (i.e. no stochasticity)
 
-Environmental stochasticity is added using an Orstein-Uhlenbeck process with a drift term; dxt = θ(μ - xt)dt + σ dWt
-- θ controls speed of return to the mean following perturbation
-- μ is the mean value of the stochastic parameter (taken from BioRates)
-- σe is the standard deviation of the noise process for environmental stochasticity
-- σd is the standard deviation of the noise process for demographic stochasticity
+Optional arguments required for environmental stochasticity (an Orstein-Uhlenbeck process with a drift term; dxt = θ(μ - xt)dt + σ dWt)
+- biorates - a BioRates object to provide μ values for the Ornstein-Uhlenbeck process. Defaults to BioRates(foodweb)
+- target - information about which species stochasticity will be added to and is used to produce a pool of potential species
+    This may be "producers", "consumers", "allspecies", an integer or vector of integers (relating to the position of species in the interaction matrix)
+- n_species - dictates how should the pool of potentially stochastic species be sampled. Defaults to "all"
+    This may be "all", "random" or an integer
+- θ - a Float64 or Vector{Float64} controlling speed of return to the mean following perturbation (user supplied, no default)
+- σe - a Float64 or Vector{Float64} controlling the standard deviation of the noise process for environmental stochasticity (user supplied, no default)
+
+Optional arguments required for demographic stochasticity (a Wiener process scaled by population size)
+- σd is the standard deviation of the noise process for demographic stochasticity (user supplied, no default)
+
+# Examples
+```jldoctest
+julia> foodweb = FoodWeb([0 1 0; 0 0 1; 0 0 0]); # 1 eats 2, 2 eats 3
+
+julia> AddStochasticity(foodweb) # default
+Stochasticity:
+  Stochasticity not added
+
+julia> AddStochasticity(foodweb, addstochasticity = true, target = "consumers", θ = 0.4, σe = 0.2) # environmental stochasticity
+Stochasticity:
+  Adding stochasticity?: true
+  θ (rate of return to mean): [0.4, 0.4]
+  μ (mean of stochastic parameter): [0.314, 0.314]
+  σe (environmental noise scaling parameter): [0.2, 0.2]
+  Stochastic species: [1, 2]
+
+julia> AddStochasticity(foodweb, addstochasticity = true, σd = 0.1) # demographic stochasticity
+Stochasticity:
+  Adding stochasticity?: true
+  σd (demographic noise scaling parameter): [0.1, 0.1, 0.1]
+```
 """
 function AddStochasticity(
-    FW::FoodWeb,
-    BR::Union{BioRates,Nothing} = nothing;
+    foodweb::FoodWeb;
     addstochasticity::Bool = false,
-    wherestochasticity::Union{String,Vector{String},Int64,Vector{Int64},Nothing} = nothing,
-    nstochasticity::Union{Int64,String,Nothing} = nothing,
+    biorates::Union{BioRates,Nothing} = nothing,
+    target::Union{String,Vector{String},Int64,Vector{Int64},Nothing} = nothing,
+    n_species::Union{Int64,String,Nothing} = "all",
     θ::Union{Float64,Vector{Float64},Nothing} = nothing,
     σe::Union{Float64,Vector{Float64},Nothing} = nothing,
     σd::Union{Float64,Vector{Float64},Nothing} = nothing,
 )
 
-    # Step 1: Generate a vector containing the stochastic species
+    if addstochasticity == true && !isnothing(σe) # environmental stochasticity
+        if addstochasticity == true && isnothing(biorates)
+            biorates = BioRates(foodweb)
+        elseif addstochasticity == true && isnothing(target)
+            throw(
+                ArgumentError(
+                    "There is no default target - choose either producer, consumer, or allspecies",
+                ),
+            )
+        end
+        species_pool = stochastic_species_pool(foodweb, target)
+        stochspecies = sampled_stochastic_species(species_pool, n_species)
+        stochspecies = sort(stochspecies) # For presentation's sake
+        stochproducers = intersect(stochspecies, producers(foodweb))
+        stochconsumers = intersect(stochspecies, predators(foodweb))
 
-    if addstochasticity == true && isnothing(BR)
-        throw(ArgumentError("If adding stochasticity please provide a BioRates object"))
-    elseif addstochasticity == true && isnothing(wherestochasticity)
-        throw(
-            ArgumentError(
-                "There are no defaults for wherestochasticity - provide a value or a vector",
-            ),
-        )
-    elseif addstochasticity == true && isnothing(nstochasticity)
-        throw(ArgumentError("There are no defaults for nstochasticity - provide a value"))
-    end
+        θ = thetacheck(stochspecies, θ)
+        σe = sigmaecheck(stochspecies, σe)
 
-    stochspecies = Int64[]
+        μ = zeros(length(stochspecies))
 
-    if addstochasticity == true
-        species_pool = stochastic_species_pool(FW, wherestochasticity)
-        stochspecies = sampled_stochastic_species(species_pool, nstochasticity)
-    else
-        stochspecies = Int64[]
-    end
-
-    if length(stochspecies) > 1 # stochspecies is Vector{Any}, I want it Vector{Int64}
-        stochspecies = convert(Vector{Int64}, stochspecies)
-    elseif length(stochspecies) == 1 && typeof(stochspecies) != Vector{Int64}
-        stochspecies = [stochspecies]
-    end
-    stochspecies = sort(stochspecies) # For presentation's sake
-
-    # Step 2: Use the vector of stochastic species to generate the vectors for stochastic parameters
-
-    θ = thetacheck(stochspecies, addstochasticity, θ)
-    σd = sigmadcheck(FW, stochspecies, addstochasticity, σd)
-    σe = sigmaecheck(stochspecies, addstochasticity, σe)
-
-
-    μ = zeros(length(stochspecies))
-
-    if isnothing(BR)
-        μ = Float64[]
-    else
         for (i, j) in enumerate(stochspecies)
-            if j ∈ producers(FW)
-                μ[i] = BR.r[j]
+            if j ∈ producers(foodweb)
+                μ[i] = biorates.r[j]
             else
-                μ[i] = BR.x[j]
+                μ[i] = biorates.x[j]
             end
         end
+
+    else
+        θ = Float64[]
+        σe = Float64[]
+        μ = Float64[]
+        stochspecies = Int64[]
+        stochproducers = Int64[]
+        stochconsumers = Int64[]
     end
 
-    #Step 3: Make vectors of stochconsumers & stochproducers
-
-    stochconsumers = Int64[]
-    stochproducers = Int64[]
-
-    if addstochasticity == true
-        for i in stochspecies
-            if i ∈ producers(FW)
-                push!(stochproducers, i)
-            else
-                push!(stochconsumers, i)
-            end
-        end
-    end
+    σd = sigmadcheck(foodweb, addstochasticity, σd) # always needed
 
     return AddStochasticity(
         addstochasticity,
@@ -383,8 +385,13 @@ function AddStochasticity(
     )
 end
 
+"""
+    AddStochasticity(network::MultiplexNetwork)
+
+Stochasticity is not currently implemented for multiplex networks. Trying to use one will return an empty object
+"""
 function AddStochasticity(
-    MN::MultiplexNetwork
+    network::MultiplexNetwork
 )
     addstochasticity = false
     θ = Float64[]
