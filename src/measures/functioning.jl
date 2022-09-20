@@ -25,7 +25,7 @@ function population_stability(solution; threshold::Float64=eps(), last=1000)
     if sum(measure_on) == 0
         return NaN
     end
-    stability = -mapslices(BEFWM2.coefficient_of_variation, measure_on, dims = 2)
+    stability = -mapslices(coefficient_of_variation, measure_on, dims = 2)
     return mean(stability)
 end
 
@@ -105,4 +105,40 @@ function foodweb_evenness(solution; last=1000)
     end
     shan = [shannon(vec(measure_on[:,i])) for i in 1:size(measure_on, 2)]
     return mean(shan)
+end
+
+"""
+**Producers growth rate**
+This function takes the simulation outputs from `simulate` and returns the producers
+growth rates. Depending on the value given to the keyword `out_type`, it can return
+more specifically:
+- growth rates for each producer at each time step form end-last to last (`out_type = :all`)
+- the mean growth rate for each producer over the last `last` time steps (`out_type = :mean`)
+- the standard deviation of the growth rate for each producer over the last `last` time steps (`out_type = :std`)
+"""
+function producer_growth(solution; last::Int64 = 1000, out_type::Symbol = :all)
+    parameters = solution.prob.p#extract parameters
+
+    mask_producer = parameters.network.metabolic_class .== "producer" 
+
+    producer_species = parameters.network.species[mask_producer]
+
+    Kp = parameters.environment.K[mask_producer]
+    rp = parameters.biorates.r[mask_producer]
+
+    @assert last <= length(solution.t)
+
+    measure_on = solution[:, :][mask_producer, end-(last-1):end]#extract the biomasses that will be used
+
+    growth = (s = producer_species, G = [logisticgrowth.(measure_on[i, :], Kp[i], rp[i]) for i in 1:size(measure_on, 1)])
+
+    if out_type == :all #return all growth rates (each producer at each time step)
+        return growth
+    elseif out_type == :mean #return the producers mean growth rate over the last `last` time steps
+        return (s = producer_species, G = map(x -> mean(x), growth.G))
+    elseif out_type == :std #return the growth rate standard deviation over the last `last` time steps (for each producer)
+        return (s = producer_species, G = map(x -> std(x), growth.G))
+    else #if the keyword used is not one of :mean, :all or :std, print an error
+        error("out_type should be one of :all, :mean or :std")
+    end
 end
