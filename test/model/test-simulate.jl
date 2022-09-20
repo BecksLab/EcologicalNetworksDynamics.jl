@@ -88,10 +88,9 @@
     foodweb = FoodWeb([0 0; 1 0])
     stochasticity = AddStochasticity(
     foodweb,
-    BioRates(foodweb);
     addstochasticity = true,
-    wherestochasticity = "producers",
-    nstochasticity = "all",
+    target = "producers",
+    n_species = "all",
     σe = 0.5,
     θ = 0.5,
     )

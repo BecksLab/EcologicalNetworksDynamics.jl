@@ -14,10 +14,9 @@ biorates = BioRates(foodweb)
 
 stochasticity = AddStochasticity(
     foodweb,
-    biorates;
     addstochasticity = true,
-    wherestochasticity = "producers",
-    nstochasticity = "all",
+    target = "producers",
+    n_species = "all",
     σe = input_σ,
     θ = input_θ,
 )
@@ -38,10 +37,9 @@ end
 # Adding stochasticity to specific species
 stochasticity = AddStochasticity(
     foodweb,
-    biorates;
     addstochasticity = true,
-    wherestochasticity = [2, 3, 4],
-    nstochasticity = 3,
+    target = [2, 3, 4],
+    n_species = 3,
     σe = input_σ,
     θ = input_θ,
 )
