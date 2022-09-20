@@ -48,6 +48,7 @@ export BioenergeticResponse
 export BioRates
 export cascademodel
 export ClassicResponse
+export coefficient_of_variation
 export connectance
 export DefaultGrowthParams
 export DefaultMaxConsumptionParams
