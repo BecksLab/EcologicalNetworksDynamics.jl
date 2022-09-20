@@ -25,7 +25,7 @@ function population_stability(solution; threshold::Float64=eps(), last=1000)
     if sum(measure_on) == 0
         return NaN
     end
-    stability = -mapslices(coefficient_of_variation, measure_on, dims = 2)
+    stability = -mapslices(BEFWM2.coefficient_of_variation, measure_on, dims = 2)
     return mean(stability)
 end
 
@@ -103,6 +103,6 @@ function foodweb_evenness(solution; last=1000)
     if sum(measure_on) == 0
         return NaN
     end
-    shan = [shannon(vec(out[:,i])) for i in 1:size(out, 2)]
+    shan = [shannon(vec(measure_on[:,i])) for i in 1:size(measure_on, 2)]
     return mean(shan)
 end
