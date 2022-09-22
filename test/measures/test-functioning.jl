@@ -7,15 +7,15 @@
     sim = simulate(params, [0, 0.5])
     normal_growth = producer_growth(sim, last = 1, out_type = :all)
     # If biomass equal to 0, growth rate equal to 0 
-    @test normal_growth.G[normal_growth.s .== "s1"] ≈ 0.0
+    @test normal_growth.G[normal_growth.s .== "s1"][1][1] ≈ 0.0
 
     first_growth = producer_growth(sim, last = length(sim.t), out_type = :all)
     # First growth rate should be equal to the logisticgrowth with initial
     # biomass
     s, r, K = sim.prob.p.network.species, sim.prob.p.biorates.r, sim.prob.p.environment.K  
 
-    @test first_growth.G[first_growth.s .== "s2"][1] == BEFWM2.logisticgrowth.(0.5, r[s .== "s2"], K[s .== "s2"]) 
-    @test first_growth.G[first_growth.s .== "s2"][1] == 0.25 
+    @test first_growth.G[first_growth.s .== "s2"][1][1] == BEFWM2.logisticgrowth.(0.5, r[s .== "s2"], K[s .== "s2"])[1] 
+    @test first_growth.G[first_growth.s .== "s2"][1][1] == 0.25
 
     # Growth rate should converge to 0 as B converges to K 
     @test isapprox(first_growth.G[first_growth.s .== "s2"][1][length(sim.t)], 0.0,

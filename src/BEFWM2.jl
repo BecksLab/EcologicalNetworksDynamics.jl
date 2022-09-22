@@ -29,6 +29,7 @@ include(joinpath(".", "model/effect_nti.jl"))
 include(joinpath(".", "measures/structure.jl"))
 include(joinpath(".", "measures/functioning.jl"))
 include(joinpath(".", "measures/stability.jl"))
+include(joinpath(".", "measures/utils.jl"))
 include(joinpath(".", "utils.jl"))
 
 # Export public functions
