@@ -20,8 +20,7 @@ Number of species with a biomass larger than the `threshold`. The threshold is
 by default set at `eps()`, which should be close to 10^-16.
 """
 function foodweb_richness(solution; threshold::Float64=eps(), last::Int64=1000)
-    @assert last <= length(solution.t)
-    measure_on = solution[:,end-(last-1):end]
+    measure_on = filter_sim(solution, last = last)
 
     rich = [species_richness(vec(measure_on[:,i]), threshold = threshold) for i in 1:size(measure_on, 2)]
     return mean(rich)
@@ -76,8 +75,8 @@ Returns the sum of biomass, averaged over the last `last` timesteps.
 See also [`population_stability`](@ref)
 """
 function total_biomass(solution; last::Int64=1000)
-    @assert last <= length(solution.t)
-    measure_on = solution[:,end-(last-1):end]
+    
+    measure_on = filter_sim(solution, last = last)
     biomass = vec(sum(measure_on, dims = 1))
     return mean(biomass)
 end
@@ -117,8 +116,8 @@ See also [`population_stability`](@ref) for examples
 
 """
 function foodweb_shannon(solution; last::Int64=1000, threshold::Float64=eps())
-    @assert last <= length(solution.t) 
-    measure_on = solution[:,end-(last-1):end]
+    measure_on = filter_sim(solution, last = last)
+
     if sum(measure_on) == 0
         return NaN
     end
@@ -158,8 +157,8 @@ See also [`population_stability`](@ref) for examples
 
 """
 function foodweb_simpson(solution; last::Int64=1000, threshold::Float64=eps())
-    @assert last <= length(solution.t) 
-    measure_on = solution[:,end-(last-1):end]
+
+    measure_on = filter_sim(solution, last = last)
     if sum(measure_on) == 0
         return NaN
     end
@@ -197,9 +196,8 @@ all populations have equal biomasses.
 See also [`population_stability`](@ref) for examples
 
 """
-function foodweb_evenness(solution; last::Int64=1000)
-    @assert last <= length(solution.t) 
-    measure_on = solution[:,end-(last-1):end]
+function foodweb_evenness(solution; last::Int64=1000, threshold::Float64=eps())
+    measure_on = filter_sim(solution, last = last)
     if sum(measure_on) == 0
         return NaN
     end
@@ -230,9 +228,8 @@ function producer_growth(solution; last::Int64 = 1000, out_type::Symbol = :all)
     Kp = parameters.environment.K[mask_producer]
     rp = parameters.biorates.r[mask_producer]
 
-    @assert last <= length(solution.t)
-
-    measure_on = solution[:, :][mask_producer, end-(last-1):end]#extract the biomasses of the producer_species 
+    #extract the biomasses of the producer_species
+    measure_on = filter_sim(solution, last = last)[mask_producer,:]
 
     growth = (s = producer_species, G = [logisticgrowth.(measure_on[i, :], Kp[i], rp[i]) for i in 1:size(measure_on, 1)])
 

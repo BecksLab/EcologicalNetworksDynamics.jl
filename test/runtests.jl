@@ -29,6 +29,8 @@ test_files = [
     "model/test-model_parameters.jl",
     "model/test-consumption.jl",
     "model/test-simulate.jl",
+    "measures/test-functioning.jl",
+    "measures/test-utils.jl",
 ]
 
 # Set up text formatting
