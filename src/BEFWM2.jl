@@ -59,6 +59,9 @@ export Environment
 export find_steady_state
 export FoodWeb
 export foodweb_evenness
+export foodweb_richness
+export foodweb_shannon
+export foodweb_simpson
 export FunctionalResponse
 export FunctionalResponse
 export homogeneous_preference
