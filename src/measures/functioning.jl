@@ -1,32 +1,17 @@
 #=
 Quantifying functions
+Adapted from BioenergeticFoodWeb.jl
 =#
 
 """
-**Coefficient of variation**
-Corrected for the sample size.
-"""
-function coefficient_of_variation(x)
-    cv = std(x) / mean(x)
-    norm = 1 + 1 / (4 * length(x))
-    return norm * cv
-end
+**Richness**
+return `NaN` in case of problem.
 
+# Argument
+- n: a vector of biomass values 
 """
-**Population stability**
-Population stability is measured as the mean of the negative coefficient
-of variations of all species with an abundance higher than `threshold`. By
-default, the stability is measured over the last `last=1000` timesteps.
-"""
-function population_stability(solution; threshold::Float64=eps(), last=1000)
-    @assert last <= length(solution.t)
-    non_extinct = solution[:, end] .> threshold
-    measure_on = solution[non_extinct, end-(last-1):end]
-    if sum(measure_on) == 0
-        return NaN
-    end
-    stability = -mapslices(coefficient_of_variation, measure_on, dims = 2)
-    return mean(stability)
+function species_richness(n; threshold::Float64=eps())
+    sum(n .> threshold)
 end
 
 """
@@ -34,23 +19,52 @@ end
 Number of species with a biomass larger than the `threshold`. The threshold is
 by default set at `eps()`, which should be close to 10^-16.
 """
-function species_richness(solution; threshold::Float64=eps(), last::Int64=1000)
+function foodweb_richness(solution; threshold::Float64=eps(), last::Int64=1000)
     @assert last <= length(solution.t)
     measure_on = solution[:,end-(last-1):end]
-    if sum(measure_on) == 0
-        return NaN
-    end
-    richness = vec(sum(measure_on .> threshold, dims = 1))
-    return mean(richness)
+
+    rich = [species_richness(vec(measure_on[:,i]), threshold = threshold) for i in 1:size(measure_on, 2)]
+    return mean(rich)
 end
 
 """
 **Proportion of surviving species**
 Proportion of species with a biomass larger than the `threshold`. The threshold is
 by default set at `eps()`, which should be close to 10^-16.
+
+Number of species is the species richness over the `last` timesteps (See [`foodweb_richness`](@ref)).
+
+The number of species at the beginning of the simulation is the number of initial biomass provided, i.e.  
+the starting number of species would be  
+
+See also [`population_stability`](@ref)
+
+# Examples
+#
+```jldoctest
+julia> foodweb = FoodWeb([0 0; 0 0]); #A foodweb of two producers 
+
+julia> params = ModelParameters(foodweb);
+
+julia> sim_two = simulate(params, [0.5, 0.5]);
+
+julia> species_persistence(sim_two, last = 1) # All the producers survived 
+1.0
+
+julia> sim_one = simulate(params, [0, 0.5]);
+
+julia> species_persistence(sim_one, last = 1) # All half of the producers survived
+0.5
+
+julia> sim_zero = simulate(params, [0, 0]);
+
+julia> species_persistence(sim_zero, last = 1) # I know... It is a feature!
+0.0
+```
+
 """
 function species_persistence(solution; threshold::Float64=eps(), last::Int64=1000)
-    r = species_richness(solution, threshold=threshold, last=last)
+    r = foodweb_richness(solution, threshold=threshold, last=last)
     m = size(solution, 1) # Number of species is the number of rows in the biomass matrix
     return r/m
 end
@@ -58,31 +72,115 @@ end
 """
 **Total biomass**
 Returns the sum of biomass, averaged over the last `last` timesteps.
+
+See also [`population_stability`](@ref)
 """
-function total_biomass(solution; last=1000)
+function total_biomass(solution; last::Int64=1000)
     @assert last <= length(solution.t)
     measure_on = solution[:,end-(last-1):end]
-    if sum(measure_on) == 0
-        return NaN
-    end
     biomass = vec(sum(measure_on, dims = 1))
     return mean(biomass)
 end
 
+
+
 """
-**Shannon's entropy**
-Corrected for the number of species, removes negative and null values, return
-`NaN` in case of problem.
+**Shannon's diversity**
+return `NaN` in case of problem.
+
+# Argument
+- n: a vector of biomass values 
 """
-function shannon(n)
+function shannon(n; threshold::Float64=eps())
     x = copy(n)
-    x = filter((k) -> k > 0.0, x)
+    x = filter((k) -> k > threshold, x)
     try
-        if length(x) > 1
+        if length(x) >= 1
             p = x ./ sum(x)
             corr = log.(length(x))
             p_ln_p = p .* log.(p)
-            return -(sum(p_ln_p)/corr)
+            return -(sum(p_ln_p))
+        else
+            return NaN
+        end
+    catch
+        return NaN
+    end
+end
+
+"""
+**Foodweb Shannon diversity**
+
+Equivalent of [`foodweb_richness`](@ref) for the Shannon entropy index (the first Hill number)
+
+See also [`population_stability`](@ref) for examples
+
+"""
+function foodweb_shannon(solution; last::Int64=1000, threshold::Float64=eps())
+    @assert last <= length(solution.t) 
+    measure_on = solution[:,end-(last-1):end]
+    if sum(measure_on) == 0
+        return NaN
+    end
+    shan = [shannon(vec(measure_on[:,i]), threshold = threshold) for i in 1:size(measure_on, 2)]
+    return mean(shan)
+end
+
+"""
+**Simpson's diversity**
+return `NaN` in case of problem.
+
+# Argument
+- n: a vector of biomass values 
+"""
+function simpson(n; threshold::Float64=eps())
+    x = copy(n)
+    x = filter((k) -> k > threshold, x)
+    try
+        if length(x) >= 1
+           p = x ./ sum(x)
+            p2 = 2 .^ p
+            return 1 / sum(p2) 
+        else
+            return NaN
+        end
+    catch
+        return NaN
+    end
+end
+
+"""
+**Food web simpson**
+
+Equivalent of [`foodweb_evenness`](@ref) for the Simpson diversity index (the second hill number) 
+
+See also [`population_stability`](@ref) for examples
+
+"""
+function foodweb_simpson(solution; last::Int64=1000, threshold::Float64=eps())
+    @assert last <= length(solution.t) 
+    measure_on = solution[:,end-(last-1):end]
+    if sum(measure_on) == 0
+        return NaN
+    end
+    piel = [simpson(vec(measure_on[:,i]), threshold = threshold) for i in 1:size(measure_on, 2)]
+    return mean(piel)
+end
+
+"""
+**Pielou evenness**
+
+Shannon divided by the log number of species 
+
+# See also
+[`shannon`](@ref)
+"""
+function pielou(n; threshold::Float64=eps())
+    x = copy(n)
+    x = filter((k) -> k > threshold, x)
+    try
+        if length(x) > 0
+            return shannon(n) / log(length(x))
         else
             return NaN
         end
@@ -93,19 +191,23 @@ end
 
 """
 **Food web diversity**
-Based on the average of Shannon's entropy (corrected for the number of
-species) over the last `last` timesteps. Values close to 1 indicate that
+Based on the average of Pielou Evenness index over the last `last` timesteps. Values close to 1 indicate that
 all populations have equal biomasses.
+
+See also [`population_stability`](@ref) for examples
+
 """
-function foodweb_evenness(solution; last=1000)
+function foodweb_evenness(solution; last::Int64=1000)
     @assert last <= length(solution.t) 
     measure_on = solution[:,end-(last-1):end]
     if sum(measure_on) == 0
         return NaN
     end
-    shan = [shannon(vec(measure_on[:,i])) for i in 1:size(measure_on, 2)]
-    return mean(shan)
+    piel = [pielou(vec(measure_on[:,i]), threshold = threshold) for i in 1:size(measure_on, 2)]
+    return mean(piel)
 end
+
+
 
 """
 **Producers growth rate**
@@ -115,6 +217,8 @@ more specifically:
 - growth rates for each producer at each time step form end-last to last (`out_type = :all`)
 - the mean growth rate for each producer over the last `last` time steps (`out_type = :mean`)
 - the standard deviation of the growth rate for each producer over the last `last` time steps (`out_type = :std`)
+
+See also [`population_stability`](@ref)
 """
 function producer_growth(solution; last::Int64 = 1000, out_type::Symbol = :all)
     parameters = solution.prob.p#extract parameters
@@ -128,7 +232,7 @@ function producer_growth(solution; last::Int64 = 1000, out_type::Symbol = :all)
 
     @assert last <= length(solution.t)
 
-    measure_on = solution[:, :][mask_producer, end-(last-1):end]#extract the biomasses that will be used
+    measure_on = solution[:, :][mask_producer, end-(last-1):end]#extract the biomasses of the producer_species 
 
     growth = (s = producer_species, G = [logisticgrowth.(measure_on[i, :], Kp[i], rp[i]) for i in 1:size(measure_on, 1)])
 
