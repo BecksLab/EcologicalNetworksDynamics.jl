@@ -50,7 +50,7 @@ solution.t == collect(0:0.5:50)
 ```
 
 !!! note
-
+    
     `δt` does not correspond to the timesteps of the solver.
     That latter is handled automatically by the solving algorithm.
     `δt` is the timestep at which trajectory points are *saved*,
@@ -66,13 +66,13 @@ you choose to simulate your system.
 ## Choice of the solver algorithm
 
 !!! warning
-
+    
     Work in progress.
 
 ## Extinction threshold
 
 !!! warning
-
+    
     Work in progress.
 
 ## Solution handling
