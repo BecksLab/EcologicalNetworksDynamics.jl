@@ -133,7 +133,7 @@ julia> params = ModelParameters(foodweb; biorates = BioRates(foodweb; d = 0));
 julia> simulate(params, [0.5, 1e-12]; verbose = true); # default: a message is thrown
 [ Info: Species [2] is exinct. t=0.12316364776188903
 
-julia> simulate(params, [0.5, 1e-12]; verbose = true); # no message thrown
+julia> simulate(params, [0.5, 1e-12]; verbose = false); # no message thrown
 
 ```
 """
