@@ -268,8 +268,11 @@ function clean_metabolic_class!(metabolic_class, A)
     metabolic_class .= lowercase.(metabolic_class)
     valid_class = ["producer", "ectotherm vertebrate", "invertebrate"]
     are_class_valid = [class ∈ valid_class for class in metabolic_class]
-    all(are_class_valid) ||
-        @warn "An invalid metabolic class has been given, class should be in $valid_class."
+    all(are_class_valid) || throw(
+        ArgumentError(
+            "An invalid metabolic class has been given, class should be in $valid_class.",
+        ),
+    )
 end
 
 compute_mass(A, Z) = Z .^ (trophic_levels(A) .- 1)

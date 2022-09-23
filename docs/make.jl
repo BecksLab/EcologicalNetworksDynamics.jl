@@ -21,7 +21,7 @@ makedocs(;
     pages = [
         "Home" => "index.md",
         "Manual" => [
-            "Generate foodwebs" => "man/foodwebs.md",
+            "Generate food webs" => "man/foodwebs.md",
             "Generate multiplex networks" => "man/multiplexnetworks.md",
             "Generate model parameters" => "man/modelparameters.md",
             "Choose a functional reponse" => "man/functionalresponse.md",

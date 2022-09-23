@@ -4,7 +4,7 @@
 using BEFWM2
 ```
 
-Once the foodweb is created (see [How to generate foodwebs?](@ref))
+Once the foodweb is created (see [How to generate food webs?](@ref))
 and the model parameters generated (see [How to generate model parameters?](@ref)),
 you are ready to run the simulation of the biomass dynamics.
 By default, this can be done in one line
@@ -50,7 +50,7 @@ solution.t == collect(0:0.5:50)
 ```
 
 !!! note
-    
+
     `δt` does not correspond to the timesteps of the solver.
     That latter is handled automatically by the solving algorithm.
     `δt` is the timestep at which trajectory points are *saved*,
@@ -66,13 +66,13 @@ you choose to simulate your system.
 ## Choice of the solver algorithm
 
 !!! warning
-    
+
     Work in progress.
 
 ## Extinction threshold
 
 !!! warning
-    
+
     Work in progress.
 
 ## Solution handling
