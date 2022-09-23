@@ -203,7 +203,7 @@ either with the:
   - number of links
 
 !!! note
-
+    
     If either a number of links or the connectance is provided,
     the layer is filled randomly.
 
@@ -219,7 +219,7 @@ ERROR: ArgumentError: Ambiguous specifications for facilitation matrix adjacency
 ```
 
 !!! note "Definition of connectance"
-
+    
     Here, the connectance of non-trophic interactions is not defined as
     ``C=\frac{L}{S^2}`` where ``L`` is the number of competitive links
     and ``S`` the total number of species in the community.
@@ -254,7 +254,7 @@ multi_net1.layers[:refuge].intensity == multi_net2.layers[:refuge].intensity == 
 ```
 
 !!! note "Aliases of `intensity`"
-
+    
     Aliases of `intensity` parameter can be accessed with
     `multiplex_network_parameters_names()[:intensity]`.
 
@@ -302,7 +302,7 @@ With:
   - ``B_k`` the biomass of species ``k``
 
 !!! note "Case of negative net growth rates"
-
+    
     If ``G_\text{net}`` is negative, even if a competition link is present,
     ``G_\text{net}`` is unchanged.
 
@@ -324,7 +324,7 @@ A_competition_full(comp_module)
 ```
 
 !!! note "Access possible non-trophic interactions"
-
+    
     More generally, to access the possible non-trophic interactions of your `foodweb`
     use `A_<interaction_name>_full(foodweb)`.
 
@@ -359,7 +359,7 @@ multi_net.layers[:competition].A # only one link
 ```
 
 !!! note "Aliases of `symmetry`"
-
+    
     As for the other [`MultiplexNetwork`](@ref) parameters,
     `symmetry` has aliases that you can use.
     To get them do `multiplex_network_parameters_names()[:symmetry]`.
@@ -383,7 +383,7 @@ With:
   - ``A_\text{fac}`` the adjacency matrix of facilitation links
 
 !!! note
-
+    
     The multiplicative factor due to facilitation is always greater than one,
     thus the intrinsic growth is always increased by facilitation.
 
@@ -413,7 +413,7 @@ multi_net.layers[:facilitation].A == A_facilitation
 ```
 
 !!! note "Symmetry of facilitation"
-
+    
     As the facilitation interaction is not assumed to be symmetric
     you can specify an odd number of facilitation links.
 
@@ -561,7 +561,7 @@ multi_net = MultiplexNetwork(foodweb; L_f = 1, functional_form_facilitation = cu
 ```
 
 !!! note "Aliases of `functional_form`"
-
+    
     `multiplex_network_parameters_names()[:functional_form]`
 
 Some remarks on these functional forms,
@@ -571,7 +571,7 @@ We warn you when redefining these forms to ensure that they make sense,
 because a inadequate form can totally destroy the consistency of your model.
 
 !!! note "Interference functional form"
-
+    
     The form of the interference interaction cannot be changed
     because the interference terms is defined by the functional response.
 

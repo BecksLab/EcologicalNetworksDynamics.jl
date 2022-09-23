@@ -9,7 +9,6 @@ richness(A::AbstractMatrix) = size(A, 1)
 "Connectance of network: number of links / (number of species)^2"
 connectance(A::AbstractMatrix) = sum(A) / richness(A)^2
 connectance(foodweb::FoodWeb) = connectance(foodweb.A)
-#TODO: Add methods for MultiplexNetwork
 
 #### Overloading Base methods ####
 "Filter species of the network (`net`) for which `f(species_index, net) = true`."

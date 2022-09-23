@@ -7,14 +7,14 @@ But, first things first, let's see what is inside a [`FoodWeb`](@ref).
 
 A [`FoodWeb`](@ref) object always contains the 5 following fields:
 
-- `A`: the trophic adjacency matrix filled with 0s and 1s
+  - `A`: the trophic adjacency matrix filled with 0s and 1s
     indicating respectively the absence and presence of trophic interactions.
     Rows are consumers and columns resources,
     thus `A[i,j] = 1` reads "species `i` eats species `j`"
-- `species`: vector containing species identities (e.g. good place to store species names)
-- `M`: vector of species individual body-mass
-- `metabolic_class`: vector of species metabolic class (e.g. "producer")
-- `method`: the method used to build the food web.
+  - `species`: vector containing species identities (e.g. good place to store species names)
+  - `M`: vector of species individual body-mass
+  - `metabolic_class`: vector of species metabolic class (e.g. "producer")
+  - `method`: the method used to build the food web.
     This is especially useful when using a structural model
     (e.g. `nichemodel` from EcologicalNetworks.jl)
     because it will then take automatically take the name of the model,
@@ -58,7 +58,7 @@ But you can change that behavior
 by providing additional argument to [`FoodWeb`](@ref).
 
 ```@example befwm2
-foodweb = FoodWeb(A, species = ["plant", "herbivore", "predator"], Z = 50)
+foodweb = FoodWeb(A; species = ["plant", "herbivore", "predator"], Z = 50)
 foodweb.species
 ```
 
@@ -78,7 +78,7 @@ Obviously, you can also directly provided your own vector of body-masses.
 For instance
 
 ```@example befwm2
-foodweb = FoodWeb(A, M = [1, 10, 50])
+foodweb = FoodWeb(A; M = [1, 10, 50])
 foodweb.M
 ```
 
@@ -95,7 +95,7 @@ Let's change `"invertebrate"` into `"ectotherm vertebrates"`.
 
 ```@example befwm2
 custom_class = ["producer", "ectotherm vertebrate", "ectotherm vertebrate"]
-foodweb = FoodWeb(A, metabolic_class = custom_class)
+foodweb = FoodWeb(A; metabolic_class = custom_class)
 foodweb.metabolic_class
 ```
 
@@ -104,7 +104,7 @@ First, basal species are always set to `"producer"` even if you not say so.
 
 ```@example befwm2
 custom_class = ["invertebrate", "ectotherm vertebrate", "ectotherm vertebrate"]
-foodweb = FoodWeb(A, metabolic_class = custom_class)
+foodweb = FoodWeb(A; metabolic_class = custom_class)
 foodweb.metabolic_class
 ```
 
