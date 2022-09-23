@@ -56,11 +56,12 @@ function correlation_matrix(
         end
     end
 
-    @assert isposdef(corrmat)
+    @assert issuccess(bunchkaufman(Γ, check = false)) == false "Correlation matrix needs to be positive semidefinite"
+    @assert any(eigvals(Γ) .< 0) == false "Correlation matrix needs to be positive semidefinite"
 
-    esc = hcat(I(richness(FW)), zeros(richness(FW), length(AS.stochspecies)))
-    dsc = hcat(zeros(length(AS.stochspecies), richness(FW)), corrmat)
-    rmat = vcat(esc, dsc)
+    demographic_stochasticity_component = hcat(I(richness(FW)), zeros(richness(FW), length(AS.stochspecies)))
+    environmental_stochasticity_component = hcat(zeros(length(AS.stochspecies), richness(FW)), corrmat)
+    rmat = vcat(demographic_stochasticity_component, environmental_stochasticity_component)
 
     return (rmat)
 end
