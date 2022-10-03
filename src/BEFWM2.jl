@@ -12,6 +12,7 @@ using OrderedCollections
 using SparseArrays
 using Statistics
 
+
 # Include scripts
 include(joinpath(".", "macros.jl"))
 include(joinpath(".", "inputs/foodwebs.jl"))
@@ -59,6 +60,7 @@ export draw_symmetric_links
 export Environment
 export find_steady_state
 export FoodWeb
+export foodweb_cv
 export foodweb_evenness
 export foodweb_richness
 export foodweb_shannon
