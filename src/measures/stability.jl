@@ -3,6 +3,90 @@ Various measures of stability
 =#
 
 """
+*Compute Average temporal CV of the species*
+
+# Arguments:
+- mat: A time x species matrix (typically the transposition of the output of `DifferentialEquations.solve()`)
+
+"""
+function avg_cv_sp(mat)
+
+    avg_sp = mean.(eachcol(mat))
+    std_sp = std.(eachcol(mat))
+
+    rel_sp = avg_sp./sum(avg_sp)
+    rel_sd_sp = std_sp./avg_sp
+
+    avg_cv_sp = sum(rel_sp .* rel_sd_sp)
+
+    return avg_cv_sp
+
+end
+
+"""
+*Compute synchrony among species*
+
+# Arguments:
+- mat: A time x species matrix (typically the transposition of the output of `DifferentialEquations.solve()`)
+
+"""
+function synchrony(mat)
+
+    cov_mat = cov(mat)
+
+    com_var = sum(cov_mat)
+    std_sp = sum(std.(eachcol(mat)))
+
+    phi = com_var / std_sp^2
+
+    return phi
+end
+
+"""
+*Compute synchrony among species*
+
+# Arguments:
+- mat: A time x species matrix (typically the transposition of the output of `DifferentialEquations.solve()`)
+
+"""
+function temporal_cv(mat)
+
+    total_com_bm = sum.(eachrow(mat))
+    cv_com = std(total_com_bm) / mean(total_com_bm)
+
+    return cv_com 
+end
+
+"""
+*Compute biomass stability*
+
+# Arguments:
+- solution: output of BEFWM2.simulate()
+- threshold: threshold to consider that a species is extinct
+- last: the number of timesteps to consider
+
+# Output: a named tuple with Community CV (cv_com) and its partition in average
+ population stability (avg_cv_sp) and species synchrony (sync)
+
+"""
+function foodweb_cv(solution; threshold::Float64=eps(), last=1000)
+
+    measure_on = BEFWM2.filter_sim(solution, last = last)
+
+    # Transpose to get the time x species matrix
+    mat = transpose(measure_on)
+
+    cv_sp = avg_cv_sp(mat)
+    sync = synchrony(mat)
+
+    cv_com = temporal_cv(mat)
+
+    out = (stability = cv_com, avg_cv_sp = cv_sp, synchrony = sync)
+
+    return out
+end
+
+"""
 **Coefficient of variation**
 Corrected for the sample size.
 """
