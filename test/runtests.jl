@@ -42,9 +42,9 @@ reset = "\033[0m"
 no_break = true
 for test in test_files
     println("$(highlight)$(test)$(reset)")
-    no_break = false
+    global no_break = false
     include(test) # if a test fails, the loop is broken
-    no_break = true
+    global no_break = true
     println("$(bold)$(green)PASSED$(reset)")
     println("------------------------------------------")
 end
