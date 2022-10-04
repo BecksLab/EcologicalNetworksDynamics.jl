@@ -265,6 +265,85 @@ function (F::ClassicResponse)(B, i, j)
     denom = 1 + (F.c[i] * B[i]) + sum(F.aᵣ[i, :] .* F.hₜ[i, :] .* F.ω[i, :] .* (B .^ F.h))
     num / denom
 end
+# Code generation version (raw) (↑ ↑ ↑ DUPLICATED FROM ABOVE ↑ ↑ ↑).
+# (update together as long as the two coexist)
+function (F::ClassicResponse)(i, j, resources::Vector)
+    ω_ij = F.ω[i, j]
+    a_ij = F.aᵣ[i, j]
+    h = F.h
+    hₜ_i = F.hₜ[i, resources]
+    aᵣ_i = F.aᵣ[i, resources]
+    ω_i = F.ω[i, resources]
+    B_j = :(B[$j])
+    B_i = :(B[$i])
+    c_i = F.c[i]
+    num = :($ω_ij * $a_ij * $B_j^$h)
+    denom = :(
+        1 +
+        $c_i * $B_i +
+        xp_sum(
+            [:r, :aᵣ, :hₜ, :ω],
+            $[resources, aᵣ_i, hₜ_i, ω_i],
+            :(aᵣ * hₜ * ω * (B[r]^$$h)),
+        )
+    )
+    :($num / $denom)
+end
+# Code generation version (compact):
+# Specify how to efficiently construct all values of F,
+# and provide the additional/intermediate data needed.
+function (F::ClassicResponse)(parms, ::Symbol)
+
+    # Basic informations made available as variables in the generated code.
+    S = richness(parms.network)
+    data = Dict(:S => S, :h => F.h, :c => F.c)
+
+    # For every species, pre-calculate associated resources indexes
+    # and all relevant associated values.
+    fields = [:ω, :aᵣ, :hₜ]
+    data[:resource_values] = [
+        [
+            (k, Tuple(getfield(F, f)[i, k] for f in fields)) for
+            k in preys_of(i, parms.network)
+        ] for i in 1:S
+    ]
+
+    # Flatten sparse matrices into plain compact arrays.
+    cons, res = findnz(parms.network.A)
+    for field in [:ω, :aᵣ, :hₜ]
+        data[field] = [getfield(F, field)[i, j] for (i, j) in zip(cons, res)]
+    end
+    # Map compact ij ↦ (i, j) indices.
+    data[:nonzero_links] = (cons, res)
+
+    # Reusable scratch space to write intermediate values.
+    data[:F] = zeros(length(cons)) # (flattened, 'ij'-indexed)
+    data[:denominators] = zeros(S)
+
+    # Construct FR values: F_ij = num(ij) / denom(i)
+    code = [
+        :(
+            # Calculate all denominators (only one iteration over i is needed)
+            for i in 1:S
+                Σ = 0.0
+                for (k, (ω_ik, aᵣ_ik, hₜ_ik)) in resource_values[i]
+                    Σ += ω_ik * aᵣ_ik * hₜ_ik * B[k]^h
+                end
+                denominators[i] = 1.0 + c[i] * B[i] + Σ
+            end
+        ),
+        :(
+            # Calculate numerators and actual F values.
+            # (only one iteration over nonzero (i,j) entries is needed)
+            for (ij, (i, j)) in enumerate(zip(nonzero_links...))
+                numerator = ω[ij] * aᵣ[ij] * B[j]^h
+                F[ij] = numerator / denominators[i]
+            end
+        ),
+    ]
+
+    code, data
+end
 
 function (F::ClassicResponse)(B, i, j, aᵣ, network::MultiplexNetwork)
     # Compute numerator and denominator.
@@ -321,6 +400,42 @@ See also [`BioenergeticResponse`](@ref), [`ClassicResponse`](@ref)
 and [`FunctionalResponse`](@ref).
 """
 (F::LinearResponse)(B, i, j) = F.ω[i, j] * F.α[i] * B[j]
+# Code generation version (raw) (↑ ↑ ↑ DUPLICATED FROM ABOVE ↑ ↑ ↑).
+# (update together as long as the two coexist)
+function (F::LinearResponse)(i, j, ::Vector)
+    ω_ij = F.ω[i, j]
+    α_i = F.α[i]
+    B_j = :(B[$j])
+    :($ω_ij * $α_i * $B_j)
+end
+# Code generation version (compact):
+# Specify how to efficiently construct all values of F,
+# and provide the additional/intermediate data needed.
+function (F::LinearResponse)(parms, ::Symbol)
+
+    # Basic informations made available as variables in the generated code.
+    S = richness(parms.network)
+    data = Dict(:S => S, :α => F.α)
+
+    # Flatten sparse matrices into plain compact arrays.
+    cons, res = findnz(parms.network.A)
+    data[:ω] = [F.ω[i, j] for (i, j) in zip(cons, res)]
+    # Map compact ij ↦ (i, j) indices.
+    data[:nonzero_links] = (cons, res)
+
+    # Reusable scratch space to write intermediate values.
+    data[:F] = zeros(length(cons)) # (flattened, 'ij'-indexed)
+
+    code = [:(
+        # Construct FR values.
+        # (only one iteration over nonzero (i,j) entries is needed)
+        for (ij, (i, j)) in enumerate(zip(nonzero_links...))
+            F[ij] = ω[ij] * α[i] * B[j]
+        end
+    )]
+
+    code, data
+end
 
 """
     FunctionalResponse(B)

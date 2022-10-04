@@ -160,11 +160,11 @@ function generate_dbdt(parms::ModelParameters, type)
     ok() = nothing
     #! format: off
     Dict(
-        (FoodWeb         , :raw    , LinearResponse)       => unimplemented,
-        (FoodWeb         , :raw    , ClassicResponse)      => unimplemented,
+        (FoodWeb         , :raw    , LinearResponse)       => to_test,
+        (FoodWeb         , :raw    , ClassicResponse)      => to_test,
         (FoodWeb         , :raw    , BioenergeticResponse) => to_test,
-        (FoodWeb         , :compact, LinearResponse)       => unimplemented,
-        (FoodWeb         , :compact, ClassicResponse)      => unimplemented,
+        (FoodWeb         , :compact, LinearResponse)       => to_test,
+        (FoodWeb         , :compact, ClassicResponse)      => to_test,
         (FoodWeb         , :compact, BioenergeticResponse) => to_test,
         (MultiplexNetwork, :raw    , LinearResponse)       => unimplemented,
         (MultiplexNetwork, :raw    , ClassicResponse)      => unimplemented,

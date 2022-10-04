@@ -12,35 +12,35 @@ flush(stdout)
     using Random
 end
 
-function small_foodweb_long_simulation()
+function small_foodweb_long_simulation(FR)
     foodweb = FoodWeb([
         0 0 0 0
         0 0 1 0
         1 0 0 0
         0 1 0 0
     ])
-    parms = ModelParameters(foodweb)
+    parms = ModelParameters(foodweb; functional_response = FR(foodweb))
     B0 = [0.5, 0.5, 0.5, 0.5]
     tlims = [100, 100_000, 1_000_000]
     parms, B0, tlims
 end
 
-function large_foodweb_short_simulation()
+function large_foodweb_short_simulation(FR)
     Random.seed!(12)
     S = 35 #  ⚠  very long to compile with eg. S=60 and type = :raw.
     foodweb = FoodWeb(nichemodel, S; C = 0.2)
-    parms = ModelParameters(foodweb)
+    parms = ModelParameters(foodweb; functional_response = FR(foodweb))
     B0 = repeat([0.5], S)
     tlims = [100, 5_000, 50_000]
     parms, B0, tlims
 end
 
-function check(situation)
+function check(situation, FR)
     styles = [:raw, :compact]
 
     print("Parametrize.. ")
     flush(stdout)
-    @time parms, B0, tlims = situation()
+    @time parms, B0, tlims = situation(FR)
 
     print("Single invocation of generic code.. ")
     flush(stdout)
@@ -108,8 +108,11 @@ function check(situation)
     end
 end
 
-println("\n===== Small foodweb, long simulation time =====")
-check(small_foodweb_long_simulation)
+for FR in [LinearResponse, ClassicResponse, BioenergeticResponse]
+    println("\n|||||||||||| $FR ||||||||||||")
+    println("\n\n===== Small foodweb, long simulation time =====")
+    check(small_foodweb_long_simulation, FR)
 
-println("\n\n===== Large foodweb, short simulation time =====")
-check(large_foodweb_short_simulation)
+    println("\n\n===== Large foodweb, short simulation time =====")
+    check(large_foodweb_short_simulation, FR)
+end
