@@ -121,3 +121,68 @@ function consumption(
     being_eaten = sum(B[pred] .* fᵣmatrix[pred, i])
     eating, being_eaten
 end
+# Code generation version(s) (raw) (↑ ↑ ↑ DUPLICATED FROM ABOVE ↑ ↑ ↑).
+# (update together as long as the two coexist)
+function eating(::Union{ClassicResponse,LinearResponse}, i, parms::ModelParameters)
+    preys = preys_of(i, parms.network)
+    (length(preys) == 0) && return 0 #  Just to clarify expressions.
+    B_i = :(B[$i])
+    E_ip = parms.biorates.e[i, preys]
+    F_ip = [Symbol("F_$(i)_$(p)") for p in preys]
+    :($B_i * xp_sum([:e_ip, :f_ip], $[E_ip, F_ip], :(e_ip * f_ip)))
+end
+function being_eaten(::Union{ClassicResponse,LinearResponse}, i, parms::ModelParameters)
+    preds = predators_of(i, parms.network)
+    F_pi = [Symbol("F_$(p)_$(i)") for p in preds]
+    :(xp_sum([:p, :f_pi], $[preds, F_pi], :(B[p] * f_pi)))
+end
+# Code generation version (compact):
+# Explain how to efficiently construct all values of eating/being_eaten,
+# and provide the additional/intermediate data needed.
+# This code is responsible to *initialize* all dB[i] values.
+function consumption(::Union{ClassicResponse,LinearResponse}, parms::ModelParameters)
+
+    # Basic informations made available as variables in the generated code.
+    S = richness(parms.network)
+    data = Dict(
+        # Scratch space to calculate intermediate values.
+        :Σ_res => zeros(S),
+        :Σ_cons => zeros(S),
+    )
+    # Flatten the e matrix with the same 'ij' indexing.
+    cons, res = findnz(parms.network.A)
+    data[:e] = [parms.biorates.e[i, j] for (i, j) in zip(cons, res)]
+
+    # The following code relies on the following variables
+    # being already created by the functional response generated code:
+    #   S
+    #   F
+    #   nonzero_links
+    code = [
+        :(
+            # Only nonzero entries contribute to these terms.
+            # Calculate their contributions first:
+            for (ij, (i, j)) in enumerate(zip(nonzero_links...))
+                ir, i, r = ij, i, j #  i is focal, r is resource of i
+                Σ_res[i] += e[ir] * F[ir]
+                ci, c, i = ij, i, j #  i is focal, c is consumer of i
+                Σ_cons[i] += B[c] * F[ci]
+            end
+        ),
+        :(
+            # Then the full actual terms.
+            # This is the first and only full iteration over 1:S.
+            # Take this opportunity to *initialize* every dB[i].
+            for i in 1:S
+                eating = B[i] * Σ_res[i]
+                being_eaten = Σ_cons[i]
+                dB[i] = eating - being_eaten #  (re-)initialization of dB[i]
+                # Reset scratch space for next time.
+                Σ_res[i] = 0
+                Σ_cons[i] = 0
+            end
+        ),
+    ]
+
+    code, data
+end
