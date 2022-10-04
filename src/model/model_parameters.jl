@@ -3,11 +3,11 @@ Model parameters
 =#
 
 #### Type definition ####
-mutable struct ModelParameters{R<:FunctionalResponse}
+mutable struct ModelParameters
     network::EcologicalNetwork
     biorates::BioRates
     environment::Environment
-    functional_response::R
+    functional_response::FunctionalResponse
 end
 #### end ####
 

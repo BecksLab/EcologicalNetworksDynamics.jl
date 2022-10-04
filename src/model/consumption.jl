@@ -3,7 +3,12 @@ Consumption
 =#
 
 "Compute consumption terms of ODEs."
-function consumption(i, B, params::ModelParameters{BioenergeticResponse}, fᵣmatrix)
+function consumption(i, B, p::ModelParameters, fᵣmatrix)
+    # Dispatch to correct method depending on functional response type.
+    consumption(p.functional_response, i, B, p::ModelParameters, fᵣmatrix)
+end
+
+function consumption(::BioenergeticResponse, i, B, params::ModelParameters, fᵣmatrix)
     # Set up
     net = params.network
     prey = preys_of(i, net)
@@ -19,9 +24,10 @@ function consumption(i, B, params::ModelParameters{BioenergeticResponse}, fᵣma
 end
 
 function consumption(
+    ::Union{ClassicResponse,LinearResponse},
     i,
     B,
-    params::Union{ModelParameters{ClassicResponse},ModelParameters{LinearResponse}},
+    params::ModelParameters,
     fᵣmatrix,
 )
     # Set up
