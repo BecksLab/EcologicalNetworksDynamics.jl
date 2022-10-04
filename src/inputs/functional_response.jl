@@ -166,7 +166,7 @@ function (F::BioenergeticResponse)(i, j, resources::Vector)
         ($c_i * $B_i * $B0_ih) +
         xp_sum([:r, :ω], $[resources, F.ω[i, resources]], :(ω * (B[r]^$$h)))
     )
-    :($num / $denom)
+    num, denom
 end
 # Code generation version (compact):
 # Specify how to efficiently construct all values of F,
@@ -287,7 +287,7 @@ function (F::ClassicResponse)(i, j, resources::Vector)
             :(aᵣ * hₜ * ω * (B[r]^$$h)),
         )
     )
-    :($num / $denom)
+    num, denom
 end
 # Code generation version (compact):
 # Specify how to efficiently construct all values of F,
@@ -406,7 +406,7 @@ function (F::LinearResponse)(i, j, ::Vector)
     ω_ij = F.ω[i, j]
     α_i = F.α[i]
     B_j = :(B[$j])
-    :($ω_ij * $α_i * $B_j)
+    :($ω_ij * $α_i * $B_j), 1
 end
 # Code generation version (compact):
 # Specify how to efficiently construct all values of F,

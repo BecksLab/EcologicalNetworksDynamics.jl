@@ -25,17 +25,38 @@ function generate_fr_lines(parms::ModelParameters)
     F = parms.functional_response
     cons, res = findnz(F.ω)
 
+    # As it turns out now, denominators are typically independent of j,
+    # so the corresponding lines can be factorized up to ease compilation time
+    # of the generated expression.
+    denominators = Set() #  Fill with the ones already generated.
     lines = []
     for (i, j) in zip(cons, res)
-        typical_line = :(
-            F_ij = F(B, i, j) #  (<- lhs here is just decorative/illustrative)
-        )
-        line = replace(typical_line, Dict(:F_ij => Symbol(:F_, i, :_, j)))
-        # Generate actual lhs, depending on the functional response type.
-        line.args[2] = F(i, j, preys_of(i, parms.network))
-        while expand!(line, [:xp_sum], [])
+        D_i = Symbol(:D_, i)
+        F_ij = Symbol(:F_, i, :_, j)
+        num, denom = F(i, j, preys_of(i, parms.network))
+        if denom != 1 #  Sophisticated cases with complex denominators: Classic/Bionergetic.
+            if !(i in denominators)
+                # Insert this denominator line the first time we need this value.
+                denom_line = :(
+                    $D_i = $denom #  <- Only inserted once for every j.
+                )
+                while expand!(denom_line, [:xp_sum], [])
+                end
+                push!(lines, denom_line)
+                push!(denominators, i)
+            end
+            F_line = :(
+                $F_ij = $num / $D_i #  <- Inserted once for every ij.
+            )
+        else #  Trivial Linear case.
+            F_ij = Symbol(:F_, i, :_, j)
+            F_line = :(
+                $F_ij = $num #  <- Denominator is 1.
+            )
         end
-        push!(lines, line)
+        while expand!(F_line, [:xp_sum], [])  #  (for potential future extensions)
+        end
+        push!(lines, F_line)
     end
     lines
 end
