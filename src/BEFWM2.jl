@@ -11,6 +11,7 @@ using Mangal
 using OrderedCollections
 using SparseArrays
 using Statistics
+using Decimals
 
 
 # Include scripts
@@ -33,6 +34,7 @@ include(joinpath(".", "measures/functioning.jl"))
 include(joinpath(".", "measures/stability.jl"))
 include(joinpath(".", "measures/utils.jl"))
 include(joinpath(".", "utils.jl"))
+include(joinpath(".", "formatting.jl"))
 
 # Export public functions
 export @check_between
@@ -53,6 +55,7 @@ export cascademodel
 export ClassicResponse
 export coefficient_of_variation
 export connectance
+export cpad
 export DefaultGrowthParams
 export DefaultMaxConsumptionParams
 export DefaultMetabolismParams
@@ -60,6 +63,7 @@ export draw_asymmetric_links
 export draw_symmetric_links
 export Environment
 export find_steady_state
+export fitin
 export FoodWeb
 export foodweb_cv
 export foodweb_evenness
