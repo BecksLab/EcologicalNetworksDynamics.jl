@@ -222,10 +222,13 @@ function stoch_consumption(::BioenergeticResponse, i, B, params::ModelParameters
     stochcons = intersect(pred, params.stochasticity.stochconsumers)
     determcons = setdiff(pred, stochcons)
 
-    if i ∈ params.stochasticity.stochconsumers
-        x = B[S+first(findall(x -> x == i, params.stochasticity.stochspecies))]
-    else
-        x = params.biorates.x # metabolic rate
+    x = zeros(S)
+    for i in 1:S
+        if i ∈ params.stochasticity.stochconsumers
+            x[i] = B[S+first(findall(x -> x == i, params.stochasticity.stochspecies))]
+        else
+            x[i] = params.biorates.x[i] # metabolic rate
+        end
     end
 
     y = params.biorates.y # max. consumption

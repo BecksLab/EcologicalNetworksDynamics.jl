@@ -43,6 +43,7 @@ end
 
 
 function stoch_metabolic_loss(i, B, params::ModelParameters)
+    S = richness(params.network)
     if i ∈ params.stochasticity.stochconsumers
         xᵢ = B[S+first(findall(x -> x == i, params.stochasticity.stochspecies))] # metabolic rate of species i
         Bᵢ = B[i] # biomass of species i
