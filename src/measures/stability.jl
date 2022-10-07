@@ -153,7 +153,7 @@ end
 
 """
 Calculation of the jacobian using finite differences takes two arguments;
-    Need the equations, and the biomass
+Need the equations, and the biomass
 
     'When an equilibrium is linearly stable, the real parts of all of the eigenvalues are negative.
      The dominant eigenvalue is the one with the least negative real part' - Patterson 2021

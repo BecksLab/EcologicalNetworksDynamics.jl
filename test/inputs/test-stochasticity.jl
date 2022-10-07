@@ -13,7 +13,7 @@ producer = BEFWM2.producers(foodweb)
 biorates = BioRates(foodweb)
 
 stochasticity = AddStochasticity(
-    foodweb,
+    foodweb;
     addstochasticity = true,
     target = "producers",
     n_species = "all",
@@ -36,7 +36,7 @@ end
 
 # Adding stochasticity to specific species
 stochasticity = AddStochasticity(
-    foodweb,
+    foodweb;
     addstochasticity = true,
     target = [2, 3, 4],
     n_species = 3,

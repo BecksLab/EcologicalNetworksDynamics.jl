@@ -56,8 +56,10 @@ function correlation_matrix(
         end
     end
 
-    demographic_stochasticity_component = hcat(I(richness(FW)), zeros(richness(FW), length(AS.stochspecies)))
-    environmental_stochasticity_component = hcat(zeros(length(AS.stochspecies), richness(FW)), corrmat)
+    demographic_stochasticity_component =
+        hcat(I(richness(FW)), zeros(richness(FW), length(AS.stochspecies)))
+    environmental_stochasticity_component =
+        hcat(zeros(length(AS.stochspecies), richness(FW)), corrmat)
     rmat = vcat(demographic_stochasticity_component, environmental_stochasticity_component)
 
     return (rmat)
@@ -100,7 +102,7 @@ function cov_matrix(
     rmat = correlation_matrix(FW, AS, corrmat)
     covmat = sdmat * rmat * sdmat
 
-    @assert issuccess(bunchkaufman(covmat, check = false)) == false "Correlation matrix needs to be positive semidefinite"
+    @assert issuccess(bunchkaufman(covmat; check = false)) == false "Correlation matrix needs to be positive semidefinite"
     @assert any(eigvals(covmat) .< 0) == false "Correlation matrix needs to be positive semidefinite"
 
     return covmat

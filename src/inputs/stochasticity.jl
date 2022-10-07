@@ -21,9 +21,13 @@ mutable struct AddStochasticity
     end
 end
 
-"One line AddStochasticity display."
+"""
+One line AddStochasticity display.
+"""
 function Base.show(io::IO, stochasticity::AddStochasticity)
-    if stochasticity.addstochasticity == true && length(stochasticity.σe) > 0 && sum(stochasticity.σd) > 0
+    if stochasticity.addstochasticity == true &&
+       length(stochasticity.σe) > 0 &&
+       sum(stochasticity.σd) > 0
         print(io, "Environmental and demographic stochasticity added")
     elseif stochasticity.addstochasticity == true && sum(stochasticity.σd) > 0
         print(io, "Demographic stochasticity added")
@@ -34,9 +38,13 @@ function Base.show(io::IO, stochasticity::AddStochasticity)
     end
 end
 
-"Multiline AddStochasticity display."
+"""
+Multiline AddStochasticity display.
+"""
 function Base.show(io::IO, ::MIME"text/plain", stochasticity::AddStochasticity)
-    if stochasticity.addstochasticity == true && length(stochasticity.σe) > 0 && sum(stochasticity.σd) > 0
+    if stochasticity.addstochasticity == true &&
+       length(stochasticity.σe) > 0 &&
+       sum(stochasticity.σd) > 0
         println(io, "Stochasticity:")
         println(io, "  Adding stochasticity?: true")
         println(io, "  θ (rate of return to mean): " * vector_to_string(stochasticity.θ))
@@ -186,9 +194,7 @@ function thetacheck(
 )
 
     if isnothing(θ)
-        throw(
-            ArgumentError("There are no defaults for θ - provide a value or a vector"),
-        )
+        throw(ArgumentError("There are no defaults for θ - provide a value or a vector"))
     elseif all(>=(0), θ) == false
         throw(ArgumentError("All values of θ must be positive"))
     end
@@ -217,7 +223,7 @@ end
 function sigmadcheck(
     foodweb,
     addstochasticity::Bool = false,
-    σd::Union{Float64,Vector{Float64},Nothing} = nothing
+    σd::Union{Float64,Vector{Float64},Nothing} = nothing,
 )
     if addstochasticity == false
         σd = Float64[]
@@ -249,9 +255,7 @@ function sigmaecheck(
 )
 
     if isnothing(σe)
-        throw(
-            ArgumentError("There are no defaults for σe - provide a value or a vector"),
-        )
+        throw(ArgumentError("There are no defaults for σe - provide a value or a vector"))
     elseif all(>=(0), σe) == false
         throw(ArgumentError("All values of σe must be positive"))
     end
@@ -285,22 +289,26 @@ end
 Creates an object of Type AddStochasticity to hold all parameters related to adding stochasticity into the BEFW. Arguments are as follows:
 
 Arguments required for all types of stochasticity:
-- foodweb - a FoodWeb object (MultiplexNetwork objects not compatible)
-- addstochasticity - a boolean indicating whether stochasticity will be implemented or not. Defaults to false (i.e. no stochasticity)
+
+  - foodweb - a FoodWeb object (MultiplexNetwork objects not compatible)
+  - addstochasticity - a boolean indicating whether stochasticity will be implemented or not. Defaults to false (i.e. no stochasticity)
 
 Optional arguments required for environmental stochasticity (an Orstein-Uhlenbeck process with a drift term; dxt = θ(μ - xt)dt + σ dWt)
-- biorates - a BioRates object to provide μ values for the Ornstein-Uhlenbeck process. Defaults to BioRates(foodweb)
-- target - information about which species stochasticity will be added to and is used to produce a pool of potential species
+
+  - biorates - a BioRates object to provide μ values for the Ornstein-Uhlenbeck process. Defaults to BioRates(foodweb)
+  - target - information about which species stochasticity will be added to and is used to produce a pool of potential species
     This may be "producers", "consumers", "allspecies", an integer or vector of integers (relating to the position of species in the interaction matrix)
-- n_species - dictates how should the pool of potentially stochastic species be sampled. Defaults to "all"
+  - n_species - dictates how should the pool of potentially stochastic species be sampled. Defaults to "all"
     This may be "all", "random" or an integer
-- θ - a Float64 or Vector{Float64} controlling speed of return to the mean following perturbation (user supplied, no default)
-- σe - a Float64 or Vector{Float64} controlling the standard deviation of the noise process for environmental stochasticity (user supplied, no default)
+  - θ - a Float64 or Vector{Float64} controlling speed of return to the mean following perturbation (user supplied, no default)
+  - σe - a Float64 or Vector{Float64} controlling the standard deviation of the noise process for environmental stochasticity (user supplied, no default)
 
 Optional arguments required for demographic stochasticity (a Wiener process scaled by population size)
-- σd is the standard deviation of the noise process for demographic stochasticity (user supplied, no default)
+
+  - σd is the standard deviation of the noise process for demographic stochasticity (user supplied, no default)
 
 # Examples
+
 ```jldoctest
 julia> foodweb = FoodWeb([0 1 0; 0 0 1; 0 0 0]); # 1 eats 2, 2 eats 3
 
@@ -308,7 +316,7 @@ julia> AddStochasticity(foodweb) # default
 Stochasticity:
   Stochasticity not added
 
-julia> AddStochasticity(foodweb, addstochasticity = true, target = "consumers", θ = 0.4, σe = 0.2) # environmental stochasticity
+julia> AddStochasticity(foodweb; addstochasticity = true, target = "consumers", θ = 0.4, σe = 0.2) # environmental stochasticity
 Stochasticity:
   Adding stochasticity?: true
   θ (rate of return to mean): [0.4, 0.4]
@@ -316,7 +324,7 @@ Stochasticity:
   σe (environmental noise scaling parameter): [0.2, 0.2]
   Stochastic species: [1, 2]
 
-julia> AddStochasticity(foodweb, addstochasticity = true, σd = 0.1) # demographic stochasticity
+julia> AddStochasticity(foodweb; addstochasticity = true, σd = 0.1) # demographic stochasticity
 Stochasticity:
   Adding stochasticity?: true
   σd (demographic noise scaling parameter): [0.1, 0.1, 0.1]
@@ -390,9 +398,7 @@ end
 
 Stochasticity is not currently implemented for multiplex networks. Trying to use one will return an empty object
 """
-function AddStochasticity(
-    network::MultiplexNetwork
-)
+function AddStochasticity(network::MultiplexNetwork)
     addstochasticity = false
     θ = Float64[]
     μ = Float64[]
