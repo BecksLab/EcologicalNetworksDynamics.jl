@@ -24,13 +24,13 @@ end
 "One line AddStochasticity display."
 function Base.show(io::IO, stochasticity::AddStochasticity)
     if stochasticity.addstochasticity == true && length(stochasticity.σe) > 0 && sum(stochasticity.σd) > 0
-        print(io, " Environmental and demographic stochasticity added")
+        print(io, "Environmental and demographic stochasticity added")
     elseif stochasticity.addstochasticity == true && sum(stochasticity.σd) > 0
-        print(io, " Demographic stochasticity added")
+        print(io, "Demographic stochasticity added")
     elseif stochasticity.addstochasticity == true && length(stochasticity.σe) > 0
-        print(io, " Environmental stochasticity added")
+        print(io, "Environmental stochasticity added")
     else
-        print(io, " Stochasticity not added")
+        print(io, "Stochasticity not added")
     end
 end
 
