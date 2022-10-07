@@ -87,14 +87,14 @@
     # Does simulate still run with stochasticity?
     foodweb = FoodWeb([0 0; 1 0])
     stochasticity = AddStochasticity(
-    foodweb,
-    addstochasticity = true,
-    target = "producers",
-    n_species = "all",
-    σe = 0.5,
-    θ = 0.5,
+        foodweb;
+        addstochasticity = true,
+        target = "producers",
+        n_species = "all",
+        σe = 0.5,
+        θ = 0.5,
     )
-    params = ModelParameters(foodweb, stochasticity = stochasticity)
+    params = ModelParameters(foodweb; stochasticity = stochasticity)
     # TODO: use `simulates` to check against boosted versions when available.
     solution = BEFWM2.simulate(params, [0.5, 0.5])
     @test solution.retcode == :Success
