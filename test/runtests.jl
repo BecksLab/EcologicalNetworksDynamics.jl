@@ -62,7 +62,8 @@ if no_break
                 @warn "Source code in $path is not formatted according \
                 to the project style defined in ../.JuliaFormatter.toml. \
                 Consider formatting it using your editor's autoformatter or with \
-                `using JuliaFormatter; format(\"path/to/BEFWM2\", format_markdown=true)`."
+                `using JuliaFormatter; format(\"path/to/BEFWM2\", format_markdown=true)` \
+                run from your usual sandbox/developing environment."
             end
         end
     end
