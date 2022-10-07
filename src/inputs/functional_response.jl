@@ -13,7 +13,7 @@ struct BioenergeticResponse <: FunctionalResponse
     B0::Vector{Float64} # half-saturation
 end
 
-struct ClassicResponse <: FunctionalResponse
+mutable struct ClassicResponse <: FunctionalResponse
     h::Float64 # hill exponent
     ω::SparseMatrixCSC{Float64} # resource preferency
     c::Vector{Float64} # intraspecific interference

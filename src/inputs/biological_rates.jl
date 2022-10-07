@@ -232,7 +232,10 @@ end
 """
 Allometric scaling: parameter expressed as a power law of body-mass (M).
 """
-allometricscale(a, b, M) = a * M^b
+function allometricscale(a, b, M)
+    (isnothing(a) || isnothing(b)) && return nothing
+    a * M^b
+end
 
 """
 Create species parameter vectors for a, b of length S (species richness) given the

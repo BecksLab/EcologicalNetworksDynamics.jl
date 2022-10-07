@@ -22,8 +22,10 @@ include(joinpath(".", "inputs/nontrophic_interactions.jl"))
 include(joinpath(".", "inputs/functional_response.jl"))
 include(joinpath(".", "inputs/biological_rates.jl"))
 include(joinpath(".", "inputs/environment.jl"))
+include(joinpath(".", "inputs/temperature_dependent_rates.jl"))
 include(joinpath(".", "inputs/producer_competition.jl"))
 include(joinpath(".", "model/model_parameters.jl"))
+include(joinpath(".", "model/set_temperature.jl"))
 include(joinpath(".", "model/productivity.jl"))
 include(joinpath(".", "model/consumption.jl"))
 include(joinpath(".", "model/metabolic_loss.jl"))
@@ -54,6 +56,7 @@ export attack_rate
 export BioEnergeticFunctionalResponse
 export BioenergeticResponse
 export BioRates
+export boltzmann
 export cascademodel
 export ClassicResponse
 export coefficient_of_variation
@@ -67,6 +70,16 @@ export draw_asymmetric_links
 export draw_symmetric_links
 export efficiency
 export Environment
+export ExponentialBA
+export exp_ba_attack_rate
+export exp_ba_carrying_capacity
+export exp_ba_growth
+export exp_ba_handling_time
+export exp_ba_metabolism
+export exp_ba_matrix_rate
+export exp_ba_vector_rate
+export ExponentialBAParams
+export exp_ba_params_to_vec
 export ExtinctionCallback
 export find_steady_state
 export fitin
@@ -95,6 +108,7 @@ export nestedhierarchymodel
 export nichemodel
 export nontrophic_adjacency_matrix
 export NonTrophicIntensity
+export NoTemperatureResponse
 export population_stability
 export potential_competition_links
 export potential_facilitation_links
@@ -106,9 +120,11 @@ export producer_growth
 export ProducerCompetition
 export producers
 export richness
+export set_temperature!
 export simulate
 export species_persistence
 export species_richness
+export TemperatureResponse
 export total_biomass
 export trophic_levels
 
