@@ -10,19 +10,20 @@ return `NaN` in case of problem.
 # Argument
 - n: a vector of biomass values 
 """
-function species_richness(n; threshold::Float64=eps())
-    sum(n .> threshold)
-end
+species_richness(n; threshold::Float64 = eps()) = sum(n .> threshold)
 
 """
 **Number of surviving species**
 Number of species with a biomass larger than the `threshold`. The threshold is
 by default set at `eps()`, which should be close to 10^-16.
 """
-function foodweb_richness(solution; threshold::Float64=eps(), last::Int64=1000)
-    measure_on = filter_sim(solution, last = last)
+function foodweb_richness(solution; threshold::Float64 = eps(), last::Int64 = 1000)
+    measure_on = filter_sim(solution; last = last)
 
-    rich = [species_richness(vec(measure_on[:,i]), threshold = threshold) for i in 1:size(measure_on, 2)]
+    rich = [
+        species_richness(vec(measure_on[:, i]); threshold = threshold) for
+        i in 1:size(measure_on, 2)
+    ]
     return mean(rich)
 end
 
@@ -62,10 +63,10 @@ julia> species_persistence(sim_zero, last = 1) # I know... It is a feature!
 ```
 
 """
-function species_persistence(solution; threshold::Float64=eps(), last::Int64=1000)
-    r = foodweb_richness(solution, threshold=threshold, last=last)
+function species_persistence(solution; threshold::Float64 = eps(), last::Int64 = 1000)
+    r = foodweb_richness(solution; threshold = threshold, last = last)
     m = size(solution, 1) # Number of species is the number of rows in the biomass matrix
-    return r/m
+    return r / m
 end
 
 """
@@ -74,10 +75,10 @@ Returns the sum of biomass, averaged over the last `last` timesteps.
 
 See also [`population_stability`](@ref)
 """
-function total_biomass(solution; last::Int64=1000)
-    
-    measure_on = filter_sim(solution, last = last)
-    biomass = vec(sum(measure_on, dims = 1))
+function total_biomass(solution; last::Int64 = 1000)
+
+    measure_on = filter_sim(solution; last = last)
+    biomass = vec(sum(measure_on; dims = 1))
     return mean(biomass)
 end
 
@@ -90,7 +91,7 @@ return `NaN` in case of problem.
 # Argument
 - n: a vector of biomass values 
 """
-function shannon(n; threshold::Float64=eps())
+function shannon(n; threshold::Float64 = eps())
     x = copy(n)
     x = filter((k) -> k > threshold, x)
     try
@@ -115,13 +116,15 @@ Equivalent of [`foodweb_richness`](@ref) for the Shannon entropy index (the firs
 See also [`population_stability`](@ref) for examples
 
 """
-function foodweb_shannon(solution; last::Int64=1000, threshold::Float64=eps())
-    measure_on = filter_sim(solution, last = last)
+function foodweb_shannon(solution; last::Int64 = 1000, threshold::Float64 = eps())
+    measure_on = filter_sim(solution; last = last)
 
     if sum(measure_on) == 0
         return NaN
     end
-    shan = [shannon(vec(measure_on[:,i]), threshold = threshold) for i in 1:size(measure_on, 2)]
+    shan = [
+        shannon(vec(measure_on[:, i]); threshold = threshold) for i in 1:size(measure_on, 2)
+    ]
     return mean(shan)
 end
 
@@ -132,14 +135,14 @@ return `NaN` in case of problem.
 # Argument
 - n: a vector of biomass values 
 """
-function simpson(n; threshold::Float64=eps())
+function simpson(n; threshold::Float64 = eps())
     x = copy(n)
     x = filter((k) -> k > threshold, x)
     try
         if length(x) >= 1
-           p = x ./ sum(x)
+            p = x ./ sum(x)
             p2 = 2 .^ p
-            return 1 / sum(p2) 
+            return 1 / sum(p2)
         else
             return NaN
         end
@@ -156,13 +159,15 @@ Equivalent of [`foodweb_evenness`](@ref) for the Simpson diversity index (the se
 See also [`population_stability`](@ref) for examples
 
 """
-function foodweb_simpson(solution; last::Int64=1000, threshold::Float64=eps())
+function foodweb_simpson(solution; last::Int64 = 1000, threshold::Float64 = eps())
 
-    measure_on = filter_sim(solution, last = last)
+    measure_on = filter_sim(solution; last = last)
     if sum(measure_on) == 0
         return NaN
     end
-    piel = [simpson(vec(measure_on[:,i]), threshold = threshold) for i in 1:size(measure_on, 2)]
+    piel = [
+        simpson(vec(measure_on[:, i]); threshold = threshold) for i in 1:size(measure_on, 2)
+    ]
     return mean(piel)
 end
 
@@ -174,7 +179,7 @@ Shannon divided by the log number of species
 # See also
 [`shannon`](@ref)
 """
-function pielou(n; threshold::Float64=eps())
+function pielou(n; threshold::Float64 = eps())
     x = copy(n)
     x = filter((k) -> k > threshold, x)
     try
@@ -196,12 +201,14 @@ all populations have equal biomasses.
 See also [`population_stability`](@ref) for examples
 
 """
-function foodweb_evenness(solution; last::Int64=1000, threshold::Float64=eps())
-    measure_on = filter_sim(solution, last = last)
+function foodweb_evenness(solution; last::Int64 = 1000, threshold::Float64 = eps())
+    measure_on = filter_sim(solution; last = last)
     if sum(measure_on) == 0
         return NaN
     end
-    piel = [pielou(vec(measure_on[:,i]), threshold = threshold) for i in 1:size(measure_on, 2)]
+    piel = [
+        pielou(vec(measure_on[:, i]); threshold = threshold) for i in 1:size(measure_on, 2)
+    ]
     return mean(piel)
 end
 
@@ -221,7 +228,7 @@ See also [`population_stability`](@ref)
 function producer_growth(solution; last::Int64 = 1000, out_type::Symbol = :all)
     parameters = solution.prob.p#extract parameters
 
-    mask_producer = parameters.network.metabolic_class .== "producer" 
+    mask_producer = parameters.network.metabolic_class .== "producer"
 
     producer_species = parameters.network.species[mask_producer]
 
@@ -229,9 +236,14 @@ function producer_growth(solution; last::Int64 = 1000, out_type::Symbol = :all)
     rp = parameters.biorates.r[mask_producer]
 
     #extract the biomasses of the producer_species
-    measure_on = filter_sim(solution, last = last)[mask_producer,:]
+    measure_on = filter_sim(solution; last = last)[mask_producer, :]
 
-    growth = (s = producer_species, G = [logisticgrowth.(measure_on[i, :], Kp[i], rp[i]) for i in 1:size(measure_on, 1)])
+    growth = (
+        s = producer_species,
+        G = [
+            logisticgrowth.(measure_on[i, :], Kp[i], rp[i]) for i in 1:size(measure_on, 1)
+        ],
+    )
 
     if out_type == :all #return all growth rates (each producer at each time step)
         return growth

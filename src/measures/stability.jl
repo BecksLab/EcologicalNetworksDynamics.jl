@@ -14,8 +14,8 @@ function avg_cv_sp(mat)
     avg_sp = mean.(eachcol(mat))
     std_sp = std.(eachcol(mat))
 
-    rel_sp = avg_sp./sum(avg_sp)
-    rel_sd_sp = std_sp./avg_sp
+    rel_sp = avg_sp ./ sum(avg_sp)
+    rel_sd_sp = std_sp ./ avg_sp
 
     avg_cv_sp = sum(rel_sp .* rel_sd_sp)
 
@@ -54,7 +54,7 @@ function temporal_cv(mat)
     total_com_bm = sum.(eachrow(mat))
     cv_com = std(total_com_bm) / mean(total_com_bm)
 
-    return cv_com 
+    return cv_com
 end
 
 """
@@ -69,9 +69,9 @@ end
  population stability (avg_cv_sp) and species synchrony (sync)
 
 """
-function foodweb_cv(solution; threshold::Float64=eps(), last=1000)
+function foodweb_cv(solution; threshold::Float64 = eps(), last = 1000)
 
-    measure_on = BEFWM2.filter_sim(solution, last = last)
+    measure_on = BEFWM2.filter_sim(solution; last = last)
 
     # Transpose to get the time x species matrix
     mat = transpose(measure_on)
@@ -81,7 +81,7 @@ function foodweb_cv(solution; threshold::Float64=eps(), last=1000)
 
     cv_com = temporal_cv(mat)
 
-    out = (stability = cv_com, avg_cv_sp = cv_sp, synchrony = sync)
+    out = (cv_com = cv_com, avg_cv_sp = cv_sp, synchrony = sync)
 
     return out
 end
@@ -134,13 +134,13 @@ julia> foodweb_evenness(sim, last = 50)
 ```
 
 """
-function population_stability(solution; threshold::Float64=eps(), last=1000)
+function population_stability(solution; threshold::Float64 = eps(), last = 1000)
     @assert last <= length(solution.t)
     non_extinct = solution[:, end] .> threshold
     measure_on = solution[non_extinct, end-(last-1):end]
     if sum(measure_on) == 0
         return NaN
     end
-    stability = -mapslices(coefficient_of_variation, measure_on, dims = 2)
+    stability = -mapslices(coefficient_of_variation, measure_on; dims = 2)
     return mean(stability)
 end
