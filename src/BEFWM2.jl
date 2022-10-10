@@ -21,6 +21,7 @@ include(joinpath(".", "inputs/nontrophic_interactions.jl"))
 include(joinpath(".", "inputs/functional_response.jl"))
 include(joinpath(".", "inputs/biological_rates.jl"))
 include(joinpath(".", "inputs/environment.jl"))
+include(joinpath(".", "inputs/producer_competition.jl"))
 include(joinpath(".", "model/model_parameters.jl"))
 include(joinpath(".", "model/productivity.jl"))
 include(joinpath(".", "model/consumption.jl"))
@@ -101,6 +102,7 @@ export potential_refuge_links
 export predators_of
 export preys_of
 export producer_growth
+export ProducerCompetition
 export producers
 export richness
 export simulate

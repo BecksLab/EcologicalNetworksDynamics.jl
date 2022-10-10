@@ -8,6 +8,7 @@ mutable struct ModelParameters
     biorates::BioRates
     environment::Environment
     functional_response::FunctionalResponse
+    producer_competition::ProducerCompetition
 end
 #### end ####
 
@@ -28,7 +29,8 @@ function Base.show(io::IO, ::MIME"text/plain", params::ModelParameters)
     println(io, "  network: ", params.network)
     println(io, "  environment: ", params.environment)
     println(io, "  biorates: ", params.biorates)
-    print(io, "  functional_response: ", params.functional_response)
+    println(io, "  functional_response: ", params.functional_response)
+    println(io, "  producer_competition: ", params.producer_competition)
 end
 #### end ####
 
@@ -37,7 +39,8 @@ end
         network::EcologicalNetwork;
         biorates::BioRates=BioRates(foodweb),
         environment::Environment=Environment(foodweb),
-        functional_response::FunctionalResponse=BioenergeticResponse(foodweb)
+        functional_response::FunctionalResponse=BioenergeticResponse(foodweb),
+        producer_competition::ProducerCompetition=ProducerCompetition(foodweb)
     )
 
 Generate the parameters of the species community.
@@ -50,6 +53,8 @@ The parameters are compartimented in different groups:
 - [`Environment`](@ref): environmental variables (e.g. carrying capacities)
 - [`FunctionalResponse`](@ref) (F): functional response form
     (e.g. classic or bioenergetic functional response)
+- [`ProducerCompetition`](@ref): producer competition 
+    (e.g. intra and inter competition)
 
 # Examples
 ```jldoctest
@@ -95,11 +100,12 @@ function ModelParameters(
     biorates::BioRates = BioRates(network),
     environment::Environment = Environment(network),
     functional_response::FunctionalResponse = BioenergeticResponse(network),
+    producer_competition::ProducerCompetition = ProducerCompetition(network)
 )
     if isa(network, MultiplexNetwork) & !(isa(functional_response, ClassicResponse))
         type_response = typeof(functional_response)
         @warn "Non-trophic interactions aren't implented for '$type_response'.
             Use a functional response of type 'ClassicResponse' instead."
     end
-    ModelParameters(network, biorates, environment, functional_response)
+    ModelParameters(network, biorates, environment, functional_response, producer_competition)
 end
