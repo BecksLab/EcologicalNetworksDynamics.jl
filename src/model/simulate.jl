@@ -3,6 +3,7 @@
     simulate(
         params::ModelParameters,
         B0::AbstractVector;
+        alg=nothing
         t0::Number=0,
         tmax::Number=500,
         δt::Number=0.25,
@@ -19,6 +20,7 @@
 
 Run biomass dynamics simulation,
 given model parameters (`params`) and the initial biomass (`B0`).
+You can choose your solver algorithm by specifying to the `alg` keyword.
 
 The dynamic is solved between t=`t0` and t=`tmax` (at worst) and
 biomass are saved (at least) every `δt`.
@@ -69,6 +71,15 @@ julia> solution[begin] == B0 # initial biomass equals initial biomass
 true
 
 julia> round.(solution[end], digits=2) # steady state biomass
+2-element Vector{Float64}:
+ 0.19
+ 0.22
+
+julia> using DifferentialEquations;
+
+julia> solution_custom_alg = simulate(params, B0, alg=BS5());
+
+julia> round.(solution_custom_alg[end], digits=2) # same steady state biomass
 2-element Vector{Float64}:
  0.19
  0.22
@@ -130,6 +141,7 @@ julia> simulate(params, [0.5, 1e-12], verbose=true); # no message thrown
 function simulate(
     params::ModelParameters,
     B0::AbstractVector;
+    alg = nothing,
     t0::Number = 0,
     tmax::Number = 500,
     δt::Number = 0.25,
@@ -160,7 +172,7 @@ function simulate(
     # As such, and in principle, the 'latest' function is unambiguous.
     fun = (args...) -> Base.invokelatest(code, args...)
     problem = ODEProblem(fun, B0, timespan, data)
-    solve(problem; saveat = timesteps, callback = callback, kwargs...)
+    solve(problem, alg; saveat = timesteps, callback = callback, kwargs...)
 end
 #### end ####
 

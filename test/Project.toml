@@ -1,4 +1,5 @@
 [deps]
+DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 EcologicalNetworks = "f03a62fe-f8ab-5b77-a061-bb599b765229"
 JuliaFormatter = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
