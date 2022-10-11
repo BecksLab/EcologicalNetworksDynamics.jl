@@ -4,11 +4,14 @@ Productivity
 
 function logisticgrowth(i, B, r, K, s, network::MultiplexNetwork)
     r = effect_facilitation(r, i, B, network)
-    logisticgrowth(B[i], r, K, s)
+    logisticgrowth(B[i], r, K, s[i])
 end
-logisticgrowth(i, B, r, K, s, _::FoodWeb) = logisticgrowth(B[i], r, K, s)
+logisticgrowth(i, B, r, K, s, _::FoodWeb) = logisticgrowth(B[i], r, K, s[i])
+logisticgrowth(i, B, r, K, _::FoodWeb) = logisticgrowth(B[i], r, K, B[i])
+logisticgrowth(i, B, r, K, network::MultiplexNetwork) =
+    logisticgrowth(i, B, r, K, B, network::MultiplexNetwork)
 
-function logisticgrowth(B, r, K, s)
+function logisticgrowth(B, r, K, s = B)
     !isnothing(K) || return 0
     r * B * (1 - s / K)
 end
