@@ -12,12 +12,12 @@ function dBdt!(dB, B, p, t)
     r = params.biorates.r # vector of intrinsic growth rates
     K = params.environment.K # vector of carrying capacities
     α = params.producer_competition.α # matrix of producer competition 
-    s = [sum(α[i,:] .* B) for i in 1:size(α, 1)] #Compute competitor effects
+    s = [sum(α[i, :] .* B) for i in 1:size(α, 1)] #Compute competitor effects
     network = params.network
 
     # Compute ODE terms for each species
     for i in 1:S
-        growth = logisticgrowth(i, B, r[i], K[i], s[i], network)
+        growth = logisticgrowth(i, B, r[i], K[i], s, network)
         eating, being_eaten = consumption(i, B, params, response_matrix)
         metabolism_loss = metabolic_loss(i, B, params)
         natural_death = natural_death_loss(i, B, params)

@@ -60,12 +60,13 @@ The parameters are compartimented in different groups:
 ```jldoctest
 julia> foodweb = FoodWeb([0 1; 0 0]); # create a simple foodweb
 
-julia> p = ModelParameters(foodweb) # default
+julia> p = ModelParameters(foodweb)
 ModelParameters{BioenergeticResponse}:
   network: FoodWeb(S=2, L=1)
   environment: Environment(K=[nothing, 1], T=293.15K)
   biorates: BioRates(d, r, x, y, e)
   functional_response: BioenergeticResponse
+  producer_competition: ProducerCompetition((2, 2) matrix)
 
 julia> p.network # check that stored foodweb is the same than the one we provided
 FoodWeb of 2 species:
@@ -100,12 +101,18 @@ function ModelParameters(
     biorates::BioRates = BioRates(network),
     environment::Environment = Environment(network),
     functional_response::FunctionalResponse = BioenergeticResponse(network),
-    producer_competition::ProducerCompetition = ProducerCompetition(network)
+    producer_competition::ProducerCompetition = ProducerCompetition(network),
 )
     if isa(network, MultiplexNetwork) & !(isa(functional_response, ClassicResponse))
         type_response = typeof(functional_response)
         @warn "Non-trophic interactions aren't implented for '$type_response'.
             Use a functional response of type 'ClassicResponse' instead."
     end
-    ModelParameters(network, biorates, environment, functional_response, producer_competition)
+    ModelParameters(
+        network,
+        biorates,
+        environment,
+        functional_response,
+        producer_competition,
+    )
 end
