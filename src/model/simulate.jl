@@ -153,13 +153,13 @@ function simulate(
     # Define ODE problem and solve
     timespan = (t0, tmax)
     timesteps = collect(t0:δt:tmax)
-    code, data = diff_code_data
+    #code, data = diff_code_data
     # Work around julia's world count:
     # `generate_dbdt` only produces anonymous code,
     # so the generated functions cannot be overriden.
     # As such, and in principle, the 'latest' function is unambiguous.
-    fun = (args...) -> Base.invokelatest(code, args...)
-    problem = ODEProblem(fun, B0, timespan, data)
+    #fun = (args...) -> Base.invokelatest(code, args...)
+    problem = ODEProblem(dBdt!, B0, timespan, params)
     solve(problem; saveat = timesteps, callback = callback, kwargs...)
 end
 #### end ####
