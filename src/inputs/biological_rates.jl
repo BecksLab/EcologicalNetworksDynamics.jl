@@ -4,6 +4,7 @@ Biological rates
 
 #### Type definiton ####
 mutable struct BioRates
+    d::Vector{<:Real}
     r::Vector{<:Real}
     x::Vector{<:Real}
     y::Vector{<:Real}
@@ -13,23 +14,34 @@ end
 
 #### Type display ####
 "One line [`BioRates`](@ref) display."
-Base.show(io::IO, b::BioRates) = print(io, "BioRates(e, r, x, y)")
+Base.show(io::IO, b::BioRates) = print(io, "BioRates(d, r, x, y, e)")
 
 "Multiline [`BioRates`](@ref) display."
 function Base.show(io::IO, ::MIME"text/plain", biorates::BioRates)
-    e = biorates.e
+    d = biorates.d
     r = biorates.r
     x = biorates.x
     y = biorates.y
+    e = biorates.e
     println(io, "BioRates:")
-    println(io, "  e: $(size(e)) sparse matrix")
+    println(io, "  d: " * vector_to_string(d))
     println(io, "  r: " * vector_to_string(r))
     println(io, "  x: " * vector_to_string(x))
-    print(io, "  y: " * vector_to_string(y))
+    println(io, "  y: " * vector_to_string(y))
+    print(io, "  e: $(size(e)) sparse matrix")
 end
 #### end ####
 
 #### Constructors containing default parameter value for allometric scaled rates ####
+"""
+    DefaultMortalityParams()
+
+Default allometric parameters (a, b) values for mortality rate (d).
+
+See also [`AllometricParams`](@ref)
+"""
+DefaultMortalityParams() = AllometricParams(0.138, 0.314, 0.314, -0.25, -0.25, -0.25)
+
 """
     DefaultGrowthParams()
 
@@ -110,17 +122,20 @@ end
 """
     BioRates(
         network::EcologicalNetwork;
+        d = allometric_rate(foodweb, DefaultMortalityParams()),
         r = allometric_rate(foodweb, DefaultGrowthParams()),
         x = allometric_rate(foodweb, DefaultMetabolismParams()),
-        y = allometric_rate(foodweb, DefaultMaxConsumptionParams())
+        y = allometric_rate(foodweb, DefaultMaxConsumptionParams()),
         )
 
-Compute the biological rates (r, x and y) of each species in the system.
+Compute the biological rates (r, x, y and e) of each species in the system.
 
 The rates are:
+- d: the natural mortality rate
 - r: the growth rate
 - x: the metabolic rate or metabolic demand
 - y: the maximum consumption rate
+- e: the assimilation efficiency
 If no value are provided for the rates, they take default values assuming an allometric
 scaling. Custom values can be provided for one or several rates by giving a vector of
 length 1 or S (species richness). Moreover, if one want to use allometric scaling
@@ -133,37 +148,42 @@ julia> foodweb = FoodWeb([0 1; 0 0]); # sp. 1 "invertebrate", sp. 2 "producer"
 
 julia> BioRates(foodweb) # default
 BioRates:
-  e: (2, 2) sparse matrix
+  d: [0.314, 0.138]
   r: [0.0, 1.0]
   x: [0.314, 0.0]
   y: [8.0, 0.0]
+  e: (2, 2) sparse matrix
 
 julia> BioRates(foodweb; r = [1.0, 1.0]) # specify custom vector for growth rate
 BioRates:
-  e: (2, 2) sparse matrix
+  d: [0.314, 0.138]
   r: [1.0, 1.0]
   x: [0.314, 0.0]
   y: [8.0, 0.0]
+  e: (2, 2) sparse matrix
 
 julia> BioRates(foodweb; x = 2.0) # if single value, fill the rate vector with it
 BioRates:
-  e: (2, 2) sparse matrix
+  d: [0.314, 0.138]
   r: [0.0, 1.0]
   x: [2.0, 2.0]
   y: [8.0, 0.0]
+  e: (2, 2) sparse matrix
 
 julia> custom_params = AllometricParams(3, 0, 0, 0, 0, 0); # use custom allometric params...
 
 julia> BioRates(foodweb; y=allometric_rate(foodweb, custom_params)) # ...with allometric_rate
 BioRates:
-  e: (2, 2) sparse matrix
+  d: [0.314, 0.138]
   r: [0.0, 1.0]
   x: [0.314, 0.0]
   y: [0.0, 3.0]
+  e: (2, 2) sparse matrix
 ```
 """
 function BioRates(
     network::EcologicalNetwork;
+    d::Union{Vector{<:Real},<:Real} = allometric_rate(network, DefaultMortalityParams()),
     r::Union{Vector{<:Real},<:Real} = allometric_rate(network, DefaultGrowthParams()),
     x::Union{Vector{<:Real},<:Real} = allometric_rate(network, DefaultMetabolismParams()),
     y::Union{Vector{<:Real},<:Real} = allometric_rate(
@@ -173,7 +193,7 @@ function BioRates(
     e = efficiency(network),
 )
     S = richness(network)
-    Rates = [r, x, y]
+    Rates = [d, r, x, y]
 
     # Perform sanity checks and vectorize rates if necessary
     for (i, rate) in enumerate(Rates)
@@ -182,8 +202,8 @@ function BioRates(
     @check_size_is_richness² e S
 
     # Output
-    r, x, y = Rates
-    BioRates(r, x, y, e)
+    d, r, x, y = Rates
+    BioRates(d, r, x, y, e)
 end
 
 "Compute rate vector (one value per species) with allometric scaling."

@@ -59,7 +59,7 @@ julia> p = ModelParameters(foodweb) # default
 ModelParameters{BioenergeticResponse}:
   network: FoodWeb(S=2, L=1)
   environment: Environment(K=[nothing, 1], T=293.15K)
-  biorates: BioRates(e, r, x, y)
+  biorates: BioRates(d, r, x, y, e)
   functional_response: BioenergeticResponse
 
 julia> p.network # check that stored foodweb is the same than the one we provided

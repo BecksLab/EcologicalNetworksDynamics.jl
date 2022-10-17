@@ -59,6 +59,7 @@ export cpad
 export DefaultGrowthParams
 export DefaultMaxConsumptionParams
 export DefaultMetabolismParams
+export DefaultMortalityParams
 export draw_asymmetric_links
 export draw_symmetric_links
 export Environment
