@@ -2,7 +2,7 @@
 
     # Set up
     foodweb = FoodWeb([0 0; 1 0])
-    params = ModelParameters(foodweb)
+    params = ModelParameters(foodweb; biorates = BioRates(foodweb; d = 0))
 
     # Solution converges
     solution1 = simulates(params, [0.5, 0.5]; verbose = false)
@@ -38,7 +38,7 @@
 
     # Verbose - Is there a log message to inform the user of species going extinct?
     foodweb = FoodWeb([0 0; 1 0])
-    params = ModelParameters(foodweb)
+    params = ModelParameters(foodweb; biorates = BioRates(foodweb; d = 0))
     @test_nowarn simulates(params, [0.5, 1e-12], verbose = false)
     @test keys(get_extinct_species(simulates(params, [0.5, 1e-12]; verbose = false))) ==
           Set([2])
@@ -112,4 +112,19 @@ end
     # 2. B_going_extinct = 0 (after the callback)
     @test sol.t[idx_cb_triggered] == sol.t[idx_cb_triggered+1]
     @test all(sol2 .>= 0) # no anti-biomass
+end
+
+@testset "Equivalence natural mortality and metabolic demand" begin
+    foodweb = FoodWeb([0 0; 1 0]; Z = 50)
+    F = ClassicResponse(foodweb; aᵣ = 1.0)
+    params_xd = ModelParameters(foodweb; functional_response = F)
+    total_loss = params_xd.biorates.x .+ params_xd.biorates.d
+    biorates_x = BioRates(foodweb; x = total_loss, d = 0)
+    biorates_d = BioRates(foodweb; d = total_loss, x = 0)
+    params_x = ModelParameters(foodweb; functional_response = F, biorates = biorates_x)
+    params_d = ModelParameters(foodweb; functional_response = F, biorates = biorates_d)
+    out_xd = simulate(params_xd, [1])
+    out_d = simulate(params_d, [1])
+    out_x = simulate(params_x, [1])
+    @test out_xd.u[end] ≈ out_x.u[end] ≈ out_d.u[end]
 end

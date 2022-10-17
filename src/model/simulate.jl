@@ -60,7 +60,9 @@ but want to find directly the biomass at steady state see [`find_steady_state`](
 ```jldoctest
 julia> foodweb = FoodWeb([0 0; 1 0]); # create the foodweb
 
-julia> params = ModelParameters(foodweb); # generate the parameters
+julia> biorates = BioRates(foodweb, d=0); # set natural death rate to 0
+
+julia> params = ModelParameters(foodweb, biorates=biorates); 
 
 julia> B0 = [0.5, 0.5]; # set initial biomass
 
@@ -124,7 +126,7 @@ By default, the extinction callback throw a message when a species goes extinct.
 ```julia
 julia> foodweb = FoodWeb([0 0; 1 0]);
 
-julia> params = ModelParameters(foodweb);
+julia> params = ModelParameters(foodweb, biorates=BioRates(foodweb, d=0));
 
 julia> simulate(params, [0.5, 1e-12], verbose=true); # default: a message is thrown
 [ Info: Species [2] is exinct. t=0.12316364776188903
@@ -270,7 +272,9 @@ but also in the trajectories see [`simulate`](@ref).
 ```jldoctest
 julia> foodweb = FoodWeb([0 0; 1 0]); # create the foodweb
 
-julia> params = ModelParameters(foodweb); # generate the parameters
+julia> biorates = BioRates(foodweb, d=0); # set natural death to 0
+
+julia> params = ModelParameters(foodweb, biorates=biorates); 
 
 julia> B0 = [0.5, 0.5]; # set initial biomass
 
