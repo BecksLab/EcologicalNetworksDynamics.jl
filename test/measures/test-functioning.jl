@@ -2,7 +2,7 @@
 
     # Set up
     foodweb = FoodWeb([0 0; 0 0])
-    params = ModelParameters(foodweb)
+    params = ModelParameters(foodweb; biorates = BioRates(foodweb; d = 0))
 
     sim = simulates(params, [0, 0.5]; verbose = false)
     normal_growth = producer_growth(sim; last = 1, out_type = :all)
@@ -45,7 +45,7 @@ end
 
     # Set up
     foodweb = FoodWeb([0 0; 0 0])
-    params = ModelParameters(foodweb)
+    params = ModelParameters(foodweb; biorates = BioRates(foodweb; d = 0))
 
     sim_two_sp = simulates(params, [0.5, 0.5]; verbose = false)
     sim_one_sp = simulates(params, [0, 0.5]; verbose = false)

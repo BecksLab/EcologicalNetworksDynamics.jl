@@ -29,3 +29,5 @@ function metabolism_loss(parms::ModelParameters, ::Symbol)
 
     code, data
 end
+
+natural_death_loss(i, B, params::ModelParameters) = params.biorates.d[i] * B[i]

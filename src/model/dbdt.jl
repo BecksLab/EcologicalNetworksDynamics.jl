@@ -18,9 +18,10 @@ function dBdt!(dB, B, p, t)
         growth = logisticgrowth(i, B, r[i], K[i], network)
         eating, being_eaten = consumption(i, B, params, response_matrix)
         metabolism_loss = metabolic_loss(i, B, params)
+        natural_death = natural_death_loss(i, B, params)
         net_growth_rate = growth + eating - metabolism_loss
         net_growth_rate = effect_competition(net_growth_rate, i, B, network)
-        dB[i] = net_growth_rate - being_eaten
+        dB[i] = net_growth_rate - being_eaten - natural_death
     end
 
     # Avoid zombie species by forcing extinct biomasses to zero.
