@@ -7,18 +7,22 @@ foodweb.M = [1.0, 1.0, 10.0, 10.0]
     @test DefaultGrowthParams() == AllometricParams(1.0, 0.0, 0.0, -0.25, 0.0, 0.0)
     @test DefaultMetabolismParams() == AllometricParams(0, 0.88, 0.314, 0, -0.25, -0.25)
     @test DefaultMaxConsumptionParams() == AllometricParams(0.0, 4.0, 8.0, 0.0, 0.0, 0.0)
+    @test DefaultMortalityParams() ==
+          AllometricParams(0.138, 0.314, 0.314, -0.25, -0.25, -0.25)
 end
 
 @testset "Computing allometric rates" begin
     foodweb.metabolic_class[1] = "unknown class" # introduce wrong class
     @test_throws ArgumentError allometric_rate(foodweb, DefaultGrowthParams())
     foodweb.metabolic_class[1] = "producer" # restore class
-    customparams = AllometricParams(0, 1, 1, 0, 1, 2)
-    @test allometric_rate(foodweb, customparams) == [0, 0, 100, 10]
+    custom_params = AllometricParams(0, 1, 1, 0, 1, 2)
+    @test allometric_rate(foodweb, custom_params) == [0, 0, 100, 10]
     @test allometric_rate(foodweb, DefaultGrowthParams()) == [1, 1, 0, 0]
-    @test allometric_rate(foodweb, DefaultMetabolismParams()) ==
+    @test allometric_rate(foodweb, DefaultMetabolismParams()) ≈
           [0, 0, 0.314 * 10^-0.25, 0.88 * 10^-0.25]
     @test allometric_rate(foodweb, DefaultMaxConsumptionParams()) == [0, 0, 8, 4]
+    @test allometric_rate(foodweb, DefaultMortalityParams()) ≈
+          [0.138, 0.138, 0.314 * 10^(-0.25), 0.314 * 10^(-0.25)]
 end
 
 @testset "Helper functions for allometric rate computation" begin
