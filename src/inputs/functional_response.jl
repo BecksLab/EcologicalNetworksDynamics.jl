@@ -242,7 +242,7 @@ With:
 ```jldoctest
 julia> foodweb = FoodWeb([0 0; 1 0]);
 
-julia> F = ClassicResponse(foodweb)
+julia> F = ClassicResponse(foodweb; hₜ = 1.0)
 ClassicResponse:
   c: [0.0, 0.0]
   h: 2.0
@@ -533,7 +533,7 @@ end
 function ClassicResponse(
     network::EcologicalNetwork;
     aᵣ = 0.5,
-    hₜ = 1.0,
+    hₜ = handling_time(network),
     h = 2.0,
     ω = homogeneous_preference(network),
     c = 0.0,
@@ -557,3 +557,27 @@ function LinearResponse(net::EcologicalNetwork; ω = homogeneous_preference(net)
     @check_equal_richness length(α) S
     LinearResponse(sparse(ω), sparse(α))
 end
+
+""" 
+    handling_time(network::EcologicalNetwork)
+
+Compute the handling time for all predator-prey couples of the system.
+The output `hₜ` is squared matrix of length equals to the species richness
+with `hₜ[i,j]` corresponding to the handling time of predator i on prey j.
+The handling time of a predator-prey couple is given by their body masses, 
+formally: ``h_{\text{t},ij} = 0.3 m_i^{-0.48} m_j^{-0.66}``.
+This formula is taken from Miele et al. 2019 (PLOS Computational)
+and Rall et al. 2012 (Phil. Tran. R. Soc. B). 
+"""
+function handling_time(network::EcologicalNetwork)
+    S = richness(network)
+    hₜ = spzeros(Float64, S, S)
+    M = network.M # vector of species body mass
+    A = get_trophic_adjacency(network)
+    predator, prey = findnz(A)
+    for (i, j) in zip(predator, prey)
+        hₜ[i, j] = handling_time(M, i, j)
+    end
+    hₜ
+end
+handling_time(M, i, j) = 0.3 * M[i]^(-0.48) * M[j]^(-0.66)
