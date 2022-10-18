@@ -112,9 +112,9 @@ with:
   - ``h`` the hill-exponent
 
 !!! note
-    
+
       - ``\lim_{B_j \to +\infty} F_{ij} = 1``
-    
+
       - ``F_{ij}(B_0) = \frac{1}{2}`` if considering a consumer feeding only one resource
         and no predator interference (``c_i=0``),
         hence the name 'half-saturation density' for ``B_0``.
@@ -183,8 +183,9 @@ see [Williams et al. 2007](https://doi.org/10.1007/978-1-4020-5337-5_2).
 Formally the classic response is written:
 
 ```math
-F_{ij} = \frac{\omega_{ij} a_{ij} B_j^h}{1 + c_i B_i
-    + h_t \sum_{k \in \{ \text{res.} \}} \omega_{ik} a_{ij} B_k^h}
+F_{ij} = \frac{1}{m_i} \cdot
+    \frac{\omega_{ij} a_{ij} B_j^h}{1 + c_i B_i
+    + h_t \sum_{k \in \{ \text{res.} \}} \omega_{ik} a_{ik} B_k^h}
 ```
 
 with:
@@ -194,6 +195,7 @@ with:
   - ``h`` the hill-exponent
   - ``a_{ij}`` the attack rate of consumer ``i`` on resource ``j``
   - ``h_t`` the handling time
+  - ``m_i`` the body mass of consumer ``i``
 
 The classic response and its parameters
 can be accessed by calling the [`ClassicResponse`](@ref) method
@@ -226,7 +228,7 @@ where `B[i]` is the biomass of species ``i``.
 ```@example befwm2
 f = ClassicResponse(foodweb);
 B = [1, 1, 1]; # defining species biomass
-f(B) # F matrix, F[i,j] = Fᵢⱼ
+f(B, foodweb) # F matrix, F[i,j] = Fᵢⱼ
 ```
 
 The corresponding system of ODEs is:

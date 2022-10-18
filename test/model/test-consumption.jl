@@ -39,7 +39,7 @@ end
     # Classic default
     p = ModelParameters(foodweb; functional_response = ClassicResponse(foodweb; aᵣ = 0.5))
     B = [1, 1, 1]
-    fᵣmatrix = p.functional_response(B)
+    fᵣmatrix = p.functional_response(B, foodweb)
     eating1, being_eaten1 = BEFWM2.consumption(1, B, p, fᵣmatrix)
     eating2, being_eaten2 = BEFWM2.consumption(2, B, p, fᵣmatrix)
     eating3, being_eaten3 = BEFWM2.consumption(3, B, p, fᵣmatrix)
@@ -48,7 +48,7 @@ end
     @test being_eaten3 ≈ 0 atol = 1e-5 # species 3 is not eaten
     @test being_eaten1 > being_eaten2 > 0 # species 1 & 2 are eaten
     B₂ = [2, 1, 1] # increasing producer biomass...
-    fᵣmatrix₂ = p.functional_response(B₂)
+    fᵣmatrix₂ = p.functional_response(B₂, foodweb)
     eating₂1, being_eaten₂1 = BEFWM2.consumption(1, B₂, p, fᵣmatrix₂)
     eating₂2, being_eaten₂2 = BEFWM2.consumption(2, B₂, p, fᵣmatrix₂)
     eating₂3, being_eaten₂3 = BEFWM2.consumption(3, B₂, p, fᵣmatrix₂)
@@ -58,7 +58,7 @@ end
     # Classic with intraspecific interference
     F = ClassicResponse(foodweb; c = [0, 0, 0.5], aᵣ = 0.5) # intra interference for species 3
     p = ModelParameters(foodweb; functional_response = F)
-    fᵣmatrix = p.functional_response(B)
+    fᵣmatrix = p.functional_response(B, foodweb)
     eatingᵢ1, being_eatenᵢ1 = BEFWM2.consumption(1, B, p, fᵣmatrix)
     eatingᵢ2, being_eatenᵢ2 = BEFWM2.consumption(2, B, p, fᵣmatrix)
     eatingᵢ3, being_eatenᵢ3 = BEFWM2.consumption(3, B, p, fᵣmatrix)

@@ -220,13 +220,15 @@ function (F::BioenergeticResponse)(parms, ::Symbol)
 end
 
 """
-    ClassicResponse(B, i, j)
+    ClassicResponse(B, i, j, mᵢ)
 
 Compute the classic functional response for predator `i` eating prey `j`, given the
-species biomass `B`.
+species biomass `B` and the predator body mass `mᵢ`.
 The classic functional response is written:
 ```math
-F_{ij} = \\frac{\\omega_{ij} a_{r,ij} B_j^h}{1 + c_i B_i + h_t \\sum_k \\omega_{ik} a_{r,ik} B_k^h}
+F_{ij} = \\frac{1}{m_i} \\cdot
+         \\frac{\\omega_{ij} a_{r,ij} B_j^h}
+               {1 + c_i B_i + h_t \\sum_k \\omega_{ik} a_{r,ik} B_k^h}
 ```
 With:
 - ``\\omega`` the preferency, by default we assume that predators split their time equally
@@ -236,7 +238,8 @@ With:
     III if ``h = 2``
 - ``c_i`` the intensity of predator intraspecific inteference
 - ``a_{r,ij}`` the attack rate of predator i on prey j
-- ``h_t`` the handling time of predators.
+- ``h_t`` the handling time of predators
+- ``m_i`` the body mass of predator i
 
 # Examples
 ```jldoctest
@@ -250,24 +253,24 @@ ClassicResponse:
   hₜ: (2, 2) sparse matrix
   aᵣ: (2, 2) sparse matrix
 
-julia> F([1, 1], 1, 2) # no interaction, 1 does not eat 2
+julia> F([1, 1], 1, 2, 1) # no interaction, 1 does not eat 2
 0.0
 
-julia> round(F([1, 1], 2, 1), digits = 2) # interaction, 2 eats 1
+julia> round(F([1, 1], 2, 1, 1), digits = 2) # interaction, 2 eats 1
 0.33
 
-julia> round(F([1.5, 1], 2, 1), digits = 2) # increases with resource biomass
+julia> round(F([1.5, 1], 2, 1, 1), digits = 2) # increases with resource biomass
 0.53
 ```
 
 See also [`BioenergeticResponse`](@ref), [`LinearResponse`](@ref)
 and [`FunctionalResponse`](@ref).
 """
-function (F::ClassicResponse)(B, i, j)
+function (F::ClassicResponse)(B, i, j, mᵢ)
     num = F.ω[i, j] * F.aᵣ[i, j] * abs(B[j])^F.h
     denom =
         1 + (F.c[i] * B[i]) + sum(F.aᵣ[i, :] .* F.hₜ[i, :] .* F.ω[i, :] .* (abs.(B) .^ F.h))
-    num / denom
+    num / (mᵢ * denom)
 end
 # Code generation version (raw) (↑ ↑ ↑ DUPLICATED FROM ABOVE ↑ ↑ ↑).
 # (update together as long as the two coexist)
@@ -361,7 +364,7 @@ function (F::ClassicResponse)(B, i, j, aᵣ, network::MultiplexNetwork)
     predator_interfering = A_interference[:, i]
     denom += i0 * sum(B .* predator_interfering)
 
-    num / denom
+    num / (network.M[i] * denom)
 end
 
 """
@@ -497,6 +500,22 @@ function (F::FunctionalResponse)(B)
 end
 (F::FunctionalResponse)(B, _::EcologicalNetwork) = F(B)
 
+function (F::ClassicResponse)(B, network::FoodWeb)
+
+    # Set up and safety checks
+    S = richness(network)
+    isa(B, AbstractVector) || (B = fill(B, S))
+    @check_equal_richness length(B) S
+
+    # Fill functional response matrix
+    F_matrix = spzeros(S, S)
+    M = network.M
+    consumer, resource = findnz(F.ω)
+    for (i, j) in zip(consumer, resource)
+        F_matrix[i, j] = F(B, i, j, M[i])
+    end
+    F_matrix
+end
 function (F::ClassicResponse)(B, network::MultiplexNetwork)
 
     # Set up and safety checks
@@ -558,16 +577,16 @@ function LinearResponse(net::EcologicalNetwork; ω = homogeneous_preference(net)
     LinearResponse(sparse(ω), sparse(α))
 end
 
-""" 
+"""
     handling_time(network::EcologicalNetwork)
 
 Compute the handling time for all predator-prey couples of the system.
 The output `hₜ` is squared matrix of length equals to the species richness
 with `hₜ[i,j]` corresponding to the handling time of predator ``i`` on prey ``j``.
-The handling time of a predator-prey couple is given by their body masses, 
+The handling time of a predator-prey couple is given by their body masses,
 formally: ``h_{t,ij} = 0.3 m_i^{-0.48} m_j^{-0.66}``.
 This formula is taken from Miele et al. 2019 (PLOS Computational)
-and Rall et al. 2012 (Phil. Tran. R. Soc. B). 
+and Rall et al. 2012 (Phil. Tran. R. Soc. B).
 """
 function handling_time(network::EcologicalNetwork)
     S = richness(network)
@@ -585,25 +604,25 @@ handling_time(i, j, M) = 0.3 * M[i]^(-0.48) * M[j]^(-0.66)
 """
     attack_rate(network::EcologicalNetwork)
 
-Compute the attack rate for all predator-prey couples of the system. 
+Compute the attack rate for all predator-prey couples of the system.
 The output `aᵣ` is squared matrix of length equals to the species richness
 with `aᵣ[i,j]` corresponding to the attack rate of predator ``i`` on prey ``j``.
-The attack rate of a predator-prey couple is given by their body masses, 
-formally: 
+The attack rate of a predator-prey couple is given by their body masses,
+formally:
 - ``a_{r,ij} = 50 m_i^{0.45} m_j^{0.15}`` if both species are mobiles;
 - ``a_{r,ij} = 50 m_j^{0.15}`` if i is sessile and j mobile;
 - ``a_{r,ij} = 50 m_i^{0.45}`` if j is sessile and i mobile.
 
-This formula is taken from Miele et al. 2019 (PLOS Computational). 
+This formula is taken from Miele et al. 2019 (PLOS Computational).
 """
 function attack_rate(network::EcologicalNetwork)
     S = richness(network)
     aᵣ = spzeros(Float64, S, S)
     M = network.M # vector of species body mass
     A = get_trophic_adjacency(network)
-    # Define sessile species as producers, consumers are always mobiles 
-    # This assumption could be changed in the future 
-    mobility = map(i -> !isproducer(i, A), 1:S) # 0 = sessile, 1 = mobile 
+    # Define sessile species as producers, consumers are always mobiles
+    # This assumption could be changed in the future
+    mobility = map(i -> !isproducer(i, A), 1:S) # 0 = sessile, 1 = mobile
     predator, prey = findnz(A)
     for (i, j) in zip(predator, prey)
         aᵣ[i, j] = attack_rate(i, j, M, mobility)
