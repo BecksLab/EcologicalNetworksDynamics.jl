@@ -187,25 +187,29 @@ end
 @testset "Classic functional response functor" begin
     # Index by index - FoodWeb
     Fclassic1_fw = ClassicResponse(foodweb_2sp; hₜ = 1.0, aᵣ = 0.5)
-    @test Fclassic1_fw([1, 1], 1, 1) == 0 # no interaction
-    @test Fclassic1_fw([1, 1], 1, 2) == 0 # no interaction
-    @test Fclassic1_fw([1, 1], 2, 2) == 0 # no interaction
+    @test Fclassic1_fw([1, 1], 1, 1, 1) == 0 # no interaction
+    @test Fclassic1_fw([1, 1], 1, 2, 1) == 0 # no interaction
+    @test Fclassic1_fw([1, 1], 2, 2, 1) == 0 # no interaction
     F21 = (1 * 0.5 * 1^2) / (1 + 0.5 * 1 * 1^2)
-    @test Fclassic1_fw([1, 1], 2, 1) == F21 # interaction
-    @test Fclassic1_fw([1, 2], 2, 1) == F21 # don't depend on cons. mass
+    @test Fclassic1_fw([1, 1], 2, 1, 1) == F21 # interaction
+    @test Fclassic1_fw([1, 2], 2, 1, 1) == F21 # don't depend on cons. mass
+    @test Fclassic1_fw([1, 1], 2, 1, 2) == F21 / 2
+    @test Fclassic1_fw([1, 1], 2, 1, 3) == F21 / 3
     F21_new = (1 * 0.5 * 2^2) / (1 + 0.5 * 1 * 2^2)
-    @test Fclassic1_fw([2, 1], 2, 1) == F21_new # ...but depend on res. mass
+    @test Fclassic1_fw([2, 1], 2, 1, 1) == F21_new # ...but depend on res. mass
 
     # Index by index - MultiplexNetwork
     Fclassic1_nti = ClassicResponse(multi_net1; hₜ = 1.0, aᵣ = 0.5)
-    @test Fclassic1_nti([1, 1], 1, 1) == 0 # no interaction
-    @test Fclassic1_nti([1, 1], 1, 2) == 0 # no interaction
-    @test Fclassic1_nti([1, 1], 2, 2) == 0 # no interaction
+    @test Fclassic1_nti([1, 1], 1, 1, 1) == 0 # no interaction
+    @test Fclassic1_nti([1, 1], 1, 2, 1) == 0 # no interaction
+    @test Fclassic1_nti([1, 1], 2, 2, 1) == 0 # no interaction
     F21 = (1 * 0.5 * 1^2) / (1 + 0.5 * 1 * 1^2)
-    @test Fclassic1_nti([1, 1], 2, 1) == F21 # interaction
-    @test Fclassic1_nti([1, 2], 2, 1) == F21 # don't depend on cons. mass
+    @test Fclassic1_nti([1, 1], 2, 1, 1) == F21 # interaction
+    @test Fclassic1_nti([1, 2], 2, 1, 1) == F21 # don't depend on cons. mass
+    @test Fclassic1_nti([1, 1], 2, 1, 2) == F21 / 2
+    @test Fclassic1_nti([1, 1], 2, 1, 3) == F21 / 3
     F21_new = (1 * 0.5 * 2^2) / (1 + 0.5 * 1 * 2^2)
-    @test Fclassic1_nti([2, 1], 2, 1) == F21_new # ...but depend on res. mass
+    @test Fclassic1_nti([2, 1], 2, 1, 1) == F21_new # ...but depend on res. mass
 
     # Matrix
     @test Fclassic1_fw([1, 1], foodweb_2sp) == sparse([0 0; F21 0]) # provide biomass vector
@@ -216,17 +220,23 @@ end
     # Non-default hill exponent
     Fclassic_1 = ClassicResponse(foodweb_2sp; h = 3, hₜ = 1.0, aᵣ = 0.5)
     F21 = (1 * 0.5 * 2^3) / (1 + 0.5 * 1 * 2^3)
-    @test Fclassic_1(2) == sparse([0 0; F21 0])
+    @test Fclassic_1(2, foodweb_2sp) == sparse([0 0; F21 0])
+
+    # Non-default body mass 
+    foodweb_2sp_M = FoodWeb(A_2sp; M = [2, 3])
+    Fclassic_1 = ClassicResponse(foodweb_2sp; h = 3, hₜ = 1.0, aᵣ = 0.5)
+    F21 = (1 * 0.5 * 2^3) / (1 + 0.5 * 1 * 2^3)
+    @test Fclassic_1(2, foodweb_2sp_M) == sparse([0 0; F21/3 0])
 
     # Non-default attack rate
     Fclassic_1 = ClassicResponse(foodweb_2sp; aᵣ = 0.2, hₜ = 1.0)
     F21 = (1 * 0.2 * 2^2) / (1 + 0.2 * 1 * 2^2)
-    @test Fclassic_1(2) == sparse([0 0; F21 0])
+    @test Fclassic_1(2, foodweb_2sp) == sparse([0 0; F21 0])
 
     # Non-default handling time
     Fclassic_1 = ClassicResponse(foodweb_2sp; hₜ = 2, aᵣ = 0.5)
     F21 = (1 * 0.5 * 2^2) / (1 + 0.5 * 2 * 2^2)
-    @test Fclassic_1(2) == sparse([0 0; F21 0])
+    @test Fclassic_1(2, foodweb_2sp) == sparse([0 0; F21 0])
 
 
     # Consumer feeding on several resources
@@ -236,13 +246,13 @@ end
     F21 = (1 * 0.5 * 1^2) / (1 + 0.5 * 1 * 1^2)
     F31 = (0.5 * 0.5 * 1^2) / (1 + 0.5 * 0.5 * 1 * 1^2 + 0.5 * 0.5 * 1 * 1^2)
     F32 = F31
-    @test Fclassic2_fw(B) == sparse([0 0 0; F21 0 0; F31 F32 0])
+    @test Fclassic2_fw(B, foodweb_3sp) == sparse([0 0 0; F21 0 0; F31 F32 0])
     @test Fclassic2_nti(B, net_interference) == sparse([0 0 0; F21 0 0; F31 F32 0])
     B = [3, 2, 1] # non-uniform biomass distribution
     F21 = (1 * 0.5 * 3^2) / (1 + 0.5 * 1 * 3^2)
     F31 = (0.5 * 0.5 * 3^2) / (1 + 0.5 * 0.5 * 1 * 3^2 + 0.5 * 0.5 * 1 * 2^2)
     F32 = (0.5 * 0.5 * 2^2) / (1 + 0.5 * 0.5 * 1 * 3^2 + 0.5 * 0.5 * 1 * 2^2)
-    @test Fclassic2_fw(B) == sparse([0 0 0; F21 0 0; F31 F32 0])
+    @test Fclassic2_fw(B, foodweb_3sp) == sparse([0 0 0; F21 0 0; F31 F32 0])
     @test Fclassic2_nti(B, net_interference) == sparse([0 0 0; F21 0 0; F31 F32 0])
     B, aᵣ = [3, 2, 1], [0 0 0; 0.5 0 0; 0.5 0.2 0] # non-uniform biomass...
     Fclassic2_fw = ClassicResponse(foodweb_3sp; aᵣ = aᵣ, hₜ = 1.0) #...and non-uniform attack rate
@@ -250,7 +260,7 @@ end
     F21 = (1 * 0.5 * 3^2) / (1 + 0.5 * 1 * 3^2)
     F31 = (0.5 * 0.5 * 3^2) / (1 + 0.5 * 0.5 * 1 * 3^2 + 0.5 * 0.2 * 1 * 2^2)
     F32 = (0.5 * 0.2 * 2^2) / (1 + 0.5 * 0.5 * 1 * 3^2 + 0.5 * 0.2 * 1 * 2^2)
-    @test Fclassic2_fw(B) == sparse([0 0 0; F21 0 0; F31 F32 0])
+    @test Fclassic2_fw(B, foodweb_3sp) == sparse([0 0 0; F21 0 0; F31 F32 0])
     @test Fclassic2_nti(B, net_interference) == sparse([0 0 0; F21 0 0; F31 F32 0])
     B, hₜ = [3, 2, 1], [0 0 0; 0.9 0 0; 0.7 0.2 0] # non-uniform biomass...
     Fclassic2_fw = ClassicResponse(foodweb_3sp; hₜ = hₜ, aᵣ = 0.5) #...+ varying handling time
@@ -258,7 +268,7 @@ end
     F21 = (1 * 0.5 * 3^2) / (1 + 0.5 * 0.9 * 3^2)
     F31 = (0.5 * 0.5 * 3^2) / (1 + 0.5 * 0.5 * 0.7 * 3^2 + 0.5 * 0.5 * 0.2 * 2^2)
     F32 = (0.5 * 0.5 * 2^2) / (1 + 0.5 * 0.5 * 0.7 * 3^2 + 0.5 * 0.5 * 0.2 * 2^2)
-    @test Fclassic2_fw(B) ≈ sparse([0 0 0; F21 0 0; F31 F32 0]) atol = 1e-5
+    @test Fclassic2_fw(B, foodweb_3sp) ≈ sparse([0 0 0; F21 0 0; F31 F32 0]) atol = 1e-5
     expect = sparse([0 0 0; F21 0 0; F31 F32 0])
     @test Fclassic2_nti(B, net_interference) ≈ expect atol = 1e-5
 
@@ -269,7 +279,6 @@ end
     F21 = (1 * 0.5 * 3^2) / (1 + 1 * 2 + 0.5 * 1 * 3^2)
     F31 = (0.5 * 0.5 * 3^2) / (1 + 1 * 1 + 0.5 * 0.5 * 1 * 3^2 + 0.5 * 0.5 * 1 * 2^2)
     F32 = (0.5 * 0.5 * 2^2) / (1 + 1 * 1 + 0.5 * 0.5 * 1 * 3^2 + 0.5 * 0.5 * 1 * 2^2)
-    @test Fclassic2_fw(B) == sparse([0 0 0; F21 0 0; F31 F32 0])
     @test Fclassic2_fw(B, foodweb_3sp) == sparse([0 0 0; F21 0 0; F31 F32 0])
     @test Fclassic2_nti(B, net_interference) == sparse([0 0 0; F21 0 0; F31 F32 0])
 
@@ -290,7 +299,7 @@ end
     Fclassic2_nti = ClassicResponse(net_refuge; c = 0.0, hₜ = 1.0, aᵣ = 0.5)
     Fclassic2_fw = ClassicResponse(foodweb_3sp; c = 0.0, hₜ = 1.0, aᵣ = 0.5)
     B = [3, 2, 1]
-    @test Fclassic2_fw(B) == Fclassic2_nti(B) # nti intensity = 0 <=> food web
+    @test Fclassic2_fw(B, foodweb_3sp) == Fclassic2_nti(B, net_refuge) # nti intensity = 0 <=> food web
     for r0 in [0.1, 0.2, 0.25]
         net_refuge.layers[:refuge].intensity = r0
         Fclassic2_nti = ClassicResponse(net_refuge; c = 0.0, hₜ = 1.0, aᵣ = 0.5)
