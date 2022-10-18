@@ -57,11 +57,12 @@ end
 
 @testset "Classic functional response parameters" begin
     # Default
-    Fclassic_1 = ClassicResponse(foodweb_2sp; hₜ = 1.0)
+    foodweb_default = FoodWeb([0 0 0; 1 0 0; 0 1 0]; Z = 10)
+    Fclassic_1 = ClassicResponse(foodweb_default)
     @test Fclassic_1.h == 2.0
-    @test Fclassic_1.aᵣ == sparse([0 0; 0.5 0])
-    @test Fclassic_1.hₜ == sparse([0 0; 1 0])
-    @test Fclassic_1.c == [0.0, 0.0]
+    @test Fclassic_1.aᵣ == BEFWM2.attack_rate(foodweb_default)
+    @test Fclassic_1.hₜ == BEFWM2.handling_time(foodweb_default)
+    @test Fclassic_1.c == [0.0, 0.0, 0.0]
 
     # Custom
     Fclassic_1 = ClassicResponse(foodweb_2sp; h = 1.0, aᵣ = [0 0; 0.2 0], hₜ = 5, c = 0.6)
@@ -185,7 +186,7 @@ end
 
 @testset "Classic functional response functor" begin
     # Index by index - FoodWeb
-    Fclassic1_fw = ClassicResponse(foodweb_2sp; hₜ = 1.0)
+    Fclassic1_fw = ClassicResponse(foodweb_2sp; hₜ = 1.0, aᵣ = 0.5)
     @test Fclassic1_fw([1, 1], 1, 1) == 0 # no interaction
     @test Fclassic1_fw([1, 1], 1, 2) == 0 # no interaction
     @test Fclassic1_fw([1, 1], 2, 2) == 0 # no interaction
@@ -196,7 +197,7 @@ end
     @test Fclassic1_fw([2, 1], 2, 1) == F21_new # ...but depend on res. mass
 
     # Index by index - MultiplexNetwork
-    Fclassic1_nti = ClassicResponse(multi_net1; hₜ = 1.0)
+    Fclassic1_nti = ClassicResponse(multi_net1; hₜ = 1.0, aᵣ = 0.5)
     @test Fclassic1_nti([1, 1], 1, 1) == 0 # no interaction
     @test Fclassic1_nti([1, 1], 1, 2) == 0 # no interaction
     @test Fclassic1_nti([1, 1], 2, 2) == 0 # no interaction
@@ -213,7 +214,7 @@ end
     @test Fclassic1_nti(1, multi_net1) == sparse([0 0; F21 0]) # or a scalar
 
     # Non-default hill exponent
-    Fclassic_1 = ClassicResponse(foodweb_2sp; h = 3, hₜ = 1.0)
+    Fclassic_1 = ClassicResponse(foodweb_2sp; h = 3, hₜ = 1.0, aᵣ = 0.5)
     F21 = (1 * 0.5 * 2^3) / (1 + 0.5 * 1 * 2^3)
     @test Fclassic_1(2) == sparse([0 0; F21 0])
 
@@ -223,14 +224,14 @@ end
     @test Fclassic_1(2) == sparse([0 0; F21 0])
 
     # Non-default handling time
-    Fclassic_1 = ClassicResponse(foodweb_2sp; hₜ = 2)
+    Fclassic_1 = ClassicResponse(foodweb_2sp; hₜ = 2, aᵣ = 0.5)
     F21 = (1 * 0.5 * 2^2) / (1 + 0.5 * 2 * 2^2)
     @test Fclassic_1(2) == sparse([0 0; F21 0])
 
 
     # Consumer feeding on several resources
-    Fclassic2_fw = ClassicResponse(foodweb_3sp; hₜ = 1.0)
-    Fclassic2_nti = ClassicResponse(net_interference; hₜ = 1.0)
+    Fclassic2_fw = ClassicResponse(foodweb_3sp; hₜ = 1.0, aᵣ = 0.5)
+    Fclassic2_nti = ClassicResponse(net_interference; hₜ = 1.0, aᵣ = 0.5)
     B = [1, 1, 1] # uniform biomass distribution
     F21 = (1 * 0.5 * 1^2) / (1 + 0.5 * 1 * 1^2)
     F31 = (0.5 * 0.5 * 1^2) / (1 + 0.5 * 0.5 * 1 * 1^2 + 0.5 * 0.5 * 1 * 1^2)
@@ -252,8 +253,8 @@ end
     @test Fclassic2_fw(B) == sparse([0 0 0; F21 0 0; F31 F32 0])
     @test Fclassic2_nti(B, net_interference) == sparse([0 0 0; F21 0 0; F31 F32 0])
     B, hₜ = [3, 2, 1], [0 0 0; 0.9 0 0; 0.7 0.2 0] # non-uniform biomass...
-    Fclassic2_fw = ClassicResponse(foodweb_3sp; hₜ = hₜ) #...and non-uniform handling time
-    Fclassic2_nti = ClassicResponse(net_interference; hₜ = hₜ)
+    Fclassic2_fw = ClassicResponse(foodweb_3sp; hₜ = hₜ, aᵣ = 0.5) #...+ varying handling time
+    Fclassic2_nti = ClassicResponse(net_interference; hₜ = hₜ, aᵣ = 0.5)
     F21 = (1 * 0.5 * 3^2) / (1 + 0.5 * 0.9 * 3^2)
     F31 = (0.5 * 0.5 * 3^2) / (1 + 0.5 * 0.5 * 0.7 * 3^2 + 0.5 * 0.5 * 0.2 * 2^2)
     F32 = (0.5 * 0.5 * 2^2) / (1 + 0.5 * 0.5 * 0.7 * 3^2 + 0.5 * 0.5 * 0.2 * 2^2)
@@ -262,8 +263,8 @@ end
     @test Fclassic2_nti(B, net_interference) ≈ expect atol = 1e-5
 
     # Adding intraspecific interference
-    Fclassic2_fw = ClassicResponse(foodweb_3sp; c = 1, hₜ = 1.0)
-    Fclassic2_nti = ClassicResponse(net_interference; c = 1, hₜ = 1.0)
+    Fclassic2_fw = ClassicResponse(foodweb_3sp; c = 1, hₜ = 1.0, aᵣ = 0.5)
+    Fclassic2_nti = ClassicResponse(net_interference; c = 1, hₜ = 1.0, aᵣ = 0.5)
     B = [3, 2, 1] # non-uniform biomass distribution
     F21 = (1 * 0.5 * 3^2) / (1 + 1 * 2 + 0.5 * 1 * 3^2)
     F31 = (0.5 * 0.5 * 3^2) / (1 + 1 * 1 + 0.5 * 0.5 * 1 * 3^2 + 0.5 * 0.5 * 1 * 2^2)
@@ -274,7 +275,7 @@ end
 
     # Adding interspecific interference
     net_interference.layers[:interference].intensity = 0.6 # activate interspecific interference
-    Fclassic2_nti = ClassicResponse(net_interference; c = 0.5, hₜ = 1.0) #! c=intra. interf.
+    Fclassic2_nti = ClassicResponse(net_interference; c = 0.5, hₜ = 1.0, aᵣ = 0.5)
     B = [3, 2, 1] # non-uniform biomass distribution
     F21 = (1 * 0.5 * 3^2) / (1 + 0.5 * 2 + 0.6 * 1 + 0.5 * 1 * 3^2)
     F31 =
@@ -286,13 +287,13 @@ end
     @test Fclassic2_nti(B, net_interference) == sparse([0 0 0; F21 0 0; F31 F32 0])
 
     # Adding refuge provisioning
-    Fclassic2_nti = ClassicResponse(net_refuge; c = 0.0, hₜ = 1.0)
-    Fclassic2_fw = ClassicResponse(foodweb_3sp; c = 0.0, hₜ = 1.0)
+    Fclassic2_nti = ClassicResponse(net_refuge; c = 0.0, hₜ = 1.0, aᵣ = 0.5)
+    Fclassic2_fw = ClassicResponse(foodweb_3sp; c = 0.0, hₜ = 1.0, aᵣ = 0.5)
     B = [3, 2, 1]
     @test Fclassic2_fw(B) == Fclassic2_nti(B) # nti intensity = 0 <=> food web
     for r0 in [0.1, 0.2, 0.25]
         net_refuge.layers[:refuge].intensity = r0
-        Fclassic2_nti = ClassicResponse(net_refuge; c = 0.0, hₜ = 1.0)
+        Fclassic2_nti = ClassicResponse(net_refuge; c = 0.0, hₜ = 1.0, aᵣ = 0.5)
         a₃₁, a₃₂, a₂₁ = 0.5, 0.5 / (1 + r0 * B[1]), 0.5
         F21 = (1 * a₂₁ * 3^2) / (1 + a₂₁ * 1 * 3^2)
         F31 = (0.5 * a₃₁ * 3^2) / (1 + 0.5 * a₃₁ * 1 * 3^2 + 0.5 * a₃₂ * 1 * 2^2)
@@ -305,13 +306,24 @@ end
     # All body masses set to 1, expect 0.3 for each trophic interaction
     foodweb = FoodWeb([0 0 0; 1 0 0; 0 1 0]; M = [1, 1, 1])
     @test BEFWM2.handling_time(foodweb) == [0 0 0; 0.3 0 0; 0 0.3 0]
+    @test BEFWM2.handling_time(foodweb |> MultiplexNetwork) == [0 0 0; 0.3 0 0; 0 0.3 0]
+    @test BEFWM2.attack_rate(foodweb) == [0 0 0; 50 0 0; 0 50 0]
+    @test BEFWM2.attack_rate(foodweb |> MultiplexNetwork) == [0 0 0; 50 0 0; 0 50 0]
 
     # Different body masses, expect different values
-    foodweb = FoodWeb([0 0 0; 1 0 0; 0 1 0]; M = [1, 10, 100])
-    expected = [
+    foodweb = FoodWeb([0 0 0; 1 0 0; 0 1 0]; M = [2, 10, 100])
+    ht_expected = [
         0 0 0
-        0.3*10^(-0.48)*1 0 0
+        0.3*10^(-0.48)*2^(-0.66) 0 0
         0 0.3*100^(-0.48)*10^(-0.66) 0
     ]
-    @test BEFWM2.handling_time(foodweb) ≈ expected
+    ar_expected = [
+        0 0 0
+        50*10^(0.45) 0 0
+        0 50*100^(0.45)*10^(0.15) 0
+    ]
+    @test BEFWM2.handling_time(foodweb) ≈ ht_expected
+    @test BEFWM2.handling_time(foodweb |> MultiplexNetwork) ≈ ht_expected
+    @test BEFWM2.attack_rate(foodweb) ≈ ar_expected
+    @test BEFWM2.attack_rate(foodweb |> MultiplexNetwork) ≈ ar_expected
 end

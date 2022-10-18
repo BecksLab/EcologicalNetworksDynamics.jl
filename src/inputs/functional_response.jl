@@ -242,7 +242,7 @@ With:
 ```jldoctest
 julia> foodweb = FoodWeb([0 0; 1 0]);
 
-julia> F = ClassicResponse(foodweb; hₜ = 1.0)
+julia> F = ClassicResponse(foodweb; hₜ = 1.0, aᵣ = 0.5)
 ClassicResponse:
   c: [0.0, 0.0]
   h: 2.0
@@ -532,7 +532,7 @@ end
 
 function ClassicResponse(
     network::EcologicalNetwork;
-    aᵣ = 0.5,
+    aᵣ = attack_rate(network),
     hₜ = handling_time(network),
     h = 2.0,
     ω = homogeneous_preference(network),
@@ -563,9 +563,9 @@ end
 
 Compute the handling time for all predator-prey couples of the system.
 The output `hₜ` is squared matrix of length equals to the species richness
-with `hₜ[i,j]` corresponding to the handling time of predator i on prey j.
+with `hₜ[i,j]` corresponding to the handling time of predator ``i`` on prey ``j``.
 The handling time of a predator-prey couple is given by their body masses, 
-formally: ``h_{\text{t},ij} = 0.3 m_i^{-0.48} m_j^{-0.66}``.
+formally: ``h_{t,ij} = 0.3 m_i^{-0.48} m_j^{-0.66}``.
 This formula is taken from Miele et al. 2019 (PLOS Computational)
 and Rall et al. 2012 (Phil. Tran. R. Soc. B). 
 """
@@ -576,8 +576,38 @@ function handling_time(network::EcologicalNetwork)
     A = get_trophic_adjacency(network)
     predator, prey = findnz(A)
     for (i, j) in zip(predator, prey)
-        hₜ[i, j] = handling_time(M, i, j)
+        hₜ[i, j] = handling_time(i, j, M)
     end
     hₜ
 end
-handling_time(M, i, j) = 0.3 * M[i]^(-0.48) * M[j]^(-0.66)
+handling_time(i, j, M) = 0.3 * M[i]^(-0.48) * M[j]^(-0.66)
+
+"""
+    attack_rate(network::EcologicalNetwork)
+
+Compute the attack rate for all predator-prey couples of the system. 
+The output `aᵣ` is squared matrix of length equals to the species richness
+with `aᵣ[i,j]` corresponding to the attack rate of predator ``i`` on prey ``j``.
+The attack rate of a predator-prey couple is given by their body masses, 
+formally: 
+- ``a_{r,ij} = 50 m_i^{0.45} m_j^{0.15}`` if both species are mobiles;
+- ``a_{r,ij} = 50 m_j^{0.15}`` if i is sessile and j mobile;
+- ``a_{r,ij} = 50 m_i^{0.45}`` if j is sessile and i mobile.
+
+This formula is taken from Miele et al. 2019 (PLOS Computational). 
+"""
+function attack_rate(network::EcologicalNetwork)
+    S = richness(network)
+    aᵣ = spzeros(Float64, S, S)
+    M = network.M # vector of species body mass
+    A = get_trophic_adjacency(network)
+    # Define sessile species as producers, consumers are always mobiles 
+    # This assumption could be changed in the future 
+    mobility = map(i -> !isproducer(i, A), 1:S) # 0 = sessile, 1 = mobile 
+    predator, prey = findnz(A)
+    for (i, j) in zip(predator, prey)
+        aᵣ[i, j] = attack_rate(i, j, M, mobility)
+    end
+    aᵣ
+end
+attack_rate(i, j, M, mobility) = 50 * (M[i]^0.45)^(mobility[i]) * (M[j]^0.15)^(mobility[j])
