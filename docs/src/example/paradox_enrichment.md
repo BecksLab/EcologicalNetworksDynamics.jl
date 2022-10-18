@@ -59,7 +59,7 @@ The system has three equilibria:
     both species can coexist
 
 !!! note
-    
+
     Surprisingly, for the third equilibrium the resource biomass does not depend at all on
     its carrying capacity (``K``) or its intrinsic growth rate (``r``),
     but the consumer biomass does.
@@ -110,7 +110,7 @@ the consumer can coexist with resource,
 and ``K_c`` is the minimal capacity needed to maintain the consumer alive.
 
 !!! note
-    
+
     ``K_c`` is positive if and only if ``e \geq x``
     which is the second condition for the consumer to survive.
     Its assimilation of the resource has to be high enough to fulfill its metabolic demand.
@@ -152,12 +152,14 @@ K_list = [1 + 0.1 * i for i in 1:46]
 append!(K_list, [5.6 + i * 0.01 for i in 1:440])
 R_list = [] # resource final biomass
 C_list = [] # consumer final biomass
+biorates = BioRates(foodweb; d = 0)
 
 # Run simulations
 for K in K_list
     e = Environment(foodweb; K = K)
-    p = ModelParameters(foodweb; functional_response = response, environment = e)
-    out = simulate(p, [1, 1]; verbose = false)
+    p = ModelParameters(foodweb; functional_response = response, environment = e,
+        biorates = biorates)
+    out = simulate(p, [0.5 + rand()/2], tmax = rand(500:1000); verbose = false)
     append!(R_list, out.u[end][1])
     append!(C_list, out.u[end][2])
 end
@@ -170,7 +172,6 @@ plot(
     xlabel = "K",
     ylabel = "B",
     seriestype = :scatter,
-    title = "Orbit diagram",
 )
 plot!(K_list, C_list; label = "consumer", seriestype = :scatter, legend = :topleft)
 vline!([2.3]; linestyle = :dashdot, lw = 3, color = :grey, label = "Kc")
