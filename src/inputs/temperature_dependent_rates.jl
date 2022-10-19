@@ -1,3 +1,8 @@
+#=
+Temperature dependent rates 
+=#
+
+abstract type TemperatureResponse end
 
 #### Constructors containing default parameter value for temperature scaled rates ####
 """
@@ -16,12 +21,35 @@ Default temp dependent and allometric parameters (a, b, c, Eₐ) values for meta
 DefaultExpBAMetabolismParams() = ExponentialBAParams(exp(-16.54)*4e6, exp(-16.54)*4e6 , exp(-16.54)*4e6 , -0.31, -0.31, -0.31, 0, 0, 0, -0.69)
 
 """
-DefaultExpBAMaxConsumptionParams()
+DefaultExpBAHandlingTimeParams()
 
-Default temp dependent and allometric parameters (a, b, c, Eₐ) values for maximum consumption rate (y). (Binzer et al. 2012)
+Default temp dependent and allometric parameters (a, b, c, Eₐ) values for handling time (hₜ). (Binzer 2016)
 
 """
-DefaultExpBAMaxConsumptionParams() = ExponentialBAParams(exp(-9.66)*4e6, exp(-9.66)*4e6, exp(-9.66)*4e6, 0.45, 0.45, 0.45, -0.47, -0.47, -0.47, -0.26)
+DefaultExpBAHandlingTimeParams() = ExponentialBAParams(exp(9.66)*4e6, exp(9.66)*4e6 , exp(9.66)*4e6 , -0.45, -0.45, -0.45, 0.47, 0.47, 0.47, 0.26)
+
+"""
+DefaultExpBAAttackRateParams()
+
+Default temp dependent and allometric parameters (a, b, c, Eₐ) values for attack rate (aᵣ).(Binzer 2016)
+
+"""
+DefaultExpBAAttackRateParams() = ExponentialBAParams(exp(-13.1)*4e6, exp(-13.1)*4e6 , exp(-13.1)*4e6 , 0.25, 0.25, 0.25, -0.8, -0.8, -0.8, -0.38)
+
+"""
+DefaultExpBACarryingCapacityParams()
+
+Default temp dependent and allometric parameters (a, b, c, Eₐ) values for carrying capacity.(Binzer 2016)
+
+"""
+DefaultExpBACarryingCapacityParams() = ExponentialBAParams(exp(10)*4e6, exp(10)*4e6 , exp(10)*4e6 , 0.28, 0.28, 0.28, 0, 0, 0, 0.71)
+# """
+# DefaultExpBAMaxConsumptionParams()
+
+# Default temp dependent and allometric parameters (a, b, c, Eₐ) values for maximum consumption rate (y). (Binzer et al. 2012)
+
+# """
+# DefaultExpBAMaxConsumptionParams() = ExponentialBAParams(exp(-9.66)*4e6, exp(-9.66)*4e6, exp(-9.66)*4e6, 0.45, 0.45, 0.45, -0.47, -0.47, -0.47, -0.26)
 
 """
     ExponentialBAParams(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ, cₚ, cₑ, cᵢ, Eₐ)
@@ -46,9 +74,8 @@ Default parameters values taken from the literature for certain rates can be acc
 calling the corresponding function, for:
 - Exponential Boltzmann Arrhenius growth rate (r) call [`DefaultExpBAGrowthParams`](@ref)
 - Exponential Boltzmann Arrhenius metabolic rate (x) call [`DefaultExpBAMetabolismParams`](@ref)
-- Exponential Boltzmann Arrhenius max consumption rate (y) call [`DefaultExpBAMaxConsumptionParams`](@ref)
 """
-struct ExponentialBAParams
+struct ExponentialBAParams <: TemperatureResponse
     aₚ::Real
     aₑ::Real
     aᵢ::Real
@@ -62,40 +89,35 @@ struct ExponentialBAParams
 end
 #### end ####
 
-#### Main functions to compute temperature dependent biological rates ####
-"""
-BioRatesTemperature(
-    network::EcologicalNetwork;
-    r = exponentialBA_rate(foodweb, DefaultGrowthParams()),
-    x = exponentialBA(foodweb, DefaultMetabolismParams()),
-    y = exponentialBA(foodweb, DefaultMaxConsumptionParams())
-    )
+#### Functors for temperature dependence methods ####
 
-Compute the biological rates (r, x and y) of each species in the system.
-"""
-function BioRatesTemperature(
-    network::EcologicalNetwork; env:: Environment,
-    r::Union{Vector{<:Real},<:Real} = exponentialBA_vector_rate(network, env, DefaultExpBAGrowthParams()),
-    x::Union{Vector{<:Real},<:Real} = exponentialBA_vector_rate(network, env, DefaultExpBAMetabolismParams()),
-    y::Union{Vector{<:Real},<:Real} = exponentialBA_matrixrate(
-        network, env,
-        DefaultExpBAMaxConsumptionParams(),
-    ),
-    e = efficiency(network),
-)
-    S = richness(network)
-    Rates = [r, x, y]
-
-    # Perform sanity checks and vectorize rates if necessary
-    for (i, rate) in enumerate(Rates)
-        isa(rate, Real) ? (Rates[i] = fill(rate, S)) : @check_equal_richness length(rate) S
-    end
-    @check_size_is_richness² e S
-
-    # Output
-    r, x, y = Rates
-    BioRates(r, x, y, e)
+# Boltzmann Arrhenius Functor.
+function (F::ExponentialBAParams)(params::ModelParameters, T)
+    net = params.network
+    ## change params within BioRates
+    params.BioRates.r = exponentialBA_vector_rate(net, T, DefaultExpBAGrowthParams())
+    params.BioRates.x = exponentialBA_vector_rate(net, T, DefaultExpBAMetabolismParams())
+    ## change params within FunctionalResponse
+    params.FunctionalResponse.hₜ = exponentialBA_matrix_rate(net, T, DefaultExpBAHandlingTimeParams())
+    params.FunctionalResponse.aᵣ = exponentialBA_matrix_rate(net, T, DefaultExpBAAttackRateParams())
+    ## change params within Environment
+    params.Environment.K = exponentialBA_vector_rate(net, T, DefaultExpBACarryingCapacityParams())
+    params.Environment.T = T
 end
+
+# The entry point for the user.
+function set_temperature!(p::ModelParameters, T, F!::TemperatureResponse)
+    # Apply the functor to the parameters.
+    F!(p, T)
+    # Record which functor has been used for thes parameters.
+    p.temperature_response = F!
+    p
+end
+
+
+
+
+#### Main functions to compute temperature dependent biological rates ####
 
 "Compute rate vector (one value per species) with temperature dependent scaling. (x,r)"
 function exponentialBA_vector_rate(net::EcologicalNetwork, env::Environment, exponentialBAparams::ExponentialBAparams)
