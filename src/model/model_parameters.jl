@@ -9,6 +9,7 @@ mutable struct ModelParameters
     environment::Environment
     functional_response::FunctionalResponse
     producer_competition::ProducerCompetition
+    temperature_response::TemperatureResponse
 end
 #### end ####
 
@@ -123,6 +124,7 @@ function ModelParameters(
     environment::Environment = Environment(network),
     functional_response::FunctionalResponse = BioenergeticResponse(network),
     producer_competition::ProducerCompetition = ProducerCompetition(network),
+    temperature_response::TemperatureResponse = NoTemperatureResponse(),
 )
     if isa(network, MultiplexNetwork) & !(isa(functional_response, ClassicResponse))
         type_response = typeof(functional_response)
@@ -135,5 +137,6 @@ function ModelParameters(
         environment,
         functional_response,
         producer_competition,
+        temperature_response,
     )
 end

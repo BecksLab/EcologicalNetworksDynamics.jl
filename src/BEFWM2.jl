@@ -25,6 +25,7 @@ include(joinpath(".", "inputs/environment.jl"))
 include(joinpath(".", "inputs/temperature_dependent_rates.jl"))
 include(joinpath(".", "inputs/producer_competition.jl"))
 include(joinpath(".", "model/model_parameters.jl"))
+include(joinpath(".", "model/set_temperature.jl"))
 include(joinpath(".", "model/productivity.jl"))
 include(joinpath(".", "model/consumption.jl"))
 include(joinpath(".", "model/metabolic_loss.jl"))
@@ -69,6 +70,7 @@ export draw_asymmetric_links
 export draw_symmetric_links
 export efficiency
 export Environment
+export ExponentialBA
 export exponentialBA_matrix_rate
 export exponentialBA_vector_rate
 export ExponentialBAParams
@@ -101,6 +103,7 @@ export nestedhierarchymodel
 export nichemodel
 export nontrophic_adjacency_matrix
 export NonTrophicIntensity
+export NoTemperatureResponse
 export population_stability
 export potential_competition_links
 export potential_facilitation_links
