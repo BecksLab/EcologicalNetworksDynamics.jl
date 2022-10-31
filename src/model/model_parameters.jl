@@ -2,8 +2,11 @@
 Model parameters
 =#
 
+#### Abstract type to be able to define your own composite ModelParameters #### 
+abstract type Params end
+
 #### Type definition ####
-mutable struct ModelParameters
+mutable struct ModelParameters <: Params
     network::EcologicalNetwork
     biorates::BioRates
     environment::Environment

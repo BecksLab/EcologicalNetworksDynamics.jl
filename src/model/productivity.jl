@@ -14,7 +14,7 @@ function logisticgrowth(B, r, K)
 end
 # Code generation version (raw) (↑ ↑ ↑ DUPLICATED FROM ABOVE ↑ ↑ ↑).
 # (update together as long as the two coexist)
-function logisticgrowth(i, parms::ModelParameters)
+function logisticgrowth(i, parms::Params)
     B_i = :(B[$i])
     r_i = parms.biorates.r[i]
     K_i = parms.environment.K[i]
@@ -25,7 +25,7 @@ end
 # Code generation version (compact):
 # Explain how to efficiently construct all values of growth.
 # This code assumes that dB[i] has already been *initialized*.
-function growth(parms::ModelParameters, ::Symbol)
+function growth(parms::Params, ::Symbol)
 
     # Pre-calculate skips over non-primary producers.
     data = Dict(

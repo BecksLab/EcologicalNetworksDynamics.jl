@@ -59,6 +59,7 @@ export cpad
 export DefaultGrowthParams
 export DefaultMaxConsumptionParams
 export DefaultMetabolismParams
+export EcologicalNetwork
 export draw_asymmetric_links
 export draw_symmetric_links
 export Environment
@@ -86,6 +87,7 @@ export nestedhierarchymodel
 export nichemodel
 export nontrophic_adjacency_matrix
 export NonTrophicIntensity
+export Params
 export population_stability
 export potential_competition_links
 export potential_facilitation_links

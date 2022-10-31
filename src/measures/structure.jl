@@ -113,9 +113,9 @@ function trophic_levels(A::AbstractMatrix)
 end
 trophic_levels(net::EcologicalNetwork) = trophic_levels(get_trophic_adjacency(net))
 
-function massratio(obj::Union{ModelParameters,FoodWeb})
+function massratio(obj::Union{Params,FoodWeb})
 
-    if isa(obj, ModelParameters)
+    if isa(obj, Params)
         M = obj.foodweb.M
         A = obj.foodweb.A
     else

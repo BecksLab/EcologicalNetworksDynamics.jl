@@ -1,6 +1,6 @@
 # Generate a minimalistic, absolutely-dedicated dBdt! function
 # to hand out to the ODE solver.
-# The generated function is only valid for one specific value of `ModelParameters`,
+# The generated function is only valid for one specific value of `Params`,
 # and must be re-generated any time the parameters change
 # and/or the associated network topology.
 
@@ -103,7 +103,7 @@ function expand!(xp, rules, data)
 end
 
 """
-    generate_dbdt(parms::ModelParameters, type)
+    generate_dbdt(parms::Params, type)
 
 Produce a specialized julia expression and associated data,
 supposed to improve efficiency of subsequent simulations.
@@ -139,7 +139,7 @@ There are two possible code generation styles:
   there is no limit to using it and speedup simulations.
 
 """
-function generate_dbdt(parms::ModelParameters, type)
+function generate_dbdt(parms::Params, type)
     style = Symbol(type)
 
     # TEMP: Summary of working and convincingly tested implementations.

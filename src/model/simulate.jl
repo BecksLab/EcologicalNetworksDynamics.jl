@@ -1,7 +1,7 @@
 #### Run biomass simulations ####
 """
     simulate(
-        params::ModelParameters,
+        params::Params,
         B0::AbstractVector;
         t0::Number=0,
         tmax::Number=500,
@@ -128,7 +128,7 @@ julia> simulate(params, [0.5, 1e-12], verbose=true); # no message thrown
 ```
 """
 function simulate(
-    params::ModelParameters,
+    params::Params,
     B0::AbstractVector;
     t0::Number = 0,
     tmax::Number = 500,
@@ -207,7 +207,7 @@ end
 
 #### Find steady state ####
 """
-    find_steady_state(params::ModelParameters, B0::AbstractVector; kwargs...)
+    find_steady_state(params::Params, B0::AbstractVector; kwargs...)
 
 Find a steady state of a system parametrized by a parameter set `params`
 and some initial conditions `B0`.
@@ -239,7 +239,7 @@ julia> round.(solution.steady_state, digits=2) # steady state biomass
  0.22
 ```
 """
-function find_steady_state(params::ModelParameters, B0::AbstractVector; kwargs...)
+function find_steady_state(params::Params, B0::AbstractVector; kwargs...)
     solution = simulate(params, B0; kwargs...)
     terminated = has_terminated(solution)
     steady_state = terminated ? solution.u[end] : nothing

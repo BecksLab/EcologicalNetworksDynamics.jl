@@ -1,4 +1,4 @@
-function generate_dbdt_raw(parms::ModelParameters)
+function generate_dbdt_raw(parms::Params)
     data = nothing
     code = :(function (dB, B, _, t)
 
@@ -18,7 +18,7 @@ end
 
 # Functional response lines depend on the functional response type.
 # No matrix/array is allocated: only one float variable per nonzero entry.
-function generate_fr_lines(parms::ModelParameters)
+function generate_fr_lines(parms::Params)
 
     # Find nonzero entries in the matrix.
     # This logic mimicks and DUPLICATES the logic in `(F::FunctionalResponse)(B)`.
@@ -62,7 +62,7 @@ function generate_fr_lines(parms::ModelParameters)
 end
 
 # Main entry point into the ODE equation lines.
-function generate_db_lines(parms::ModelParameters)
+function generate_db_lines(parms::Params)
     S = richness(parms.network)
     lines = []
     for i in 1:S

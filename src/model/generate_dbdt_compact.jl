@@ -1,4 +1,4 @@
-function generate_dbdt_compact(parms::ModelParameters)
+function generate_dbdt_compact(parms::Params)
 
     # Prepare collection of pre-calculated data.
     data = Dict()
@@ -25,7 +25,7 @@ function generate_dbdt_compact(parms::ModelParameters)
     for gen in chunks_generators
         # Correctly dispatch with dummy :_ symbol arguments.
         # Alternative: move FunctionalResponse functor definitions
-        # in a dedicated file *after* 'ModelParameters' has been declared
+        # in a dedicated file *after* 'Params' has been declared
         # so it may appear in their signature.
         c, d = gen(parms, :_)
         append!(chunks, c)

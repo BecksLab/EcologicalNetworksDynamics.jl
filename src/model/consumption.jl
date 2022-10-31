@@ -3,12 +3,12 @@ Consumption
 =#
 
 "Compute consumption terms of ODEs."
-function consumption(i, B, p::ModelParameters, fᵣmatrix)
+function consumption(i, B, p::Params, fᵣmatrix)
     # Dispatch to correct method depending on functional response type.
-    consumption(p.functional_response, i, B, p::ModelParameters, fᵣmatrix)
+    consumption(p.functional_response, i, B, p::Params, fᵣmatrix)
 end
 
-function consumption(::BioenergeticResponse, i, B, params::ModelParameters, fᵣmatrix)
+function consumption(::BioenergeticResponse, i, B, params::Params, fᵣmatrix)
     # Set up
     net = params.network
     prey = preys_of(i, net)
@@ -25,8 +25,8 @@ end
 
 # Code generation version(s) (raw) (↑ ↑ ↑ DUPLICATED FROM ABOVE ↑ ↑ ↑).
 # (update together as long as the two coexist)
-eating(i, p::ModelParameters) = eating(p.functional_response, i, p) # (dispatch)
-function eating(::BioenergeticResponse, i, parms::ModelParameters)
+eating(i, p::Params) = eating(p.functional_response, i, p) # (dispatch)
+function eating(::BioenergeticResponse, i, parms::Params)
     preys = preys_of(i, parms.network)
     B_i = :(B[$i])
     x_i = parms.biorates.x[i]
@@ -35,8 +35,8 @@ function eating(::BioenergeticResponse, i, parms::ModelParameters)
     (x_i == 0 || y_i == 0 || length(preys) == 0) && return 0 #  Just to clarify expressions.
     :($x_i * $y_i * $B_i * xp_sum([:f_ip], $[F_ip], :(f_ip)))
 end
-being_eaten(i, p::ModelParameters) = being_eaten(p.functional_response, i, p) # (dispatch)
-function being_eaten(::BioenergeticResponse, i, parms::ModelParameters)
+being_eaten(i, p::Params) = being_eaten(p.functional_response, i, p) # (dispatch)
+function being_eaten(::BioenergeticResponse, i, parms::Params)
     preds = predators_of(i, parms.network)
     x = parms.biorates.x[preds]
     y = parms.biorates.y[preds]
@@ -53,8 +53,8 @@ end
 # Explain how to efficiently construct all values of eating/being_eaten,
 # and provide the additional/intermediate data needed.
 # This code is responsible to *initialize* all dB[i] values.
-consumption(p::ModelParameters, ::Symbol) = consumption(p.functional_response, p) # (dispatch)
-function consumption(::BioenergeticResponse, parms::ModelParameters)
+consumption(p::Params, ::Symbol) = consumption(p.functional_response, p) # (dispatch)
+function consumption(::BioenergeticResponse, parms::Params)
 
     # Basic informations made available as variables in the generated code.
     S = richness(parms.network)
@@ -107,7 +107,7 @@ function consumption(
     ::Union{ClassicResponse,LinearResponse},
     i,
     B,
-    params::ModelParameters,
+    params::Params,
     fᵣmatrix,
 )
     # Set up
@@ -123,7 +123,7 @@ function consumption(
 end
 # Code generation version(s) (raw) (↑ ↑ ↑ DUPLICATED FROM ABOVE ↑ ↑ ↑).
 # (update together as long as the two coexist)
-function eating(::Union{ClassicResponse,LinearResponse}, i, parms::ModelParameters)
+function eating(::Union{ClassicResponse,LinearResponse}, i, parms::Params)
     preys = preys_of(i, parms.network)
     (length(preys) == 0) && return 0 #  Just to clarify expressions.
     B_i = :(B[$i])
@@ -131,7 +131,7 @@ function eating(::Union{ClassicResponse,LinearResponse}, i, parms::ModelParamete
     F_ip = [Symbol("F_$(i)_$(p)") for p in preys]
     :($B_i * xp_sum([:e_ip, :f_ip], $[E_ip, F_ip], :(e_ip * f_ip)))
 end
-function being_eaten(::Union{ClassicResponse,LinearResponse}, i, parms::ModelParameters)
+function being_eaten(::Union{ClassicResponse,LinearResponse}, i, parms::Params)
     preds = predators_of(i, parms.network)
     F_pi = [Symbol("F_$(p)_$(i)") for p in preds]
     :(xp_sum([:p, :f_pi], $[preds, F_pi], :(B[p] * f_pi)))
@@ -140,7 +140,7 @@ end
 # Explain how to efficiently construct all values of eating/being_eaten,
 # and provide the additional/intermediate data needed.
 # This code is responsible to *initialize* all dB[i] values.
-function consumption(::Union{ClassicResponse,LinearResponse}, parms::ModelParameters)
+function consumption(::Union{ClassicResponse,LinearResponse}, parms::Params)
 
     # Basic informations made available as variables in the generated code.
     S = richness(parms.network)

@@ -2,7 +2,7 @@
 Core functions of the model
 =#
 
-function dBdt!(dB, B, params::ModelParameters, t)
+function dBdt!(dB, B, params::Params, t)
 
     # Set up - Unpack parameters
     S = richness(params.network)
