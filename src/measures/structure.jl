@@ -30,7 +30,31 @@ producers(A::AbstractMatrix) = (1:richness(A))[all(A .== 0; dims = 2)|>vec]
 #### end ####
 
 #### Find predators ####
-"Return indexes of the predators of species `i`."
+"""
+    predators_of(i, network)
+
+Return indexes of the predators of species `i` for the given `network`.
+
+# Examples 
+
+```jldoctest
+julia> foodweb = FoodWeb([0 0 0; 1 0 0; 1 1 0]);
+
+julia> predators_of(1, foodweb)
+2-element Vector{Int64}:
+ 2
+ 3
+
+julia> predators_of(2, foodweb) 
+1-element Vector{Int64}:
+ 3
+
+julia> predators_of(3, foodweb)
+Int64[] 
+```
+
+See also [`preys_of`](@ref) and [`producers`](@ref).
+"""
 predators_of(i, A::AdjacencyMatrix) = A[:, i].nzind
 predators_of(i, net::FoodWeb) = predators_of(i, net.A)
 predators_of(i, net::MultiplexNetwork) = predators_of(i, net.layers[:trophic].A)
@@ -45,10 +69,30 @@ predators(net::EcologicalNetwork) = filter(ispredator, net)
 #### end ####
 
 #### Find preys ####
-"Return indexes of the preys of species `i`."
-preys_of(i, A::AdjacencyMatrix) = A[i, :].nzind
+"""
+    preys_of(i, network)
+
+Return indexes of the preys of species `i` for the given `network`.
+
+# Examples 
+
+```jldoctest
+julia> foodweb = FoodWeb([0 0 0; 0 0 0; 1 1 0]);
+
+julia> preys_of(3, foodweb)
+2-element Vector{Int64}:
+ 1
+ 2
+
+julia> preys_of(1, foodweb) # empty
+Int64[] 
+```
+
+See also [`predators_of`](@ref) and [`producers`](@ref).
+"""
 preys_of(i, net::FoodWeb) = preys_of(i, net.A)
 preys_of(i, net::MultiplexNetwork) = preys_of(i, net.layers[:trophic].A)
+preys_of(i, A::AdjacencyMatrix) = A[i, :].nzind
 
 "Is species `i` a prey?"
 isprey(i, A::AdjacencyMatrix) = !isempty(A[:, i].nzind)
