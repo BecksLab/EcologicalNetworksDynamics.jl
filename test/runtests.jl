@@ -51,8 +51,12 @@ end
 
 if no_break
     @info "Checking source code formatting.."
+    exclude = ["CONTRIBUTING.md"] #  Not formatted according to JuliaFormatter.
     for (folder, _, files) in walkdir("..")
         for file in files
+            if file in exclude
+                continue
+            end
             if !any(endswith(file, ext) for ext in [".jl", ".md", ".jmd", ".qmd"])
                 continue
             end
