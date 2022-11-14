@@ -1,5 +1,6 @@
 testing_grounds/*
 Manifest.toml
+LocalPreferences.toml
 docs/Manifest.toml
 docs/build/
 .DS_Store

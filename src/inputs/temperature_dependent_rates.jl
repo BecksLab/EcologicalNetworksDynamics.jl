@@ -6,6 +6,7 @@ abstract type TemperatureResponse end
 
 """
     ExponentialBAParams(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ, cₚ, cₑ, cᵢ, Eₐ)
+
 Parameters used to compute temperature dependent rates for different metabolic classes.
 The rate R is expressed as follow: ``R = aMᵢᵇMⱼᶜexp(Eₐ(T-T0)/kTT0)``, where a, b and c can take different values
 depending on the metabolic class of the species, although by default these do not vary as such. Growth and metabolic 
@@ -53,7 +54,7 @@ DefaultExpBAGrowthParams() = ExponentialBAParams(exp(-15.68)*4e6, 0, 0, -0.25, -
 """
 DefaultExpBAMetabolismParams()
 
-Default temp dependent and allometric parameters (a, b, c, Eₐ) values for metabolic rate (x).
+Default temp dependent and allometric parameters (a, b, c, Eₐ) values for metabolic rate (x).(Ehnes et al. 2011, Binzer et al. 2012)
 
 """
 DefaultExpBAMetabolismParams() = ExponentialBAParams(0, exp(-16.54)*4e6 , exp(-16.54)*4e6 , -0.31, -0.31, -0.31, 0, 0, 0, -0.69)
@@ -81,13 +82,7 @@ Default temp dependent and allometric parameters (a, b, c, Eₐ) values for carr
 
 """
 DefaultExpBACarryingCapacityParams() = ExponentialBAParams(exp(10)*4e6, 0, 0, 0.28, 0.28, 0.28, 0, 0, 0, 0.71)
-# """
-# DefaultExpBAMaxConsumptionParams()
 
-# Default temp dependent and allometric parameters (a, b, c, Eₐ) values for maximum consumption rate (y). (Binzer et al. 2012)
-
-# """
-# DefaultExpBAMaxConsumptionParams() = ExponentialBAParams(exp(-9.66)*4e6, exp(-9.66)*4e6, exp(-9.66)*4e6, 0.45, 0.45, 0.45, -0.47, -0.47, -0.47, -0.26)
 #### end ####
 
 struct NoTemperatureResponse <: TemperatureResponse
