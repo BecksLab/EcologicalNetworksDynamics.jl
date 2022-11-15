@@ -1,6 +1,6 @@
 #### Type definition ####
 mutable struct ProducerCompetition
-    α::Any
+    α::Matrix{Float64}
     αii::Any
     αij::Any
 end
@@ -51,28 +51,25 @@ FoodWeb of 3 species:
   method: unspecified
   species: [s1, s2, s3]
 
-julia> ProducerCompetition(foodweb, αii = 1.0, αij = 0.0)
+julia> ProducerCompetition(foodweb, αii = 0.5, αij = 1.0)
 Producer competition:
   α: (3, 3) matrix
-  αii: 1.0
-  αij: 0.0
+  αii: 0.5 
+  αij: 1.0
 ```
 
 See also [`ModelParameters`](@ref).
 """
-function ProducerCompetition(network::FoodWeb; αii = 1.0, αij = 0.0)
+function ProducerCompetition(network::EcologicalNetwork; αii = 1.0, αij = 0.0)
     # Matrix initialization
-    # c = fill(αij, length(p), length(p))
-    c = fill(αij, size(network.A, 1), size(network.A, 1))
+    S = richness(network)
+    c = fill(αij, S, S)
     # Put the diagonal elements to αii
-    c[CartesianIndex.(axes(c, 1), axes(c, 2))] = repeat([αii], size(network.A, 1))
+    c[CartesianIndex.(axes(c, 1), axes(c, 2))] = repeat([αii], S)
 
     # Put coefficients of non-producers to 0
-    mask_non_producer = [!(i in BEFWM2.producers(network)) for i in 1:size(network.A, 1)]
-    c[mask_non_producer, :] .= 0
-    c[:, mask_non_producer] .= 0
+    non_producer = filter(!isproducer, network)
+    c[non_producer, :] .= 0
+    c[:, non_producer] .= 0
     ProducerCompetition(c, αii, αij)
-end
-function ProducerCompetition(network::MultiplexNetwork; αii = 1.0, αij = 0.0)
-    ProducerCompetition(FoodWeb(network.layers[:trophic].A); αii, αij)
 end
