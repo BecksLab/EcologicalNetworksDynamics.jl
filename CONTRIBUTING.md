@@ -4,7 +4,7 @@ You are willing to contribute to BEFWM2 project
 and edit the source code. Thank you <3  
 This small guide is supposed to help you through the installation process
 as a developer instead of a simple user,
-and introduce a typical developping workflow
+and introduce a typical developing workflow
 so you can be comfortable contributing.
 
 This guide assumes you're working on a standard linux distribution
@@ -64,7 +64,7 @@ BEFWM2-dev/
 
 ### 3. Setting up your development environment
 
-Julia works with distincts [environments].
+Julia works with distinct [environments].
 Any folder can become a Julia environment
 provided it contains correct `Project.toml` and `Manifest.toml` files.
 
@@ -141,7 +141,7 @@ $ cd path/to/BEFWM2/
 ```
 
 Delete every file not tracked by git, including `Manifest.toml` files.  
-Beware that this will permanently delete any file not yet commited.
+Beware that this will permanently delete any file not yet committed.
 
 ```console
 $ git reset --hard      # Unstage all non-commited files
@@ -258,7 +258,7 @@ $ git rebase develop  # You will be prompted for any conflict resolution then.
 ```
 or, more explicitly:
 ```console
-$ git rebase --ont develop my_cool_feature
+$ git rebase --onto develop my_cool_feature
 ```
 
 Should you wish not to loose your original history before rebasing your branch,
