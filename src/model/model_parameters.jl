@@ -40,7 +40,7 @@ end
         biorates::BioRates=BioRates(foodweb),
         environment::Environment=Environment(foodweb),
         functional_response::FunctionalResponse=BioenergeticResponse(foodweb),
-        producer_competition::ProducerCompetition=ProducerCompetition(foodweb)
+        producer_competition::ProducerCompetition=ProducerCompetition(foodweb),
     )
 
 Generate the parameters of the species community.

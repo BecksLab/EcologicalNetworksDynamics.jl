@@ -1,15 +1,13 @@
 #### Type definition ####
-mutable struct ProducerCompetition
+struct ProducerCompetition
     α::Matrix{Float64}
-    αii::Any
-    αij::Any
 end
 #### end ####
 
 #### Type display ####
 "One line Environment display."
 function Base.show(io::IO, alpha::ProducerCompetition)
-    print(io, "ProducerCompetition(αii= $(alpha.αii), αij = $(alpha.αij))")
+    print(io, "ProducerCompetition($(size(alpha.α)) matrix)")
 end
 
 "Multiline Environment display."
@@ -18,18 +16,17 @@ function Base.show(io::IO, ::MIME"text/plain", alpha::ProducerCompetition)
     # Display output
     println(io, "Producer competition:")
     println(io, "  α: $(size(alpha.α)) matrix")
-    println(io, "  αii: $(alpha.αii)")
-    print(io, "  αij: $(alpha.αij)")
 
 end
 #### end ####
 
 """
-    ProducerCompetition(foodweb, αii = 1.0, αij = 0.0)
+    ProducerCompetition(foodweb, α = nothing, αii = 1.0, αij = 0.0)
 
 Create producer competition matrix for the system.
 
 The parameters are:
+- α the competition matrix, nothing by default.
 - αii the intracompetition term for all species, 1.0 by default.
 - αij the interspecific competition term for all species.
 By default, the carrying capacities of producers are assumed to be 1 while capacities of
@@ -51,25 +48,50 @@ FoodWeb of 3 species:
   method: unspecified
   species: [s1, s2, s3]
 
-julia> ProducerCompetition(foodweb, αii = 0.5, αij = 1.0)
+julia> c = ProducerCompetition(foodweb, αii = 0.5, αij = 1.0)
 Producer competition:
   α: (3, 3) matrix
-  αii: 0.5 
-  αij: 1.0
+
+julia> my_α = [.5 1.0 0; 1.0 .5 0; 0 0 0]
+3×3 Matrix{Float64}:
+ 0.5  1.0  0.0
+ 1.0  0.5  0.0
+ 0.0  0.0  0.0
+
+julia> myc = ProducerCompetition(foodweb, α = my_α)
+Producer competition:
+  α: (3, 3) matrix
+
+julia> c.α == myc.α
+true
 ```
 
 See also [`ModelParameters`](@ref).
 """
-function ProducerCompetition(network::EcologicalNetwork; αii = 1.0, αij = 0.0)
+function ProducerCompetition(network::EcologicalNetwork; α = nothing, αii = 1.0, αij = 0.0)
     # Matrix initialization
     S = richness(network)
-    c = fill(αij, S, S)
-    # Put the diagonal elements to αii
-    c[CartesianIndex.(axes(c, 1), axes(c, 2))] = repeat([αii], S)
-
-    # Put coefficients of non-producers to 0
     non_producer = filter(!isproducer, network)
-    c[non_producer, :] .= 0
-    c[:, non_producer] .= 0
-    ProducerCompetition(c, αii, αij)
+
+    if isnothing(α)
+        # Put the diagonal elements to αii
+        α = fill(αij, S, S)
+        for i in 1:S
+            α[i, i] = αii
+        end
+
+        # Put coefficients of non-producers to 0
+        α[non_producer, :] .= 0
+        α[:, non_producer] .= 0
+
+        ProducerCompetition(α)
+    else
+        # α should be a square matrix
+        @assert size(α, 1) == size(α, 2) == S
+        # α should be 0 for non producers
+        @assert all(α[non_producer, :] .== 0)
+        @assert all(α[:, non_producer] .== 0)
+    end
+
+    ProducerCompetition(α)
 end
