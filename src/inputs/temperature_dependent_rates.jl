@@ -7,7 +7,7 @@ abstract type TemperatureResponse end
 """
     ExponentialBAParams(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ, cₚ, cₑ, cᵢ, Eₐ)
 
-Parameters used to compute temperature dependent rates for different metabolic classes.
+Parameters used to compute temperature dependent rates for different metabolic classes using a Exponential Boltzmann Arrhenius method of 
 The rate R is expressed as follow: ``R = aMᵢᵇMⱼᶜexp(Eₐ(T-T0)/kTT0)``, where a, b and c can take different values
 depending on the metabolic class of the species, although by default these do not vary as such. Growth and metabolic 
 rate scale allometrically solely with species i, whereas feeding rates (y, B0, Th, ar) also depend on the body mass of 
@@ -47,14 +47,14 @@ end
 """
 DefaultExpBAGrowthParams()
 
-Default temp dependent and allometric parameters (a, b, c, Eₐ) values for growth rate (r). (Ehnes et al. 2011, Binzer et al. 2012)
+Default temp dependent and allometric parameters (a, b, c, Eₐ) values for growth rate (r). ([Savage et al., 2004](https://doi.org/10.1086/381872), [Binzer et al., 2016](https://doi.org/10.1111/gcb.13086))
 
 """
 DefaultExpBAGrowthParams() = ExponentialBAParams(exp(-15.68)*4e6, 0, 0, -0.25, -0.25, -0.25, 0, 0, 0, -0.84)
 """
 DefaultExpBAMetabolismParams()
 
-Default temp dependent and allometric parameters (a, b, c, Eₐ) values for metabolic rate (x).(Ehnes et al. 2011, Binzer et al. 2012)
+Default temp dependent and allometric parameters (a, b, c, Eₐ) values for metabolic rate (x).([Ehnes et al., 2011](https://doi.org/10.1111/j.1461-0248.2011.01660.x), [Binzer et al., 2016](https://doi.org/10.1111/gcb.13086))
 
 """
 DefaultExpBAMetabolismParams() = ExponentialBAParams(0, exp(-16.54)*4e6 , exp(-16.54)*4e6 , -0.31, -0.31, -0.31, 0, 0, 0, -0.69)
@@ -62,7 +62,7 @@ DefaultExpBAMetabolismParams() = ExponentialBAParams(0, exp(-16.54)*4e6 , exp(-1
 """
 DefaultExpBAHandlingTimeParams()
 
-Default temp dependent and allometric parameters (a, b, c, Eₐ) values for handling time (hₜ). (Binzer 2016)
+Default temp dependent and allometric parameters (a, b, c, Eₐ) values for handling time (hₜ). ([Rall et al., 2012](https://doi.org/10.1098/rstb.2012.0242), [Binzer et al., 2016](https://doi.org/10.1111/gcb.13086))
 
 """
 DefaultExpBAHandlingTimeParams() = ExponentialBAParams(0, exp(9.66)*4e6 , exp(9.66)*4e6 , -0.45, -0.45, -0.45, 0.47, 0.47, 0.47, 0.26)
@@ -70,7 +70,7 @@ DefaultExpBAHandlingTimeParams() = ExponentialBAParams(0, exp(9.66)*4e6 , exp(9.
 """
 DefaultExpBAAttackRateParams()
 
-Default temp dependent and allometric parameters (a, b, c, Eₐ) values for attack rate (aᵣ).(Binzer 2016)
+Default temp dependent and allometric parameters (a, b, c, Eₐ) values for attack rate (aᵣ).([Rall et al., 2012](https://doi.org/10.1098/rstb.2012.0242), [Binzer et al., 2016](https://doi.org/10.1111/gcb.13086))
 
 """
 DefaultExpBAAttackRateParams() = ExponentialBAParams(0, exp(-13.1)*4e6 , exp(-13.1)*4e6 , 0.25, 0.25, 0.25, -0.8, -0.8, -0.8, -0.38)
@@ -78,7 +78,7 @@ DefaultExpBAAttackRateParams() = ExponentialBAParams(0, exp(-13.1)*4e6 , exp(-13
 """
 DefaultExpBACarryingCapacityParams()
 
-Default temp dependent and allometric parameters (a, b, c, Eₐ) values for carrying capacity.(Binzer 2016)
+Default temp dependent and allometric parameters (a, b, c, Eₐ) values for carrying capacity.([Meehan, 2006]( https://doi.org/10.1890/0012-9658(2006)87[1650:EUAAAI]2.0.CO;2), [Binzer et al., 2016](https://doi.org/10.1111/gcb.13086))
 
 """
 DefaultExpBACarryingCapacityParams() = ExponentialBAParams(exp(10)*4e6, 0, 0, 0.28, 0.28, 0.28, 0, 0, 0, 0.71)
