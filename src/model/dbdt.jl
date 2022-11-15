@@ -12,7 +12,7 @@ function dBdt!(dB, B, p, t)
     r = params.biorates.r # vector of intrinsic growth rates
     K = params.environment.K # vector of carrying capacities
     α = params.producer_competition.α # matrix of producer competition 
-    s = [sum(α[i, :] .* B) for i in 1:size(α, 1)] #Compute competitor effects
+    s = [sum(α[i, :] .* B) for i in 1:S] #Compute competitor effects
     network = params.network
 
     # Compute ODE terms for each species
