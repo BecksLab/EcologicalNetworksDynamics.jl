@@ -85,9 +85,6 @@ DefaultExpBACarryingCapacityParams() = ExponentialBAParams(exp(10)*4e6, 0, 0, 0.
 
 #### end ####
 
-struct NoTemperatureResponse <: TemperatureResponse
-    td::String
-end
 
 struct ExponentialBA <: TemperatureResponse 
     defaults_r::ExponentialBAParams
@@ -97,9 +94,6 @@ struct ExponentialBA <: TemperatureResponse
     defaults_K::ExponentialBAParams
 end
 
-function NoTemperatureResponse(td::String = "No temperature dependence")
-    return NoTemperatureResponse(td)
-end
 
 function ExponentialBA(
     defaults_r::ExponentialBAParams = DefaultExpBAGrowthParams(),
@@ -110,7 +104,6 @@ function ExponentialBA(
 )
     ExponentialBA(defaults_r, defaults_x, defaults_aᵣ, defaults_hₜ, defaults_K)
 end
-
 
 
 #### Helper functions to compute temperature dependent rates ####
