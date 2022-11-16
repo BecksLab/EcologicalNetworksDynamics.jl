@@ -5,7 +5,7 @@ Temperature dependent rates
 abstract type TemperatureResponse end
 
 """
-    ExponentialBAParams(aₚ, aᵢ, aₑ, bₚ, bᵢ, bₑ, cₚ, cᵢ, cₑ, Eₐ)
+    ExponentialBAParams(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ, cₚ, cₑ, cᵢ, Eₐ)
 
 Parameters used to compute temperature dependent rates for different metabolic classes using a Exponential Boltzmann Arrhenius method of 
 The rate R is expressed as follow: ``R = aMᵢᵇMⱼᶜexp(Eₐ(T-T0)/kTT0)``, where a, b and c can take different values
@@ -14,14 +14,14 @@ rate scale allometrically solely with species i, whereas feeding rates (y, B0, T
 resource species j.  a is the intercept, b is the allometric exponent of the resource, c is the allometric exponent of the consumer.
 This struct aims at storing these values of a, b & c and the activation energy Eₐ for each rate. Specifically:
 - aₚ: a for producers
-- aᵢ: a for invertebrates
 - aₑ: a for ectotherm vertebrates
+- aᵢ: a for invertebrates
 - bₚ: b for producers
-- bᵢ: b for invertebrates
 - bₑ: b for ectotherm vertebrates
+- bᵢ: b for invertebrates
 - cₚ: c for producers
-- cᵢ: c for invertebrates
 - cₑ: c for ectotherm vertebrates
+- cᵢ: c for invertebrates
 - Eₐ: activation energy 
 
 Default parameters values taken from the literature for certain rates can be accessed by
@@ -31,14 +31,14 @@ calling the corresponding function, for:
 """
 struct ExponentialBAParams 
     aₚ::Real
-    aᵢ::Real
     aₑ::Real
+    aᵢ::Real
     bₚ::Real
-    bᵢ::Real
     bₑ::Real
+    bᵢ::Real
     cₚ::Real
-    cᵢ::Real
     cₑ::Real
+    cᵢ::Real
     Eₐ::Real
 end
 
@@ -76,7 +76,7 @@ Default temp dependent and allometric parameters (a, b, c, Eₐ) values for atta
 DefaultExpBAAttackRateParams() = ExponentialBAParams(0, exp(-13.1)*4e6 , exp(-13.1)*4e6 , 0.25, 0.25, 0.25, -0.8, -0.8, -0.8, -0.38)
 
 """
-     DefaultExpBACarryingCapacityParams()
+    DefaultExpBACarryingCapacityParams()
 
 Default temp dependent and allometric parameters (a, b, c, Eₐ) values for carrying capacity.([Meehan, 2006]( https://doi.org/10.1890/0012-9658(2006)87[1650:EUAAAI]2.0.CO;2), [Binzer et al., 2016](https://doi.org/10.1111/gcb.13086))
 
