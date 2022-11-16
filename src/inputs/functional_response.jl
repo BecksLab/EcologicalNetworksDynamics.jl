@@ -93,7 +93,7 @@ The efficiency depends on the metabolic class of the prey:
 - if prey is producter, efficiency is `e_herbivore`
 - otherwise efficiency is `e_carnivore`
 
-Default values are taken from *add ref*.
+Default values are taken from Miele et al. 2019 (PLOS Comp.).
 """
 function efficiency(net::EcologicalNetwork; e_herb = 0.45, e_carn = 0.85)
     S = richness(net)
@@ -270,7 +270,8 @@ function (F::ClassicResponse)(B, i, j, mᵢ)
     num = F.ω[i, j] * F.aᵣ[i, j] * abs(B[j])^F.h
     denom =
         1 + (F.c[i] * B[i]) + sum(F.aᵣ[i, :] .* F.hₜ[i, :] .* F.ω[i, :] .* (abs.(B) .^ F.h))
-    num / (mᵢ * denom)
+    denom *= mᵢ
+    num / denom
 end
 # Code generation version (raw) (↑ ↑ ↑ DUPLICATED FROM ABOVE ↑ ↑ ↑).
 # (update together as long as the two coexist)
@@ -363,8 +364,9 @@ function (F::ClassicResponse)(B, i, j, aᵣ, network::MultiplexNetwork)
     i0 = network.layers[:interference].intensity
     predator_interfering = A_interference[:, i]
     denom += i0 * sum(B .* predator_interfering)
+    denom *= network.M[i]
 
-    num / (network.M[i] * denom)
+    num / denom
 end
 
 """

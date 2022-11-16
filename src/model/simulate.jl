@@ -60,9 +60,9 @@ but want to find directly the biomass at steady state see [`find_steady_state`](
 ```jldoctest
 julia> foodweb = FoodWeb([0 0; 1 0]); # create the foodweb
 
-julia> biorates = BioRates(foodweb, d=0); # set natural death rate to 0
+julia> br = BioRates(foodweb, d=0); # set natural death rate to 0
 
-julia> params = ModelParameters(foodweb, biorates=biorates); 
+julia> params = ModelParameters(foodweb, biorates=br); 
 
 julia> B0 = [0.5, 0.5]; # set initial biomass
 

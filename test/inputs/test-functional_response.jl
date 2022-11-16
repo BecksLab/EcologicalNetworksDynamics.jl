@@ -1,12 +1,12 @@
 @testset "Assimilation efficiency" begin
     foodweb = FoodWeb([0 0 0; 1 0 0; 1 1 0])
     e_expect = sparse([0 0 0; 1 0 0; 1 2 0])
-    @test BEFWM2.efficiency(foodweb; e_herb = 1, e_carn = 2) == e_expect
+    @test efficiency(foodweb; e_herb = 1, e_carn = 2) == e_expect
     e_expect = sparse([0 0 0; 3 0 0; 3 4 0])
-    @test BEFWM2.efficiency(foodweb; e_herb = 3, e_carn = 4) == e_expect
+    @test efficiency(foodweb; e_herb = 3, e_carn = 4) == e_expect
     foodweb = FoodWeb([0 0 0; 1 1 0; 1 1 1])
     e_expect = sparse([0 0 0; 1 2 0; 1 2 2])
-    @test BEFWM2.efficiency(foodweb; e_herb = 1, e_carn = 2) == e_expect
+    @test efficiency(foodweb; e_herb = 1, e_carn = 2) == e_expect
 end
 
 A_2sp = [0 0; 1 0] # 2 eats 1
@@ -60,8 +60,8 @@ end
     foodweb_default = FoodWeb([0 0 0; 1 0 0; 0 1 0]; Z = 10)
     Fclassic_1 = ClassicResponse(foodweb_default)
     @test Fclassic_1.h == 2.0
-    @test Fclassic_1.aᵣ == BEFWM2.attack_rate(foodweb_default)
-    @test Fclassic_1.hₜ == BEFWM2.handling_time(foodweb_default)
+    @test Fclassic_1.aᵣ == attack_rate(foodweb_default)
+    @test Fclassic_1.hₜ == handling_time(foodweb_default)
     @test Fclassic_1.c == [0.0, 0.0, 0.0]
 
     # Custom
@@ -314,25 +314,29 @@ end
 @testset "Generation of default feeding rates" begin
     # All body masses set to 1, expect 0.3 for each trophic interaction
     foodweb = FoodWeb([0 0 0; 1 0 0; 0 1 0]; M = [1, 1, 1])
-    @test BEFWM2.handling_time(foodweb) == [0 0 0; 0.3 0 0; 0 0.3 0]
-    @test BEFWM2.handling_time(foodweb |> MultiplexNetwork) == [0 0 0; 0.3 0 0; 0 0.3 0]
-    @test BEFWM2.attack_rate(foodweb) == [0 0 0; 50 0 0; 0 50 0]
-    @test BEFWM2.attack_rate(foodweb |> MultiplexNetwork) == [0 0 0; 50 0 0; 0 50 0]
+    @test handling_time(foodweb) == [0 0 0; 0.3 0 0; 0 0.3 0]
+    @test handling_time(foodweb |> MultiplexNetwork) == [0 0 0; 0.3 0 0; 0 0.3 0]
+    @test attack_rate(foodweb) == [0 0 0; 50 0 0; 0 50 0]
+    @test attack_rate(foodweb |> MultiplexNetwork) == [0 0 0; 50 0 0; 0 50 0]
 
     # Different body masses, expect different values
     foodweb = FoodWeb([0 0 0; 1 0 0; 0 1 0]; M = [2, 10, 100])
+    a = 0.3 * 10^(-0.48) * 2^(-0.66) # expected ht[2,1]
+    b = 0.3 * 100^(-0.48) * 10^(-0.66) # expected ht[3,2]
     ht_expected = [
         0 0 0
-        0.3*10^(-0.48)*2^(-0.66) 0 0
-        0 0.3*100^(-0.48)*10^(-0.66) 0
+        a 0 0
+        0 b 0
     ]
+    c = 50 * 10^(0.45) # expected ar[2,1]
+    d = 50 * 100^(0.45) * 10^(0.15) # expected ar[3,2]
     ar_expected = [
         0 0 0
-        50*10^(0.45) 0 0
-        0 50*100^(0.45)*10^(0.15) 0
+        c 0 0
+        0 d 0
     ]
-    @test BEFWM2.handling_time(foodweb) ≈ ht_expected
-    @test BEFWM2.handling_time(foodweb |> MultiplexNetwork) ≈ ht_expected
-    @test BEFWM2.attack_rate(foodweb) ≈ ar_expected
-    @test BEFWM2.attack_rate(foodweb |> MultiplexNetwork) ≈ ar_expected
+    @test handling_time(foodweb) ≈ ht_expected
+    @test handling_time(foodweb |> MultiplexNetwork) ≈ ht_expected
+    @test attack_rate(foodweb) ≈ ar_expected
+    @test attack_rate(foodweb |> MultiplexNetwork) ≈ ar_expected
 end
