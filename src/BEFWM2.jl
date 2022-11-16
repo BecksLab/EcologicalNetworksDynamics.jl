@@ -48,6 +48,7 @@ export A_interference_full
 export A_refuge_full
 export allometric_rate
 export AllometricParams
+export attack_rate
 export BioEnergeticFunctionalResponse
 export BioenergeticResponse
 export BioRates
@@ -62,6 +63,7 @@ export DefaultMetabolismParams
 export DefaultMortalityParams
 export draw_asymmetric_links
 export draw_symmetric_links
+export efficiency
 export Environment
 export ExtinctionCallback
 export find_steady_state
@@ -77,6 +79,7 @@ export FunctionalResponse
 export generate_dbdt
 export get_extinct_species
 export get_parameters
+export handling_time
 export homogeneous_preference
 export interaction_names
 export Layer

@@ -193,16 +193,17 @@ function BioRates(
     e = efficiency(network),
 )
     S = richness(network)
-    Rates = [d, r, x, y]
+    rate_list = [d, r, x, y]
 
-    # Perform sanity checks and vectorize rates if necessary
-    for (i, rate) in enumerate(Rates)
-        isa(rate, Real) ? (Rates[i] = fill(rate, S)) : @check_equal_richness length(rate) S
+    # Perform sanity checks and vectorize rate if necessary
+    for (i, rate) in enumerate(rate_list)
+        isa(rate, Real) ? (rate_list[i] = fill(rate, S)) :
+        @check_equal_richness length(rate) S
     end
     @check_size_is_richness² e S
 
     # Output
-    d, r, x, y = Rates
+    d, r, x, y = rate_list
     BioRates(d, r, x, y, e)
 end
 
