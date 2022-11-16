@@ -5,7 +5,7 @@ Temperature dependent rates
 abstract type TemperatureResponse end
 
 """
-    ExponentialBAParams(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ, cₚ, cₑ, cᵢ, Eₐ)
+    ExponentialBAParams(aₚ, aᵢ, aₑ, bₚ, bᵢ, bₑ, cₚ, cᵢ, cₑ, Eₐ)
 
 Parameters used to compute temperature dependent rates for different metabolic classes using a Exponential Boltzmann Arrhenius method of 
 The rate R is expressed as follow: ``R = aMᵢᵇMⱼᶜexp(Eₐ(T-T0)/kTT0)``, where a, b and c can take different values
@@ -14,14 +14,14 @@ rate scale allometrically solely with species i, whereas feeding rates (y, B0, T
 resource species j.  a is the intercept, b is the allometric exponent of the resource, c is the allometric exponent of the consumer.
 This struct aims at storing these values of a, b & c and the activation energy Eₐ for each rate. Specifically:
 - aₚ: a for producers
-- aₑ: a for ectotherm vertebrates
 - aᵢ: a for invertebrates
+- aₑ: a for ectotherm vertebrates
 - bₚ: b for producers
-- bₑ: b for ectotherm vertebrates
 - bᵢ: b for invertebrates
+- bₑ: b for ectotherm vertebrates
 - cₚ: c for producers
-- cₑ: c for ectotherm vertebrates
 - cᵢ: c for invertebrates
+- cₑ: c for ectotherm vertebrates
 - Eₐ: activation energy 
 
 Default parameters values taken from the literature for certain rates can be accessed by
@@ -31,28 +31,28 @@ calling the corresponding function, for:
 """
 struct ExponentialBAParams 
     aₚ::Real
-    aₑ::Real
     aᵢ::Real
+    aₑ::Real
     bₚ::Real
-    bₑ::Real
     bᵢ::Real
+    bₑ::Real
     cₚ::Real
-    cₑ::Real
     cᵢ::Real
+    cₑ::Real
     Eₐ::Real
 end
 
 
 #### Constructors containing default parameter value for temperature scaled rates ####
 """
-DefaultExpBAGrowthParams()
+    DefaultExpBAGrowthParams()
 
 Default temp dependent and allometric parameters (a, b, c, Eₐ) values for growth rate (r). ([Savage et al., 2004](https://doi.org/10.1086/381872), [Binzer et al., 2016](https://doi.org/10.1111/gcb.13086))
 
 """
 DefaultExpBAGrowthParams() = ExponentialBAParams(exp(-15.68)*4e6, 0, 0, -0.25, -0.25, -0.25, 0, 0, 0, -0.84)
 """
-DefaultExpBAMetabolismParams()
+    DefaultExpBAMetabolismParams()
 
 Default temp dependent and allometric parameters (a, b, c, Eₐ) values for metabolic rate (x).([Ehnes et al., 2011](https://doi.org/10.1111/j.1461-0248.2011.01660.x), [Binzer et al., 2016](https://doi.org/10.1111/gcb.13086))
 
@@ -60,7 +60,7 @@ Default temp dependent and allometric parameters (a, b, c, Eₐ) values for meta
 DefaultExpBAMetabolismParams() = ExponentialBAParams(0, exp(-16.54)*4e6 , exp(-16.54)*4e6 , -0.31, -0.31, -0.31, 0, 0, 0, -0.69)
 
 """
-DefaultExpBAHandlingTimeParams()
+    DefaultExpBAHandlingTimeParams()
 
 Default temp dependent and allometric parameters (a, b, c, Eₐ) values for handling time (hₜ). ([Rall et al., 2012](https://doi.org/10.1098/rstb.2012.0242), [Binzer et al., 2016](https://doi.org/10.1111/gcb.13086))
 
@@ -68,7 +68,7 @@ Default temp dependent and allometric parameters (a, b, c, Eₐ) values for hand
 DefaultExpBAHandlingTimeParams() = ExponentialBAParams(0, exp(9.66)*4e6 , exp(9.66)*4e6 , -0.45, -0.45, -0.45, 0.47, 0.47, 0.47, 0.26)
 
 """
-DefaultExpBAAttackRateParams()
+    DefaultExpBAAttackRateParams()
 
 Default temp dependent and allometric parameters (a, b, c, Eₐ) values for attack rate (aᵣ).([Rall et al., 2012](https://doi.org/10.1098/rstb.2012.0242), [Binzer et al., 2016](https://doi.org/10.1111/gcb.13086))
 
@@ -76,7 +76,7 @@ Default temp dependent and allometric parameters (a, b, c, Eₐ) values for atta
 DefaultExpBAAttackRateParams() = ExponentialBAParams(0, exp(-13.1)*4e6 , exp(-13.1)*4e6 , 0.25, 0.25, 0.25, -0.8, -0.8, -0.8, -0.38)
 
 """
-DefaultExpBACarryingCapacityParams()
+     DefaultExpBACarryingCapacityParams()
 
 Default temp dependent and allometric parameters (a, b, c, Eₐ) values for carrying capacity.([Meehan, 2006]( https://doi.org/10.1890/0012-9658(2006)87[1650:EUAAAI]2.0.CO;2), [Binzer et al., 2016](https://doi.org/10.1111/gcb.13086))
 
@@ -156,7 +156,7 @@ end
 
 #### Main functions to compute temperature dependent biological rates ####
 
-"Compute rate vector (one value per species) with temperature dependent scaling. (x,r)"
+"Compute rate vector (one value per species) with temperature dependent scaling. (x, r, K)"
 function exponentialBA_vector_rate(net::EcologicalNetwork, T::Real, exponentialBAparams::ExponentialBAParams)
     params = exponentialBAparams_to_vec(net, exponentialBAparams)
     a, b, Eₐ = params.a, params.b, params.Eₐ
@@ -165,7 +165,7 @@ function exponentialBA_vector_rate(net::EcologicalNetwork, T::Real, exponentialB
     return allometry .* boltmann_term
 end
 
-"Compute rate natrix (one value per species interaction) with temperature dependent scaling. (y)"
+"Compute rate natrix (one value per species interaction) with temperature dependent scaling. (aᵣ, hₜ)"
 function exponentialBA_matrix_rate(net::EcologicalNetwork, T::Real, exponentialBAparams::ExponentialBAParams)
     params = exponentialBAparams_to_vec(net, exponentialBAparams)
     a, b, c, Eₐ = params.a, params.b, params.c, params.Eₐ
