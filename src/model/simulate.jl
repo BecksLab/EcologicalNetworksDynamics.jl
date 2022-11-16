@@ -64,8 +64,8 @@ julia> B0 = [0.5, 0.5]; # set initial biomass
 
 julia> solution = simulate(params, B0); # run simulation
 
-julia> solution.retcode # => a steady state has been found
-:Terminated
+julia> solution.retcode == :Terminated # => a steady state has been found
+true
 
 julia> solution[begin] == B0 # initial biomass equals initial biomass
 true
@@ -94,8 +94,8 @@ julia> xpr, data = Logging.with_logger(Logging.NullLogger()) do
 
 julia> solution = simulate(params, B0; diff_code_data = (eval(xpr), data));
 
-julia> solution.retcode #  the same result is obtained, possibly more efficiently.
-:Terminated
+julia> solution.retcode == :Terminated #  the same result is obtained, more efficiently.
+true
 
 julia> solution[begin] == B0
 true
@@ -113,8 +113,8 @@ julia> xpr, data = Logging.with_logger(Logging.NullLogger()) do
 
 julia> solution = simulate(params, B0; diff_code_data = (eval(xpr), data));
 
-julia> solution.retcode
-:Terminated
+julia> solution.retcode == :Terminated
+true
 
 julia> solution[begin] == B0
 true
