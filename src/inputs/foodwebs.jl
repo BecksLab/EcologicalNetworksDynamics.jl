@@ -24,12 +24,12 @@ end
         method::String = "unspecified",
     )
 
-# Generate a `FoodWeb` from an adjacency matrix 
+# Generate a `FoodWeb` from an adjacency matrix
 
 This is the most direct way to generate a `FoodWeb`.
 You only need to provide and adjacency matrix filled with 0s and 1s,
-that respectively indicate the absence (presence) of an interaction 
-between the corresponding species pair. 
+that respectively indicate the absence (presence) of an interaction
+between the corresponding species pair.
 For instance `A = [0 0; 1 0]` corresponds to a system of 2 species
 in which species 2 eats species 1.
 
@@ -52,17 +52,51 @@ julia> foodweb.species == ["plant", "herbivore"]
 true
 ```
 
+# Generate a `FoodWeb` from an adjacency list
+
+The procedure is the same as for the adjacency matrix,
+you give a an adjacency list under the form a vector of species `Pair`s.
+The first element of the pair is the predator
+and the last element is the prey.
+Species can be identified either with `Integer`s going from 1 to S
+(the species richness of your food web),
+or with `String`s corresponding to the species names,
+in which case species will be ordered lexically.
+Moreover, if you provide an adjacency list filled with species names,
+those will be directly passed to the `FoodWeb.species` field.
+
+```jldoctest
+julia> l = [3 => 2, 2 => 1];
+
+julia> foodweb = FoodWeb(l);
+
+julia> foodweb.A == [0 0 0; 1 0 0; 0 1 0]
+true
+```
+
+```jldoctest
+julia> l = ["snake" => "turtle", "snake" => "mouse"];
+
+julia> foodweb = FoodWeb(l);
+
+julia> foodweb.A == [0 0 0; 1 0 1; 0 0 0]
+true
+
+julia> foodweb.species == ["mouse", "snake", "turtle"]
+true
+```
+
 # Generate a `FoodWeb` from a structural model
 
 For larger communities it can be convenient to rely on a structural model.
-The structural model implemented are: 
+The structural model implemented are:
 `nichemodel(S; C)`, `cascademodel(S; C)`, nestedhierarchymodel(S; C) and
 `mpnmodel(S; C, p_forbidden)`.
 
 To generate a model with one of these model you have to follow this syntax:
 `FoodWeb(model_name, model_arguments, optional_FoodWeb_arguments)`.
 
-For instance: 
+For instance:
 
 ```jldoctest
 julia> foodweb = FoodWeb(nichemodel, 20, C = 0.1, Z = 50);
@@ -71,17 +105,17 @@ julia> richness(foodweb) # the FoodWeb of 20 sp. has been well generated
 20
 
 julia> foodweb.method == "nichemodel"
-true 
+true
 ```
 
 # Generate a `FoodWeb` from a `UnipartiteNetwork`
 
-Lastly, EcologicalNetworkDynamics.jl has been designed to interact nicely 
-with EcologicalNetworks.jl. 
+Lastly, EcologicalNetworkDynamics.jl has been designed to interact nicely
+with EcologicalNetworks.jl.
 Thus you can also create a `FoodWeb` from a `UnipartiteNetwork`
 
 ```jldoctest
-julia> uni_net = cascademodel(10, 0.1); # generate a UnipartiteNetwork 
+julia> uni_net = cascademodel(10, 0.1); # generate a UnipartiteNetwork
 
 julia> foodweb = FoodWeb(uni_net);
 
@@ -89,8 +123,8 @@ julia> foodweb.A == uni_net.edges # same adjacency matrices
 true
 ```
 
-# `FoodWeb` struct 
-    
+# `FoodWeb` struct
+
 The function returns a `FoodWeb` which is a collection of the following fields:
 
 - `A` the adjacency matrix
@@ -260,7 +294,7 @@ function clean_metabolic_class!(metabolic_class, A)
         @warn "You provided a metabolic class for basal species: replaced by 'producer'."
     metabolic_class[prod] .= "producer"
 
-    # Replace 'vertebrate' by 'ectotherm vertebrate' if user accept. 
+    # Replace 'vertebrate' by 'ectotherm vertebrate' if user accept.
     vertebrates = (1:richness(A))[lowercase.(metabolic_class).=="vertebrate"]
     isempty(vertebrates) || replace_vertebrates!(metabolic_class, vertebrates)
 
@@ -293,4 +327,76 @@ function model_foodweb(model, args...)
     args = filter(!isnothing, args) # only keep non-nothing arguments
     model(args...)
 end
-#### end #### 
+#### end ####
+
+#### Create FoodWeb from an adjacency list ####
+function FoodWeb(adjacency_list::Vector{Pair{T,T}} where {T<:Integer}; kwargs...)
+    FoodWeb(adjacency_matrix_from_list(adjacency_list); kwargs...)
+end
+
+function FoodWeb(adjacency_list::Vector{Pair{String,String}}; kwargs...)
+    species_list = vcat(first.(adjacency_list), last.(adjacency_list))
+    species_list = unique(species_list) # remove repeted specie names
+    sort!(species_list) # order lexically species names
+    FoodWeb(adjacency_matrix_from_list(adjacency_list); species = species_list, kwargs...)
+end
+
+"""
+    adjency_matrix_from_list(
+        adjacency_list::Vector{Pair{Int64, Int64}};
+        S = maximum(adjacency_list...)
+        )
+
+Convert an adjacency list to an adjacency matrix.
+
+# Arguments
+
+- `adjacency_list` a vector of pair, where each first element correspond to the predator
+    and each second element to the prey.
+    For instance `[1 => 2]` means that 1 eats 2.
+
+# Example
+
+Adjacency list contains `Pair`s of `Int`s.
+
+```jldoctest
+julia> BEFWM2.adjacency_matrix_from_list([1 => 2]) == [0 1; 0 0]
+true
+
+julia> BEFWM2.adjacency_matrix_from_list([2 => 1, 1 => 3]) == [0 0 1; 1 0 0; 0 0 0]
+true
+```
+
+Adjacency list contains `Pair`s of `String`s
+
+```jldoctest
+julia> l = ["fox" => "hen", "hen" => "snake", "snake" => "fox"];
+
+julia> BEFWM2.adjacency_matrix_from_list(l) == [0 1 0; 0 0 1; 1 0 0] # order lexically
+true
+```
+"""
+function adjacency_matrix_from_list(adjacency_list::Vector{Pair{T,T}} where {T<:Integer})
+    species_list = vcat(first.(adjacency_list), last.(adjacency_list))
+    S = maximum(species_list)
+    A = spzeros(S, S)
+    for (i, j) in adjacency_list
+        A[i, j] = 1
+    end
+    A
+end
+
+function adjacency_matrix_from_list(adjacency_list::Vector{Pair{String,String}})
+    species_list = vcat(first.(adjacency_list), last.(adjacency_list))
+    species_list = unique(species_list) # remove repeted species
+    S = length(species_list)
+    sort!(species_list)
+    mapping = Dict([sp_name => sp_index for (sp_index, sp_name) in enumerate(species_list)])
+    A = spzeros(S, S)
+    for (sp1, sp2) in adjacency_list
+        i, j = mapping[sp1], mapping[sp2] # get species index from their name
+        A[i, j] = 1
+    end
+    A
+end
+#### end ####
