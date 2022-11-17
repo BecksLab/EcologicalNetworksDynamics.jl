@@ -124,7 +124,6 @@ function ModelParameters(
     environment::Environment = Environment(network),
     functional_response::FunctionalResponse = BioenergeticResponse(network),
     producer_competition::ProducerCompetition = ProducerCompetition(network),
-    temperature_response::TemperatureResponse = NoTemperatureResponse(),
 )
     if isa(network, MultiplexNetwork) & !(isa(functional_response, ClassicResponse))
         type_response = typeof(functional_response)
