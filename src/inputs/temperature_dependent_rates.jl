@@ -84,9 +84,10 @@ Default temp dependent and allometric parameters (a, b, c, Eₐ) values for carr
 DefaultExpBACarryingCapacityParams() = ExponentialBAParams(exp(10)*4e6, 0, 0, 0.28, 0.28, 0.28, 0, 0, 0, 0.71)
 
 #### end ####
+struct NoTemperatureResponse <: TemperatureResponse end
 
 
-struct ExponentialBA <: TemperatureResponse 
+mutable struct ExponentialBA <: TemperatureResponse
     defaults_r::ExponentialBAParams
     defaults_x::ExponentialBAParams
     defaults_aᵣ::ExponentialBAParams
@@ -96,11 +97,11 @@ end
 
 
 function ExponentialBA(
-    defaults_r::ExponentialBAParams = DefaultExpBAGrowthParams(),
-    defaults_x::ExponentialBAParams = DefaultExpBAMetabolismParams(),
-    defaults_aᵣ::ExponentialBAParams = DefaultExpBAAttackRateParams(),
-    defaults_hₜ::ExponentialBAParams = DefaultExpBAHandlingTimeParams(),
-    defaults_K::ExponentialBAParams = DefaultExpBACarryingCapacityParams()
+    defaults_r = DefaultExpBAGrowthParams(),
+    defaults_x = DefaultExpBAMetabolismParams(),
+    defaults_aᵣ = DefaultExpBAAttackRateParams(),
+    defaults_hₜ = DefaultExpBAHandlingTimeParams(),
+    defaults_K = DefaultExpBACarryingCapacityParams()
 )
     ExponentialBA(defaults_r, defaults_x, defaults_aᵣ, defaults_hₜ, defaults_K)
 end
@@ -171,10 +172,15 @@ function exponentialBA_matrix_rate(net::EcologicalNetwork, T::Real, exponentialB
     a, b, c, Eₐ = params.a, params.b, params.c, params.Eₐ
     consumer_allometry = allometricscale.(a, b, net.M)
     resource_allometry = allometricscale.(1, c, net.M)
-    boltmann_term = boltzmann(Eₐ, T)
-    mat = consumer_allometry .* resource_allometry .* boltmann_term 
-    return sparse(mat)
-end ###### Need to fix this to be calculated for interactions in A, not ALL possible interactions
+    boltzmann_term = boltzmann(Eₐ, T)
 
-
+    links = findall(x -> x == 1, net.A)
+    mat = Float64.(deepcopy(net.A))
+    for i in links
+        cons = i[1]
+        res = i[2]
+        mat[cons, res] = consumer_allometry[cons] * resource_allometry[res] * boltzmann_term
+    end
+    mat
+end
 #### end ####
