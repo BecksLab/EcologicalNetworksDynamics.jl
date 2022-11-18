@@ -1,6 +1,6 @@
 #### Type definition ####
 struct ProducerCompetition
-    α::Matrix{Float64}
+    α::SparseMatrixCSC{Float64,Int64}
 end
 #### end ####
 
@@ -97,5 +97,5 @@ function ProducerCompetition(network::EcologicalNetwork; α = nothing, αii = 1.
         @assert all(α[:, non_producer] .== 0)
     end
 
-    ProducerCompetition(α)
+    ProducerCompetition(SparseMatrixCSC(α))
 end
