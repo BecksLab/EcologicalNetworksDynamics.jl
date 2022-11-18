@@ -1,5 +1,11 @@
 #### Functors for temperature dependence methods ####
 
+# No Temperature Response Functor
+function (F::NoTemperatureResponse)(params::ModelParameters, T)
+    # record temperature in env, even though it has no effect
+    params.environment.T = T
+end
+
 # Exponential Boltzmann Arrhenius Functor.
 function (F::ExponentialBA)(params::ModelParameters, T)
     net = params.network
@@ -15,11 +21,10 @@ function (F::ExponentialBA)(params::ModelParameters, T)
     params.environment.T = T
 end
 
-
 ### setting the temperature 
 
 # The entry point for the user.
-function set_temperature!(p::ModelParameters{}, T, F!::TemperatureResponse)
+function set_temperature!(p::ModelParameters, T, F!::TemperatureResponse)
     # Apply the functor to the parameters.
     F!(p, T)
     # Record which functor has been used for these parameters.

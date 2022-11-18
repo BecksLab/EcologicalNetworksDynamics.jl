@@ -36,6 +36,7 @@ function Base.show(io::IO, ::MIME"text/plain", params::ModelParameters)
     println(io, "  biorates: ", params.biorates)
     println(io, "  functional_response: ", params.functional_response)
     println(io, "  producer_competition: ", params.producer_competition)
+    println(io, "  temperature_response: ", params.temperature_response)
 end
 #### end ####
 
@@ -46,6 +47,7 @@ end
         environment::Environment=Environment(foodweb),
         functional_response::FunctionalResponse=BioenergeticResponse(foodweb),
         producer_competition::ProducerCompetition=ProducerCompetition(foodweb),
+        temperature_response::TemperatureResponse,
     )
 
 Generate the parameters of the species community.
@@ -60,6 +62,7 @@ The parameters are compartmented in different groups:
   - [`FunctionalResponse`](@ref) (F): functional response form
     (e.g. classic or bioenergetic functional response)
   - [`ProducerCompetition`](@ref): producer competition (e.g. intra and inter competition)
+  - [`TemperatureResponse`](@ref): method used for temperature dependency
 
 # Examples
 
@@ -124,6 +127,7 @@ function ModelParameters(
     environment::Environment = Environment(network),
     functional_response::FunctionalResponse = BioenergeticResponse(network),
     producer_competition::ProducerCompetition = ProducerCompetition(network),
+    temperature_response::TemperatureResponse = NoTemperatureResponse(),
 )
     if isa(network, MultiplexNetwork) & !(isa(functional_response, ClassicResponse))
         type_response = typeof(functional_response)
