@@ -36,5 +36,7 @@ end
 end
 
 @testset "Helper functions for exponential BA rate computation" begin
-    @test exponentialBAparams_to_vec
+    expected_paramsvec = (a = (1, 1, 3, 2), b = (10, 10, 12, 11), c = (20, 20, 22, 21), Ea = 50)
+    expBA_params = ExponentialBAParams(1, 2, 3, 10, 11, 12, 20, 21, 22, 50)
+    @test exponentialBAparams_to_vec(foodweb, expBA_params) == expected_paramsvec
 end
