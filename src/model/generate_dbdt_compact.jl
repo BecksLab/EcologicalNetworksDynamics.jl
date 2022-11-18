@@ -1,5 +1,36 @@
 function generate_dbdt_compact(parms::ModelParameters)
 
+    # TODO: producers competition and non-trophic layers
+    # are onlaying new structures on the overall SxS matrix.
+    # The entire point of the code generated in this function
+    # is to avoid that every timestep becomes like:
+    #
+    #     for (i, j) in SxS
+    #        if is_trophic(i, j)
+    #           do-trophism
+    #        if is_competition(i, j)
+    #           do-competition
+    #        if is_whatever_non_trophic_layer(i, j)
+    #           do-that-layer
+    #        etc.
+    #     end
+    #
+    # .. because
+    # 1) SxS can be large
+    # 2) All branches can be predicted at compile-time
+    #    because the MultiplexNetwork structure
+    #    does not evolve during calls to `solve()`.
+    #
+    # However, the current implementation does not integrate
+    # this multi-level interactions organization yet,
+    # but it should to prepare facing future evolution of the package.
+    # Do this refactorization now
+    # before integrating MultiplexNetwork and producers competition.
+    #
+    # This will probably necessitate that all "sections"
+    # of the generated code (living now in `productivity.jl`, `consumption.jl` etc.)
+    # be reunited here and be treated as one single, optimized block.
+
     # Prepare collection of pre-calculated data.
     data = Dict()
 
