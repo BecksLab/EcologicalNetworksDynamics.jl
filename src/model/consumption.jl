@@ -102,6 +102,9 @@ function consumption(::BioenergeticResponse, parms::ModelParameters)
                 # Reset scratch space for next time.
                 Σ_res[i] = 0
                 Σ_cons[i] = 0
+                # /!\ Take this opportunity to also reset producers competition.
+                # This should change in future evolution in :compact generated code.
+                s[i] = 0
             end
         ),
     ]
@@ -192,6 +195,9 @@ function consumption(::Union{ClassicResponse,LinearResponse}, parms::ModelParame
                 # Reset scratch space for next time.
                 Σ_res[i] = 0
                 Σ_cons[i] = 0
+                # /!\ Take this opportunity to also reset producers competition.
+                # This should change in future evolution in :compact generated code.
+                s[i] = 0
             end
         ),
     ]
