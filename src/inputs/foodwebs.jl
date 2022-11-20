@@ -75,14 +75,20 @@ true
 ```
 
 ```jldoctest
-julia> l = ["snake" => "turtle", "snake" => "mouse"];
+julia> l_str = ["snake" => "turtle", "snake" => "mouse"];
 
-julia> foodweb = FoodWeb(l);
+julia> l_sym = [:snake => :turtle, :snake => :mouse];
 
-julia> foodweb.A == [0 0 0; 1 0 1; 0 0 0]
+julia> fw_str = FoodWeb(l_str); # FoodWeb from Vector{Pair{String, String}}
+
+julia> fw_sym = FoodWeb(l_sym); # FoodWeb from Vector{Pair{Symbol, Symbol}}
+
+julia> fw_str.A == fw_str.A == [0 0 0; 1 0 1; 0 0 0] # same
 true
 
-julia> foodweb.species == ["mouse", "snake", "turtle"]
+julia> sp_names = ["mouse", "snake", "turtle"]; # ordered lexically
+
+julia> fw_str.species == fw_str.species == sp_names # for both names are stored as Strings
 true
 ```
 
@@ -334,10 +340,14 @@ function FoodWeb(adjacency_list::Vector{Pair{T,T}} where {T<:Integer}; kwargs...
     FoodWeb(adjacency_matrix_from_list(adjacency_list); kwargs...)
 end
 
-function FoodWeb(adjacency_list::Vector{Pair{String,String}}; kwargs...)
+function FoodWeb(
+    adjacency_list::Vector{Pair{T,T}};
+    kwargs...,
+) where {T<:Union{String,Symbol}}
     species_list = vcat(first.(adjacency_list), last.(adjacency_list))
     species_list = unique(species_list) # remove repeted specie names
     sort!(species_list) # order lexically species names
+    species_list = String.(species_list) # species names are stored as Strings
     FoodWeb(adjacency_matrix_from_list(adjacency_list); species = species_list, kwargs...)
 end
 
@@ -375,6 +385,15 @@ julia> l = ["fox" => "hen", "hen" => "snake", "snake" => "fox"];
 julia> BEFWM2.adjacency_matrix_from_list(l) == [0 1 0; 0 0 1; 1 0 0] # order lexically
 true
 ```
+
+Works also with vector of `Symbol`s.
+
+```jldoctest
+julia> l = [:fox => :hen, :hen => :snake, :snake => :fox];
+
+julia> BEFWM2.adjacency_matrix_from_list(l) == [0 1 0; 0 0 1; 1 0 0]
+true
+```
 """
 function adjacency_matrix_from_list(adjacency_list::Vector{Pair{T,T}} where {T<:Integer})
     species_list = vcat(first.(adjacency_list), last.(adjacency_list))
@@ -386,7 +405,10 @@ function adjacency_matrix_from_list(adjacency_list::Vector{Pair{T,T}} where {T<:
     A
 end
 
-function adjacency_matrix_from_list(adjacency_list::Vector{Pair{String,String}})
+function adjacency_matrix_from_list(
+    adjacency_list::Vector{Pair{T,T}},
+) where {T<:Union{String,Symbol}}
+    adjacency_list = [Symbol(i) => Symbol(j) for (i, j) in adjacency_list]
     species_list = vcat(first.(adjacency_list), last.(adjacency_list))
     species_list = unique(species_list) # remove repeted species
     S = length(species_list)
