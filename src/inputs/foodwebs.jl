@@ -96,15 +96,30 @@ The structural model implemented are:
 To generate a model with one of these model you have to follow this syntax:
 `FoodWeb(model_name, model_arguments, optional_FoodWeb_arguments)`.
 
-For instance:
+For instance to generate a `FoodWeb` of 10 species (`S`) with 15 links (`L`)
+and predator-prey body mass ratio (`Z`) of 50 with the niche model, you can do:
 
 ```jldoctest
-julia> foodweb = FoodWeb(nichemodel, 20; C = 0.1, Z = 50);
+julia> foodweb = FoodWeb(nichemodel, 15; L = 15, Z = 50);
 
-julia> richness(foodweb) # the FoodWeb of 20 sp. has been well generated
-20
+julia> richness(foodweb) == 15
+true
 
 julia> foodweb.method == "nichemodel"
+true
+```
+
+Moreover, while generating the `FoodWeb` we check that it does not have cycle
+or disconnected species.
+
+By default, we set a tolerance of 1 link between the number of links asked by the user
+and the number of links of the returned `FoodWeb`.
+However, this tolerance can be changed with the `tol` argument:
+
+```jldoctest
+julia> foodweb = FoodWeb(nichemodel, 15; L = 15, Z = 50, tol = 0);
+
+julia> n_links(foodweb) == 15
 true
 ```
 
@@ -168,12 +183,32 @@ function FoodWeb(
     model::Function,
     S = nothing;
     C = nothing,
+    L = nothing,
     p_forbidden = nothing,
+    tol = nothing,
     Z::Real = 1,
     M::Union{Nothing,AbstractVector} = nothing,
 )
+    check_structural_model(model)
+    if isnothing(L) & isnothing(C)
+        throw(ArgumentError("Should provide a connectance `C` or a number of links `L`."))
+    elseif !isnothing(L) & !isnothing(C)
+        throw(ArgumentError("Cannot provide both a connectance `C` and \
+            a number of links `L`. Only one of these two arguments should be given."))
+    elseif !isnothing(L)
+        default_L_tol = 1
+        tol_L = isnothing(tol) ? default_L_tol : tol
+        uni_net = model_foodweb_from_L(model, S, L, p_forbidden, tol_L)
+    elseif !isnothing(C)
+        default_C_tol = 1 / S^2
+        tol_C = isnothing(tol) ? default_C_tol : tol
+        uni_net = model_foodweb_from_C(model, S, C, p_forbidden, tol_C)
+    end
+    (A, species, M, metabolic_class, method) = structural_foodweb_data(uni_net, M, Z, model)
+    FoodWeb(A, species, M, metabolic_class, method)
+end
 
-    uni_net = model_foodweb(model, S, C, p_forbidden)
+function structural_foodweb_data(uni_net, M, Z, model)
     A = uni_net.edges
     species = uni_net.S
     metabolic_class = default_metabolic_class(A)
@@ -182,7 +217,7 @@ function FoodWeb(
         M = compute_mass(A, Z)
     end
     method = string(Symbol(model))
-    FoodWeb(A, species, M, metabolic_class, method)
+    (A, species, M, metabolic_class, method)
 end
 #### end ####
 
@@ -340,13 +375,81 @@ function default_metabolic_class(A)
     metabolic_class
 end
 
-function model_foodweb(model, args...)
+"""
+Generate a food web of `S` species and connectance `C` from a structural `model`.
+Loop until the generated has connectance in [C - ΔC; C + ΔC].
+If the maximum number of iterations is reached an error is thrown instead.
+"""
+function model_foodweb_from_C(model, S, C, p_forbidden, ΔC = 1 / S^2)
+    C <= 1 || throw(ArgumentError("Connectence `C` should be smaller than 1."))
+    C >= (S - 1) / S^2 || throw(ArgumentError("Connectence `C` should be \
+        greater than (S-1)/S^2 to ensure that there is no disconnected species."))
+    ΔC_true = Inf
+    is_net_valid = false
+    iter, iter_safe = 0, 1e5
+    net = nothing
+    while !is_net_valid & (iter <= iter_safe)
+        net = isnothing(p_forbidden) ? model(S, C) : model(S, C, p_forbidden)
+        ΔC_true = abs(connectance(net) - C)
+        is_net_valid = (ΔC_true <= ΔC) & is_model_net_valid(net)
+        iter += 1
+    end
+    iter <= iter_safe ||
+        throw(ErrorException("The maximum number of iteration has been reached."))
+    net
+end
+
+function model_foodweb_from_L(model, S, L, p_forbidden, ΔL = 1)
+    L >= (S - 1) || throw(ArgumentError("Network should have at least S-1 links \
+        to ensure that there is no disconnected species."))
+    ΔL_true = Inf
+    is_net_valid = false
+    iter, iter_safe = 0, 1e5
+    net = nothing
+    while !is_net_valid & (iter <= iter_safe)
+        net = isnothing(p_forbidden) ? model(S, L) : model(S, L, p_forbidden)
+        ΔL_true = abs(n_links(net) - L)
+        is_net_valid = (ΔL_true <= ΔL) & is_model_net_valid(net)
+        iter += 1
+    end
+    iter <= iter_safe ||
+        throw(ErrorException("The maximum number of iteration has been reached."))
+    net
+end
+
+"""
+Check that `net` does not contain cycle and does not have disconnected node.
+"""
+function is_model_net_valid(net)
+    graph = SimpleDiGraph(net.edges)
+    !is_cyclic(graph) & is_connected(graph)
+end
+
+"""
+Generate a food web of `S` species and number of links `L` from a structural `model`.
+Loop until the generated has a number of links in [L - ΔL; L + ΔL].
+If the maximum number of iterations is reached an error is thrown instead.
+"""
+function model_foodweb(model, S, L::Int64; p_forbidden = nothing, ΔL = 1)
+    check_structural_model(model)
+    ΔL_true = Inf
+    iter, iter_safe = 0, 1e5
+    net = nothing
+    while (ΔL_true > ΔL) && (iter <= iter_safe)
+        net = isnothing(p_forbidden) ? model(S, L) : model(S, L, p_forbidden)
+        ΔL_true = abs(n_links(net) - L)
+        iter += 1
+    end
+    iter <= iter_safe ||
+        throw(ErrorException("The maximum number of iteration has been reached."))
+    net
+end
+
+function check_structural_model(model)
     model_name = model |> Symbol |> string
     implemented_models = ["nichemodel", "nestedhierarchymodel", "cascademodel", "mpnmodel"]
     model_name ∈ implemented_models ||
         throw(ArgumentError("Invalid 'model': should be in $implemented_models."))
-    args = filter(!isnothing, args) # only keep non-nothing arguments
-    model(args...)
 end
 #### end ####
 

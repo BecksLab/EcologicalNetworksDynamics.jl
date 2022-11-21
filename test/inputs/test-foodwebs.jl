@@ -43,3 +43,24 @@
     @test_throws ArgumentError FoodWeb([:crab => :mussel]; species = species)
 
 end
+
+@testset "FoodWebs from structural model." begin
+    n_rep = 20
+    SL_tuple = [(10, 20), (15, 20), (15, 30), (20, 50)]
+    for model in [nichemodel, nestedhierarchymodel, cascademodel]
+        for (S, L) in SL_tuple
+            for tL in 0:3
+                # From number of links (L)
+                n_link_vec = [n_links(FoodWeb(model, S; L = L, tol = tL)) for i in 1:n_rep]
+                @test all((L - tL) .<= n_link_vec .<= (L + tL))
+                # From connectance (C)
+                tC = tL / S^2
+                C = L / S^2
+                c_vec = [
+                    BEFWM2.connectance(FoodWeb(model, S; C = C, tol = tC)) for i in 1:n_rep
+                ]
+                @test all((C - tC) .<= c_vec .<= (C + tC))
+            end
+        end
+    end
+end

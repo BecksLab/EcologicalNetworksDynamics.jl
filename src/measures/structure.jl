@@ -13,6 +13,7 @@ Connectance of network: number of links / (number of species)^2
 """
 connectance(A::AbstractMatrix) = sum(A) / richness(A)^2
 connectance(foodweb::FoodWeb) = connectance(foodweb.A)
+connectance(U::UnipartiteNetwork) = connectance(U.edges)
 
 #### Overloading Base methods ####
 """
