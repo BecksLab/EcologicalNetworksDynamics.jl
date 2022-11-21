@@ -88,11 +88,11 @@ struct NoTemperatureResponse <: TemperatureResponse end
 
 
 mutable struct ExponentialBA <: TemperatureResponse
-    defaults_r::ExponentialBAParams
-    defaults_x::ExponentialBAParams
-    defaults_aᵣ::ExponentialBAParams
-    defaults_hₜ::ExponentialBAParams
-    defaults_K::ExponentialBAParams
+    r::ExponentialBAParams
+    x::ExponentialBAParams
+    aᵣ::ExponentialBAParams
+    hₜ::ExponentialBAParams
+    K::ExponentialBAParams
 end
 
 
