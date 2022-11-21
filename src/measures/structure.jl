@@ -208,3 +208,13 @@ function massratio(obj::Union{ModelParameters,FoodWeb})
     return Z
 
 end
+
+#### Extend method from Graphs.jl to FoodWeb and MultiplexNetwork ####
+function Graphs.is_cyclic(net::EcologicalNetwork)
+    is_cyclic(SimpleDiGraph(get_trophic_adjacency(net)))
+end
+
+function Graphs.is_connected(net::EcologicalNetwork)
+    is_connected(SimpleDiGraph(get_trophic_adjacency(net)))
+end
+#### end ####

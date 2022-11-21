@@ -35,6 +35,7 @@ test_files = [
     "model/test-consumption.jl",
     "model/test-simulate.jl",
     "measures/test-functioning.jl",
+    "measures/test-structure.jl",
     "measures/test-utils.jl",
 ]
 

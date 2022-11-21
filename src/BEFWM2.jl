@@ -7,6 +7,7 @@ import DifferentialEquations.Tsit5
 using DiffEqBase
 using DiffEqCallbacks
 using EcologicalNetworks
+using Graphs
 using Mangal
 using OrderedCollections
 using SparseArrays
