@@ -213,7 +213,7 @@ For instance it does not make sense to
 define the connectance *and* the number of links of the same layer.
 Thus if you don't respect this rule an error will be thrown.
 
-```jldoctest befwm2; setup = :(using BEFWM2; foodweb=FoodWeb([0 0; 0 1]))
+```jldoctest befwm2; setup = :(using BEFWM2; foodweb=FoodWeb([0 0; 0 1]; quiet = true))
 julia> MultiplexNetwork(foodweb; facilitation = (C = 0.5, L = 2))
 ERROR: ArgumentError: Ambiguous specifications for facilitation matrix adjacency: both connectance ('C' within a 'facilitation' argument) and number_of_links ('L' within a 'facilitation' argument) have been specified. Consider removing one.
 ```

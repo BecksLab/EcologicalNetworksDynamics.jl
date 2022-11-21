@@ -45,7 +45,7 @@ See also [`population_stability`](@ref)
 # 
 
 ```jldoctest
-julia> foodweb = FoodWeb([0 0; 0 0]); #A foodweb of two producers
+julia> foodweb = FoodWeb([0 0; 0 0]; quiet = true); #A foodweb of two producers
 
 julia> params = ModelParameters(foodweb);
 

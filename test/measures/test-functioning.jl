@@ -1,7 +1,7 @@
 @testset "Producer growth rate" begin
 
     # Set up
-    foodweb = FoodWeb([0 0; 0 0])
+    foodweb = FoodWeb([0 0; 0 0]; quiet = true)
     params = ModelParameters(foodweb; biorates = BioRates(foodweb; d = 0))
 
     sim = simulates(params, [0, 0.5]; verbose = false)
@@ -27,7 +27,7 @@
     )
 
     # Growth rate computed only for producers
-    foodweb = FoodWeb([1 0; 0 0])
+    foodweb = FoodWeb([1 0; 0 0]; quiet = true)
     params = ModelParameters(foodweb)
     sim = simulates(params, [0.5, 0.5]; verbose = true)
     normal_growth = producer_growth(sim; last = 1, out_type = :all)
@@ -44,7 +44,7 @@ end
 @testset "Total biomass, species persistence, Hill numbers" begin
 
     # Set up
-    foodweb = FoodWeb([0 0; 0 0])
+    foodweb = FoodWeb([0 0; 0 0]; quiet = true)
     params = ModelParameters(foodweb; biorates = BioRates(foodweb; d = 0))
 
     sim_two_sp = simulates(params, [0.5, 0.5]; verbose = false)

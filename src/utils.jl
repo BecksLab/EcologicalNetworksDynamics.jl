@@ -79,6 +79,7 @@ BEFWM2.InteractionDict{Int64} with 5 entries:
 """
 n_links(A::AdjacencyMatrix) = count(A)
 n_links(foodweb::FoodWeb) = n_links(foodweb.A)
+n_links(U::UnipartiteNetwork) = n_links(U.edges)
 n_links(layer::Layer) = n_links(layer.A)
 function n_links(multi_net::MultiplexNetwork)
     links = InteractionDict(;

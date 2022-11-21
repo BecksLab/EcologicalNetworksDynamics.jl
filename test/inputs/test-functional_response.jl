@@ -4,7 +4,7 @@
     @test efficiency(foodweb; e_herb = 1, e_carn = 2) == e_expect
     e_expect = sparse([0 0 0; 3 0 0; 3 4 0])
     @test efficiency(foodweb; e_herb = 3, e_carn = 4) == e_expect
-    foodweb = FoodWeb([0 0 0; 1 1 0; 1 1 1])
+    foodweb = FoodWeb([0 0 0; 1 1 0; 1 1 1]; quiet = true)
     e_expect = sparse([0 0 0; 1 2 0; 1 2 2])
     @test efficiency(foodweb; e_herb = 1, e_carn = 2) == e_expect
 end
@@ -222,7 +222,7 @@ end
     F21 = (1 * 0.5 * 2^3) / (1 + 0.5 * 1 * 2^3)
     @test Fclassic_1(2, foodweb_2sp) == sparse([0 0; F21 0])
 
-    # Non-default body mass 
+    # Non-default body mass
     foodweb_2sp_M = FoodWeb(A_2sp; M = [2, 3])
     Fclassic_1 = ClassicResponse(foodweb_2sp; h = 3, hₜ = 1.0, aᵣ = 0.5)
     F21 = (1 * 0.5 * 2^3) / (1 + 0.5 * 1 * 2^3)

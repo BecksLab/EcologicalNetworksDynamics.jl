@@ -1,7 +1,7 @@
 @testset "filtering simulation" begin
 
     # Set up
-    foodweb = FoodWeb([0 0; 0 0])
+    foodweb = FoodWeb([0 0; 0 0]; quiet = true)
     params = ModelParameters(foodweb)
 
     sim = simulates(params, [0, 0.5]; tmax = 20)
