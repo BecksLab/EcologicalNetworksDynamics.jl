@@ -63,6 +63,11 @@ export coefficient_of_variation
 export connectance
 export cpad
 export DefaultGrowthParams
+export DefaultExpBAGrowthParams
+export DefaultExpBAMetabolismParams
+export DefaultExpBAHandlingTimeParams
+export DefaultExpBAAttackRateParams
+export DefaultExpBACarryingCapacityParams
 export DefaultMaxConsumptionParams
 export DefaultMetabolismParams
 export DefaultMortalityParams
