@@ -2,7 +2,9 @@
 Core functions of the model
 =#
 
-function dBdt!(dB, B, params::ModelParameters, t)
+function dBdt!(dB, B, p, t)
+
+    params, extinct_sp = p # unpack input
 
     # Set up - Unpack parameters
     S = richness(params.network)
@@ -13,6 +15,10 @@ function dBdt!(dB, B, params::ModelParameters, t)
 
     # Compute ODE terms for each species
     for i in 1:S
+        if i ∈ extinct_sp
+            B[i] = 0 # make it stick to 0...
+            continue # ... and don't even bother calculating dB[i]
+        end
         growth = logisticgrowth(i, B, r[i], K[i], network)
         eating, being_eaten = consumption(i, B, params, response_matrix)
         metabolism_loss = metabolic_loss(i, B, params)

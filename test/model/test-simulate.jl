@@ -39,11 +39,11 @@ end
     params = ModelParameters(foodweb)
 
     # Solution converges
-    solution1 = simulates(params, [0.5, 0.5])
+    solution1 = simulate(params, [0.5, 0.5])
     @test solution1.retcode == :Terminated
-    solution2 = simulates(params, [0.3, 0.3]; tmax = 10)
+    solution2 = simulate(params, [0.3, 0.3]; saveat = 0.25, tmax = 10)
     @test solution2.retcode == :Success
-    solution3 = simulates(params, [0.2, 0.2]; δt = 0.5, tmax = 10)
+    solution3 = simulate(params, [0.2, 0.2]; saveat = 0.5, tmax = 5)
     @test solution3.retcode == :Success
 
     # Initial biomass
@@ -53,29 +53,43 @@ end
 
     # Timesteps
     @test all([t ∈ Set(solution2.t) for t in (0:0.25:10)])
-    @test all([t ∈ Set(solution3.t) for t in (0:0.5:10)])
+    @test all([t ∈ Set(solution3.t) for t in (0:0.5:5)])
 
     # If biomass start at 0, biomass stay at 0
-    solution_null = simulates(params, [0.0, 0.0])
+    solution_null = simulate(params, [0.0, 0.0]; callback = nothing)
     @test all(hcat(solution_null.u...) .== 0)
 
     # Verbose - Is there a log message to inform the user of species going extinct?
     foodweb = FoodWeb([0 0; 1 0])
     params = ModelParameters(foodweb)
-    @test_nowarn simulates(params, [0.5, 1e-12], verbose = false)
-    log_msg = "Species [2] is exinct. t=0.12316364776188903"
-    @test_warn (log_msg) simulates(params, [0.5, 1e-12], verbose = true)
+    @test_nowarn simulate(params, [0.5, 1e-12], verbose = false)
+    log_msg =
+        "Species [2] went extinct at time t = 0.1. \n" * "1 over 2 species are extinct."
+    @test_logs (:info, log_msg) simulate(
+        params,
+        [0.5, 1e-12],
+        verbose = true,
+        tstops = [0.1],
+    )
 
     # Extinction threshold
     ## Both species below extinction threshold
-    solution = simulates(params, [1e-2]; extinction_threshold = 0.1, tmax = 1) # B0 < extinction
+    solution =
+        simulate(params, [1e-6]; extinction_threshold = 1e-5, tmax = 1, verbose = false)
     @test solution.u[end] == [0.0, 0.0] # both species have gone extinct
     ## One species below extinction thresold
-    solution = simulates(params, [1, 1e-2]; extinction_threshold = 0.1, tmax = 1)
+    solution =
+        simulate(params, [1, 1e-6]; extinction_threshold = 1e-5, tmax = 1, verbose = false)
     @test solution.u[end][2] == 0 # species 2 is extinct
     @test solution.u[end][1] > 0 # species 1 is alive
     ## Provide a vector of extinction threshold (one threshold per species)
-    solution = simulates(params, [0.1]; extinction_threshold = [1e-2, 1], tmax = 1)
+    solution = simulate(
+        params,
+        [1e-5];
+        extinction_threshold = [1e-6, 1e-4],
+        tmax = 1,
+        verbose = false,
+    )
     @test solution.u[end][2] == 0 # species 2 is extinct
     @test solution.u[end][1] > 0 # species 1 is alive
 end
