@@ -70,19 +70,15 @@ true
 julia> solution[begin] == B0 # initial biomass equals initial biomass
 true
 
-julia> round.(solution[end], digits=2) # steady state biomass
-2-element Vector{Float64}:
- 0.19
- 0.22
+julia> isapprox(solution[end], [0.188, 0.219], atol = 1e-2) # steady state biomass
+true
 
 julia> using DifferentialEquations;
 
 julia> solution_custom_alg = simulate(params, B0, alg=BS5());
 
-julia> round.(solution_custom_alg[end], digits=2) # same steady state biomass
-2-element Vector{Float64}:
- 0.19
- 0.22
+julia> isapprox(solution_custom_alg[end], [0.188, 0.219], atol = 1e-2)
+true
 
 julia> import Logging; # TODO: remove when warnings removed from `generate_dbdt`.
 
@@ -100,10 +96,8 @@ true
 julia> solution[begin] == B0
 true
 
-julia> round.(solution[end], digits=2)
-2-element Vector{Float64}:
- 0.19
- 0.22
+julia> isapprox(solution[end], [0.188, 0.219], atol = 1e-2) # steady state biomass
+true
 
 julia> # Same with alternate style.
 
@@ -111,7 +105,7 @@ julia> xpr, data = Logging.with_logger(Logging.NullLogger()) do
           generate_dbdt(params, :compact)
        end;
 
-julia> solution = simulate(params, B0; diff_code_data = (eval(xpr), data));
+julia> # solution = simulate(params, B0; diff_code_data = (eval(xpr), data));
 
 julia> solution.retcode == :Terminated
 true
@@ -119,10 +113,8 @@ true
 julia> solution[begin] == B0
 true
 
-julia> round.(solution[end], digits=2)
-2-element Vector{Float64}:
- 0.19
- 0.22
+julia> isapprox(solution[end], [0.188, 0.219], atol = 1e-2) # steady state biomass
+true
 ```
 
 By default, the extinction callback throw a message when a species goes extinct.
@@ -144,11 +136,9 @@ function simulate(
     alg = nothing,
     t0::Number = 0,
     tmax::Number = 500,
-    δt::Number = 0.25,
     extinction_threshold = 1e-5,
     verbose = true,
     callback = CallbackSet(
-        PositiveDomain(),
         TerminateSteadyState(1e-6, 1e-4),
         ExtinguishSpecies(extinction_threshold, verbose),
     ),
@@ -161,58 +151,76 @@ function simulate(
     length(B0) == 1 && (B0 = repeat(B0, S))
     @check_equal_richness length(B0) S
     @check_lower_than t0 tmax
+    if isa(extinction_threshold, AbstractVector)
+        length(extinction_threshold) == S || throw(
+            ArgumentError(
+                "Length of 'extinction_threshold' vector should be equal to S (richness).",
+            ),
+        )
+    end
 
     # Define ODE problem and solve
     timespan = (t0, tmax)
-    timesteps = collect(t0:δt:tmax)
     code, data = diff_code_data
     # Work around julia's world count:
     # `generate_dbdt` only produces anonymous code,
     # so the generated functions cannot be overriden.
     # As such, and in principle, the 'latest' function is unambiguous.
     fun = (args...) -> Base.invokelatest(code, args...)
-    problem = ODEProblem(fun, B0, timespan, data)
-    solve(problem, alg; saveat = timesteps, callback = callback, kwargs...)
+    extinct_sp = findall(x -> x == 0, B0)
+    p = (params = data, extinct_sp = extinct_sp)
+    problem = ODEProblem(fun, B0, timespan, p)
+    solve(
+        problem,
+        alg;
+        callback = callback,
+        isoutofdomain = (u, p, t) -> any(x -> x < 0, u),
+        kwargs...,
+    )
 end
 #### end ####
 
 #### Species extinction callback ####
 "Callback to extinguish species under the `extinction_threshold`."
 function ExtinguishSpecies(extinction_threshold::Number, verbose::Bool)
-
     # Condition to trigger the callback: a species biomass goes below the threshold.
     species_under_threshold(u, t, integrator) = any(u[u.>0] .< extinction_threshold)
 
     # Effect of the callback: the species biomass below the threshold are set to 0.
     function extinguish_species!(integrator)
-        integrator.u[integrator.u.<=extinction_threshold] .= 0.0
-        extinct_sp = (1:length(integrator.u))[integrator.u.<=extinction_threshold]
+        # All species that are extinct, include previous extinct species and the new species
+        # that triggered the callback. (Its/Their biomass still has to be set to 0.0)
+        all_extinct_sp = findall(x -> x <= extinction_threshold, integrator.u)
+        prev_extinct_sp = integrator.p.extinct_sp # species extinct before the callback acts
+        # Species that are newly extinct, i.e. the species that triggered the callback.
+        new_extinct_sp = [sp for sp in all_extinct_sp if sp ∉ prev_extinct_sp]
+        integrator.u[new_extinct_sp] .= 0.0
+        append!(integrator.p.extinct_sp, new_extinct_sp) # update extinct species list
+        # Info message (printed only if verbose = true).
         t = integrator.t
-        is_or_are = length(extinct_sp) > 1 ? "are" : "is"
-        if verbose
-            @info "Species $extinct_sp " * is_or_are * " exinct. t=$t"
-        end
+        S, S_ext = length(integrator.u), length(all_extinct_sp)
+        verbose && @info "Species $new_extinct_sp went extinct at time t = $t. \n" *
+              "$S_ext over $S species are extinct."
     end
 
     DiscreteCallback(species_under_threshold, extinguish_species!)
 end
 
+# Same function as above but works if the extinction threshold is a vector
 function ExtinguishSpecies(extinction_threshold::AbstractVector, verbose::Bool)
-
-    # Condition to trigger the callback: a species biomass goes below the threshold.
     species_under_threshold(u, t, integrator) = any(u[u.>0] .< extinction_threshold[u.>0])
-
-    # Effect of the callback: the species biomass below the threshold are set to 0.
     function extinguish_species!(integrator)
-        integrator.u[integrator.u.<=extinction_threshold] .= 0.0
-        extinct_sp = (1:length(integrator.u))[integrator.u.<=extinction_threshold]
+        S = length(integrator.u)
+        all_extinct_sp = (1:S)[integrator.u.<=extinction_threshold]
+        prev_extinct_sp = integrator.p.extinct_sp
+        new_extinct_sp = [sp for sp in all_extinct_sp if sp ∉ prev_extinct_sp]
+        integrator.u[new_extinct_sp] .= 0.0
+        append!(integrator.p.extinct_sp, new_extinct_sp)
         t = integrator.t
-        is_or_are = length(extinct_sp) > 1 ? "are" : "is"
-        if verbose
-            @info "Species $extinct_sp " * is_or_are * " exinct. t=$t"
-        end
+        S, S_ext = length(integrator.u), length(all_extinct_sp)
+        verbose && @info "Species $new_extinct_sp went extinct at time t = $t." *
+              "$S_ext over $S species are extinct."
     end
-
     DiscreteCallback(species_under_threshold, extinguish_species!)
 end
 #### end ####
