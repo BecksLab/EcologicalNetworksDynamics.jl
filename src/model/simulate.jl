@@ -140,7 +140,7 @@ function simulate(
     verbose = true,
     callback = CallbackSet(
         TerminateSteadyState(1e-6, 1e-4),
-        ExtinguishSpecies(extinction_threshold, verbose),
+        ExtinctionCallback(extinction_threshold, verbose),
     ),
     diff_code_data = (dBdt!, params),
     kwargs...,
@@ -181,8 +181,18 @@ end
 #### end ####
 
 #### Species extinction callback ####
-"Callback to extinguish species under the `extinction_threshold`."
-function ExtinguishSpecies(extinction_threshold::Number, verbose::Bool)
+"""
+    ExtinctionCallback(extinction_threshold::AbstractVector, verbose::Bool)
+
+Generate a DiffEqCallbacks.DiscreteCallback to extinguish species
+below the `extinction_threshold`.
+The `extinction_threshold` can be either:
+a `Number` (same threshold for every species)
+or an `AbstractVector` of length species richness (one threshold per species).
+If `verbose = true` a message is printed when a species goes extinct,
+otherwise no message are printed.
+"""
+function ExtinctionCallback(extinction_threshold::Number, verbose::Bool)
     # Condition to trigger the callback: a species biomass goes below the threshold.
     species_under_threshold(u, t, integrator) = any(u[u.>0] .< extinction_threshold)
 
@@ -207,7 +217,7 @@ function ExtinguishSpecies(extinction_threshold::Number, verbose::Bool)
 end
 
 # Same function as above but works if the extinction threshold is a vector
-function ExtinguishSpecies(extinction_threshold::AbstractVector, verbose::Bool)
+function ExtinctionCallback(extinction_threshold::AbstractVector, verbose::Bool)
     species_under_threshold(u, t, integrator) = any(u[u.>0] .< extinction_threshold[u.>0])
     function extinguish_species!(integrator)
         S = length(integrator.u)
