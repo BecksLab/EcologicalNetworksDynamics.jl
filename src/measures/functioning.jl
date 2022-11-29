@@ -226,7 +226,7 @@ more specifically:
 See also [`population_stability`](@ref)
 """
 function producer_growth(solution; last::Int64 = 1000, out_type::Symbol = :all)
-    parameters = solution.prob.p#extract parameters
+    parameters = get_parameters(solution) # extract parameters
 
     mask_producer = parameters.network.metabolic_class .== "producer"
 
@@ -255,3 +255,43 @@ function producer_growth(solution; last::Int64 = 1000, out_type::Symbol = :all)
         error("out_type should be one of :all, :mean or :std")
     end
 end
+
+"""
+    get_extinct_species(sol)
+
+Extract list of extinct species from the solution returned by `simulate()`.
+
+```jldoctest
+julia> foodweb = FoodWeb([0 0; 1 0]);
+
+julia> params = ModelParameters(foodweb);
+
+julia> sol = simulate(params, [0.5, 0.5]);
+
+julia> isempty(get_extinct_species(sol)) # no species extinct
+true
+```
+
+See also [`simulate`](@ref), [`get_parameters`](@ref).
+"""
+get_extinct_species(sol) = sol.prob.p.extinct_sp
+
+"""
+    get_parameters(sol)
+
+Extract the [`ModelParameters`](@ref) input from the solution returned by `simulate()`.
+
+```jldoctest
+julia> foodweb = FoodWeb([0 0; 1 0]);
+
+julia> params = ModelParameters(foodweb);
+
+julia> sol = simulate(params, [0.5, 0.5]);
+
+julia> isa(get_parameters(sol), ModelParameters)
+true
+```
+
+See also [`simulate`](@ref), [`get_extinct_species`](@ref).
+"""
+get_parameters(sol) = sol.prob.p.params

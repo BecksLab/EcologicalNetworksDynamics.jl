@@ -73,6 +73,8 @@ export foodweb_simpson
 export FunctionalResponse
 export FunctionalResponse
 export generate_dbdt
+export get_extinct_species
+export get_parameters
 export homogeneous_preference
 export interaction_names
 export Layer

@@ -58,11 +58,13 @@ end
     # If biomass start at 0, biomass stay at 0
     solution_null = simulate(params, [0.0, 0.0]; callback = nothing)
     @test all(hcat(solution_null.u...) .== 0)
+    @test get_extinct_species(solution_null) == [1, 2]
 
     # Verbose - Is there a log message to inform the user of species going extinct?
     foodweb = FoodWeb([0 0; 1 0])
     params = ModelParameters(foodweb)
     @test_nowarn simulate(params, [0.5, 1e-12], verbose = false)
+    @test get_extinct_species(simulate(params, [0.5, 1e-12]; verbose = false)) == [2]
     log_msg =
         "Species [2] went extinct at time t = 0.1. \n" * "1 over 2 species are extinct."
     @test_logs (:info, log_msg) simulate(
@@ -71,17 +73,22 @@ end
         verbose = true,
         tstops = [0.1],
     )
+    @test get_extinct_species(
+        simulate(params, [0.5, 1e-12]; verbose = true, tstops = [0.1]),
+    ) == [2]
 
     # Extinction threshold
     ## Both species below extinction threshold
     solution =
         simulate(params, [1e-6]; extinction_threshold = 1e-5, tmax = 1, verbose = false)
     @test solution.u[end] == [0.0, 0.0] # both species have gone extinct
+    @test get_extinct_species(solution) == [1, 2]
     ## One species below extinction thresold
     solution =
         simulate(params, [1, 1e-6]; extinction_threshold = 1e-5, tmax = 1, verbose = false)
     @test solution.u[end][2] == 0 # species 2 is extinct
     @test solution.u[end][1] > 0 # species 1 is alive
+    @test get_extinct_species(solution) == [2]
     ## Provide a vector of extinction threshold (one threshold per species)
     solution = simulate(
         params,
@@ -92,4 +99,5 @@ end
     )
     @test solution.u[end][2] == 0 # species 2 is extinct
     @test solution.u[end][1] > 0 # species 1 is alive
+    @test get_extinct_species(solution) == [2]
 end
