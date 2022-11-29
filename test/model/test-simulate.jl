@@ -101,3 +101,25 @@ end
     @test solution.u[end][1] > 0 # species 1 is alive
     @test get_extinct_species(solution) == [2]
 end
+
+# Test inspired by this issue:
+# https://discourse.julialang.org/t/zombies-in-biological-ode-why-is-my-solver-not-sticking-to-zero/90409
+@testset "No zombies, extinction are handled correctly." begin
+    foodweb = FoodWeb([0 0 0; 1 0 0; 1 0 0])
+    biorates = BioRates(foodweb; y = [0, 7.992, 8])
+    params = ModelParameters(foodweb; biorates = biorates)
+    B0 = [0.5, 0.5, 0.5]
+    sol = simulate(params, B0; callback = ExtinctionCallback(1e-5, true), tmax = 300_000)
+    @test get_extinct_species(sol) == [2]
+    sol2 = sol[2, :] # trajectory of species 2 biomass
+    idx_cb_triggered = findall(x -> 0 < x < 1e-5, sol2)
+    @test length(idx_cb_triggered) == 1 # cb triggered only once (no zombies)
+    idx_cb_triggered = idx_cb_triggered[1]
+    # When callback is triggered previous and next state are saved
+    # to identify unambiguously the discontinuity.
+    # Then we have two time steps at t_discontinuity:
+    # 1. 0 < B_going_extinct <= extinction_threshold (before the callback)
+    # 2. B_going_extinct = 0 (after the callback)
+    @test sol.t[idx_cb_triggered] == sol.t[idx_cb_triggered+1]
+    @test all(sol2 .>= 0) # no anti-biomass
+end
