@@ -8,7 +8,7 @@ Adapted from BioenergeticFoodWeb.jl
 return `NaN` in case of problem.
 
 # Argument
-- n: a vector of biomass values 
+- n: a vector of biomass values
 """
 species_richness(n; threshold::Float64 = eps()) = sum(n .> threshold)
 
@@ -34,21 +34,21 @@ by default set at `eps()`, which should be close to 10^-16.
 
 Number of species is the species richness over the `last` timesteps (See [`foodweb_richness`](@ref)).
 
-The number of species at the beginning of the simulation is the number of initial biomass provided, i.e.  
-the starting number of species would be  
+The number of species at the beginning of the simulation is the number of initial biomass provided, i.e.
+the starting number of species would be
 
 See also [`population_stability`](@ref)
 
 # Examples
 #
 ```jldoctest
-julia> foodweb = FoodWeb([0 0; 0 0]); #A foodweb of two producers 
+julia> foodweb = FoodWeb([0 0; 0 0]); #A foodweb of two producers
 
 julia> params = ModelParameters(foodweb);
 
 julia> sim_two = simulate(params, [0.5, 0.5]);
 
-julia> species_persistence(sim_two, last = 1) # All the producers survived 
+julia> species_persistence(sim_two, last = 1) # All the producers survived
 1.0
 
 julia> sim_one = simulate(params, [0, 0.5]);
@@ -89,7 +89,7 @@ end
 return `NaN` in case of problem.
 
 # Argument
-- n: a vector of biomass values 
+- n: a vector of biomass values
 """
 function shannon(n; threshold::Float64 = eps())
     x = copy(n)
@@ -133,7 +133,7 @@ end
 return `NaN` in case of problem.
 
 # Argument
-- n: a vector of biomass values 
+- n: a vector of biomass values
 """
 function simpson(n; threshold::Float64 = eps())
     x = copy(n)
@@ -154,7 +154,7 @@ end
 """
 **Food web simpson**
 
-Equivalent of [`foodweb_evenness`](@ref) for the Simpson diversity index (the second hill number) 
+Equivalent of [`foodweb_evenness`](@ref) for the Simpson diversity index (the second hill number)
 
 See also [`population_stability`](@ref) for examples
 
@@ -174,7 +174,7 @@ end
 """
 **Pielou evenness**
 
-Shannon divided by the log number of species 
+Shannon divided by the log number of species
 
 # See also
 [`shannon`](@ref)
@@ -235,7 +235,7 @@ function producer_growth(solution; last::Int64 = 1000, out_type::Symbol = :all)
     Kp = parameters.environment.K[mask_producer]
     rp = parameters.biorates.r[mask_producer]
 
-    #extract the biomasses of the producer_species
+    # extract the biomasses of the producer_species
     measure_on = filter_sim(solution; last = last)[mask_producer, :]
 
     growth = (
