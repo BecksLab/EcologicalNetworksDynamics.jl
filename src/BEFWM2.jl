@@ -62,6 +62,7 @@ export DefaultMetabolismParams
 export draw_asymmetric_links
 export draw_symmetric_links
 export Environment
+export ExtinctionCallback
 export find_steady_state
 export fitin
 export FoodWeb
