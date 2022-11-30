@@ -147,8 +147,11 @@ See also [`ClassicResponse`](@ref), [`LinearResponse`](@ref)
 and [`FunctionalResponse`](@ref).
 """
 function (F::BioenergeticResponse)(B, i, j)
-    num = F.ω[i, j] * B[j]^F.h
-    denom = (F.B0[i]^F.h) + (F.c[i] * B[i] * F.B0[i]^F.h) + (sum(F.ω[i, :] .* (B .^ F.h)))
+    num = F.ω[i, j] * abs(B[j])^F.h
+    denom =
+        (abs(F.B0[i])^F.h) +
+        (F.c[i] * B[i] * abs(F.B0[i])^F.h) +
+        (sum(F.ω[i, :] .* (abs.(B) .^ F.h)))
     num / denom
 end
 # Code generation version (raw) (↑ ↑ ↑ DUPLICATED FROM ABOVE ↑ ↑ ↑).
@@ -261,8 +264,9 @@ See also [`BioenergeticResponse`](@ref), [`LinearResponse`](@ref)
 and [`FunctionalResponse`](@ref).
 """
 function (F::ClassicResponse)(B, i, j)
-    num = F.ω[i, j] * F.aᵣ[i, j] * B[j]^F.h
-    denom = 1 + (F.c[i] * B[i]) + sum(F.aᵣ[i, :] .* F.hₜ[i, :] .* F.ω[i, :] .* (B .^ F.h))
+    num = F.ω[i, j] * F.aᵣ[i, j] * abs(B[j])^F.h
+    denom =
+        1 + (F.c[i] * B[i]) + sum(F.aᵣ[i, :] .* F.hₜ[i, :] .* F.ω[i, :] .* (abs.(B) .^ F.h))
     num / denom
 end
 # Code generation version (raw) (↑ ↑ ↑ DUPLICATED FROM ABOVE ↑ ↑ ↑).
@@ -347,8 +351,9 @@ end
 
 function (F::ClassicResponse)(B, i, j, aᵣ, network::MultiplexNetwork)
     # Compute numerator and denominator.
-    num = F.ω[i, j] * aᵣ[i, j] * B[j]^F.h
-    denom = 1 + (F.c[i] * B[i]) + sum(aᵣ[i, :] .* F.hₜ[i, :] .* F.ω[i, :] .* (B .^ F.h))
+    num = F.ω[i, j] * aᵣ[i, j] * abs(B[j])^F.h
+    denom =
+        1 + (F.c[i] * B[i]) + sum(aᵣ[i, :] .* F.hₜ[i, :] .* F.ω[i, :] .* (abs.(B) .^ F.h))
 
     # Add interspecific predator interference to denominator.
     A_interference = network.layers[:interference].A
