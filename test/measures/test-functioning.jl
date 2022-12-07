@@ -4,7 +4,7 @@
     foodweb = FoodWeb([0 0; 0 0])
     params = ModelParameters(foodweb)
 
-    sim = simulate(params, [0, 0.5]; verbose = false)
+    sim = simulates(params, [0, 0.5]; verbose = false)
     normal_growth = producer_growth(sim; last = 1, out_type = :all)
     # If biomass equal to 0, growth rate equal to 0
     @test normal_growth.G[normal_growth.s.=="s1"][1][1] ≈ 0.0
@@ -29,7 +29,7 @@
     # Growth rate computed only for producers
     foodweb = FoodWeb([1 0; 0 0])
     params = ModelParameters(foodweb)
-    sim = simulate(params, [0.5, 0.5]; verbose = true)
+    sim = simulates(params, [0.5, 0.5]; verbose = true)
     normal_growth = producer_growth(sim; last = 1, out_type = :all)
 
     @test length(normal_growth.s) == 1
@@ -47,9 +47,9 @@ end
     foodweb = FoodWeb([0 0; 0 0])
     params = ModelParameters(foodweb)
 
-    sim_two_sp = simulate(params, [0.5, 0.5]; verbose = false)
-    sim_one_sp = simulate(params, [0, 0.5]; verbose = false)
-    sim_zero = simulate(params, [0, 0]; verbose = false)
+    sim_two_sp = simulates(params, [0.5, 0.5]; verbose = false)
+    sim_one_sp = simulates(params, [0, 0.5]; verbose = false)
+    sim_zero = simulates(params, [0, 0]; verbose = false)
 
     # Total biomass should converge to K
     @test isapprox(

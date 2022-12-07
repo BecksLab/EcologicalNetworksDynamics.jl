@@ -5,6 +5,9 @@ using SparseArrays
 using Random
 using EcologicalNetworks
 using JuliaFormatter
+using SyntaxTree
+using Logging #  TODO: remove once warnings are removed from `generate_dbdt`.
+
 
 # Set and print seed
 seed = sample(1:100000)
@@ -32,6 +35,57 @@ test_files = [
     "measures/test-functioning.jl",
     "measures/test-utils.jl",
 ]
+
+# Wrap 'simulate' in a routine testing identity between
+# generic simulation code and generated code.
+function simulates(parms, B0; compare_atol = nothing, compare_rtol = nothing, kwargs...)
+    g = BEFWM2.simulate(parms, B0; verbose = false, kwargs...)
+
+    # Compare with raw specialized code.
+    xp, data = Logging.with_logger(() -> generate_dbdt(parms, :raw), Logging.NullLogger())
+    # Guard against explosive compilation times with this approach.
+    if SyntaxTree.callcount(xp) <= 20_000 #  wild rule of thumb
+        dbdt = eval(xp)
+        s = BEFWM2.simulate(
+            parms,
+            B0;
+            diff_code_data = (dbdt, data),
+            verbose = false,
+            kwargs...,
+        )
+        compare_generic_vs_specialized(g, s, compare_atol, compare_rtol)
+    end
+
+    # Compare with compact specialized code.
+    xp, data =
+        Logging.with_logger(() -> generate_dbdt(parms, :compact), Logging.NullLogger())
+    dbdt = eval(xp)
+    s = BEFWM2.simulate(
+        parms,
+        B0;
+        diff_code_data = (dbdt, data),
+        verbose = false,
+        kwargs...,
+    )
+    compare_generic_vs_specialized(g, s, compare_atol, compare_rtol)
+
+    g
+end
+
+function compare_generic_vs_specialized(g, s, atol, rtol)
+    kwargs = Dict()
+    isnothing(atol) || (kwargs[:atol] = atol)
+    isnothing(rtol) || (kwargs[:rtol] = rtol)
+    @test g.retcode == s.retcode
+    @test isapprox(g.k, s.k; kwargs...)
+    @test isapprox(g.t, s.t; kwargs...)
+    @test isapprox(g.u, s.u; kwargs...)
+end
+
+# Deactivate `simulate` so only the full version can be used in tests.
+simulate(args...; kwargs...) =
+    throw(MethodError("Don't use `simulate()` in tests, use `simulates()` instead \
+                       so that all simulation flavours are tested together at once."))
 
 # Set up text formatting
 highlight = "\033[7m"

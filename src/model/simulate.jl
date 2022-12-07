@@ -105,7 +105,7 @@ julia> xpr, data = Logging.with_logger(Logging.NullLogger()) do
           generate_dbdt(params, :compact)
        end;
 
-julia> # solution = simulate(params, B0; diff_code_data = (eval(xpr), data));
+julia> solution = simulate(params, B0; diff_code_data = (eval(xpr), data));
 
 julia> solution.retcode == :Terminated
 true
@@ -172,6 +172,13 @@ function simulate(
     # `generate_dbdt` only produces anonymous code,
     # so the generated functions cannot be overriden.
     # As such, and in principle, the 'latest' function is unambiguous.
+    if !isa(code, Function)
+        message = "The given specialized code is not a `Function` but `$(typeof(code))`."
+        if isa(code, Expr)
+            message *= " Did you forget to `eval()`uate it before passing it to `simulate()`?"
+        end
+        throw(ArgumentError(message))
+    end
     fun = (args...) -> Base.invokelatest(code, args...)
     extinct_sp = Set(findall(x -> x == 0, B0))
     p = (params = data, extinct_sp = extinct_sp)
