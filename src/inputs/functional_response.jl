@@ -161,13 +161,13 @@ function (F::BioenergeticResponse)(i, j, resources::Vector)
     B_i = :(B[$i])
     B_j = :(B[$j])
     h = F.h
-    B0_ih = F.B0[i]^h
+    B0_ih = abs(F.B0[i])^h
     c_i = F.c[i]
-    num = :($ω_ij * $B_j^$h)
+    num = :($ω_ij * abs($B_j)^$h)
     denom = :(
         $B0_ih +
         ($c_i * $B_i * $B0_ih) +
-        xp_sum([:r, :ω], $[resources, F.ω[i, resources]], :(ω * (B[r]^$$h)))
+        xp_sum([:r, :ω], $[resources, F.ω[i, resources]], :(ω * (abs(B[r])^$$h)))
     )
     num, denom
 end
@@ -201,16 +201,16 @@ function (F::BioenergeticResponse)(parms, ::Symbol)
             for i in 1:S
                 Σ = 0.0
                 for (k, ω_ik) in ω_res[i]
-                    Σ += ω_ik * B[k]^h
+                    Σ += ω_ik * abs(B[k])^h
                 end
-                denominators[i] = B0[i]^h * (1.0 + c[i] * B[i]) + Σ
+                denominators[i] = abs(B0[i])^h * (1.0 + c[i] * B[i]) + Σ
             end
         ),
         :(
             # Calculate numerators and actual F values.
             # (only one iteration over nonzero (i,j) entries is needed)
             for (ij, (i, j)) in enumerate(zip(nonzero_links...))
-                numerator = ω[ij] * B[j]^h
+                numerator = ω[ij] * abs(B[j])^h
                 F[ij] = numerator / denominators[i]
             end
         ),
@@ -281,14 +281,14 @@ function (F::ClassicResponse)(i, j, resources::Vector)
     B_j = :(B[$j])
     B_i = :(B[$i])
     c_i = F.c[i]
-    num = :($ω_ij * $a_ij * $B_j^$h)
+    num = :($ω_ij * $a_ij * abs($B_j)^$h)
     denom = :(
         1 +
         $c_i * $B_i +
         xp_sum(
             [:r, :aᵣ, :hₜ, :ω],
             $[resources, aᵣ_i, hₜ_i, ω_i],
-            :(aᵣ * hₜ * ω * (B[r]^$$h)),
+            :(aᵣ * hₜ * ω * (abs(B[r])^$$h)),
         )
     )
     num, denom
@@ -331,7 +331,7 @@ function (F::ClassicResponse)(parms, ::Symbol)
             for i in 1:S
                 Σ = 0.0
                 for (k, (ω_ik, aᵣ_ik, hₜ_ik)) in resource_values[i]
-                    Σ += ω_ik * aᵣ_ik * hₜ_ik * B[k]^h
+                    Σ += ω_ik * aᵣ_ik * hₜ_ik * abs(B[k])^h
                 end
                 denominators[i] = 1.0 + c[i] * B[i] + Σ
             end
@@ -340,7 +340,7 @@ function (F::ClassicResponse)(parms, ::Symbol)
             # Calculate numerators and actual F values.
             # (only one iteration over nonzero (i,j) entries is needed)
             for (ij, (i, j)) in enumerate(zip(nonzero_links...))
-                numerator = ω[ij] * aᵣ[ij] * B[j]^h
+                numerator = ω[ij] * aᵣ[ij] * abs(B[j])^h
                 F[ij] = numerator / denominators[i]
             end
         ),

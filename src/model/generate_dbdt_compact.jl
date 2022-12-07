@@ -3,7 +3,14 @@ function generate_dbdt_compact(parms::ModelParameters)
     # Prepare collection of pre-calculated data.
     data = Dict()
 
-    code = :(function (dB, B, data, t)
+    code = :(function (dB, B, p, t)
+
+        (data, extinct_species) = p
+        # TODO: this extra loop should be avoided
+        # within the new `:compact` framework, taking all links layers into account.
+        for i in extinct_species
+            B[i] = 0
+        end
 
         # Lines are generated here.
 
