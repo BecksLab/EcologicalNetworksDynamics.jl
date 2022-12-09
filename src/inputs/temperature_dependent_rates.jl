@@ -30,9 +30,9 @@ calling the corresponding function, for:
 - Exponential Boltzmann Arrhenius metabolic rate (x) call [`DefaultExpBAMetabolismParams`](@ref)
 """
 struct ExponentialBAParams 
-    aₚ::Real
-    aₑ::Real
-    aᵢ::Real
+    aₚ::Union{Real, Nothing}
+    aₑ::Union{Real, Nothing}
+    aᵢ::Union{Real, Nothing}
     bₚ::Real
     bₑ::Real
     bᵢ::Real
@@ -81,7 +81,7 @@ DefaultExpBAAttackRateParams() = ExponentialBAParams(0, exp(-13.1), exp(-13.1), 
 Default temp dependent and allometric parameters (a, b, c, Eₐ) values for carrying capacity.([Meehan, 2006]( https://doi.org/10.1890/0012-9658(2006)87[1650:EUAAAI]2.0.CO;2), [Binzer et al., 2016](https://doi.org/10.1111/gcb.13086))
 
 """
-DefaultExpBACarryingCapacityParams() = ExponentialBAParams(3, 0, 0, 0.28, 0.28, 0.28, 0, 0, 0, 0.71)
+DefaultExpBACarryingCapacityParams() = ExponentialBAParams(3, nothing, nothing, 0.28, 0.28, 0.28, 0, 0, 0, 0.71)
 
 #### end ####
 struct NoTemperatureResponse <: TemperatureResponse end
@@ -97,13 +97,13 @@ end
 
 
 function ExponentialBA(
-    defaults_r = DefaultExpBAGrowthParams(),
-    defaults_x = DefaultExpBAMetabolismParams(),
-    defaults_aᵣ = DefaultExpBAAttackRateParams(),
-    defaults_hₜ = DefaultExpBAHandlingTimeParams(),
-    defaults_K = DefaultExpBACarryingCapacityParams()
+    r = DefaultExpBAGrowthParams(),
+    x = DefaultExpBAMetabolismParams(),
+    aᵣ = DefaultExpBAAttackRateParams(),
+    hₜ = DefaultExpBAHandlingTimeParams(),
+    K = DefaultExpBACarryingCapacityParams()
 )
-    ExponentialBA(defaults_r, defaults_x, defaults_aᵣ, defaults_hₜ, defaults_K)
+    ExponentialBA(r, x, aᵣ, hₜ, K)
 end
 
 
@@ -134,7 +134,7 @@ function exponentialBAparams_to_vec(foodweb::EcologicalNetwork, params::Exponent
 
     # Set up
     S = richness(foodweb)
-    a, b, c = zeros(S), zeros(S), zeros(S)
+    a, b, c = Vector{Union{Float64, Nothing}}(zeros(S)), Vector{Union{Float64, Nothing}}(zeros(S)), Vector{Union{Float64, Nothing}}(zeros(S))
 
     # Fill a
     a[producers(foodweb)] .= params.aₚ
@@ -161,9 +161,17 @@ end
 function exponentialBA_vector_rate(net::EcologicalNetwork, T::Real, exponentialBAparams::ExponentialBAParams)
     params = exponentialBAparams_to_vec(net, exponentialBAparams)
     a, b, Eₐ = params.a, params.b, params.Eₐ
-    allometry = allometricscale.(a, b, net.M)
-    boltmann_term = boltzmann(Eₐ, T)
-    return allometry .* boltmann_term
+    boltzmann_term = boltzmann(Eₐ, T)
+    allometry = []
+    for i in eachindex(a)
+        if isnothing(a[i])
+            push!(allometry, nothing)
+        else
+            push!(allometry, allometricscale(a[i], b[i], net.M[i]) * boltzmann_term)
+        end
+    end 
+    
+    allometry
 end
 
 "Compute rate natrix (one value per species interaction) with temperature dependent scaling. (aᵣ, hₜ)"
