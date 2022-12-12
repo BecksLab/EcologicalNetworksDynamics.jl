@@ -107,6 +107,8 @@ end
     @test solution.u[end][2] == 0 # species 2 is extinct
     @test solution.u[end][1] > 0 # species 1 is alive
     @test get_extinct_species(solution) == Set([2])
+    ## Error if extinction threshold is not a Number or an AbstractVector
+    @test_throws TypeError simulate(params, [1]; extinction_threshold = Set([1e-5]))
 end
 
 # Test inspired by this issue:
