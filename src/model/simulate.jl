@@ -136,7 +136,7 @@ function simulate(
     alg = nothing,
     t0::Number = 0,
     tmax::Number = 500,
-    extinction_threshold = 1e-5,
+    extinction_threshold::Union{Number,AbstractVector} = 1e-5,
     verbose = true,
     callback = CallbackSet(
         TerminateSteadyState(1e-6, 1e-4),
@@ -198,45 +198,40 @@ or an `AbstractVector` of length species richness (one threshold per species).
 If `verbose = true` a message is printed when a species goes extinct,
 otherwise no message are printed.
 """
-function ExtinctionCallback(extinction_threshold::Number, verbose::Bool)
+function ExtinctionCallback(extinction_threshold, verbose::Bool)
     # Condition to trigger the callback: a species biomass goes below the threshold.
-    species_under_threshold(u, t, integrator) = any(u[u.>0] .< extinction_threshold)
+    function species_under_threshold(u, t, integrator)
+        if isa(extinction_threshold, Number)
+            return any(u[u.>0] .< extinction_threshold)
+        else
+            return any(u[u.>0] .< extinction_threshold[u.>0])
+        end
+    end
 
     # Effect of the callback: the species biomass below the threshold are set to 0.
     function extinguish_species!(integrator)
         # All species that are extinct, include previous extinct species and the new species
         # that triggered the callback. (Its/Their biomass still has to be set to 0.0)
-        all_extinct_sp = Set(findall(x -> x < extinction_threshold, integrator.u))
+        S = length(integrator.u)
+        if isa(extinction_threshold, Number)
+            all_extinct_sp = Set(findall(x -> x < extinction_threshold, integrator.u))
+        else
+            all_extinct_sp = Set((1:S)[integrator.u.<extinction_threshold])
+        end
         prev_extinct_sp = integrator.p.extinct_sp # species extinct before the callback acts
         # Species that are newly extinct, i.e. the species that triggered the callback.
         new_extinct_sp = setdiff(all_extinct_sp, prev_extinct_sp)
         integrator.u[[sp for sp in new_extinct_sp]] .= 0.0
         union!(integrator.p.extinct_sp, new_extinct_sp) # update extinct species list
         # Info message (printed only if verbose = true).
-        t = integrator.t
-        S, S_ext = length(integrator.u), length(all_extinct_sp)
-        verbose && @info "Species $([new_extinct_sp...]) went extinct at time t = $t. \n" *
-              "$S_ext over $S species are extinct."
+        if verbose
+            t = integrator.t
+            S, S_ext = length(integrator.u), length(all_extinct_sp)
+            @info "Species $([new_extinct_sp...]) went extinct at time t = $t. \n" *
+                  "$S_ext over $S species are extinct."
+        end
     end
 
-    DiscreteCallback(species_under_threshold, extinguish_species!)
-end
-
-# Same function as above but works if the extinction threshold is a vector
-function ExtinctionCallback(extinction_threshold::AbstractVector, verbose::Bool)
-    species_under_threshold(u, t, integrator) = any(u[u.>0] .< extinction_threshold[u.>0])
-    function extinguish_species!(integrator)
-        S = length(integrator.u)
-        all_extinct_sp = Set((1:S)[integrator.u.<=extinction_threshold])
-        prev_extinct_sp = integrator.p.extinct_sp
-        new_extinct_sp = setdiff(all_extinct_sp, prev_extinct_sp)
-        integrator.u[[sp for sp in new_extinct_sp]] .= 0.0
-        union!(integrator.p.extinct_sp, new_extinct_sp)
-        t = integrator.t
-        S, S_ext = length(integrator.u), length(all_extinct_sp)
-        verbose && @info "Species $([new_extinct_sp...]) went extinct at time t = $t." *
-              "$S_ext over $S species are extinct."
-    end
     DiscreteCallback(species_under_threshold, extinguish_species!)
 end
 #### end ####
