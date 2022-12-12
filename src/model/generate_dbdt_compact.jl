@@ -8,7 +8,7 @@ function generate_dbdt_compact(parms::ModelParameters)
         (data, extinct_species) = p
         # TODO: this extra loop should be avoided
         # within the new `:compact` framework, taking all links layers into account.
-        for i in extinct_species
+        for i in keys(extinct_species)
             B[i] = 0
         end
 

@@ -12,6 +12,7 @@
     solution3 = simulates(params, [0.2, 0.2]; saveat = 0.5, tmax = 5, verbose = false)
     @test solution3.retcode == :Success
 
+
     # Initial biomass
     @test solution1.u[begin] == [0.5, 0.5]
     @test solution2.u[begin] == [0.3, 0.3]
@@ -24,7 +25,8 @@
     # If biomass start at 0, biomass stay at 0
     solution_null = simulates(params, [0.0, 0.0]; callback = nothing)
     @test all(hcat(solution_null.u...) .== 0)
-    @test get_extinct_species(solution_null) == Set([1, 2])
+    @test keys(get_extinct_species(solution_null)) == Set([1, 2])
+
 
     # Check against negative initial biomass values.
     foodweb = FoodWeb([0 0; 1 0])
@@ -33,11 +35,13 @@
     @test_throws ArgumentError simulates(params, [0.1, -1], verbose = false)
     @test_nowarn simulates(params, [1, 0], verbose = false)
 
+
     # Verbose - Is there a log message to inform the user of species going extinct?
     foodweb = FoodWeb([0 0; 1 0])
     params = ModelParameters(foodweb)
     @test_nowarn simulates(params, [0.5, 1e-12], verbose = false)
-    @test get_extinct_species(simulates(params, [0.5, 1e-12]; verbose = false)) == Set([2])
+    @test keys(get_extinct_species(simulates(params, [0.5, 1e-12]; verbose = false))) ==
+          Set([2])
     log_msg =
         "Species [2] went extinct at time t = 0.1. \n" * "1 over 2 species are extinct."
     @test_logs (:info, log_msg) (:info, log_msg) (:info, log_msg) simulates(
@@ -45,23 +49,27 @@
         [0.5, 1e-12],
         verbose = true,
         tstops = [0.1],
+        compare_rtol = 1e-6,
     )
-    @test get_extinct_species(
-        simulates(params, [0.5, 1e-12]; verbose = true, tstops = [0.1]),
+    @test keys(
+        get_extinct_species(
+            simulates(params, [0.5, 1e-12]; verbose = true, tstops = [0.1]),
+        ),
     ) == Set([2])
+
 
     # Extinction threshold
     ## Both species below extinction threshold
     solution =
         simulates(params, [1e-6]; extinction_threshold = 1e-5, tmax = 1, verbose = false)
     @test solution.u[end] == [0.0, 0.0] # both species have gone extinct
-    @test get_extinct_species(solution) == Set([1, 2])
+    @test keys(get_extinct_species(solution)) == Set([1, 2])
     ## One species below extinction thresold
     solution =
         simulates(params, [1, 1e-6]; extinction_threshold = 1e-5, tmax = 1, verbose = false)
     @test solution.u[end][2] == 0 # species 2 is extinct
     @test solution.u[end][1] > 0 # species 1 is alive
-    @test get_extinct_species(solution) == Set([2])
+    @test keys(get_extinct_species(solution)) == Set([2])
     ## Provide a vector of extinction threshold (one threshold per species)
     solution = simulates(
         params,
@@ -72,7 +80,7 @@
     )
     @test solution.u[end][2] == 0 # species 2 is extinct
     @test solution.u[end][1] > 0 # species 1 is alive
-    @test get_extinct_species(solution) == Set([2])
+    @test keys(get_extinct_species(solution)) == Set([2])
     ## Error if extinction threshold is not a Number or an AbstractVector
     @test_throws TypeError simulates(params, [1]; extinction_threshold = Set([1e-5]))
 end
@@ -92,7 +100,7 @@ end
         verbose = false,
         compare_rtol = 1e-6,
     )
-    @test get_extinct_species(sol) == Set([2])
+    @test keys(get_extinct_species(sol)) == Set([2])
     sol2 = sol[2, :] # trajectory of species 2 biomass
     idx_cb_triggered = findall(x -> 0 < x < 1e-5, sol2)
     @test length(idx_cb_triggered) == 1 # cb triggered only once (no zombies)
