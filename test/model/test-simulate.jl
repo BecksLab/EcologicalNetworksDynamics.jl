@@ -39,11 +39,11 @@ end
     params = ModelParameters(foodweb)
 
     # Solution converges
-    solution1 = simulate(params, [0.5, 0.5])
+    solution1 = simulate(params, [0.5, 0.5]; verbose = false)
     @test solution1.retcode == :Terminated
-    solution2 = simulate(params, [0.3, 0.3]; saveat = 0.25, tmax = 10)
+    solution2 = simulate(params, [0.3, 0.3]; saveat = 0.25, tmax = 10, verbose = false)
     @test solution2.retcode == :Success
-    solution3 = simulate(params, [0.2, 0.2]; saveat = 0.5, tmax = 5)
+    solution3 = simulate(params, [0.2, 0.2]; saveat = 0.5, tmax = 5, verbose = false)
     @test solution3.retcode == :Success
 
     # Initial biomass
@@ -59,6 +59,13 @@ end
     solution_null = simulate(params, [0.0, 0.0]; callback = nothing)
     @test all(hcat(solution_null.u...) .== 0)
     @test get_extinct_species(solution_null) == [1, 2]
+
+    # Check against negative initial biomass values.
+    foodweb = FoodWeb([0 0; 1 0])
+    params = ModelParameters(foodweb)
+    @test_throws ArgumentError simulate(params, [-1], verbose = false)
+    @test_throws ArgumentError simulate(params, [0.1, -1], verbose = false)
+    @test_nowarn simulate(params, [1, 0], verbose = false)
 
     # Verbose - Is there a log message to inform the user of species going extinct?
     foodweb = FoodWeb([0 0; 1 0])
@@ -109,7 +116,13 @@ end
     biorates = BioRates(foodweb; y = [0, 7.992, 8])
     params = ModelParameters(foodweb; biorates = biorates)
     B0 = [0.5, 0.5, 0.5]
-    sol = simulate(params, B0; callback = ExtinctionCallback(1e-5, true), tmax = 300_000)
+    sol = simulate(
+        params,
+        B0;
+        callback = ExtinctionCallback(1e-5, true),
+        tmax = 300_000,
+        verbose = false,
+    )
     @test get_extinct_species(sol) == [2]
     sol2 = sol[2, :] # trajectory of species 2 biomass
     idx_cb_triggered = findall(x -> 0 < x < 1e-5, sol2)

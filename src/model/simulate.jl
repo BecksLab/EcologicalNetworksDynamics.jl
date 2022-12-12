@@ -148,6 +148,12 @@ function simulate(
 
     # Check for consistency and format input arguments
     S = richness(params.network)
+    all(B0 .>= 0) || throw(
+        ArgumentError(
+            "Inital biomasses provided in 'B0' should be all non-negative." *
+            "You gave B0 = $B0 which contains negative value(s).",
+        ),
+    )
     length(B0) == 1 && (B0 = repeat(B0, S))
     @check_equal_richness length(B0) S
     @check_lower_than t0 tmax
