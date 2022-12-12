@@ -77,7 +77,6 @@ function compare_generic_vs_specialized(g, s, atol, rtol)
     isnothing(atol) || (kwargs[:atol] = atol)
     isnothing(rtol) || (kwargs[:rtol] = rtol)
     @test g.retcode == s.retcode
-    @test isapprox(g.k, s.k; kwargs...)
     @test isapprox(g.t, s.t; kwargs...)
     @test isapprox(g.u, s.u; kwargs...)
 end

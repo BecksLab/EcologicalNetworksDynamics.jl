@@ -180,7 +180,8 @@ function simulate(
         throw(ArgumentError(message))
     end
     fun = (args...) -> Base.invokelatest(code, args...)
-    extinct_sp = Set(findall(x -> x == 0, B0))
+    extinct_sp_init = findall(x -> x == 0, B0)
+    extinct_sp = Dict(sp => 0.0 for sp in extinct_sp_init)
     p = (params = data, extinct_sp = extinct_sp)
     problem = ODEProblem(fun, B0, timespan, p)
     solve(
@@ -225,14 +226,15 @@ function ExtinctionCallback(extinction_threshold, verbose::Bool)
         else
             all_extinct_sp = Set((1:S)[integrator.u.<extinction_threshold])
         end
-        prev_extinct_sp = integrator.p.extinct_sp # species extinct before the callback acts
+        prev_extinct_sp = keys(integrator.p.extinct_sp)
         # Species that are newly extinct, i.e. the species that triggered the callback.
         new_extinct_sp = setdiff(all_extinct_sp, prev_extinct_sp)
         integrator.u[[sp for sp in new_extinct_sp]] .= 0.0
-        union!(integrator.p.extinct_sp, new_extinct_sp) # update extinct species list
+        t = integrator.t
+        new_extinct_sp_dict = Dict(sp => t for sp in new_extinct_sp)
+        merge!(integrator.p.extinct_sp, new_extinct_sp_dict) # update extinct species list
         # Info message (printed only if verbose = true).
         if verbose
-            t = integrator.t
             S, S_ext = length(integrator.u), length(all_extinct_sp)
             @info "Species $([new_extinct_sp...]) went extinct at time t = $t. \n" *
                   "$S_ext over $S species are extinct."
