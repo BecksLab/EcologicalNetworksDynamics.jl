@@ -173,7 +173,7 @@ function simulate(
     # so the generated functions cannot be overriden.
     # As such, and in principle, the 'latest' function is unambiguous.
     fun = (args...) -> Base.invokelatest(code, args...)
-    extinct_sp = findall(x -> x == 0, B0)
+    extinct_sp = Set(findall(x -> x == 0, B0))
     p = (params = data, extinct_sp = extinct_sp)
     problem = ODEProblem(fun, B0, timespan, p)
     solve(
@@ -206,16 +206,16 @@ function ExtinctionCallback(extinction_threshold::Number, verbose::Bool)
     function extinguish_species!(integrator)
         # All species that are extinct, include previous extinct species and the new species
         # that triggered the callback. (Its/Their biomass still has to be set to 0.0)
-        all_extinct_sp = findall(x -> x <= extinction_threshold, integrator.u)
+        all_extinct_sp = Set(findall(x -> x < extinction_threshold, integrator.u))
         prev_extinct_sp = integrator.p.extinct_sp # species extinct before the callback acts
         # Species that are newly extinct, i.e. the species that triggered the callback.
-        new_extinct_sp = [sp for sp in all_extinct_sp if sp ∉ prev_extinct_sp]
-        integrator.u[new_extinct_sp] .= 0.0
-        append!(integrator.p.extinct_sp, new_extinct_sp) # update extinct species list
+        new_extinct_sp = setdiff(all_extinct_sp, prev_extinct_sp)
+        integrator.u[[sp for sp in new_extinct_sp]] .= 0.0
+        union!(integrator.p.extinct_sp, new_extinct_sp) # update extinct species list
         # Info message (printed only if verbose = true).
         t = integrator.t
         S, S_ext = length(integrator.u), length(all_extinct_sp)
-        verbose && @info "Species $new_extinct_sp went extinct at time t = $t. \n" *
+        verbose && @info "Species $([new_extinct_sp...]) went extinct at time t = $t. \n" *
               "$S_ext over $S species are extinct."
     end
 
@@ -227,14 +227,14 @@ function ExtinctionCallback(extinction_threshold::AbstractVector, verbose::Bool)
     species_under_threshold(u, t, integrator) = any(u[u.>0] .< extinction_threshold[u.>0])
     function extinguish_species!(integrator)
         S = length(integrator.u)
-        all_extinct_sp = (1:S)[integrator.u.<=extinction_threshold]
+        all_extinct_sp = Set((1:S)[integrator.u.<=extinction_threshold])
         prev_extinct_sp = integrator.p.extinct_sp
-        new_extinct_sp = [sp for sp in all_extinct_sp if sp ∉ prev_extinct_sp]
-        integrator.u[new_extinct_sp] .= 0.0
-        append!(integrator.p.extinct_sp, new_extinct_sp)
+        new_extinct_sp = setdiff(all_extinct_sp, prev_extinct_sp)
+        integrator.u[[sp for sp in new_extinct_sp]] .= 0.0
+        union!(integrator.p.extinct_sp, new_extinct_sp)
         t = integrator.t
         S, S_ext = length(integrator.u), length(all_extinct_sp)
-        verbose && @info "Species $new_extinct_sp went extinct at time t = $t." *
+        verbose && @info "Species $([new_extinct_sp...]) went extinct at time t = $t." *
               "$S_ext over $S species are extinct."
     end
     DiscreteCallback(species_under_threshold, extinguish_species!)
