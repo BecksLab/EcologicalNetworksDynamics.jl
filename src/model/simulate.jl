@@ -3,38 +3,40 @@
     simulate(
         params::ModelParameters,
         B0::AbstractVector;
-        alg=nothing
-        t0::Number=0,
-        tmax::Number=500,
-        δt::Number=0.25,
-        extinction_threshold=1e-6,
-        verbose=true,
-        callback=CallbackSet(
-            PositiveDomain(),
-            TerminateSteadyState(1e-5, 1e-3),
-            ExtinctionCallback(extinction_threshold, verbose)
+        alg = nothing,
+        t0::Number = 0,
+        tmax::Number = 500,
+        extinction_threshold::Union{Number,AbstractVector} = 1e-5,
+        verbose = true,
+        callback = CallbackSet(
+            TerminateSteadyState(1e-6, 1e-4),
+            ExtinctionCallback(extinction_threshold, verbose),
         ),
-        diff_code_data=(BEFWM2.dBdt!, params),
-        kwargs...
+        diff_code_data = (dBdt!, params),
+        kwargs...,
     )
 
 Run biomass dynamics simulation,
 given model parameters (`params`) and the initial biomass (`B0`).
 You can choose your solver algorithm by specifying to the `alg` keyword.
 
-The dynamic is solved between t=`t0` and t=`tmax` (at worst) and
-biomass are saved (at least) every `δt`.
+The dynamic is solved between t=`t0` and t=`tmax`.
 
 By default, we give the following callbacks to `solve()`:
 
-    - PositiveDomain (DiffEqCallbacks) ensures that biomass stays positive
-    - TerminateSteadyState (DiffEqCallbacks) ends simulation if a steady state is found
-    - ExtinguishSpecies (custom) extinguish species whose biomass goes under the
-        `extinction_threshold`
+- `TerminateSteadyState` (from DiffEqCallbacks) which ends the simulation
+    when a steady state is reached
+
+- `ExtinctionCallback` which extinguishes species whose biomass goes under the
+    `extinction_threshold`
+    (either a number or a vector, see [`ExtinctionCallback`](@ref)).
 
 You are free to provide other callbacks, either by changing the parameter values of the
 callbacks above, choosing other callbacks from DiffEqCallbacks or by creating you own
 callbacks.
+
+Moreover, we use the `isoutofdomain` argument of `solve()`
+to reject time steps that lead to negative biomass values due to numerical error.
 
 Extra performance may be achieved
 by providing specialized julia code to the `diff_code_data` argument
