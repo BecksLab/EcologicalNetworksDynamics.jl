@@ -22,6 +22,7 @@ println("------------------------------------------")
 # Run test files
 test_files = [
     "test-utils.jl",
+    "inputs/test-foodwebs.jl",
     "inputs/test-biological_rates.jl",
     "inputs/test-functional_response.jl",
     "inputs/test-environment.jl",
