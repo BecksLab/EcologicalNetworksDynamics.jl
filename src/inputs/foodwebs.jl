@@ -2,9 +2,11 @@
 Generating FoodWeb objects
 =#
 
-#### Type definition and FoodWeb functions ####
-const AdjacencyMatrix = SparseMatrixCSC{Bool,Int64} # alias for comfort
+# Aliases for comfort
+const AdjacencyMatrix = SparseMatrixCSC{Bool,Int64}
+const Label = Union{String,Symbol}
 
+#### Type definition and FoodWeb functions ####
 abstract type EcologicalNetwork end
 mutable struct FoodWeb <: EcologicalNetwork
     A::AdjacencyMatrix
@@ -17,10 +19,10 @@ end
 """
     FoodWeb(
         A::AbstractMatrix;
-        species::Vector{String} = default_speciesid(A),
+        species::Vector{<:Label} = default_speciesid(A),
         Z::Real = 1,
         M::Vector{<:Real} = compute_mass(A, Z),
-        metabolic_class::Vector{String} = default_metabolic_class(A),
+        metabolic_class::Vector{<:Label} = default_metabolic_class(A),
         method::String = "unspecified",
     )
 
@@ -54,41 +56,33 @@ true
 
 # Generate a `FoodWeb` from an adjacency list
 
-The procedure is the same as for the adjacency matrix,
-you give a an adjacency list under the form a vector of species `Pair`s.
-The first element of the pair is the predator
-and the last element is the prey.
-Species can be identified either with `Integer`s going from 1 to S
-(the species richness of your food web),
-or with `String`s corresponding to the species names,
-in which case species will be ordered lexically.
-Moreover, if you provide an adjacency list filled with species names,
-those will be directly passed to the `FoodWeb.species` field.
+An adjacency list is an iterable of `Pair`s
+(e.g. vector of `Pair`s) or a dictionnary.
+If the adjacency list is an iterable of `Pair`s,
+the first element of each pair is a predator
+and the second element of each pair are the preys eaten by the corresponding predator.
+If the adjacency list is a dictionnary,
+keys are predators and values the corresponding preys.
+
+Species can be identified either with `Integer`s corresponding to species indexes
+or with labels (`String`s or `Symbol`s) corresponding to the species names.
+In the latter case, species will be ordered lexically.
+Moreover, if you use labels
+the species names will be directly passed to the `FoodWeb.species` field.
 
 ```jldoctest
-julia> l = [3 => 2, 2 => 1];
+julia> al_names = ["snake" => ("turtle", "mouse")]; # can also be `Symbol`s
 
-julia> foodweb = FoodWeb(l);
+julia> al_index = [2 => [1, 3]]; # ~ if sorting species lexically
 
-julia> foodweb.A == [0 0 0; 1 0 0; 0 1 0]
-true
-```
+julia> fw_from_names = FoodWeb(al_names);
 
-```jldoctest
-julia> l_str = ["snake" => "turtle", "snake" => "mouse"];
+julia> fw_from_index = FoodWeb(al_index);
 
-julia> l_sym = [:snake => :turtle, :snake => :mouse];
-
-julia> fw_str = FoodWeb(l_str); # FoodWeb from Vector{Pair{String, String}}
-
-julia> fw_sym = FoodWeb(l_sym); # FoodWeb from Vector{Pair{Symbol, Symbol}}
-
-julia> fw_str.A == fw_str.A == [0 0 0; 1 0 1; 0 0 0] # same
+julia> fw_from_names.A == fw_from_index.A == [0 0 0; 1 0 1; 0 0 0]
 true
 
-julia> sp_names = ["mouse", "snake", "turtle"]; # ordered lexically
-
-julia> fw_str.species == fw_str.species == sp_names # for both names are stored as Strings
+julia> fw_from_names.species == ["mouse", "snake", "turtle"] # ordered lexically
 true
 ```
 
@@ -107,7 +101,7 @@ For instance:
 ```jldoctest
 julia> foodweb = FoodWeb(nichemodel, 20, C = 0.1, Z = 50);
 
-julia> richness(foodweb) # the FoodWeb of 20 sp. has been well generated
+julia> richness(foodweb) # the FoodWeb of 20 sp. has been well generated
 20
 
 julia> foodweb.method == "nichemodel"
@@ -121,7 +115,7 @@ with EcologicalNetworks.jl.
 Thus you can also create a `FoodWeb` from a `UnipartiteNetwork`
 
 ```jldoctest
-julia> uni_net = cascademodel(10, 0.1); # generate a UnipartiteNetwork
+julia> uni_net = cascademodel(10, 0.1); # generate a UnipartiteNetwork
 
 julia> foodweb = FoodWeb(uni_net);
 
@@ -144,16 +138,16 @@ See also [`MultiplexNetwork`](@ref).
 """
 function FoodWeb(
     A::AbstractMatrix;
-    species::Vector{String} = default_speciesid(A),
+    species::Vector{<:Label} = default_speciesid(A),
     Z::Real = 1,
     M::Vector{<:Real} = compute_mass(A, Z),
-    metabolic_class::Vector{String} = default_metabolic_class(A),
+    metabolic_class::Vector{<:Label} = default_metabolic_class(A),
     method::String = "unspecified",
 )
     S = richness(A)
     @check_size_is_richness² A S
-    @check_equal_richness length(species) S
-    clean_metabolic_class!(metabolic_class, A)
+    metabolic_class = clean_metabolic_class(metabolic_class, A)
+    species = clean_labels(species, S)
     FoodWeb(sparse(A), species, M, metabolic_class, method)
 end
 
@@ -292,9 +286,11 @@ function replace_vertebrates!(metabolic_class, vertebrates)
 end
 
 "Check that provided metabolic classes are valid."
-function clean_metabolic_class!(metabolic_class, A)
+function clean_metabolic_class(metabolic_class, A)
     # Check that producers are identified as such. If not correct and send a warning.
     prod = producers(A)
+    S = richness(A)
+    metabolic_class = clean_labels(metabolic_class, S)
     are_producer_valid = all(metabolic_class[prod] .== "producer")
     are_producer_valid ||
         @warn "You provided a metabolic class for basal species: replaced by 'producer'."
@@ -313,6 +309,15 @@ function clean_metabolic_class!(metabolic_class, A)
             "An invalid metabolic class has been given, class should be in $valid_class.",
         ),
     )
+    metabolic_class
+end
+
+"Check that labels have the good format and convert them to `String`s if needed."
+function clean_labels(labels, S)
+    @check_equal_richness length(labels) S
+    all(typeof.(labels) .<: Label) ||
+        throw(ArgumentError("Label should be either String or Symbol."))
+    String.(labels)
 end
 
 compute_mass(A, Z) = Z .^ (trophic_levels(A) .- 1)
@@ -336,89 +341,90 @@ end
 #### end ####
 
 #### Create FoodWeb from an adjacency list ####
-function FoodWeb(adjacency_list::Vector{Pair{T,T}} where {T<:Integer}; kwargs...)
-    FoodWeb(adjacency_matrix_from_list(adjacency_list); kwargs...)
-end
-
-function FoodWeb(
-    adjacency_list::Vector{Pair{T,T}};
-    kwargs...,
-) where {T<:Union{String,Symbol}}
-    species_list = vcat(first.(adjacency_list), last.(adjacency_list))
-    species_list = unique(species_list) # remove repeted specie names
-    sort!(species_list) # order lexically species names
-    species_list = String.(species_list) # species names are stored as Strings
-    FoodWeb(adjacency_matrix_from_list(adjacency_list); species = species_list, kwargs...)
-end
-
-"""
-    adjency_matrix_from_list(
-        adjacency_list::Vector{Pair{Int64, Int64}};
-        S = maximum(adjacency_list...)
+function FoodWeb(al; kwargs...)
+    # Flags to know if species identities
+    # are refered with indexes (Integer) or label (Symbol or String)
+    index_style = true
+    label_style = true
+    if !(eltype(al) <: Pair)
+        throw(
+            ArgumentError(
+                "Invalid adjacency list type: $(typeof(al)). " *
+                "Expected a collection of pairs.",
+            ),
         )
-
-Convert an adjacency list to an adjacency matrix.
-
-# Arguments
-
-- `adjacency_list` a vector of pair, where each first element correspond to the predator
-    and each second element to the prey.
-    For instance `[1 => 2]` means that 1 eats 2.
-
-# Example
-
-Adjacency list contains `Pair`s of `Int`s.
-
-```jldoctest
-julia> BEFWM2.adjacency_matrix_from_list([1 => 2]) == [0 1; 0 0]
-true
-
-julia> BEFWM2.adjacency_matrix_from_list([2 => 1, 1 => 3]) == [0 0 1; 1 0 0; 0 0 0]
-true
-```
-
-Adjacency list contains `Pair`s of `String`s
-
-```jldoctest
-julia> l = ["fox" => "hen", "hen" => "snake", "snake" => "fox"];
-
-julia> BEFWM2.adjacency_matrix_from_list(l) == [0 1 0; 0 0 1; 1 0 0] # order lexically
-true
-```
-
-Works also with vector of `Symbol`s.
-
-```jldoctest
-julia> l = [:fox => :hen, :hen => :snake, :snake => :fox];
-
-julia> BEFWM2.adjacency_matrix_from_list(l) == [0 1 0; 0 0 1; 1 0 0]
-true
-```
-"""
-function adjacency_matrix_from_list(adjacency_list::Vector{Pair{T,T}} where {T<:Integer})
-    species_list = vcat(first.(adjacency_list), last.(adjacency_list))
-    S = maximum(species_list)
-    A = spzeros(S, S)
-    for (i, j) in adjacency_list
-        A[i, j] = 1
     end
-    A
+    pair_vector = []
+    for pair in al
+        pred, prey, style = parse_pair(pair)
+        style == :index ? (label_style = false) : (index_style = false) # update flags
+        if sum([label_style, index_style]) != 1
+            throw(
+                ArgumentError(
+                    "Species identity style should be consistent within the pairs. " *
+                    "You used two different style: " *
+                    "1. index style, species are identified with `Integer`s " *
+                    "2. label style, species are identified with `String`s or `Symbol`s " *
+                    "(e.g. `:lion`, `:hyena`).",
+                ),
+            )
+        end
+        push!(pair_vector, pred => prey)
+    end
+    if !allunique(first.(pair_vector))
+        throw(
+            ArgumentError(
+                "Duplicated key (predator), key cannot be repeated. " *
+                "For instance, if species 1 eats species 2 and 3, " *
+                "instead of writing [1 => 2, 1 => 3] " *
+                "write [1 => [2, 3]] or [1 => (2, 3)].",
+            ),
+        )
+    end
+    pair_dict = Dict(pair_vector)
+    al_keys = keys(pair_dict)
+    al_vals = collect(values(pair_dict))
+    al_vals_flatten = collect(Iterators.flatten(al_vals)) # [[1], [2, 3]] -> [1, 2, 3]
+    sp_set = union(al_keys, al_vals_flatten)
+    sp_sorted = sort([sp for sp in sp_set])
+    sp_dict = Dict([id => new_id for (new_id, id) in enumerate(sp_sorted)])
+    mapping = name -> sp_dict[name]
+    S = length(sp_set)
+    A = spzeros(Integer, S, S)
+    for (pred, prey_vec) in pair_dict
+        for prey in prey_vec
+            A[mapping(pred), mapping(prey)] = 1
+        end
+    end
+    if !(@isdefined species) # don't overwrite kwarg given by the user
+        species = index_style ? default_speciesid(A) : String.(sp_sorted)
+    end
+    FoodWeb(A; species = species, kwargs...)
 end
 
-function adjacency_matrix_from_list(
-    adjacency_list::Vector{Pair{T,T}},
-) where {T<:Union{String,Symbol}}
-    adjacency_list = [Symbol(i) => Symbol(j) for (i, j) in adjacency_list]
-    species_list = vcat(first.(adjacency_list), last.(adjacency_list))
-    species_list = unique(species_list) # remove repeted species
-    S = length(species_list)
-    sort!(species_list)
-    mapping = Dict([sp_name => sp_index for (sp_index, sp_name) in enumerate(species_list)])
-    A = spzeros(S, S)
-    for (sp1, sp2) in adjacency_list
-        i, j = mapping[sp1], mapping[sp2] # get species index from their name
-        A[i, j] = 1
+"Parse pairs within `FoodWeb()` method working on adjacency list."
+function parse_pair(pair)
+    pred, prey = pair
+    if !(typeof(pred) <: Union{Integer,String,Symbol})
+        throw(
+            ArgumentError(
+                "The first element of the pair, or the key of your dictionnary, " *
+                "should not be an interable: either a single Integer, String or Symbol.",
+            ),
+        )
     end
-    A
+    if typeof(pred) <: Integer && all(typeof.(prey) .<: Integer)
+        return (pred, prey, :index)
+    elseif typeof(pred) <: Label && all(typeof.(prey) .<: Label)
+        parsed_prey = typeof(prey) <: Label ? [Symbol(prey)] : Symbol.(prey)
+        return (Symbol(pred), parsed_prey, :label)
+    else
+        throw(
+            ArgumentError(
+                "The elements of your pair should be either all <: Integer " *
+                "or all :<Union{String, Symbol}.",
+            ),
+        )
+    end
 end
-#### end ####
+####
