@@ -123,8 +123,8 @@ end
     biorates_d = BioRates(foodweb; d = total_loss, x = 0)
     params_x = ModelParameters(foodweb; functional_response = F, biorates = biorates_x)
     params_d = ModelParameters(foodweb; functional_response = F, biorates = biorates_d)
-    out_xd = simulate(params_xd, [1])
-    out_d = simulate(params_d, [1])
-    out_x = simulate(params_x, [1])
+    out_xd = simulates(params_xd, [1])
+    out_d = simulates(params_d, [1])
+    out_x = simulates(params_x, [1])
     @test out_xd.u[end] ≈ out_x.u[end] ≈ out_d.u[end]
 end

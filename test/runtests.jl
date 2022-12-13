@@ -53,7 +53,7 @@ function simulates(parms, B0; compare_atol = nothing, compare_rtol = nothing, kw
             verbose = false,
             kwargs...,
         )
-        compare_generic_vs_specialized(g, s, compare_atol, compare_rtol)
+        compare_generic_vs_specialized(g, s, :raw, compare_atol, compare_rtol)
     end
 
     # Compare with compact specialized code.
@@ -67,24 +67,31 @@ function simulates(parms, B0; compare_atol = nothing, compare_rtol = nothing, kw
         verbose = false,
         kwargs...,
     )
-    compare_generic_vs_specialized(g, s, compare_atol, compare_rtol)
+    compare_generic_vs_specialized(g, s, :compact, compare_atol, compare_rtol)
 
     g
 end
 
-function compare_generic_vs_specialized(g, s, atol, rtol)
+function compare_generic_vs_specialized(g, s, style, atol, rtol)
     kwargs = Dict()
     isnothing(atol) || (kwargs[:atol] = atol)
     isnothing(rtol) || (kwargs[:rtol] = rtol)
-    @test g.retcode == s.retcode
-    @test isapprox(g.t, s.t; kwargs...)
-    @test isapprox(g.u, s.u; kwargs...)
+    if !(
+        g.retcode == s.retcode &&
+        size(g.t) == size(s.t) &&
+        size(g.u) == size(s.u) &&
+        isapprox(g.t, s.t; kwargs...) &&
+        isapprox(g.u, s.u; kwargs...)
+    )
+        throw(AssertionError("Boosted simulation (:$style) \
+                          appears to yield different results than regular simulation."))
+    end
 end
 
 # Deactivate `simulate` so only the full version can be used in tests.
 simulate(args...; kwargs...) =
-    throw(MethodError("Don't use `simulate()` in tests, use `simulates()` instead \
-                       so that all simulation flavours are tested together at once."))
+    throw(AssertionError("Don't use `simulate()` in tests, use `simulates()` instead \
+                          so that all simulation flavours are tested together at once."))
 
 # Set up text formatting
 highlight = "\033[7m"

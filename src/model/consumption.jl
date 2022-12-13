@@ -53,6 +53,9 @@ end
 # Explain how to efficiently construct all values of eating/being_eaten,
 # and provide the additional/intermediate data needed.
 # This code is responsible to *initialize* all dB[i] values.
+# It also features `natural_death_loss`
+# because it contains one full iteration over 1:S.
+# This is about to change in upcoming refactorization of the boost option.
 consumption(p::ModelParameters, ::Symbol) = consumption(p.functional_response, p) # (dispatch)
 function consumption(::BioenergeticResponse, parms::ModelParameters)
 
@@ -68,6 +71,7 @@ function consumption(::BioenergeticResponse, parms::ModelParameters)
     # Flatten the e matrix with the same 'ij' indexing.
     cons, res = findnz(parms.network.A)
     data[:e] = [parms.biorates.e[i, j] for (i, j) in zip(cons, res)]
+    data[:d] = parms.biorates.d
 
     # The following code relies on the following variables
     # being already created by the functional response generated code:
@@ -92,7 +96,9 @@ function consumption(::BioenergeticResponse, parms::ModelParameters)
             for i in 1:S
                 eating = B[i] * x[i] * y[i] * Σ_res[i]
                 being_eaten = Σ_cons[i]
-                dB[i] = eating - being_eaten #  (re-)initialization of dB[i]
+                natural_death = d[i] * B[i]
+                # (Re-)initialization of dB[i] happens here.
+                dB[i] = eating - being_eaten - natural_death
                 # Reset scratch space for next time.
                 Σ_res[i] = 0
                 Σ_cons[i] = 0
@@ -140,6 +146,9 @@ end
 # Explain how to efficiently construct all values of eating/being_eaten,
 # and provide the additional/intermediate data needed.
 # This code is responsible to *initialize* all dB[i] values.
+# It also features `natural_death_loss`
+# because it contains one full iteration over 1:S.
+# This is about to change in upcoming refactorization of the boost option.
 function consumption(::Union{ClassicResponse,LinearResponse}, parms::ModelParameters)
 
     # Basic informations made available as variables in the generated code.
@@ -152,6 +161,7 @@ function consumption(::Union{ClassicResponse,LinearResponse}, parms::ModelParame
     # Flatten the e matrix with the same 'ij' indexing.
     cons, res = findnz(parms.network.A)
     data[:e] = [parms.biorates.e[i, j] for (i, j) in zip(cons, res)]
+    data[:d] = parms.biorates.d
 
     # The following code relies on the following variables
     # being already created by the functional response generated code:
@@ -176,7 +186,9 @@ function consumption(::Union{ClassicResponse,LinearResponse}, parms::ModelParame
             for i in 1:S
                 eating = B[i] * Σ_res[i]
                 being_eaten = Σ_cons[i]
-                dB[i] = eating - being_eaten #  (re-)initialization of dB[i]
+                natural_death = d[i] * B[i]
+                # (Re-)initialization of dB[i] happens here.
+                dB[i] = eating - being_eaten - natural_death
                 # Reset scratch space for next time.
                 Σ_res[i] = 0
                 Σ_cons[i] = 0
