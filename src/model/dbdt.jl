@@ -23,6 +23,8 @@ function dBdt!(dB, B, p, t)
         dB[i] = net_growth_rate - being_eaten
     end
 
+    # Avoid zombie species by forcing extinct biomasses to zero.
+    # https://github.com/BecksLab/BEFWM2/issues/65
     for sp in keys(extinct_sp)
         B[sp] = 0.0
     end

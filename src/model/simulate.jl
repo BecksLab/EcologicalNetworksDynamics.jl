@@ -180,8 +180,7 @@ function simulate(
         throw(ArgumentError(message))
     end
     fun = (args...) -> Base.invokelatest(code, args...)
-    extinct_sp_init = findall(x -> x == 0, B0)
-    extinct_sp = Dict(sp => 0.0 for sp in extinct_sp_init)
+    extinct_sp = Dict(i => 0.0 for (i, b) in enumerate(B0) if b == 0.0)
     p = (params = data, extinct_sp = extinct_sp)
     problem = ODEProblem(fun, B0, timespan, p)
     solve(
@@ -207,13 +206,22 @@ If `verbose = true` a message is printed when a species goes extinct,
 otherwise no message are printed.
 """
 function ExtinctionCallback(extinction_threshold, verbose::Bool)
-    # Condition to trigger the callback: a species biomass goes below the threshold.
-    function species_under_threshold(u, t, integrator)
-        if isa(extinction_threshold, Number)
-            return any(u[u.>0] .< extinction_threshold)
-        else
-            return any(u[u.>0] .< extinction_threshold[u.>0])
-        end
+
+    # The callback is triggered whenever
+    # a non-extinct species biomass goes below the threshold.
+
+    # Use either adequate code based on `extinction_threshold` type.
+    # This avoids that the type condition be checked on every timestep.
+    species_under_threshold = if isa(extinction_threshold, Number)
+        (u, t, integrator) -> any(u[u.>0] .< extinction_threshold)
+    else
+        (u, t, integrator) -> any(u[u.>0] .< extinction_threshold[u.>0])
+    end
+
+    get_extinct_species = if isa(extinction_threshold, Number)
+        (u, _) -> Set(findall(x -> x < extinction_threshold, u))
+    else
+        (u, S) -> Set((1:S)[u.<extinction_threshold])
     end
 
     # Effect of the callback: the species biomass below the threshold are set to 0.
@@ -221,11 +229,7 @@ function ExtinctionCallback(extinction_threshold, verbose::Bool)
         # All species that are extinct, include previous extinct species and the new species
         # that triggered the callback. (Its/Their biomass still has to be set to 0.0)
         S = length(integrator.u)
-        if isa(extinction_threshold, Number)
-            all_extinct_sp = Set(findall(x -> x < extinction_threshold, integrator.u))
-        else
-            all_extinct_sp = Set((1:S)[integrator.u.<extinction_threshold])
-        end
+        all_extinct_sp = get_extinct_species(integrator.u, S)
         prev_extinct_sp = keys(integrator.p.extinct_sp)
         # Species that are newly extinct, i.e. the species that triggered the callback.
         new_extinct_sp = setdiff(all_extinct_sp, prev_extinct_sp)
