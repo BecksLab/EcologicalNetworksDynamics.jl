@@ -46,7 +46,7 @@ function generate_fr_lines(parms::ModelParameters)
     for (i, j) in zip(cons, res)
         D_i = Symbol(:D_, i)
         F_ij = Symbol(:F_, i, :_, j)
-        num, denom = F(i, j, preys_of(i, parms.network))
+        num, denom = F(i, j, parms.network, :_)
         if denom != 1 #  Sophisticated cases with complex denominators: Classic/Bionergetic.
             if !(i in denominators)
                 # Insert this denominator line the first time we need this value.
@@ -79,7 +79,11 @@ function generate_db_lines(parms::ModelParameters)
     S = richness(parms.network)
     lines = []
     for i in 1:S
-        typical_line = :(dB[i] = logisticgrowth + eating - being_eaten - metabolism_loss)
+        typical_line = :(
+            dB[i] =
+                logisticgrowth + eating - being_eaten - metabolism_loss -
+                natural_death_loss
+        )
         line = replace(typical_line, Dict(:i => i))
         while expand!(
             line,
@@ -89,6 +93,7 @@ function generate_db_lines(parms::ModelParameters)
                 :eating,
                 :being_eaten,
                 :metabolism_loss,
+                :natural_death_loss,
                 :xp_sum,
             ],
             [i, parms],

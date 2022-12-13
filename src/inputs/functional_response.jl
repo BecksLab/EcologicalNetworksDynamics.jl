@@ -156,7 +156,7 @@ function (F::BioenergeticResponse)(B, i, j)
 end
 # Code generation version (raw) (↑ ↑ ↑ DUPLICATED FROM ABOVE ↑ ↑ ↑).
 # (update together as long as the two coexist)
-function (F::BioenergeticResponse)(i, j, resources::Vector)
+function (F::BioenergeticResponse)(i, j, resources::Vector, ::Symbol)
     ω_ij = F.ω[i, j]
     B_i = :(B[$i])
     B_j = :(B[$j])
@@ -275,7 +275,7 @@ function (F::ClassicResponse)(B, i, j, mᵢ)
 end
 # Code generation version (raw) (↑ ↑ ↑ DUPLICATED FROM ABOVE ↑ ↑ ↑).
 # (update together as long as the two coexist)
-function (F::ClassicResponse)(i, j, resources::Vector)
+function (F::ClassicResponse)(i, j, resources::Vector, mᵢ, ::Symbol)
     ω_ij = F.ω[i, j]
     a_ij = F.aᵣ[i, j]
     h = F.h
@@ -285,6 +285,7 @@ function (F::ClassicResponse)(i, j, resources::Vector)
     B_j = :(B[$j])
     B_i = :(B[$i])
     c_i = F.c[i]
+    m_i = mᵢ
     num = :($ω_ij * $a_ij * abs($B_j)^$h)
     denom = :(
         1 +
@@ -295,6 +296,7 @@ function (F::ClassicResponse)(i, j, resources::Vector)
             :(aᵣ * hₜ * ω * (abs(B[r])^$$h)),
         )
     )
+    denom = :($m_i * $denom)
     num, denom
 end
 # Code generation version (compact):
@@ -304,7 +306,7 @@ function (F::ClassicResponse)(parms, ::Symbol)
 
     # Basic informations made available as variables in the generated code.
     S = richness(parms.network)
-    data = Dict(:S => S, :h => F.h, :c => F.c)
+    data = Dict(:S => S, :h => F.h, :c => F.c, :m => parms.network.M)
 
     # For every species, pre-calculate associated resources indexes
     # and all relevant associated values.
@@ -338,6 +340,7 @@ function (F::ClassicResponse)(parms, ::Symbol)
                     Σ += ω_ik * aᵣ_ik * hₜ_ik * abs(B[k])^h
                 end
                 denominators[i] = 1.0 + c[i] * B[i] + Σ
+                denominators[i] *= m[i]
             end
         ),
         :(
@@ -412,7 +415,7 @@ and [`FunctionalResponse`](@ref).
 (F::LinearResponse)(B, i, j) = F.ω[i, j] * F.α[i] * B[j]
 # Code generation version (raw) (↑ ↑ ↑ DUPLICATED FROM ABOVE ↑ ↑ ↑).
 # (update together as long as the two coexist)
-function (F::LinearResponse)(i, j, ::Vector)
+function (F::LinearResponse)(i, j, ::Vector, ::Symbol)
     ω_ij = F.ω[i, j]
     α_i = F.α[i]
     B_j = :(B[$j])
@@ -536,6 +539,12 @@ function (F::ClassicResponse)(B, network::MultiplexNetwork)
     end
     F_matrix
 end
+
+# Code generation versions (:raw):
+(F::FunctionalResponse)(i, j, net::EcologicalNetwork, ::Symbol) =
+    F(i, j, preys_of(i, net), :_)
+(F::ClassicResponse)(i, j, net::EcologicalNetwork, ::Symbol) =
+    F(i, j, preys_of(i, net), net.M[i], :_)
 
 # Methods to build Classic and Bionergetic structs
 function BioenergeticResponse(

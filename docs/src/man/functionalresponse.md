@@ -112,9 +112,9 @@ with:
   - ``h`` the hill-exponent
 
 !!! note
-
+    
       - ``\lim_{B_j \to +\infty} F_{ij} = 1``
-
+    
       - ``F_{ij}(B_0) = \frac{1}{2}`` if considering a consumer feeding only one resource
         and no predator interference (``c_i=0``),
         hence the name 'half-saturation density' for ``B_0``.
