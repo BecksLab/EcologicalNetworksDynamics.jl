@@ -21,10 +21,9 @@
 
     mat_expected_growth = [0 0 0; 0.25 0.25 0]
     for (i, B) in enumerate(fill.([1, 0.5], S)) # ~ [[1, 1, 1], [0.5, 0.5, 0.5]]
-        s = [sum(α[i, :] .* B) for i in 1:S]
         for (sp, expected_growth) in enumerate(mat_expected_growth[i, :])
             @test BEFWM2.logisticgrowth(sp, B, r[sp], K[sp], foodweb) ==
-                  BEFWM2.logisticgrowth(sp, B, r[sp], K[sp], s, foodweb) ==
+                  BEFWM2.logisticgrowth(sp, B, r[sp], K[sp], sum(α[i, :] .* B), foodweb) ==
                   expected_growth
         end
     end
@@ -32,11 +31,10 @@
     p = ModelParameters(foodweb; biorates = BioRates(foodweb; r = 2))
     K, r, α = p.environment.K, p.biorates.r, p.producer_competition.α
     B = [0.5, 0.5, 0.5]
-    s = [sum(α[i, :] .* B) for i in 1:S]
     expected_growth = [0.5, 0.5, 0]
     for i in 1:3
         @test BEFWM2.logisticgrowth(i, B, r[i], K[i], foodweb) ==
-              BEFWM2.logisticgrowth(i, B, r[i], K[i], s, foodweb) ==
+              BEFWM2.logisticgrowth(i, B, r[i], K[i], sum(α[i, :] .* B), foodweb) ==
               expected_growth[i]
     end
 
@@ -47,20 +45,19 @@
     )
     K, r, α = p.environment.K, p.biorates.r, p.producer_competition.α
     B = [0.5, 0.5, 0.5]
-    s = [sum(α[i, :] .* B) for i in 1:S]
     for i in 1:3
         # It is like each producer had a density of one (look the "B * 2" in the
-        # left call of the function) 
+        # left call of the function)
         @test BEFWM2.logisticgrowth(i, B * 2, r[i], K[i], foodweb) ==
-              BEFWM2.logisticgrowth(i, B, r[i], K[i], s, foodweb) ==
+              BEFWM2.logisticgrowth(i, B, r[i], K[i], sum(α[i, :] .* B), foodweb) ==
               0
     end
 
-    # Test producer competition 
+    # Test producer competition
     # 1 & 2 producer; 3 consumer
     A = [0 0 0; 0 0 0; 0 0 1]
     foodweb = FoodWeb(A)
-    # K = 1, intercompetition 
+    # K = 1, intercompetition
     p = ModelParameters(
         foodweb;
         producer_competition = ProducerCompetition(foodweb; αii = 1.0, αij = 1.0),

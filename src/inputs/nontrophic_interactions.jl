@@ -232,7 +232,7 @@ With default settings:
 Change the defaults with the appropriate arguments.
 
 For example, competition is assumed to be symmetric,
-then the number of competition links has to be even. 
+then the number of competition links has to be even.
 But you can change this default as follow:
 
 ```jldoctest
@@ -247,7 +247,7 @@ MultiplexNetwork of 3 species:
   refuge_layer: 0 links
 ```
 
-!!! note 
+!!! note
     If you don't specify `sym=false` an error will be thrown.
 
 See also [`FoodWeb`](@ref), [`Layer`](@ref).
