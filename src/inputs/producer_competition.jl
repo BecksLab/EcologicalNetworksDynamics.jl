@@ -21,16 +21,21 @@ end
 #### end ####
 
 """
-    ProducerCompetition(foodweb, α = nothing, αii = 1.0, αij = 0.0)
+    ProducerCompetition(network, α = nothing, αii = 1.0, αij = 0.0)
 
-Create producer competition matrix for the system.
+Create producer competition matrix of the system.
 
 The parameters are:
-- α the competition matrix, nothing by default.
+- α the competition matrix of dimensions S*S, S being the species number of the
+network. Set to nothing by default.
 - αii the intracompetition term for all species, 1.0 by default.
-- αij the interspecific competition term for all species.
-By default, the carrying capacities of producers are assumed to be 1 while capacities of
-consumers are assumed to be `nothing` as consumers do not have a growth term.
+- αij the interspecific competition term for all species, 0.0 by default.
+
+By default, the producers compete only with themselves (i.e. αii = 1.0, αij =
+0.0). In the resulting α matrix, the element α[i,j] represents the percapita
+effect of the species j on the species i. If α matrix is specified, it overrides
+the αii and αij parameters. Moreover, all the αij coefficients should be 0 for
+non producers.
 
 # Examples
 ```jldoctest
