@@ -31,8 +31,8 @@ network. Set to nothing by default.
 - αii the intracompetition term for all species, 1.0 by default.
 - αij the interspecific competition term for all species, 0.0 by default.
 
-By default, the producers compete only with themselves (i.e. αii = 1.0, αij =
-0.0). In the resulting α matrix, the element α[i,j] represents the percapita
+By default, the producers compete only with themselves (i.e. αii = 1.0, αij = 0.0).
+In the resulting α matrix, the element α[i,j] represents the percapita
 effect of the species j on the species i. If α matrix is specified, it overrides
 the αii and αij parameters. Moreover, all the αij coefficients should be 0 for
 non producers.
@@ -89,7 +89,6 @@ function ProducerCompetition(network::EcologicalNetwork; α = nothing, αii = 1.
         α[non_producer, :] .= 0
         α[:, non_producer] .= 0
 
-        ProducerCompetition(α)
     else
         # α should be a square matrix
         @assert size(α, 1) == size(α, 2) == S
