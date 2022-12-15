@@ -20,22 +20,26 @@
     test_on_iterable_pair(pair_tuple, expected_A)
 
     # Labels
-    pair_tuple = (:a => :b, :b => [:b, :c], :c => [:c, :d])
+    pair_tuple = (:b => [:b, :c], :c => [:c, :d], :a => :b)
     expected_names = ["a", "b", "c", "d"]
     test_on_iterable_pair(pair_tuple, expected_A; expected_names = expected_names)
 
     # For labels, we can mix Symbols and Strings
-    pair_tuple = (:a => "b", :b => [:b, :c], "c" => [:c, "d"])
+    pair_tuple = (:b => [:b, :c], "c" => [:c, "d"], :a => "b")
     test_on_iterable_pair(pair_tuple, expected_A; expected_names = expected_names)
 
-    # Species names user-provided are not overwrite.
-    species = [:crab, :mussel]
-    pair_tuple = [:c => :m]
-    expected_A = [0 1; 0 0]
+    # Provide labels for the index used. Order matters.
+    species = [:mussel, :crab]
+    pairs = [2 => 1]
+    expected_A = [0 0; 1 0]
     test_on_iterable_pair(
-        pair_tuple,
+        pairs,
         expected_A;
         expected_names = String.(species),
         species = species,
     )
+
+    # Don't provide both labels in `species` argument and adjacency list.
+    @test_throws ArgumentError FoodWeb([:crab => :mussel]; species = species)
+
 end

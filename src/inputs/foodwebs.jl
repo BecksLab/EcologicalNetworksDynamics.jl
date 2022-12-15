@@ -296,7 +296,7 @@ function clean_metabolic_class(metabolic_class, A)
         @warn "You provided a metabolic class for basal species: replaced by 'producer'."
     metabolic_class[prod] .= "producer"
 
-    # Replace 'vertebrate' by 'ectotherm vertebrate' if user accept.
+    # Replace 'vertebrate' by 'ectotherm vertebrate' if user accepts.
     vertebrates = (1:richness(A))[lowercase.(metabolic_class).=="vertebrate"]
     isempty(vertebrates) || replace_vertebrates!(metabolic_class, vertebrates)
 
@@ -396,10 +396,22 @@ function FoodWeb(al; kwargs...)
             A[mapping(pred), mapping(prey)] = 1
         end
     end
-    if !(@isdefined species) # don't overwrite kwarg given by the user
-        species = index_style ? default_speciesid(A) : String.(sp_sorted)
+
+    # Automatically adjust species labels if needed.
+    kwargs = Dict{Symbol, Any}(kwargs)
+    if label_style
+        if :species in keys(kwargs)
+            throw(ArgumentError("Species names are automatically set from labels \
+                             in adjacency list. No need to provide `species` argument."))
+        else
+            kwargs[:species] = sp_sorted
+        end
     end
-    FoodWeb(A; species = species, kwargs...)
+    if index_style && :species ∉ keys(kwargs)
+        kwargs[:species] = default_speciesid(A)
+    end
+
+    FoodWeb(A; kwargs...)
 end
 
 "Parse pairs within `FoodWeb()` method working on adjacency list."
