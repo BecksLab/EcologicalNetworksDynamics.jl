@@ -42,6 +42,7 @@ end
 """
 Repeat the given expression into terms of a sum,
 successively replacing `indexes` in `term` by elements in (zipped) `lists`.
+
 ```jldoctest
 julia> import BEFWM2: xp_sum
 
@@ -113,31 +114,30 @@ then passed along with the data as a `diff_code_data` argument to [`simulate`](@
 
 There are two possible code generation styles:
 
-- With `type = :raw`,
-  the generated expression is a straightforward translation
-  of the underlying differential equations,
-  with no loops, no recursive calls, nor heap-allocations:
-  only local variables and basic arithmetic is used.
-  This makes simulation very efficient,
-  but the length of the generated expression
-  depends on the number of species interactions.
-  When the length becomes high,
-  it takes much longer for julia to compile it.
-  If it takes forever,
-  (typically over `SyntaxtTree.callcount(expression) > 20_000`),
-  wait until julia 1.9 ([maybe](https://discourse.julialang.org/t/profiling-compilation-of-a-large-generated-expression/83179))
-  or use the alternate style instead.
+  - With `type = :raw`,
+    the generated expression is a straightforward translation
+    of the underlying differential equations,
+    with no loops, no recursive calls, nor heap-allocations:
+    only local variables and basic arithmetic is used.
+    This makes simulation very efficient,
+    but the length of the generated expression
+    depends on the number of species interactions.
+    When the length becomes high,
+    it takes much longer for julia to compile it.
+    If it takes forever,
+    (typically over `SyntaxtTree.callcount(expression) > 20_000`),
+    wait until julia 1.9 ([maybe](https://discourse.julialang.org/t/profiling-compilation-of-a-large-generated-expression/83179))
+    or use the alternate style instead.
 
-- With `type = :compact`,
-  the generated expression is a more sophisticated implementation
-  of the underlying differential equations,
-  involving carefully crafted minimal loops
-  and exactly one fixed-size heap-allocated bunch of data,
-  reused on every call during simulation.
-  This makes the simulation slightly less efficient than the above but,
-  as the expression size no longer depends on the number of species interactions,
-  there is no limit to using it and speedup simulations.
-
+  - With `type = :compact`,
+    the generated expression is a more sophisticated implementation
+    of the underlying differential equations,
+    involving carefully crafted minimal loops
+    and exactly one fixed-size heap-allocated bunch of data,
+    reused on every call during simulation.
+    This makes the simulation slightly less efficient than the above but,
+    as the expression size no longer depends on the number of species interactions,
+    there is no limit to using it and speedup simulations.
 """
 function generate_dbdt(parms::ModelParameters, type)
     style = Symbol(type)

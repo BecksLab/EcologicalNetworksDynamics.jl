@@ -13,10 +13,14 @@ end
 #### end ####
 
 #### Type display ####
-"One line [`BioRates`](@ref) display."
+"""
+One line [`BioRates`](@ref) display.
+"""
 Base.show(io::IO, b::BioRates) = print(io, "BioRates(d, r, x, y, e)")
 
-"Multiline [`BioRates`](@ref) display."
+"""
+Multiline [`BioRates`](@ref) display.
+"""
 function Base.show(io::IO, ::MIME"text/plain", biorates::BioRates)
     d = biorates.d
     r = biorates.r
@@ -77,25 +81,30 @@ Parameters used to compute allometric rates for different metabolic classes.
 The rate R is expressed as follow: ``R = aMᵇ``, where a and b can take different values
 depending on the metabolic class of the species. This struct aims at storing these values
 of a and b. Specifically:
-- aₚ: a for producers
-- aₑ: a for ectotherm vertebrates
-- aᵢ: a for invertebrates
-- bₚ: b for producers
-- bₑ: b for ectotherm vertebrates
-- bᵢ: b for invertebrates
+
+  - aₚ: a for producers
+  - aₑ: a for ectotherm vertebrates
+  - aᵢ: a for invertebrates
+  - bₚ: b for producers
+  - bₑ: b for ectotherm vertebrates
+  - bᵢ: b for invertebrates
 
 Default parameters values taken from the literature for certain rates can be accessed by
 calling the corresponding function, for:
-- growth rate (r) call [`DefaultGrowthParams`](@ref)
-- metabolic rate (x) call [`DefaultMetabolismParams`](@ref)
-- max consumption rate (y) call [`DefaultMaxConsumptionParams`](@ref)
+
+  - growth rate (r) call [`DefaultGrowthParams`](@ref)
+  - metabolic rate (x) call [`DefaultMetabolismParams`](@ref)
+  - max consumption rate (y) call [`DefaultMaxConsumptionParams`](@ref)
 
 # Example
+
 ```jldoctest
 julia> params = AllometricParams(1, 2, 3, 4, 5, 6)
 AllometricParams(aₚ=1, aₑ=2, aᵢ=3, bₚ=4, aₚ=1, bₑ=5, bᵢ=6)
+
 julia> params.aₚ
 1
+
 julia> params.aₑ
 2
 ```
@@ -131,18 +140,20 @@ end
 Compute the biological rates (r, x, y and e) of each species in the system.
 
 The rates are:
-- d: the natural mortality rate
-- r: the growth rate
-- x: the metabolic rate or metabolic demand
-- y: the maximum consumption rate
-- e: the assimilation efficiency
-If no value are provided for the rates, they take default values assuming an allometric
-scaling. Custom values can be provided for one or several rates by giving a vector of
-length 1 or S (species richness). Moreover, if one want to use allometric scaling
-(``R = aMᵇ``) but do not want to use default values for a and b, one can simply call
-[`allometric_rate`](@ref) with custom [`AllometricParams`](@ref).
+
+  - d: the natural mortality rate
+  - r: the growth rate
+  - x: the metabolic rate or metabolic demand
+  - y: the maximum consumption rate
+  - e: the assimilation efficiency
+    If no value are provided for the rates, they take default values assuming an allometric
+    scaling. Custom values can be provided for one or several rates by giving a vector of
+    length 1 or S (species richness). Moreover, if one want to use allometric scaling
+    (``R = aMᵇ``) but do not want to use default values for a and b, one can simply call
+    [`allometric_rate`](@ref) with custom [`AllometricParams`](@ref).
 
 # Examples
+
 ```jldoctest
 julia> foodweb = FoodWeb([0 1; 0 0]); # sp. 1 "invertebrate", sp. 2 "producer"
 
@@ -172,7 +183,7 @@ BioRates:
 
 julia> custom_params = AllometricParams(3, 0, 0, 0, 0, 0); # use custom allometric params...
 
-julia> BioRates(foodweb; y=allometric_rate(foodweb, custom_params)) # ...with allometric_rate
+julia> BioRates(foodweb; y = allometric_rate(foodweb, custom_params)) # ...with allometric_rate
 BioRates:
   d: [0.314, 0.138]
   r: [0.0, 1.0]
@@ -207,7 +218,9 @@ function BioRates(
     BioRates(d, r, x, y, e)
 end
 
-"Compute rate vector (one value per species) with allometric scaling."
+"""
+Compute rate vector (one value per species) with allometric scaling.
+"""
 function allometric_rate(net::EcologicalNetwork, allometricparams::AllometricParams)
     params = allometricparams_to_vec(net, allometricparams)
     a, b = params.a, params.b
@@ -216,7 +229,9 @@ end
 #### end ####
 
 #### Helper functions to compute allometric rates ####
-"Allometric scaling: parameter expressed as a power law of body-mass (M)."
+"""
+Allometric scaling: parameter expressed as a power law of body-mass (M).
+"""
 allometricscale(a, b, M) = a * M^b
 
 """

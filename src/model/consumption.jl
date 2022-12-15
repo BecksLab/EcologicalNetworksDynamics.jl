@@ -2,7 +2,9 @@
 Consumption
 =#
 
-"Compute consumption terms of ODEs."
+"""
+Compute consumption terms of ODEs.
+"""
 function consumption(i, B, p::ModelParameters, fᵣmatrix)
     # Dispatch to correct method depending on functional response type.
     consumption(p.functional_response, i, B, p::ModelParameters, fᵣmatrix)

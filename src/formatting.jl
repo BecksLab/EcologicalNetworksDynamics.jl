@@ -12,16 +12,16 @@ julia> cpad(9, 3)
 julia> cpad("test", 1)
 "test"
 
-julia> cpad("test", 6, '-'; left=false)
+julia> cpad("test", 6, '-'; left = false)
 "-test-"
 
-julia> cpad("test", 6, '-'; left=true)
+julia> cpad("test", 6, '-'; left = true)
 "-test-"
 
-julia> cpad("test", 7, '-'; left=false)
+julia> cpad("test", 7, '-'; left = false)
 "-test--"
 
-julia> cpad("test", 7, '-'; left=true)
+julia> cpad("test", 7, '-'; left = true)
 "--test-"
 ```
 """

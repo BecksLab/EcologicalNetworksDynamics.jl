@@ -28,10 +28,14 @@ end
 #### end ####
 
 #### Type display ####
-"One line display FunctionalResponse"
+"""
+One line display FunctionalResponse
+"""
 Base.show(io::IO, response::FunctionalResponse) = print(io, "$(typeof(response))")
 
-"Multiline BioenergeticResponse display."
+"""
+Multiline BioenergeticResponse display.
+"""
 function Base.show(io::IO, ::MIME"text/plain", response::BioenergeticResponse)
     S = size(response.ω, 1)
     println(io, "BioenergeticResponse:")
@@ -41,7 +45,9 @@ function Base.show(io::IO, ::MIME"text/plain", response::BioenergeticResponse)
     print(io, "  ω: ($S, $S) sparse matrix")
 end
 
-"Multiline ClassicResponse display."
+"""
+Multiline ClassicResponse display.
+"""
 function Base.show(io::IO, ::MIME"text/plain", response::ClassicResponse)
     S = size(response.ω, 1)
     println(io, "ClassicResponse:")
@@ -52,7 +58,9 @@ function Base.show(io::IO, ::MIME"text/plain", response::ClassicResponse)
     print(io, "  aᵣ: ($S, $S) sparse matrix")
 end
 
-"Multiline LinearResponse display."
+"""
+Multiline LinearResponse display.
+"""
 function Base.show(io::IO, ::MIME"text/plain", response::LinearResponse)
     S = size(response.ω, 1)
     println(io, "LinearResponse:")
@@ -90,8 +98,9 @@ Create the assimilation efficiency matrix (`Efficiency`).
 `Efficiency[i,j]` is the assimation efficiency of predator i eating prey j.
 A perfect efficiency corresponds to an efficiency of 1.
 The efficiency depends on the metabolic class of the prey:
-- if prey is producter, efficiency is `e_herbivore`
-- otherwise efficiency is `e_carnivore`
+
+  - if prey is producter, efficiency is `e_herbivore`
+  - otherwise efficiency is `e_carnivore`
 
 Default values are taken from Miele et al. 2019 (PLOS Comp.).
 """
@@ -110,19 +119,23 @@ end
 Compute the bionergetic functional response for predator `i` eating prey `j`, given the
 species biomass `B`.
 The bionergetic functional response is written:
+
 ```math
 F_{ij} = \\frac{\\omega_{ij} B_j^h}{B_0^h + c_i B_i B_0^h + \\sum_k \\omega_{ik} B_k^h}
 ```
+
 With:
-- ``\\omega`` the preferency, by default we assume that predators split their time equally
+
+  - ``\\omega`` the preferency, by default we assume that predators split their time equally
     among their preys, i.e. ∀j ``\\omega_{ij} = \\omega_{i} = \\frac{1}{n_{i,preys}}``
     where ``n_{i,preys}`` is the number of preys of predator i.
-- ``h`` the hill exponent, if ``h = 1`` the functional response is of type II, and of type
+  - ``h`` the hill exponent, if ``h = 1`` the functional response is of type II, and of type
     III if ``h = 2``
-- ``c_i`` the intensity of predator intraspecific inteference
-- ``B_0`` the half-saturation density.
+  - ``c_i`` the intensity of predator intraspecific inteference
+  - ``B_0`` the half-saturation density.
 
 # Examples
+
 ```jldoctest
 julia> foodweb = FoodWeb([0 0; 1 0]);
 
@@ -225,23 +238,27 @@ end
 Compute the classic functional response for predator `i` eating prey `j`, given the
 species biomass `B` and the predator body mass `mᵢ`.
 The classic functional response is written:
+
 ```math
 F_{ij} = \\frac{1}{m_i} \\cdot
          \\frac{\\omega_{ij} a_{r,ij} B_j^h}
                {1 + c_i B_i + h_t \\sum_k \\omega_{ik} a_{r,ik} B_k^h}
 ```
+
 With:
-- ``\\omega`` the preferency, by default we assume that predators split their time equally
+
+  - ``\\omega`` the preferency, by default we assume that predators split their time equally
     among their preys, i.e. ∀j ``\\omega_{ij} = \\omega_{i} = \\frac{1}{n_{i,preys}}``
     where ``n_{i,preys}`` is the number of preys of predator i.
-- ``h`` the hill exponent, if ``h = 1`` the functional response is of type II, and of type
+  - ``h`` the hill exponent, if ``h = 1`` the functional response is of type II, and of type
     III if ``h = 2``
-- ``c_i`` the intensity of predator intraspecific inteference
-- ``a_{r,ij}`` the attack rate of predator i on prey j
-- ``h_t`` the handling time of predators
-- ``m_i`` the body mass of predator i
+  - ``c_i`` the intensity of predator intraspecific inteference
+  - ``a_{r,ij}`` the attack rate of predator i on prey j
+  - ``h_t`` the handling time of predators
+  - ``m_i`` the body mass of predator i
 
 # Examples
+
 ```jldoctest
 julia> foodweb = FoodWeb([0 0; 1 0]);
 
@@ -256,10 +273,10 @@ ClassicResponse:
 julia> F([1, 1], 1, 2, 1) # no interaction, 1 does not eat 2
 0.0
 
-julia> round(F([1, 1], 2, 1, 1), digits = 2) # interaction, 2 eats 1
+julia> round(F([1, 1], 2, 1, 1); digits = 2) # interaction, 2 eats 1
 0.33
 
-julia> round(F([1.5, 1], 2, 1, 1), digits = 2) # increases with resource biomass
+julia> round(F([1.5, 1], 2, 1, 1); digits = 2) # increases with resource biomass
 0.53
 ```
 
@@ -378,16 +395,20 @@ end
 Compute the linear functional response for predator `i` eating prey `j`, given the
 species biomass `B`.
 The linear functional response is written:
+
 ```math
 F_{ij} = \\omega_{ij} \\alpha_{i} B_j
 ```
+
 With:
-- ``\\omega`` the preferency, by default we assume that predators split their time equally
+
+  - ``\\omega`` the preferency, by default we assume that predators split their time equally
     among their preys, i.e. ∀j ``\\omega_{ij} = \\omega_{i} = \\frac{1}{n_{i,preys}}``
     where ``n_{i,preys}`` is the number of preys of predator i.
-- ``\\alpha_{i}`` the consumption rate of predator i.
+  - ``\\alpha_{i}`` the consumption rate of predator i.
 
 # Examples
+
 ```jldoctest
 julia> foodweb = FoodWeb([0 0; 1 0]);
 
@@ -409,8 +430,8 @@ julia> F([1, 1.5], 2, 1) # but not with consumer biomass
 1.0
 ```
 
-See also [`BioenergeticResponse`](@ref), [`ClassicResponse`](@ref)
-and [`FunctionalResponse`](@ref).
+See also [`BioenergeticResponse`](@ref), [`ClassicResponse`](@ref)# Code generation version (raw) (↑ ↑ ↑ DUPLICATED FROM ABOVE ↑ ↑ ↑).
+and [`FunctionalResponse`](@ref).# (update together as long as the two coexist)
 """
 (F::LinearResponse)(B, i, j) = F.ω[i, j] * F.α[i] * B[j]
 # Code generation version (raw) (↑ ↑ ↑ DUPLICATED FROM ABOVE ↑ ↑ ↑).
@@ -620,9 +641,10 @@ The output `aᵣ` is squared matrix of length equals to the species richness
 with `aᵣ[i,j]` corresponding to the attack rate of predator ``i`` on prey ``j``.
 The attack rate of a predator-prey couple is given by their body masses,
 formally:
-- ``a_{r,ij} = 50 m_i^{0.45} m_j^{0.15}`` if both species are mobiles;
-- ``a_{r,ij} = 50 m_j^{0.15}`` if i is sessile and j mobile;
-- ``a_{r,ij} = 50 m_i^{0.45}`` if j is sessile and i mobile.
+
+  - ``a_{r,ij} = 50 m_i^{0.45} m_j^{0.15}`` if both species are mobiles;
+  - ``a_{r,ij} = 50 m_j^{0.15}`` if i is sessile and j mobile;
+  - ``a_{r,ij} = 50 m_i^{0.45}`` if j is sessile and i mobile.
 
 This formula is taken from Miele et al. 2019 (PLOS Computational).
 """

@@ -1,6 +1,8 @@
 # EFFECT OF NON-TROPHIC INTERACTIONS ON MODEL PARAMETERS
 
-"Effect of competition on the net growth rate."
+"""
+Effect of competition on the net growth rate.
+"""
 function effect_competition(G_net, i, B, network::MultiplexNetwork)
     isproducer(i, network) || return G_net
     c0 = network.layers[:competition].intensity
@@ -10,7 +12,9 @@ function effect_competition(G_net, i, B, network::MultiplexNetwork)
 end
 effect_competition(G_net, _, _, _::FoodWeb) = G_net
 
-"Effect of facilitation on intrinsic growth rate."
+"""
+Effect of facilitation on intrinsic growth rate.
+"""
 function effect_facilitation(r, i, B, network::MultiplexNetwork)
     f0 = network.layers[:facilitation].intensity
     facilitating_species = network.layers[:facilitation].A[:, i]
@@ -18,7 +22,9 @@ function effect_facilitation(r, i, B, network::MultiplexNetwork)
     network.layers[:facilitation].f(r, δr)
 end
 
-"Effect of refuge on attack rate."
+"""
+Effect of refuge on attack rate.
+"""
 function effect_refuge(aᵣ, B, network::MultiplexNetwork)
     r0 = network.layers[:refuge].intensity
     r0 > 0 || return aᵣ # r0 = 0 ⇒ no effect of refuge

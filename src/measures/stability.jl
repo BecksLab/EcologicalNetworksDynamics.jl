@@ -6,8 +6,8 @@ Various measures of stability
 *Compute Average temporal CV of the species*
 
 # Arguments:
-- mat: A time x species matrix (typically the transposition of the output of `DifferentialEquations.solve()`)
 
+  - mat: A time x species matrix (typically the transposition of the output of `DifferentialEquations.solve()`)
 """
 function avg_cv_sp(mat)
 
@@ -27,8 +27,8 @@ end
 *Compute synchrony among species*
 
 # Arguments:
-- mat: A time x species matrix (typically the transposition of the output of `DifferentialEquations.solve()`)
 
+  - mat: A time x species matrix (typically the transposition of the output of `DifferentialEquations.solve()`)
 """
 function synchrony(mat)
 
@@ -46,8 +46,8 @@ end
 *Compute synchrony among species*
 
 # Arguments:
-- mat: A time x species matrix (typically the transposition of the output of `DifferentialEquations.solve()`)
 
+  - mat: A time x species matrix (typically the transposition of the output of `DifferentialEquations.solve()`)
 """
 function temporal_cv(mat)
 
@@ -61,13 +61,14 @@ end
 *Compute biomass stability*
 
 # Arguments:
-- solution: output of BEFWM2.simulate()
-- threshold: threshold to consider that a species is extinct
-- last: the number of timesteps to consider
+
+  - solution: output of BEFWM2.simulate()
+  - threshold: threshold to consider that a species is extinct
+  - last: the number of timesteps to consider
 
 # Output: a named tuple with Community CV (cv_com) and its partition in average
- population stability (avg_cv_sp) and species synchrony (sync)
 
+population stability (avg_cv_sp) and species synchrony (sync)
 """
 function foodweb_cv(solution; threshold::Float64 = eps(), last = 1000)
 
@@ -114,25 +115,25 @@ ModelParameters{BioenergeticResponse}:
   biorates: BioRates(e, r, x, y)
   functional_response: BioenergeticResponse
 
-julia> bm = [.5, .5];
+julia> bm = [0.5, 0.5];
 
 julia> sim = simulate(p, bm);
 
-julia> producer_growth(sim, last = 3, out_type = :all) #default 
+julia> producer_growth(sim; last = 3, out_type = :all) #default
 
-julia> producer_growth(sim, last = 50, out_type = :mean) # Average per species
+julia> producer_growth(sim; last = 50, out_type = :mean) # Average per species
 
-julia> producer_growth(sim, last = 50, out_type = :std) # Sd per species 
+julia> producer_growth(sim; last = 50, out_type = :std) # Sd per species
 
-julia> species_persistence(sim, last = 50)
+julia> species_persistence(sim; last = 50)
 
-julia> population_stability(sim, last = 50)
+julia> population_stability(sim; last = 50)
 
-julia> total_biomass(sim, last = 50)
+julia> total_biomass(sim; last = 50)
 
-julia> foodweb_evenness(sim, last = 50)
+julia> foodweb_evenness(sim; last = 50)
+
 ```
-
 """
 function population_stability(solution; threshold::Float64 = eps(), last = 1000)
     @assert last <= length(solution.t)

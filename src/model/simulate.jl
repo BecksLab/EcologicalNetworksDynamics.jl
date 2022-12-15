@@ -24,10 +24,10 @@ The dynamic is solved between t=`t0` and t=`tmax`.
 
 By default, we give the following callbacks to `solve()`:
 
-- `TerminateSteadyState` (from DiffEqCallbacks) which ends the simulation
+  - `TerminateSteadyState` (from DiffEqCallbacks) which ends the simulation
     when a steady state is reached
 
-- `ExtinctionCallback` which extinguishes species whose biomass goes under the
+  - `ExtinctionCallback` which extinguishes species whose biomass goes under the
     `extinction_threshold`
     (either a number or a vector, see [`ExtinctionCallback`](@ref)).
 
@@ -57,12 +57,13 @@ If you are not interested in the biomass trajectories,
 but want to find directly the biomass at steady state see [`find_steady_state`](@ref).
 
 # Examples
+
 ```jldoctest
 julia> foodweb = FoodWeb([0 0; 1 0]); # create the foodweb
 
-julia> br = BioRates(foodweb, d=0); # set natural death rate to 0
+julia> br = BioRates(foodweb; d = 0); # set natural death rate to 0
 
-julia> params = ModelParameters(foodweb, biorates=br);
+julia> params = ModelParameters(foodweb; biorates = br);
 
 julia> B0 = [0.5, 0.5]; # set initial biomass
 
@@ -74,14 +75,14 @@ true
 julia> solution[begin] == B0 # initial biomass equals initial biomass
 true
 
-julia> isapprox(solution[end], [0.188, 0.219], atol = 1e-2) # steady state biomass
+julia> isapprox(solution[end], [0.188, 0.219]; atol = 1e-2) # steady state biomass
 true
 
 julia> using DifferentialEquations;
 
-julia> solution_custom_alg = simulate(params, B0, alg=BS5());
+julia> solution_custom_alg = simulate(params, B0; alg = BS5());
 
-julia> isapprox(solution_custom_alg[end], [0.188, 0.219], atol = 1e-2)
+julia> isapprox(solution_custom_alg[end], [0.188, 0.219]; atol = 1e-2)
 true
 
 julia> import Logging; # TODO: remove when warnings removed from `generate_dbdt`.
@@ -89,7 +90,7 @@ julia> import Logging; # TODO: remove when warnings removed from `generate_dbdt`
 julia> # generate specialized code (same simulation)
 
 julia> xpr, data = Logging.with_logger(Logging.NullLogger()) do
-          generate_dbdt(params, :raw)
+           generate_dbdt(params, :raw)
        end;
 
 julia> solution = simulate(params, B0; diff_code_data = (eval(xpr), data));
@@ -100,13 +101,13 @@ true
 julia> solution[begin] == B0
 true
 
-julia> isapprox(solution[end], [0.188, 0.219], atol = 1e-2) # steady state biomass
+julia> isapprox(solution[end], [0.188, 0.219]; atol = 1e-2) # steady state biomass
 true
 
 julia> # Same with alternate style.
 
 julia> xpr, data = Logging.with_logger(Logging.NullLogger()) do
-          generate_dbdt(params, :compact)
+           generate_dbdt(params, :compact)
        end;
 
 julia> solution = simulate(params, B0; diff_code_data = (eval(xpr), data));
@@ -117,7 +118,7 @@ true
 julia> solution[begin] == B0
 true
 
-julia> isapprox(solution[end], [0.188, 0.219], atol = 1e-2) # steady state biomass
+julia> isapprox(solution[end], [0.188, 0.219]; atol = 1e-2) # steady state biomass
 true
 ```
 
@@ -126,12 +127,13 @@ By default, the extinction callback throw a message when a species goes extinct.
 ```julia
 julia> foodweb = FoodWeb([0 0; 1 0]);
 
-julia> params = ModelParameters(foodweb, biorates=BioRates(foodweb, d=0));
+julia> params = ModelParameters(foodweb; biorates = BioRates(foodweb; d = 0));
 
-julia> simulate(params, [0.5, 1e-12], verbose=true); # default: a message is thrown
+julia> simulate(params, [0.5, 1e-12]; verbose = true); # default: a message is thrown
 [ Info: Species [2] is exinct. t=0.12316364776188903
 
-julia> simulate(params, [0.5, 1e-12], verbose=true); # no message thrown
+julia> simulate(params, [0.5, 1e-12]; verbose = true); # no message thrown
+
 ```
 """
 function simulate(
@@ -269,12 +271,13 @@ If you are not only interested in the steady state biomass,
 but also in the trajectories see [`simulate`](@ref).
 
 # Examples
+
 ```jldoctest
 julia> foodweb = FoodWeb([0 0; 1 0]); # create the foodweb
 
-julia> biorates = BioRates(foodweb, d=0); # set natural death to 0
+julia> biorates = BioRates(foodweb; d = 0); # set natural death to 0
 
-julia> params = ModelParameters(foodweb, biorates=biorates);
+julia> params = ModelParameters(foodweb; biorates = biorates);
 
 julia> B0 = [0.5, 0.5]; # set initial biomass
 
@@ -283,7 +286,7 @@ julia> solution = find_steady_state(params, B0);
 julia> solution.terminated # => a steady state has been found
 true
 
-julia> round.(solution.steady_state, digits=2) # steady state biomass
+julia> round.(solution.steady_state, digits = 2) # steady state biomass
 2-element Vector{Float64}:
  0.19
  0.22

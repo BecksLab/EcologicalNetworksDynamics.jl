@@ -48,7 +48,7 @@ FoodWeb of 2 species:
 You can also provide optional arguments e.g. change the species names.
 
 ```jldoctest
-julia> foodweb = FoodWeb([0 0; 1 0], species=["plant", "herbivore"]);
+julia> foodweb = FoodWeb([0 0; 1 0]; species = ["plant", "herbivore"]);
 
 julia> foodweb.species == ["plant", "herbivore"]
 true
@@ -99,7 +99,7 @@ To generate a model with one of these model you have to follow this syntax:
 For instance:
 
 ```jldoctest
-julia> foodweb = FoodWeb(nichemodel, 20, C = 0.1, Z = 50);
+julia> foodweb = FoodWeb(nichemodel, 20; C = 0.1, Z = 50);
 
 julia> richness(foodweb) # the FoodWeb of 20 sp. has been well generated
 20
@@ -127,11 +127,11 @@ true
 
 The function returns a `FoodWeb` which is a collection of the following fields:
 
-- `A` the adjacency matrix
-- `species` the vector of species identities
-- `M` the vector of species body mass
-- `metabolic_class` the vector of species metabolic classes
-- `method` describes which model (e.g. niche model) was used to generate `A`
+  - `A` the adjacency matrix
+  - `species` the vector of species identities
+  - `M` the vector of species body mass
+  - `metabolic_class` the vector of species metabolic classes
+  - `method` describes which model (e.g. niche model) was used to generate `A`
     if no model has been used `method="unspecified"`
 
 See also [`MultiplexNetwork`](@ref).
@@ -187,14 +187,18 @@ end
 #### end ####
 
 #### Type display ####
-"One line FoodWeb display."
+"""
+One line FoodWeb display.
+"""
 function Base.show(io::IO, foodweb::FoodWeb)
     S = richness(foodweb)
     links = count(foodweb.A)
     print(io, "FoodWeb(S=$S, L=$links)")
 end
 
-"Multiline FoodWeb display."
+"""
+Multiline FoodWeb display.
+"""
 function Base.show(io::IO, ::MIME"text/plain", foodweb::FoodWeb)
 
     # Specify parameters
@@ -269,7 +273,9 @@ end
 #### end ####
 
 #### Utility functions for generating default values, cleaning some arguments, etc.
-"Does the user want to replace 'vertebrates' by 'ectotherm vertebrates'?"
+"""
+Does the user want to replace 'vertebrates' by 'ectotherm vertebrates'?
+"""
 function replace_vertebrates!(metabolic_class, vertebrates)
     println("Do you want to replace 'vertebrate' by 'ectotherm vertebrate'? (y or n)")
     answer = readline()
@@ -285,7 +291,9 @@ function replace_vertebrates!(metabolic_class, vertebrates)
     end
 end
 
-"Check that provided metabolic classes are valid."
+"""
+Check that provided metabolic classes are valid.
+"""
 function clean_metabolic_class(metabolic_class, A)
     # Check that producers are identified as such. If not correct and send a warning.
     prod = producers(A)
@@ -312,7 +320,9 @@ function clean_metabolic_class(metabolic_class, A)
     metabolic_class
 end
 
-"Check that labels have the good format and convert them to `String`s if needed."
+"""
+Check that labels have the good format and convert them to `String`s if needed.
+"""
 function clean_labels(labels, S)
     @check_equal_richness length(labels) S
     all(typeof.(labels) .<: Label) ||
@@ -398,7 +408,7 @@ function FoodWeb(al; kwargs...)
     end
 
     # Automatically adjust species labels if needed.
-    kwargs = Dict{Symbol, Any}(kwargs)
+    kwargs = Dict{Symbol,Any}(kwargs)
     if label_style
         if :species in keys(kwargs)
             throw(ArgumentError("Species names are automatically set from labels \
@@ -414,7 +424,9 @@ function FoodWeb(al; kwargs...)
     FoodWeb(A; kwargs...)
 end
 
-"Parse pairs within `FoodWeb()` method working on adjacency list."
+"""
+Parse pairs within `FoodWeb()` method working on adjacency list.
+"""
 function parse_pair(pair)
     pred, prey = pair
     if !(typeof(pred) <: Union{Integer,String,Symbol})

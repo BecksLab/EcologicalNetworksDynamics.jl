@@ -10,6 +10,7 @@
 
 """
 (not exported, so we need this few `BEFWM2.` adjustments in doctest)
+
 ```jldoctest
 julia> import BEFWM2: OrderedCollections.OrderedDict
 
@@ -138,6 +139,7 @@ isin(ref, refs, a::AliasingSystem) =
 
 """
 Generate an "AliasDict" type, with all associated methods, from an aliasing system.
+
 ```jldoctest AliasDict
 julia> import BEFWM2: OrderedCollections.OrderedDict
 
@@ -163,12 +165,12 @@ julia> d = FruitDict(:a => 5, :b => 8.0, :berry => 7.0) #  Guard against ambigui
 ERROR: AliasingError("Fruit type 'berry' specified twice: once with 'b' and once with 'berry'.")
 [...]
 
-julia> d = FruitDict(a=5, b=8.0)  # Take advantage of Symbol indexing to use this form.
+julia> d = FruitDict(; a = 5, b = 8.0)  # Take advantage of Symbol indexing to use this form.
 FruitDict{Real} with 2 entries:
   :apple => 5
   :berry => 8.0
 
-julia> d = FruitDict(b=5, a=8.0)  # Entries are (re)-ordered to standard order.
+julia> d = FruitDict(; b = 5, a = 8.0)  # Entries are (re)-ordered to standard order.
 FruitDict{Real} with 2 entries:
   :apple => 8.0
   :berry => 5
@@ -176,7 +178,8 @@ FruitDict{Real} with 2 entries:
 julia> d[:a], d[:apple], d['a'], d["apple"]   # Index with anything consistent.
 (8.0, 8.0, 8.0, 8.0)
 
-julia> d[:a] = 40; d[:apple] #  Set values.
+julia> d[:a] = 40; #  Set values.
+       d[:apple]
 40
 
 julia> haskey(d, :b), haskey(d, :berry)
