@@ -8,7 +8,8 @@ Adapted from BioenergeticFoodWeb.jl
 return `NaN` in case of problem.
 
 # Argument
-- n: a vector of biomass values
+
+  - n: a vector of biomass values
 """
 species_richness(n; threshold::Float64 = eps()) = sum(n .> threshold)
 
@@ -40,7 +41,9 @@ the starting number of species would be
 See also [`population_stability`](@ref)
 
 # Examples
-#
+
+# 
+
 ```jldoctest
 julia> foodweb = FoodWeb([0 0; 0 0]); #A foodweb of two producers
 
@@ -48,20 +51,19 @@ julia> params = ModelParameters(foodweb);
 
 julia> sim_two = simulate(params, [0.5, 0.5]);
 
-julia> species_persistence(sim_two, last = 1) # All the producers survived
+julia> species_persistence(sim_two; last = 1) # All the producers survived
 1.0
 
 julia> sim_one = simulate(params, [0, 0.5]);
 
-julia> species_persistence(sim_one, last = 1) # All half of the producers survived
+julia> species_persistence(sim_one; last = 1) # All half of the producers survived
 0.5
 
 julia> sim_zero = simulate(params, [0, 0]);
 
-julia> species_persistence(sim_zero, last = 1) # I know... It is a feature!
+julia> species_persistence(sim_zero; last = 1) # I know... It is a feature!
 0.0
 ```
-
 """
 function species_persistence(solution; threshold::Float64 = eps(), last::Int64 = 1000)
     r = foodweb_richness(solution; threshold = threshold, last = last)
@@ -89,7 +91,8 @@ end
 return `NaN` in case of problem.
 
 # Argument
-- n: a vector of biomass values
+
+  - n: a vector of biomass values
 """
 function shannon(n; threshold::Float64 = eps())
     x = copy(n)
@@ -114,7 +117,6 @@ end
 Equivalent of [`foodweb_richness`](@ref) for the Shannon entropy index (the first Hill number)
 
 See also [`population_stability`](@ref) for examples
-
 """
 function foodweb_shannon(solution; last::Int64 = 1000, threshold::Float64 = eps())
     measure_on = filter_sim(solution; last = last)
@@ -133,7 +135,8 @@ end
 return `NaN` in case of problem.
 
 # Argument
-- n: a vector of biomass values
+
+  - n: a vector of biomass values
 """
 function simpson(n; threshold::Float64 = eps())
     x = copy(n)
@@ -157,7 +160,6 @@ end
 Equivalent of [`foodweb_evenness`](@ref) for the Simpson diversity index (the second hill number)
 
 See also [`population_stability`](@ref) for examples
-
 """
 function foodweb_simpson(solution; last::Int64 = 1000, threshold::Float64 = eps())
 
@@ -177,6 +179,7 @@ end
 Shannon divided by the log number of species
 
 # See also
+
 [`shannon`](@ref)
 """
 function pielou(n; threshold::Float64 = eps())
@@ -199,7 +202,6 @@ Based on the average of Pielou Evenness index over the last `last` timesteps. Va
 all populations have equal biomasses.
 
 See also [`population_stability`](@ref) for examples
-
 """
 function foodweb_evenness(solution; last::Int64 = 1000, threshold::Float64 = eps())
     measure_on = filter_sim(solution; last = last)
@@ -219,9 +221,10 @@ end
 This function takes the simulation outputs from `simulate` and returns the producers
 growth rates. Depending on the value given to the keyword `out_type`, it can return
 more specifically:
-- growth rates for each producer at each time step form end-last to last (`out_type = :all`)
-- the mean growth rate for each producer over the last `last` time steps (`out_type = :mean`)
-- the standard deviation of the growth rate for each producer over the last `last` time steps (`out_type = :std`)
+
+  - growth rates for each producer at each time step form end-last to last (`out_type = :all`)
+  - the mean growth rate for each producer over the last `last` time steps (`out_type = :mean`)
+  - the standard deviation of the growth rate for each producer over the last `last` time steps (`out_type = :std`)
 
 See also [`population_stability`](@ref)
 """

@@ -13,14 +13,18 @@ end
 #### end ####
 
 #### Type display ####
-"One line ModelParameters display."
+"""
+One line ModelParameters display.
+"""
 function Base.show(io::IO, params::ModelParameters)
     response_type = typeof(params.functional_response)
     print(io, "ModelParameters{$response_type}")
     !get(io, :compact, false) && print(io, "(", params.network, ")")
 end
 
-"Multiline ModelParameters display."
+"""
+Multiline ModelParameters display.
+"""
 function Base.show(io::IO, ::MIME"text/plain", params::ModelParameters)
 
     # Display output
@@ -46,16 +50,18 @@ end
 Generate the parameters of the species community.
 
 Default values are taken from
-[Brose et al., 2006](https://doi.org/10.1890/0012-9658(2006)87[2411:CBRINF]2.0.CO;2).
+[Brose et al., 2006](https://doi.org/10.1890/0012-9658(2006)87%5B2411:CBRINF%5D2.0.CO%3B2).
 The parameters are compartimented in different groups:
-- [`FoodWeb`](@ref): foodweb information (e.g. adjacency matrix)
-- [`BioRates`](@ref): biological species rates (e.g. growth rates)
-- [`Environment`](@ref): environmental variables (e.g. carrying capacities)
-- [`FunctionalResponse`](@ref) (F): functional response form
+
+  - [`FoodWeb`](@ref): foodweb information (e.g. adjacency matrix)
+  - [`BioRates`](@ref): biological species rates (e.g. growth rates)
+  - [`Environment`](@ref): environmental variables (e.g. carrying capacities)
+  - [`FunctionalResponse`](@ref) (F): functional response form
     (e.g. classic or bioenergetic functional response)
-- [`ProducerCompetition`](@ref): producer competition (e.g. intra and inter competition)
+  - [`ProducerCompetition`](@ref): producer competition (e.g. intra and inter competition)
 
 # Examples
+
 ```jldoctest
 julia> foodweb = FoodWeb([0 1; 0 0]); # create a simple foodweb
 
@@ -84,7 +90,7 @@ BioenergeticResponse:
 
 julia> classic_response = ClassicResponse(foodweb); # choose classic functional response
 
-julia> p = ModelParameters(foodweb, functional_response = classic_response);
+julia> p = ModelParameters(foodweb; functional_response = classic_response);
 
 julia> p.functional_response # check that the functional response is now "classic"
 ClassicResponse:

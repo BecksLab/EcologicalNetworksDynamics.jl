@@ -5,12 +5,16 @@ end
 #### end ####
 
 #### Type display ####
-"One line Environment display."
+"""
+One line Environment display.
+"""
 function Base.show(io::IO, alpha::ProducerCompetition)
     print(io, "ProducerCompetition($(size(alpha.α)) matrix)")
 end
 
-"Multiline Environment display."
+"""
+Multiline Environment display.
+"""
 function Base.show(io::IO, ::MIME"text/plain", alpha::ProducerCompetition)
 
     # Display output
@@ -26,10 +30,11 @@ end
 Create producer competition matrix of the system.
 
 The parameters are:
-- α the competition matrix of dimensions S*S, S being the species number of the
-network. Set to nothing by default.
-- αii the intracompetition term for all species, 1.0 by default.
-- αij the interspecific competition term for all species, 0.0 by default.
+
+  - α the competition matrix of dimensions S*S, S being the species number of the
+    network. Set to nothing by default.
+  - αii the intracompetition term for all species, 1.0 by default.
+  - αij the interspecific competition term for all species, 0.0 by default.
 
 By default, the producers compete only with themselves (i.e. αii = 1.0, αij = 0.0).
 In the resulting α matrix, the element α[i,j] represents the percapita
@@ -38,6 +43,7 @@ the αii and αij parameters. Moreover, all the αij coefficients should be 0 fo
 non producers.
 
 # Examples
+
 ```jldoctest
 julia> A = [0 0 0; 0 0 0; 0 0 1]
 3×3 Matrix{Int64}:
@@ -53,17 +59,17 @@ FoodWeb of 3 species:
   method: unspecified
   species: [s1, s2, s3]
 
-julia> c = ProducerCompetition(foodweb, αii = 0.5, αij = 1.0)
+julia> c = ProducerCompetition(foodweb; αii = 0.5, αij = 1.0)
 Producer competition:
   α: (3, 3) matrix
 
-julia> my_α = [.5 1.0 0; 1.0 .5 0; 0 0 0]
+julia> my_α = [0.5 1.0 0; 1.0 0.5 0; 0 0 0]
 3×3 Matrix{Float64}:
  0.5  1.0  0.0
  1.0  0.5  0.0
  0.0  0.0  0.0
 
-julia> myc = ProducerCompetition(foodweb, α = my_α)
+julia> myc = ProducerCompetition(foodweb; α = my_α)
 Producer competition:
   α: (3, 3) matrix
 

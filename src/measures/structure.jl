@@ -2,29 +2,41 @@
 Quantifying food webs structural properties
 =#
 
-"Number of species in the network."
+"""
+Number of species in the network.
+"""
 richness(net::EcologicalNetwork) = richness(get_trophic_adjacency(net))
 richness(A::AbstractMatrix) = size(A, 1)
 
-"Connectance of network: number of links / (number of species)^2"
+"""
+Connectance of network: number of links / (number of species)^2
+"""
 connectance(A::AbstractMatrix) = sum(A) / richness(A)^2
 connectance(foodweb::FoodWeb) = connectance(foodweb.A)
 
 #### Overloading Base methods ####
-"Filter species of the network (`net`) for which `f(species_index, net) = true`."
+"""
+Filter species of the network (`net`) for which `f(species_index, net) = true`.
+"""
 Base.filter(f, net::EcologicalNetwork) = filter(i -> f(i, net), 1:richness(net))
 
-"Transform species of the network (`net`) by applying `f` to each species."
+"""
+Transform species of the network (`net`) by applying `f` to each species.
+"""
 Base.map(f, net::EcologicalNetwork) = map(i -> f(i, net), 1:richness(net))
 #### end ####
 
 #### Find producers ####
-"Is species `i` of the network (`net`) a producer?"
+"""
+Is species `i` of the network (`net`) a producer?
+"""
 isproducer(i, A::AdjacencyMatrix) = isempty(A[i, :].nzval)
 isproducer(i, net::FoodWeb) = isproducer(i, net.A)
 isproducer(i, net::MultiplexNetwork) = isproducer(i, net.layers[:trophic].A)
 
-"Return indexes of the producers of the given `network`."
+"""
+Return indexes of the producers of the given `network`.
+"""
 producers(net) = filter(isproducer, net)
 producers(A::AbstractMatrix) = (1:richness(A))[all(A .== 0; dims = 2)|>vec]
 #### end ####
@@ -35,7 +47,7 @@ producers(A::AbstractMatrix) = (1:richness(A))[all(A .== 0; dims = 2)|>vec]
 
 Return indexes of the predators of species `i` for the given `network`.
 
-# Examples 
+# Examples
 
 ```jldoctest
 julia> foodweb = FoodWeb([0 0 0; 1 0 0; 1 1 0]);
@@ -45,12 +57,12 @@ julia> predators_of(1, foodweb)
  2
  3
 
-julia> predators_of(2, foodweb) 
+julia> predators_of(2, foodweb)
 1-element Vector{Int64}:
  3
 
 julia> predators_of(3, foodweb)
-Int64[] 
+Int64[]
 ```
 
 See also [`preys_of`](@ref) and [`producers`](@ref).
@@ -59,12 +71,16 @@ predators_of(i, A::AdjacencyMatrix) = A[:, i].nzind
 predators_of(i, net::FoodWeb) = predators_of(i, net.A)
 predators_of(i, net::MultiplexNetwork) = predators_of(i, net.layers[:trophic].A)
 
-"Is species `i` of the network (`net`) a predator?"
+"""
+Is species `i` of the network (`net`) a predator?
+"""
 ispredator(i, A::AdjacencyMatrix) = !isproducer(i, A)
 ispredator(i, net::FoodWeb) = ispredator(i, net.A)
 ispredator(i, net::MultiplexNetwork) = ispredator(i, net.layers[:trophic].A)
 
-"Return indexes of the predators of the given `network`."
+"""
+Return indexes of the predators of the given `network`.
+"""
 predators(net::EcologicalNetwork) = filter(ispredator, net)
 #### end ####
 
@@ -74,7 +90,7 @@ predators(net::EcologicalNetwork) = filter(ispredator, net)
 
 Return indexes of the preys of species `i` for the given `network`.
 
-# Examples 
+# Examples
 
 ```jldoctest
 julia> foodweb = FoodWeb([0 0 0; 0 0 0; 1 1 0]);
@@ -85,7 +101,7 @@ julia> preys_of(3, foodweb)
  2
 
 julia> preys_of(1, foodweb) # empty
-Int64[] 
+Int64[]
 ```
 
 See also [`predators_of`](@ref) and [`producers`](@ref).
@@ -94,42 +110,60 @@ preys_of(i, net::FoodWeb) = preys_of(i, net.A)
 preys_of(i, net::MultiplexNetwork) = preys_of(i, net.layers[:trophic].A)
 preys_of(i, A::AdjacencyMatrix) = A[i, :].nzind
 
-"Is species `i` a prey?"
+"""
+Is species `i` a prey?
+"""
 isprey(i, A::AdjacencyMatrix) = !isempty(A[:, i].nzind)
 isprey(i, net::FoodWeb) = isprey(i, net.A)
 isprey(i, net::MultiplexNetwork) = isprey(i, net.layers[:trophic].A)
 
-"Return indexes of the preys of the network (`net`)."
+"""
+Return indexes of the preys of the network (`net`).
+"""
 preys(net::EcologicalNetwork) = filter(isprey, net)
 preys(A::AbstractSparseMatrix) = [i for i in 1:size(A, 1) if !isempty(A[:, i].nzval)]
 
-"Do species `i` and `j` share at least one prey?"
+"""
+Do species `i` and `j` share at least one prey?
+"""
 share_prey(i, j, A::AdjacencyMatrix) = !isempty(intersect(preys_of(i, A), preys_of(j, A)))
 share_prey(i, j, net::FoodWeb) = share_prey(i, j, net.A)
 share_prey(i, j, net::MultiplexNetwork) = share_prey(i, j, net.layers[:trophic].A)
 #### end ####
 
 #### Find verterbrates & invertebrates ####
-"Is species `i` a ectotherm vertebrate?"
+"""
+Is species `i` a ectotherm vertebrate?
+"""
 isvertebrate(i, net::EcologicalNetwork) = net.metabolic_class[i] == "ectotherm vertebrate"
 
-"Is species `i` a invertebrate?"
+"""
+Is species `i` a invertebrate?
+"""
 isinvertebrate(i, net::EcologicalNetwork) = net.metabolic_class[i] == "invertebrate"
 
-"Return indexes of the vertebrates of the network (`net`)."
+"""
+Return indexes of the vertebrates of the network (`net`).
+"""
 vertebrates(net::EcologicalNetwork) = filter(isvertebrate, net)
 
-"Return indexes of the invertebrates of the network (`net`)."
+"""
+Return indexes of the invertebrates of the network (`net`).
+"""
 invertebrates(net::EcologicalNetwork) = filter(isinvertebrate, net)
 #### end ####
 
 #### Number of resources ####
-"Number of resource species `i` is feeding on."
+"""
+Number of resource species `i` is feeding on.
+"""
 number_of_resource(i, A::AdjacencyMatrix) = length(A[i, :].nzval)
 number_of_resource(i, net::FoodWeb) = number_of_resource(i, net.A)
 number_of_resource(i, net::MultiplexNetwork) = number_of_resource(i, net.layers[:trophic].A)
 
-"Return a vector where element i is the number of resource(s) of species i."
+"""
+Return a vector where element i is the number of resource(s) of species i.
+"""
 function number_of_resource(net::EcologicalNetwork)
     [number_of_resource(i, net) for i in 1:richness(net)]
 end
@@ -146,7 +180,9 @@ function _ftl(A::AbstractMatrix)
     end
 end
 
-"Trophic level of each species."
+"""
+Trophic level of each species.
+"""
 function trophic_levels(A::AbstractMatrix)
     A = Bool.(A)
     trophiclvl_dict = trophic_level(UnipartiteNetwork(A))

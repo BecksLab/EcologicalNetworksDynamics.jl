@@ -4,9 +4,10 @@
 
 A `Layer` of an interaction type contains
 two pieces of information concerning this interaction:
-- `A`: where the interactions occur given by the adjacency matrix
-- `intensity`: the intensity of the interaction
-- `f`: the functional form of the non-trophic effect on the adequate parameter
+
+  - `A`: where the interactions occur given by the adjacency matrix
+  - `intensity`: the intensity of the interaction
+  - `f`: the functional form of the non-trophic effect on the adequate parameter
 
 The intensity is only defined for non-trophic interactions and is set to `nothing` for
 trophic interactions.
@@ -127,19 +128,22 @@ using variably-named `args` whose general form is either:
 to set up `parameter` for layer `interaction`, or:
 
     <parameter_name> = (<interaction1>=value1, <interaction2>=value2, ...)
- eg.       intensity = (facilitation = 2.0, interference = 1.5)
- or equivalently:  I = (f = 2.0, i = 1.5)
+
+eg.       intensity = (facilitation = 2.0, interference = 1.5)
+or equivalently:  I = (f = 2.0, i = 1.5)
 
 to set up `parameter` for all layers `interaction1`, `interaction2`, etc., or again:
 
     <interaction_name> = (<parameter1>=value1, <parameter2>=value2, ...)
- eg.       competition = (connectance = 4, symmetry = false)
- or equivalently:    c = (L = 4, s = false)
+
+eg.       competition = (connectance = 4, symmetry = false)
+or equivalently:    c = (L = 4, s = false)
 
 to set up `parameter1` and `parameter2` for the layer `interaction.
 
 Valid interactions and parameters names
 can be retrieved with the following two cheat-sheets:
+
 ```jldoctest
 julia> interaction_names()
 OrderedCollections.OrderedDict{Symbol, Vector{Symbol}} with 5 entries:
@@ -166,7 +170,7 @@ Specify a number of desired links to generate a non-trophic layer.
 ```jldoctest 1
 julia> foodweb = FoodWeb([0 0 0; 0 0 0; 1 1 0]); # 2 producers and 1 consumer
 
-julia> MultiplexNetwork(foodweb, L_facilitation=2) #  or 'n_links_f', or 'L_fac', etc.
+julia> MultiplexNetwork(foodweb; L_facilitation = 2) #  or 'n_links_f', or 'L_fac', etc.
 MultiplexNetwork of 3 species:
   trophic_layer: 2 links
   competition_layer: 0 links
@@ -179,7 +183,7 @@ Alternately, specify desired connectance for the layer
 (a value of `1.0` creates as many links as possible).
 
 ```jldoctest 1
-julia> MultiplexNetwork(foodweb, C_cpt=1.0) #  or 'C_competition', or 'connectance_c', etc.
+julia> MultiplexNetwork(foodweb; C_cpt = 1.0) #  or 'C_competition', or 'connectance_c', etc.
 MultiplexNetwork of 3 species:
   trophic_layer: 2 links
   competition_layer: 2 links
@@ -193,7 +197,7 @@ Alternately, provide an explicit adjacency matrix.
 ```jldoctest
 julia> foodweb = FoodWeb([0 0 0; 1 0 0; 1 0 0]); # 2 consumers feeding on producer 1
 
-julia> MultiplexNetwork(foodweb, A_interference=[0 0 0; 0 0 1; 0 1 0]) #  or 'matrix_i' etc.
+julia> MultiplexNetwork(foodweb; A_interference = [0 0 0; 0 0 1; 0 1 0]) #  or 'matrix_i' etc.
 MultiplexNetwork of 3 species:
   trophic_layer: 2 links
   competition_layer: 0 links
@@ -210,7 +214,7 @@ Modify them with corresponding arguments:
 ```jldoctest
 julia> foodweb = FoodWeb([0 0 0; 0 0 0; 1 1 0]); # 2 producers and 1 consumer
 
-julia> multiplex_network = MultiplexNetwork(foodweb, facilitation=(L=1, I=2.0));
+julia> multiplex_network = MultiplexNetwork(foodweb; facilitation = (L = 1, I = 2.0));
 
 julia> multiplex_network.layers[:facilitation] #  or [:f] or [:fac] etc.
 Layer(A=AdjacencyMatrix(L=1), intensity=2.0)
@@ -224,10 +228,11 @@ In other words, an interaction is symmetric
 iif the adjacency matrix of that interaction is symmetric.
 
 With default settings:
-- competition is symmetric
-- facilitation is not symmetric
-- interference is symmetric
-- refuge is not symmetric
+
+  - competition is symmetric
+  - facilitation is not symmetric
+  - interference is symmetric
+  - refuge is not symmetric
 
 Change the defaults with the appropriate arguments.
 
@@ -238,7 +243,7 @@ But you can change this default as follow:
 ```jldoctest
 julia> foodweb = FoodWeb([0 0 0; 0 0 0; 1 1 0]);
 
-julia> MultiplexNetwork(foodweb, competition=(sym=false, L=1))
+julia> MultiplexNetwork(foodweb; competition = (sym = false, L = 1))
 MultiplexNetwork of 3 species:
   trophic_layer: 2 links
   competition_layer: 1 links
@@ -248,7 +253,10 @@ MultiplexNetwork of 3 species:
 ```
 
 !!! note
+    
     If you don't specify `sym=false` an error will be thrown.
+    
+    # The parameters to parse into actual layers.
 
 See also [`FoodWeb`](@ref), [`Layer`](@ref).
 """
@@ -278,14 +286,18 @@ end
 #### end ####
 
 #### Display MultiplexNetwork & NonTrophicIntensity ####
-"One line [`Layer`](@ref) display."
+"""
+One line [`Layer`](@ref) display.
+"""
 function Base.show(io::IO, layer::Layer)
     L = count(layer.A)
     intensity = layer.intensity
     print(io, "Layer(A=AdjacencyMatrix(L=$L), intensity=$intensity)")
 end
 
-"One line [`MultiplexNetwork`](@ref) display."
+"""
+One line [`MultiplexNetwork`](@ref) display.
+"""
 function Base.show(io::IO, multiplex_net::MultiplexNetwork)
     S = richness(multiplex_net)
     layers = ""
@@ -296,7 +308,9 @@ function Base.show(io::IO, multiplex_net::MultiplexNetwork)
     print(io, "MultiplexNetwork(S=$S, $layers)")
 end
 
-"Multiline [`MultiplexNetwork`](@ref) display."
+"""
+Multiline [`MultiplexNetwork`](@ref) display.
+"""
 function Base.show(io::IO, ::MIME"text/plain", multiplex_net::MultiplexNetwork)
 
     # Specify parameters
@@ -353,7 +367,9 @@ function potential_interference_links(foodweb::FoodWeb)
     [(i, j) for i in preds, j in preds if i != j && share_prey(i, j, foodweb)]
 end
 
-"Adjacency matrix of potential links given by the `potential_links` function in `net`."
+"""
+Adjacency matrix of potential links given by the `potential_links` function in `net`.
+"""
 function A_nti_full(net::EcologicalNetwork, potential_links::Function)
     foodweb = convert(FoodWeb, net)
     S = richness(foodweb)
@@ -371,6 +387,7 @@ end
 Adjacency matrix of all possible competition links in the network `net`.
 
 # Example
+
 ```jldoctest
 julia> foodweb = FoodWeb([0 0; 0 0]); # 2 producers
 
@@ -392,6 +409,7 @@ A_competition_full(net) = A_nti_full(net, potential_competition_links)
 Adjacency matrix of all possible facilitation links in the network `net`.
 
 # Example
+
 ```jldoctest
 julia> foodweb = FoodWeb([0 0; 0 0]); # 2 producers
 
@@ -413,6 +431,7 @@ A_facilitation_full(net) = A_nti_full(net, potential_facilitation_links)
 Adjacency matrix of all possible interference links in the network `net`.
 
 # Example
+
 ```jldoctest
 julia> foodweb = FoodWeb([0 0 0; 1 0 0; 1 0 0]); # 2 consumers eating producer 1
 
@@ -435,6 +454,7 @@ A_interference_full(net) = A_nti_full(net, potential_interference_links)
 Adjacency matrix of all possible refuge links in the network `net`.
 
 # Example
+
 ```jldoctest
 julia> foodweb = FoodWeb([0 0 0; 0 0 0; 1 0 0]); # consumer 3 eats producer 1
 
