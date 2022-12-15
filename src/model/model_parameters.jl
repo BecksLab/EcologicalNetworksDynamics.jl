@@ -53,8 +53,7 @@ The parameters are compartimented in different groups:
 - [`Environment`](@ref): environmental variables (e.g. carrying capacities)
 - [`FunctionalResponse`](@ref) (F): functional response form
     (e.g. classic or bioenergetic functional response)
-- [`ProducerCompetition`](@ref): producer competition 
-    (e.g. intra and inter competition)
+- [`ProducerCompetition`](@ref): producer competition (e.g. intra and inter competition)
 
 # Examples
 ```jldoctest

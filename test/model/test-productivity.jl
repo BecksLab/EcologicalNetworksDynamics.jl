@@ -57,21 +57,29 @@
     # 1 & 2 producer; 3 consumer
     A = [0 0 0; 0 0 0; 0 0 1]
     foodweb = FoodWeb(A)
+    env = Environment(foodweb; K = 1)
+    rates = BioRates(foodweb; d = 0)
     # K = 1, intercompetition
     p = ModelParameters(
         foodweb;
         producer_competition = ProducerCompetition(foodweb; αii = 1.0, αij = 1.0),
+        biorates = rates,
+        environment = env,
     )
-    simulates(p, [0.5, 0.5, 0.5])[1:2, end] .== 0.5
+    @test simulates(p, [0.5, 0.5, 0.5])[1:2, end] == [0.5, 0.5]
 
     p_inter_only = ModelParameters(
         foodweb;
         producer_competition = ProducerCompetition(foodweb; αii = 0.0, αij = 1.0),
+        biorates = rates,
+        environment = env,
     )
     s_inter_only = simulates(p_inter_only, [0.5, 0.5, 0.5])
     p_intra_only = ModelParameters(
         foodweb;
         producer_competition = ProducerCompetition(foodweb; αii = 1.0, αij = 0.0),
+        biorates = rates,
+        environment = env,
     )
     s_intra_only = simulates(p_intra_only, [0.5, 0.5, 0.5])
     @test s_inter_only[1:2, end] == s_intra_only[1:2, end] ≈ [1.0, 1.0]

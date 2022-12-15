@@ -62,7 +62,7 @@ julia> foodweb = FoodWeb([0 0; 1 0]); # create the foodweb
 
 julia> br = BioRates(foodweb, d=0); # set natural death rate to 0
 
-julia> params = ModelParameters(foodweb, biorates=br); 
+julia> params = ModelParameters(foodweb, biorates=br);
 
 julia> B0 = [0.5, 0.5]; # set initial biomass
 
@@ -274,7 +274,7 @@ julia> foodweb = FoodWeb([0 0; 1 0]); # create the foodweb
 
 julia> biorates = BioRates(foodweb, d=0); # set natural death to 0
 
-julia> params = ModelParameters(foodweb, biorates=biorates); 
+julia> params = ModelParameters(foodweb, biorates=biorates);
 
 julia> B0 = [0.5, 0.5]; # set initial biomass
 
