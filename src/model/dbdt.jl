@@ -33,7 +33,9 @@ function dBdt!(dB, B, p, t)
     end
 end
 
-function stoch_dBdt!(dB, B, params::ModelParameters, t)
+function stoch_dBdt!(dB, B, p, t)
+
+    params, extinct_sp = p # unpack input
 
     # Set up - Unpack parameters
     S = richness(params.network)
@@ -54,14 +56,21 @@ function stoch_dBdt!(dB, B, params::ModelParameters, t)
         dB[i] = growth + eating - being_eaten - metabolism_loss
     end
 
+    # Avoid zombie species by forcing extinct biomasses to zero.
+    # https://github.com/BecksLab/BEFWM2/issues/65
+    for sp in keys(extinct_sp)
+        B[sp] = 0.0
+    end
+
     # Loop over stochastic parameters
     for i in S+1:S+length(stochasticity.stochspecies)
         dB[i] = stochasticity.θ[i-S] * (stochasticity.μ[i-S] - B[i])
     end
 end
 
-function noise_equations(dW, B, params::ModelParameters, t)
+function noise_equations(dW, B, p, t)
 
+    params, extinct_sp = p # unpack input
     FW = params.network
     S = richness(FW)
 
