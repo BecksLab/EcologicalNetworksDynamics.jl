@@ -208,6 +208,7 @@ function simulate(
         problem = ODEProblem(fun, B0, timespan, p)
 
         diffparams = vcat(B0, params.stochasticity.μ)
+        callback = CallbackSet(ExtinctionCallback(extinction_threshold, verbose, richness(params.network)))
 
         FW = params.network
         AS = params.stochasticity
@@ -222,7 +223,7 @@ function simulate(
             noise_equations,
             diffparams,
             timespan,
-            params;
+            p;
             noise = W,
             callback = callback,
         ) # Can add a seed to use same noise
@@ -280,13 +281,64 @@ function ExtinctionCallback(extinction_threshold, verbose::Bool)
         if verbose
             S, S_ext = length(integrator.u), length(all_extinct_sp)
             @info "Species $([new_extinct_sp...]) went extinct at time t = $t. \n" *
-                  "$S_ext over $S species are extinct."
+                  "$S_ext out of $S species are extinct."
+        end
+    end
+
+    DiscreteCallback(species_under_threshold, extinguish_species!)
+end
+
+
+"""
+    ExtinctionCallback(extinction_threshold::AbstractVector, verbose::Bool)
+
+Differs from the original ExtinctionCallback as this is for stochastic simulations 
+where only the first S equations are biomass timeseries subject to extinction
+"""
+function ExtinctionCallback(extinction_threshold, verbose::Bool, S::Number)
+
+    # The callback is triggered whenever
+    # a non-extinct species biomass goes below the threshold.
+
+    # Use either adequate code based on `extinction_threshold` type.
+    # This avoids that the type condition be checked on every timestep.
+    species_under_threshold = if isa(extinction_threshold, Number)
+        (u, t, integrator) -> any(u[1:S][u[1:S].!=0] .< extinction_threshold)
+    else
+        (u, t, integrator) -> any(u[1:S][u[1:S].!=0] .< extinction_threshold[u[1:S].>0])
+    end
+
+    get_extinct_species = if isa(extinction_threshold, Number)
+        (u, _) -> Set(findall(x -> x < extinction_threshold, u[1:S]))
+    else
+        (u, S) -> Set((1:S)[u[1:S].<extinction_threshold])
+    end
+
+    # Effect of the callback: the species biomass below the threshold are set to 0.
+    function extinguish_species!(integrator)
+        # All species that are extinct, include previous extinct species and the new species
+        # that triggered the callback. (Its/Their biomass still has to be set to 0.0)
+        
+        all_extinct_sp = get_extinct_species(integrator.u, S)
+        prev_extinct_sp = keys(integrator.p.extinct_sp)
+        # Species that are newly extinct, i.e. the species that triggered the callback.
+        new_extinct_sp = setdiff(all_extinct_sp, prev_extinct_sp)
+        integrator.u[[sp for sp in new_extinct_sp]] .= 0.0
+        t = integrator.t
+        new_extinct_sp_dict = Dict(sp => t for sp in new_extinct_sp)
+        merge!(integrator.p.extinct_sp, new_extinct_sp_dict) # update extinct species list
+        # Info message (printed only if verbose = true).
+        if verbose
+            S_ext = length(all_extinct_sp)
+            @info "Species $([new_extinct_sp...]) went extinct at time t = $t. \n" *
+                  "$S_ext out of $S species are extinct."
         end
     end
 
     DiscreteCallback(species_under_threshold, extinguish_species!)
 end
 #### end ####
+
 
 #### Find steady state ####
 """
