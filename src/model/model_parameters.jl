@@ -76,7 +76,7 @@ ModelParameters{BioenergeticResponse}:
   biorates: BioRates(d, r, x, y, e)
   functional_response: BioenergeticResponse
   producer_competition: ProducerCompetition((2, 2) matrix)
-  temperature_response: NoTemperatureResponse()
+  temperature_response: NoTemperatureResponse
 
 julia> p.network # check that stored foodweb is the same as the one we provided
 FoodWeb of 2 species:

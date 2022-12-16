@@ -25,14 +25,14 @@ end
 
 # The entry point for the user.
 function set_temperature!(p::ModelParameters, T, F!::TemperatureResponse)
-    
+
     # error - can only be used with bioenergetic functional response
     if isa(F!, ExponentialBA) & !(isa(p.functional_response, ClassicResponse))
         type_response = typeof(p.functional_response)
         throw(ArgumentError("Temperature dependence isn't implented for '$type_response'.
-            Use a functional response of type 'ClassicResponse' instead."), )
+            Use a functional response of type 'ClassicResponse' instead."))
     end
-    
+
     # Apply the functor to the parameters.
     F!(p, T)
     # Record which functor has been used for these parameters.
