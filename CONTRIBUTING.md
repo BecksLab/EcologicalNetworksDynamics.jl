@@ -144,9 +144,9 @@ Delete every file not tracked by git, including `Manifest.toml` files.
 Beware that this will permanently delete any file not yet committed.
 
 ```console
-$ git reset --hard      # Unstage all non-commited files
-$ git checkout develop  # (or any branch you are willing to work on)
-$ git clean -xdf        # Delete all non-staged files.
+$ git reset --hard  # Unstage all non-commited files
+$ git checkout dev  # (or any branch you are willing to work on)
+$ git clean -xdf    # Delete all non-staged files.
 ```
 
 #### Setup source projects environments.
@@ -221,7 +221,7 @@ Before working on your contribution,
 make sure you do so on a dedicated branch, for instance with:
 
 ```console
-$ git checkout develop             # Most common branch to base your work upon.
+$ git checkout dev                 # Most common branch to base your work upon.
 $ git checkout -b my_cool_feature  # Create your branch and switch to it.
 ```
 
@@ -234,31 +234,31 @@ $ git commit
 
 When your feature is ready,
 open a pull request with your branch on the official repo.
-Your code will be reviewed there before it is eventually merged into `develop`.
+Your code will be reviewed there before it is eventually merged into `dev`.
 
 
-### Keep your work downstream the `develop` branch
+### Keep your work downstream the `dev` branch
 
 BEFWM2 enforces linear git history with a rebase strategy.
 As a consequence, as you are working on your branch,
-it sometimes happens that `develop` moves forward in another direction.
+it sometimes happens that `dev` moves forward in another direction.
 This is not a problem and you can keep going until your pull request is ready.
 
 However, if you need to integrate
-the latest `develop` features into your branch,
+the latest `dev` features into your branch,
 please *refrain* from introducing merge commits with commands like:
 
 ```console
-$ # git merge develop  # This complicates enforcement of git rebase strategy !
+$ # git merge dev  # This complicates enforcement of git rebase strategy !
 ```
 
-Instead, rebase your branch onto the new `develop` location with commands like:
+Instead, rebase your branch onto the new `dev` location with commands like:
 ```console
-$ git rebase develop  # You will be prompted for any conflict resolution then.
+$ git rebase dev  # You will be prompted for any conflict resolution then.
 ```
 or, more explicitly:
 ```console
-$ git rebase --onto develop my_cool_feature
+$ git rebase --onto dev my_cool_feature
 ```
 
 Should you wish not to loose your original history before rebasing your branch,
