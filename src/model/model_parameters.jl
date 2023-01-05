@@ -100,6 +100,22 @@ ClassicResponse:
   hₜ: (2, 2) sparse matrix
   aᵣ: (2, 2) sparse matrix
 ```
+
+[`ModelParameters`](@ref) can also be generated from a [`MultiplexNetwork`](@ref).
+
+```jldoctest
+julia> foodweb = FoodWeb([0 1; 0 0]); # create a simple foodweb
+
+julia> net = MultiplexNetwork(foodweb); # convert to Multiplex Network
+
+julia> p = ModelParameters(net; functional_response = ClassicResponse(net))
+ModelParameters{ClassicResponse}:
+  network: MultiplexNetwork(S=2, Lt=1, Lc=0, Lf=0, Li=0, Lr=0)
+  environment: Environment(K=[nothing, 1], T=293.15K)
+  biorates: BioRates(d, r, x, y, e)
+  functional_response: ClassicResponse
+  producer_competition: ProducerCompetition((2, 2) matrix)
+```
 """
 function ModelParameters(
     network::EcologicalNetwork;

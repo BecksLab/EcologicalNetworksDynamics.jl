@@ -253,9 +253,9 @@ MultiplexNetwork of 3 species:
 ```
 
 !!! note
-    
+
     If you don't specify `sym=false` an error will be thrown.
-    
+
     # The parameters to parse into actual layers.
 
 See also [`FoodWeb`](@ref), [`Layer`](@ref).
@@ -302,10 +302,10 @@ function Base.show(io::IO, multiplex_net::MultiplexNetwork)
     S = richness(multiplex_net)
     layers = ""
     for int in istandards()
-        short = shortest(std, InteractionDict)
-        layers *= ", L$(short)= $(count(multiplex_net.layers[int].A))"
+        short = shortest(int, InteractionDict)
+        layers *= ", L$(short)=$(count(multiplex_net.layers[int].A))"
     end
-    print(io, "MultiplexNetwork(S=$S, $layers)")
+    print(io, "MultiplexNetwork(S=$S$layers)")
 end
 
 """
