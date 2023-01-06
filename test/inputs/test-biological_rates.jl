@@ -1,5 +1,5 @@
 A = [0 0 0 0; 0 0 0 0; 1 0 0 0; 0 1 0 0]
-foodweb = FoodWeb(A)
+foodweb = FoodWeb(A; quiet = true)
 foodweb.metabolic_class = ["producer", "producer", "invertebrate", "ectotherm vertebrate"]
 foodweb.M = [1.0, 1.0, 10.0, 10.0]
 

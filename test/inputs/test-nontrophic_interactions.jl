@@ -47,7 +47,7 @@
     end
 
     # Build from links.
-    foodweb = FoodWeb([0 0 0 0; 0 0 0 0; 1 0 0 0; 1 0 0 0])
+    foodweb = FoodWeb([0 0 0 0; 0 0 0 0; 1 0 0 0; 1 0 0 0]; quiet = true)
     # - Only facilitation on.
     multiplex_net = MultiplexNetwork(foodweb; L_facilitation = 1)
     A_competition = multiplex_net.layers[:competition].A
@@ -139,7 +139,7 @@ end
     @test Set(potential_refuge_links(foodweb)) == expect
 
     # Interference.
-    foodweb = FoodWeb([0 0 0 0; 1 0 0 0; 1 0 0 0; 0 0 0 0])
+    foodweb = FoodWeb([0 0 0 0; 1 0 0 0; 1 0 0 0; 0 0 0 0]; quiet = true)
     expect = Set([(2, 3), (3, 2)])
     @test Set(potential_interference_links(foodweb)) == expect
     foodweb = FoodWeb([0 0 0 0; 1 0 0 0; 1 0 0 0; 1 0 0 0])

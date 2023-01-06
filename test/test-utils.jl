@@ -1,7 +1,7 @@
 #### Set up food webs for tests ####
-foodweb_2links = FoodWeb([0 0 0 0; 0 0 0 0; 1 0 0 0; 0 1 0 0])
+foodweb_2links = FoodWeb([0 0 0 0; 0 0 0 0; 1 0 0 0; 0 1 0 0]; quiet = true)
 foodweb_3links = FoodWeb([0 0 0 0; 0 0 0 0; 1 1 0 0; 0 0 1 0])
-foodweb_5links = FoodWeb([0 0 0 0; 1 0 0 0; 1 1 1 0; 0 0 1 0])
+foodweb_5links = FoodWeb([0 0 0 0; 1 0 0 0; 1 1 1 0; 0 0 1 0]; quiet = true)
 foodweb_2links.metabolic_class =
     ["producer", "producer", "invertebrate", "ectotherm vertebrate"]
 #### end ####

@@ -51,7 +51,7 @@ julia> A = [0 0 0; 0 0 0; 0 0 1]
  0  0  0
  0  0  1
 
-julia> foodweb = FoodWeb(A)
+julia> foodweb = FoodWeb(A; quiet = true)
 FoodWeb of 3 species:
   A: sparse matrix with 1 links
   M: [1.0, 1.0, 1.0]

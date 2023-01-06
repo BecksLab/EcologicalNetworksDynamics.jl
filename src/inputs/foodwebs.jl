@@ -132,7 +132,7 @@ Thus you can also create a `FoodWeb` from a `UnipartiteNetwork`
 ```jldoctest
 julia> uni_net = cascademodel(10, 0.1); # generate a UnipartiteNetwork
 
-julia> foodweb = FoodWeb(uni_net);
+julia> foodweb = FoodWeb(uni_net; quiet = true);
 
 julia> foodweb.A == uni_net.edges # same adjacency matrices
 true
@@ -158,11 +158,13 @@ function FoodWeb(
     M::Vector{<:Real} = compute_mass(A, Z),
     metabolic_class::Vector{<:Label} = default_metabolic_class(A),
     method::String = "unspecified",
+    quiet = false,
 )
     S = richness(A)
     @check_size_is_richness² A S
     metabolic_class = clean_metabolic_class(metabolic_class, A)
     species = clean_labels(species, S)
+    quiet || warning_cyclic_disconnected(A)
     FoodWeb(sparse(A), species, M, metabolic_class, method)
 end
 
@@ -172,9 +174,11 @@ function FoodWeb(
     M::AbstractVector = compute_mass(uni_net.edges, Z),
     metabolic_class::Vector{String} = default_metabolic_class(uni_net.edges),
     method::String = "unspecified",
+    quiet = false,
 )
     is_from_mangal = isa(uni_net.S, Vector{Mangal.MangalNode})
     species = is_from_mangal ? [split(string(s), ": ")[2] for s in uni_net.S] : uni_net.S
+    quiet || warning_cyclic_disconnected(uni_net.edges)
     A = sparse(uni_net.edges)
     FoodWeb(A, species, M, metabolic_class, method)
 end
@@ -373,6 +377,17 @@ function default_metabolic_class(A)
     metabolic_class = repeat(["invertebrate"], richness(A))
     metabolic_class[producers(A)] .= "producer"
     metabolic_class
+end
+
+"""
+Throw warning(s) if the adjacency matrix has cycles or disconnected species.
+"""
+function warning_cyclic_disconnected(A)
+    graph = SimpleDiGraph(A)
+    !is_cyclic(graph) || @warn "'A' contains cycle(s). Note that self-loops \
+        (i.e. cannibalism) are counted as cycles."
+    is_connected(graph) || @warn "'A' contains disconnected species \
+        w.r.t. to trophic interactions."
 end
 
 """

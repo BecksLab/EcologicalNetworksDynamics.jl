@@ -56,7 +56,7 @@
     # Test producer competition
     # 1 & 2 producer; 3 consumer
     A = [0 0 0; 0 0 0; 0 0 1]
-    foodweb = FoodWeb(A)
+    foodweb = FoodWeb(A; quiet = true)
     env = Environment(foodweb; K = 1)
     rates = BioRates(foodweb; d = 0)
     # K = 1, intercompetition

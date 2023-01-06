@@ -389,7 +389,7 @@ Adjacency matrix of all possible competition links in the network `net`.
 # Example
 
 ```jldoctest
-julia> foodweb = FoodWeb([0 0; 0 0]); # 2 producers
+julia> foodweb = FoodWeb([0 0; 0 0]; quiet = true); # 2 producers
 
 julia> A_competition_full(foodweb)
 2×2 SparseArrays.SparseMatrixCSC{Float64, Int64} with 2 stored entries:
@@ -411,7 +411,7 @@ Adjacency matrix of all possible facilitation links in the network `net`.
 # Example
 
 ```jldoctest
-julia> foodweb = FoodWeb([0 0; 0 0]); # 2 producers
+julia> foodweb = FoodWeb([0 0; 0 0]; quiet = true); # 2 producers
 
 julia> A_facilitation_full(foodweb)
 2×2 SparseArrays.SparseMatrixCSC{Float64, Int64} with 2 stored entries:
@@ -456,7 +456,7 @@ Adjacency matrix of all possible refuge links in the network `net`.
 # Example
 
 ```jldoctest
-julia> foodweb = FoodWeb([0 0 0; 0 0 0; 1 0 0]); # consumer 3 eats producer 1
+julia> foodweb = FoodWeb([0 0 0; 0 0 0; 1 0 0]; quiet = true); # consumer 3 eats producer 1
 
 julia> A_refuge_full(foodweb)
 3×3 SparseArrays.SparseMatrixCSC{Float64, Int64} with 1 stored entry:

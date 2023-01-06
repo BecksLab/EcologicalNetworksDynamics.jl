@@ -5,7 +5,7 @@
     A4 = [0 1 0; 1 0 0; 0 0 0] # cyclic: 1 | connected: 0
     A5 = [0 1 0; 1 0 0; 1 0 0] # cyclic: 1 | connected: 1
     A_list = [A1, A2, A3, A4, A5]
-    fw_list = FoodWeb.(A_list)
+    fw_list = FoodWeb.(A_list, quiet = true)
     extended_functions = [BEFWM2.is_cyclic, BEFWM2.is_connected]
     expected_cyclic = [0, 1, 1, 1, 1]
     expected_connected = [1, 1, 0, 0, 1]
