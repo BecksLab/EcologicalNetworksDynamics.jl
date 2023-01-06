@@ -114,7 +114,15 @@ or disconnected species.
 
 By default, we set a tolerance of 1 link between the number of links asked by the user
 and the number of links of the returned `FoodWeb`.
-However, this tolerance can be changed with the `tol` argument:
+
+```jldoctest
+julia> foodweb = FoodWeb(nichemodel, 15; L = 15, Z = 50); # by default tol = 1
+
+julia> 14 <= n_links(foodweb) <= 16
+true
+```
+
+However, the default tolerance can be changed with the `tol` argument:
 
 ```jldoctest
 julia> foodweb = FoodWeb(nichemodel, 15; L = 15, Z = 50, tol = 0);
@@ -193,6 +201,8 @@ function FoodWeb(
     Z::Real = 1,
     M::Union{Nothing,AbstractVector} = nothing,
 )
+    default_L_tol = 1 # by default the tolerance is set to 1 link
+    default_C_tol = 1 / S^2 # equivalent but expressed in terms of connectance
     check_structural_model(model)
     if isnothing(L) & isnothing(C)
         throw(ArgumentError("Should provide a connectance `C` or a number of links `L`."))
@@ -200,11 +210,9 @@ function FoodWeb(
         throw(ArgumentError("Cannot provide both a connectance `C` and \
             a number of links `L`. Only one of these two arguments should be given."))
     elseif !isnothing(L)
-        default_L_tol = 1
         tol_L = isnothing(tol) ? default_L_tol : tol
         uni_net = model_foodweb_from_L(model, S, L, p_forbidden, tol_L)
     elseif !isnothing(C)
-        default_C_tol = 1 / S^2
         tol_C = isnothing(tol) ? default_C_tol : tol
         uni_net = model_foodweb_from_C(model, S, C, p_forbidden, tol_C)
     end
@@ -394,41 +402,48 @@ end
 Generate a food web of `S` species and connectance `C` from a structural `model`.
 Loop until the generated has connectance in [C - ΔC; C + ΔC].
 If the maximum number of iterations is reached an error is thrown instead.
+That number can be controled by the `iter_safe` keyword argument,
+default is set to `1e5`.
 """
-function model_foodweb_from_C(model, S, C, p_forbidden, ΔC = 1 / S^2)
-    C <= 1 || throw(ArgumentError("Connectence `C` should be smaller than 1."))
-    C >= (S - 1) / S^2 || throw(ArgumentError("Connectence `C` should be \
-        greater than (S-1)/S^2 to ensure that there is no disconnected species."))
+function model_foodweb_from_C(model, S, C, p_forbidden, ΔC = 1 / S^2, iter_safe = 1e5)
+    C <= 1 || throw(ArgumentError("Connectance `C` should be smaller than 1."))
+    C >= (S - 1) / S^2 || throw(ArgumentError("Connectance `C` should be \
+        greater than (S-1)/S^2 ($((S-1)/S^2) for S=$S) \
+        to ensure that there is no disconnected species."))
     ΔC_true = Inf
     is_net_valid = false
-    iter, iter_safe = 0, 1e5
+    iter = 0
     net = nothing
-    while !is_net_valid & (iter <= iter_safe)
+    while !is_net_valid && (iter <= iter_safe)
         net = isnothing(p_forbidden) ? model(S, C) : model(S, C, p_forbidden)
         ΔC_true = abs(connectance(net) - C)
         is_net_valid = (ΔC_true <= ΔC) & is_model_net_valid(net)
         iter += 1
     end
     iter <= iter_safe ||
-        throw(ErrorException("The maximum number of iteration has been reached."))
+        throw(ErrorException("Could not generate adequate network with C=$C \
+        and ΔC=$ΔC before the maximum number of iterations ($iter_safe) was reached. \
+        Is the constraint impossible to solve?"))
     net
 end
 
-function model_foodweb_from_L(model, S, L, p_forbidden, ΔL = 1)
+function model_foodweb_from_L(model, S, L, p_forbidden, ΔL = 1, iter_safe = 1e5)
     L >= (S - 1) || throw(ArgumentError("Network should have at least S-1 links \
         to ensure that there is no disconnected species."))
     ΔL_true = Inf
     is_net_valid = false
-    iter, iter_safe = 0, 1e5
+    iter = 0
     net = nothing
-    while !is_net_valid & (iter <= iter_safe)
+    while !is_net_valid && (iter <= iter_safe)
         net = isnothing(p_forbidden) ? model(S, L) : model(S, L, p_forbidden)
         ΔL_true = abs(n_links(net) - L)
         is_net_valid = (ΔL_true <= ΔL) & is_model_net_valid(net)
         iter += 1
     end
     iter <= iter_safe ||
-        throw(ErrorException("The maximum number of iteration has been reached."))
+        throw(ErrorException("Could not generate adequate network with C=$C \
+        and ΔC=$ΔC before the maximum number of iterations ($iter_safe) was reached. \
+        Is the constraint impossible to solve?"))
     net
 end
 
@@ -437,7 +452,7 @@ Check that `net` does not contain cycle and does not have disconnected node.
 """
 function is_model_net_valid(net)
     graph = SimpleDiGraph(net.edges)
-    !is_cyclic(graph) & is_connected(graph)
+    !is_cyclic(graph) && is_connected(graph)
 end
 
 """

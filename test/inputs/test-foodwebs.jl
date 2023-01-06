@@ -54,6 +54,8 @@
 
 end
 
+# Check that foodwebs are correctly constructed from structural models,
+# and that the desired number of links and connectance are respected for various inputs.
 @testset "FoodWebs from structural model." begin
     n_rep = 20
     SL_tuple = [(10, 20), (15, 20), (15, 30), (20, 50)]
