@@ -24,6 +24,7 @@ include(joinpath(".", "inputs/biological_rates.jl"))
 include(joinpath(".", "inputs/environment.jl"))
 include(joinpath(".", "inputs/temperature_dependent_rates.jl"))
 include(joinpath(".", "inputs/producer_competition.jl"))
+include(joinpath(".", "inputs/nutrient_intake.jl"))
 include(joinpath(".", "model/model_parameters.jl"))
 include(joinpath(".", "model/set_temperature.jl"))
 include(joinpath(".", "model/productivity.jl"))
@@ -66,6 +67,7 @@ export DefaultGrowthParams
 export DefaultMaxConsumptionParams
 export DefaultMetabolismParams
 export DefaultMortalityParams
+export DefaultNIntakeParams
 export draw_asymmetric_links
 export draw_symmetric_links
 export efficiency
@@ -106,6 +108,7 @@ export MultiplexNetwork
 export n_links
 export nestedhierarchymodel
 export nichemodel
+export NIntakeParams
 export nontrophic_adjacency_matrix
 export NonTrophicIntensity
 export NoTemperatureResponse
