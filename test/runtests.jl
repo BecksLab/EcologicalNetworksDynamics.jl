@@ -21,6 +21,7 @@ println("------------------------------------------")
 
 # Run test files
 test_files = [
+    "test-basic-pipeline.jl",
     "test-utils.jl",
     "inputs/test-foodwebs.jl",
     "inputs/test-biological_rates.jl",

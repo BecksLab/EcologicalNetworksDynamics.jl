@@ -152,17 +152,11 @@ K_list = [1 + 0.1 * i for i in 1:46]
 append!(K_list, [5.6 + i * 0.01 for i in 1:440])
 R_list = [] # resource final biomass
 C_list = [] # consumer final biomass
-biorates = BioRates(foodweb; d = 0)
 
 # Run simulations
 for K in K_list
     e = Environment(foodweb; K = K)
-    p = ModelParameters(
-        foodweb;
-        functional_response = response,
-        environment = e,
-        biorates = biorates,
-    )
+    p = ModelParameters(foodweb; functional_response = response, environment = e)
     out = simulate(p, [0.5 + rand() / 2]; tmax = rand(500:1000), verbose = false)
     append!(R_list, out.u[end][1])
     append!(C_list, out.u[end][2])
