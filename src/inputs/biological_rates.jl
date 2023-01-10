@@ -159,7 +159,7 @@ julia> foodweb = FoodWeb([0 1; 0 0]); # sp. 1 "invertebrate", sp. 2 "producer"
 
 julia> BioRates(foodweb) # default
 BioRates:
-  d: [0.314, 0.138]
+  d: [0.0, 0.0]
   r: [0.0, 1.0]
   x: [0.314, 0.0]
   y: [8.0, 0.0]
@@ -167,7 +167,7 @@ BioRates:
 
 julia> BioRates(foodweb; r = [1.0, 1.0]) # specify custom vector for growth rate
 BioRates:
-  d: [0.314, 0.138]
+  d: [0.0, 0.0]
   r: [1.0, 1.0]
   x: [0.314, 0.0]
   y: [8.0, 0.0]
@@ -175,7 +175,7 @@ BioRates:
 
 julia> BioRates(foodweb; x = 2.0) # if single value, fill the rate vector with it
 BioRates:
-  d: [0.314, 0.138]
+  d: [0.0, 0.0]
   r: [0.0, 1.0]
   x: [2.0, 2.0]
   y: [8.0, 0.0]
@@ -185,7 +185,7 @@ julia> custom_params = AllometricParams(3, 0, 0, 0, 0, 0); # use custom allometr
 
 julia> BioRates(foodweb; y = allometric_rate(foodweb, custom_params)) # ...with allometric_rate
 BioRates:
-  d: [0.314, 0.138]
+  d: [0.0, 0.0]
   r: [0.0, 1.0]
   x: [0.314, 0.0]
   y: [0.0, 3.0]
@@ -194,7 +194,7 @@ BioRates:
 """
 function BioRates(
     network::EcologicalNetwork;
-    d::Union{Vector{<:Real},<:Real} = allometric_rate(network, DefaultMortalityParams()),
+    d::Union{Vector{<:Real},<:Real} = zeros(richness(network)),
     r::Union{Vector{<:Real},<:Real} = allometric_rate(network, DefaultGrowthParams()),
     x::Union{Vector{<:Real},<:Real} = allometric_rate(network, DefaultMetabolismParams()),
     y::Union{Vector{<:Real},<:Real} = allometric_rate(
