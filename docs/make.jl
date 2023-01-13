@@ -21,18 +21,22 @@ makedocs(;
     pages = [
         "Home" => "index.md",
         "Manual" => [
-            "Generate food webs" => "man/foodwebs.md",
-            "Generate multiplex networks" => "man/multiplexnetworks.md",
-            "Generate model parameters" => "man/modelparameters.md",
-            "Choose a functional reponse" => "man/functionalresponse.md",
-            "Run simulations" => "man/simulations.md",
-            "Measure stability" => "man/stability.md",
+            "Generate food webs" => joinpath("man", "foodwebs.md"),
+            "Generate multiplex networks" => joinpath("man", "multiplexnetworks.md"),
+            "Generate model parameters" => joinpath("man", "modelparameters.md"),
+            "Choose a functional reponse" => joinpath("man", "functionalresponse.md"),
+            "Run simulations" => joinpath("man", "simulations.md"),
+            "Measure stability" => joinpath("man", "stability.md"),
         ],
         "Examples" => [
-            "Paradox of enrichment" => "example/paradox_enrichment.md",
-            "Intraspecific competition and stability" => "example/intracomp_stability.md",
+            "Paradox of enrichment" => joinpath("example", "paradox_enrichment.md"),
+            "Intraspecific competition and stability" =>
+                joinpath("example", "intracomp_stability.md"),
         ],
-        "Library" => ["Public" => "lib/public.md", "Internals" => "lib/internals.md"],
+        "Library" => [
+            "Public" => joinpath("lib", "public.md"),
+            "Internals" => joinpath("lib", "internals.md"),
+        ],
     ],
 )
 
