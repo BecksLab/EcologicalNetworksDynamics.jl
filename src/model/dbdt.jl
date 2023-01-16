@@ -17,7 +17,7 @@ function dBdt!(dB, B, p, t)
     # Compute ODE terms for each species
     for i in 1:S
         # sum(α[i, :] .* B)) measures competitive effects (s)
-        growth = params.ProducerGrowth(i, B, N, r, sum(α[i, :]), network)
+        growth = params.producer_growth(i, B, r, sum(α[i, :]), network, N)
         eating, being_eaten = consumption(i, B, params, response_matrix)
         metabolism_loss = metabolic_loss(i, B, params)
         natural_death = natural_death_loss(i, B, params)
