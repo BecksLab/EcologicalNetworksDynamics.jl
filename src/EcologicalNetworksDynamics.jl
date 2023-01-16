@@ -1,3 +1,27 @@
+"""
+EcologicalNetworksDynamics
+
+Provide tools to simulate biomass dynamics in trophic and multiplex networks.
+Trophic networks only include feeding interactions,
+while multiplex networks also include non-trophic interactions such as
+interference between predators, or plant facilitation.
+The basic workflow has been designed to be as simple as possible,
+while remaining flexible for the experienced or adventurous user
+who would like to refine the model and its parameters.
+
+Example of a simple workflow:
+
+```julia
+trophic_backbone = FoodWeb([1 => [2, 3]]) # species 1 eats plants 2 and 3
+multi_net = MultiplexNetwork(trophic_backbone; L_facilitation = 1) # add 1 facilitation link
+p = ModelParameters(multi_net) # generate model parameters
+sol = simulate(p, rand(3)) # run simulation with random initial conditions
+```
+
+For more information, either go through the online documentation at (https://doc-url)
+or if you are looking for the help of a specific function read its docstring
+by writing `?<function_name>` in a Julia REPL.
+"""
 module EcologicalNetworksDynamics
 
 # Dependencies
