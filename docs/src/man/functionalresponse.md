@@ -1,4 +1,4 @@
-# How to choose the functional response?
+# [How to choose the functional response?](@id functional_response)
 
 ```@setup befwm2
 using BEFWM2
