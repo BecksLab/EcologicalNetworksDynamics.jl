@@ -1,4 +1,4 @@
-# How to generate multiplex networks?
+# [How to generate multiplex networks?](@id multiplex)
 
 ```@setup befwm2
 using BEFWM2
@@ -44,7 +44,7 @@ we go over the four types of non-trophic interactions one by one.
 The non-trophic interactions are only available for the functional response:
 [`ClassicResponse`](@ref).
 For more details about the different functional responses
-see [How to choose the functional response?](@ref)
+see [How to choose the functional response?](@ref functional_response)
 
 ## Introduction to [`MultiplexNetwork`](@ref)
 

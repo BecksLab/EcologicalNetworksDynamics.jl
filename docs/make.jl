@@ -26,6 +26,7 @@ makedocs(;
             "Generate model parameters" => "man/modelparameters.md",
             "Choose a functional reponse" => "man/functionalresponse.md",
             "Run simulations" => "man/simulations.md",
+            "Boost simulations" => "man/boost.md",
             "Measure stability" => "man/stability.md",
         ],
         "Examples" => [

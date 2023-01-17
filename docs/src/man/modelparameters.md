@@ -200,6 +200,6 @@ params.functional_response
 ```
 
 For more information about functional responses,
-see [How to choose the functional response?](@ref)
+see [How to choose the functional response?](@ref functional_response)
 or the help for [`LinearResponse`](@ref), [`BioenergeticResponse`](@ref)
 and [`ClassicResponse`](@ref)
