@@ -43,7 +43,7 @@
     @test keys(get_extinct_species(simulates(params, [0.5, 1e-12]; verbose = false))) ==
           Set([2])
     log_msg =
-        "Species [2] went extinct at time t = 0.1. \n" * "1 over 2 species are extinct."
+        "Species [2] went extinct at time t = 0.1. \n" * "1 out of 2 species are extinct."
     @test_logs (:info, log_msg) (:info, log_msg) (:info, log_msg) simulates(
         params,
         [0.5, 1e-12],
