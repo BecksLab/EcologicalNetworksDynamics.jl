@@ -29,8 +29,8 @@ end
 # Generate a `FoodWeb` from an adjacency matrix
 
 This is the most direct way to generate a `FoodWeb`.
-You only need to provide and adjacency matrix filled with 0s and 1s,
-that respectively indicate the absence (presence) of an interaction
+You only need to provide an adjacency matrix filled with 0s and 1s,
+that respectively indicates the absence or presence of an interaction
 between the corresponding species pair.
 For instance `A = [0 0; 1 0]` corresponds to a system of 2 species
 in which species 2 eats species 1.
@@ -45,7 +45,7 @@ FoodWeb of 2 species:
   species: [s1, s2]
 ```
 
-You can also provide optional arguments e.g. change the species names.
+You can also provide optional arguments e.g. to change the species names.
 
 ```jldoctest
 julia> foodweb = FoodWeb([0 0; 1 0]; species = ["plant", "herbivore"]);
@@ -57,11 +57,11 @@ true
 # Generate a `FoodWeb` from an adjacency list
 
 An adjacency list is an iterable of `Pair`s
-(e.g. vector of `Pair`s) or a dictionnary.
+(e.g. vector of `Pair`s) or a dictionary.
 If the adjacency list is an iterable of `Pair`s,
 the first element of each pair is a predator
 and the second element of each pair are the preys eaten by the corresponding predator.
-If the adjacency list is a dictionnary,
+If the adjacency list is a dictionary,
 keys are predators and values the corresponding preys.
 
 Species can be identified either with `Integer`s corresponding to species indexes
@@ -89,14 +89,14 @@ true
 # Generate a `FoodWeb` from a structural model
 
 For larger communities it can be convenient to rely on a structural model.
-The structural model implemented are:
+The structural models implemented are:
 `nichemodel(S; C)`, `cascademodel(S; C)`, nestedhierarchymodel(S; C) and
 `mpnmodel(S; C, p_forbidden)`.
 
-To generate a model with one of these model you have to follow this syntax:
+To generate a food web from one of these models you have to follow this syntax:
 `FoodWeb(model_name, model_arguments, optional_FoodWeb_arguments)`.
 
-For instance to generate a `FoodWeb` of 10 species (`S`) with 15 links (`L`)
+For instance, to generate a `FoodWeb` of 10 species (`S`) with 15 links (`L`)
 and predator-prey body mass ratio (`Z`) of 50 with the niche model, you can do:
 
 ```jldoctest
@@ -109,7 +109,7 @@ julia> foodweb.method == "nichemodel"
 true
 ```
 
-Moreover, while generating the `FoodWeb` we check that it does not have cycle
+Moreover, while generating the `FoodWeb` we check that it does not have cycles
 or disconnected species.
 
 By default, we set a tolerance of 1 link between the number of links asked by the user
@@ -135,7 +135,7 @@ true
 
 Lastly, EcologicalNetworkDynamics.jl has been designed to interact nicely
 with EcologicalNetworks.jl.
-Thus you can also create a `FoodWeb` from a `UnipartiteNetwork`
+Thus you can also create a `FoodWeb` from a `UnipartiteNetwork`:
 
 ```jldoctest
 julia> uni_net = cascademodel(10, 0.1); # generate a UnipartiteNetwork
@@ -368,7 +368,7 @@ function clean_metabolic_class(metabolic_class, A)
 end
 
 """
-Check that labels have the good format and convert them to `String`s if needed.
+Check that labels have the correct format and convert them to `String`s if needed.
 """
 function clean_labels(labels, S)
     @check_equal_richness length(labels) S
@@ -448,7 +448,7 @@ function model_foodweb_from_L(model, S, L, p_forbidden, ΔL = 1, iter_safe = 1e5
 end
 
 """
-Check that `net` does not contain cycle and does not have disconnected node.
+Check that `net` does not contain cycles and does not have disconnected nodes.
 """
 function is_model_net_valid(net)
     graph = SimpleDiGraph(net.edges)
@@ -565,8 +565,8 @@ function parse_pair(pair)
     if !(typeof(pred) <: Union{Integer,String,Symbol})
         throw(
             ArgumentError(
-                "The first element of the pair, or the key of your dictionnary, " *
-                "should not be an interable: either a single Integer, String or Symbol.",
+                "The first element of the pair, or the key of your dictionary, " *
+                "should not be an iterable: either a single Integer, String or Symbol.",
             ),
         )
     end

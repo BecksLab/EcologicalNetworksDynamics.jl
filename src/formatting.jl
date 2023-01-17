@@ -33,7 +33,7 @@ function cpad(s, n, p = ' '; left = false)
     repeat(p, h + fl) * s * repeat(p, h + fr)
 end
 
-r"""
+"""
 
     fitin(floating_number, n_chars)
 
@@ -160,7 +160,7 @@ function fitin(f, n)
     d = Decimal(f)
     # Number of digits in the original mantissa.
     onm = ndigits(d.c)
-    # Trial an error: pick the highest precision we can have within the constraint n,
+    # Trial and error: pick the highest precision we can have within the constraint n,
     # even if this means not filling exactly n characters.
     # In case of ex-aequo, pick the match with smallest number of characters.
     # TODO: restrict search range or even directly calculate the best rounding?

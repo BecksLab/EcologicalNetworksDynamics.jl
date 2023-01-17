@@ -4,7 +4,7 @@ macro check_lower_than(var, max)
     :(
         if $(esc(var)) > $(esc(max))
             line1 =
-                $(string(var)) * " should be lower or equal to " * $(string(max)) * ".\n"
+                $(string(var)) * " should be lower than or equal to " * $(string(max)) * ".\n"
             line2 = "  Evaluated: " * $(string(var)) * " = $($(esc(var))) > $($(esc(max)))"
             throw(ArgumentError(line1 * line2))
         end
@@ -16,7 +16,7 @@ macro check_greater_than(var, min)
     :(
         if $(esc(var)) < $(esc(min))
             line1 =
-                $(string(var)) * " should be greater or equal to " * $(string(min)) * ".\n"
+                $(string(var)) * " should be greater than or equal to " * $(string(min)) * ".\n"
             line2 = "  Evaluated: " * $(string(var)) * " = $($(esc(var))) < $($(esc(min)))"
             throw(ArgumentError(line1 * line2))
         end

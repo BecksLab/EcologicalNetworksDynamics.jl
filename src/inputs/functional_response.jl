@@ -8,14 +8,14 @@ abstract type FunctionalResponse end
 
 struct BioenergeticResponse <: FunctionalResponse
     h::Float64 # hill exponent
-    ω::SparseMatrixCSC{Float64} # ressource preferency
+    ω::SparseMatrixCSC{Float64} # resource preferency
     c::Vector{Float64} # intraspecific interference
     B0::Vector{Float64} # half-saturation
 end
 
 struct ClassicResponse <: FunctionalResponse
     h::Float64 # hill exponent
-    ω::SparseMatrixCSC{Float64} # ressource preferency
+    ω::SparseMatrixCSC{Float64} # resource preferency
     c::Vector{Float64} # intraspecific interference
     hₜ::SparseMatrixCSC{Float64} # handling time
     aᵣ::SparseMatrixCSC{Float64} # attack rate
@@ -72,11 +72,11 @@ end
 """
     homogeneous_preference(network::EcologicalNetwork)
 
-Create the preferency matrix (`ω`) which describes how each predator split its time
+Create the preferency matrix (`ω`) which describes how each predator splits its time
 between its different preys.
 `ω[i,j]` is the fraction of time of predator i spent on prey j.
 By definition, ∀i ``\\sum_j \\omega_{ij} = 1``.
-Here we assume an **homogeneous** preference, meaning that each predator split its time
+Here we assume an **homogeneous** preference, meaning that each predator splits its time
 equally between its preys, i.e. ∀j ``\\omega_{ij} = \\omega_{i} = \\frac{1}{n_{preys,i}}``
 where ``n_{preys,i}`` is the number of prey of predator i.
 """
@@ -189,7 +189,7 @@ end
 # and provide the additional/intermediate data needed.
 function (F::BioenergeticResponse)(parms, ::Symbol)
 
-    # Basic informations made available as variables in the generated code.
+    # Basic information made available as variables in the generated code.
     S = richness(parms.network)
     data = Dict(:S => S, :h => F.h, :B0 => F.B0, :c => F.c)
 
@@ -321,7 +321,7 @@ end
 # and provide the additional/intermediate data needed.
 function (F::ClassicResponse)(parms, ::Symbol)
 
-    # Basic informations made available as variables in the generated code.
+    # Basic information made available as variables in the generated code.
     S = richness(parms.network)
     data = Dict(:S => S, :h => F.h, :c => F.c, :m => parms.network.M)
 
@@ -447,7 +447,7 @@ end
 # and provide the additional/intermediate data needed.
 function (F::LinearResponse)(parms, ::Symbol)
 
-    # Basic informations made available as variables in the generated code.
+    # Basic information made available as variables in the generated code.
     S = richness(parms.network)
     data = Dict(:S => S, :α => F.α)
 
@@ -490,7 +490,7 @@ BioenergeticResponse:
   h: 2.0
   ω: (2, 2) sparse matrix
 
-julia> F([1, 1]) # providing a species biomass vector
+julia> F([1, 1]) # provide a species biomass vector
 2×2 SparseArrays.SparseMatrixCSC{Float64, Int64} with 1 stored entry:
   ⋅    ⋅
  0.8   ⋅
@@ -613,7 +613,7 @@ end
     handling_time(network::EcologicalNetwork)
 
 Compute the handling time for all predator-prey couples of the system.
-The output `hₜ` is squared matrix of length equals to the species richness
+The output `hₜ` is a square matrix with length equal to the species richness,
 with `hₜ[i,j]` corresponding to the handling time of predator ``i`` on prey ``j``.
 The handling time of a predator-prey couple is given by their body masses,
 formally: ``h_{t,ij} = 0.3 m_i^{-0.48} m_j^{-0.66}``.
@@ -637,7 +637,7 @@ handling_time(i, j, M) = 0.3 * M[i]^(-0.48) * M[j]^(-0.66)
     attack_rate(network::EcologicalNetwork)
 
 Compute the attack rate for all predator-prey couples of the system.
-The output `aᵣ` is squared matrix of length equals to the species richness
+The output `aᵣ` is square matrix with length equal to the species richness
 with `aᵣ[i,j]` corresponding to the attack rate of predator ``i`` on prey ``j``.
 The attack rate of a predator-prey couple is given by their body masses,
 formally:
@@ -653,7 +653,7 @@ function attack_rate(network::EcologicalNetwork)
     aᵣ = spzeros(Float64, S, S)
     M = network.M # vector of species body mass
     A = get_trophic_adjacency(network)
-    # Define sessile species as producers, consumers are always mobiles
+    # Define sessile species as producers, consumers are always mobile
     # This assumption could be changed in the future
     mobility = map(i -> !isproducer(i, A), 1:S) # 0 = sessile, 1 = mobile
     predator, prey = findnz(A)

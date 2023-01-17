@@ -31,7 +31,7 @@ In this package, four types of non-trophic interactions are available:
 
 We chose these four non-trophic interactions because
 they have been shown to significantly impact the dynamics of ecological communities
-(see e.g.
+(e.g. see 
 [Kefi et al. 2012](https://doi-org.inee.bib.cnrs.fr/10.1111/j.1461-0248.2011.01732.x),
 [Kefi et al. 2016](https://doi.org/10.1371/journal.pbio.1002527),
 [Miele et al. 2019](https://doi.org/10.1371/journal.pcbi.1007269)).
@@ -76,12 +76,12 @@ n_links(multi_net)
 ```
 
 You can see that you have as expected 2 trophic links
-and 0 link for all non-trophic interactions.
+and 0 links for all non-trophic interactions.
 
 The layers of the multiplex network are stored in the `layers` field.
 This field is a special dictionary
 because its values can be accessed either with the full key
-or a alias of the key.
+or an alias of the key.
 For instance if you want to access the trophic layer you can either use the full key...
 
 ```@example befwm2
@@ -94,16 +94,16 @@ multi_net.layers[:trophic]
 multi_net.layers[:t]
 ```
 
-Hopefully there is a cheat-sheet to know what are the aliases of each interaction.
+Hopefully there is a cheat-sheet to indicate what the aliases of each interaction are.
 
 ```@example befwm2
 interaction_names()
 ```
 
-Now coming back to the trophic [`Layer`](@ref), you can see that it has three fields:
+Now, coming back to the trophic [`Layer`](@ref), you can see that it has three fields:
 
-  - `A`: the adjacency matrix that the species pairs between which
-    the interactions occur;
+  - `A`: the adjacency matrix that represents the species pairs between which
+    any interactions occur;
   - `intensity`: the strength of the non-trophic interaction;
   - `f`: the functional form of the non-trophic effect on the corresponding parameter
     (for more details see [Specifying non-trophic functional forms](@ref))
@@ -139,7 +139,7 @@ where `<parameter_name>` is the full name or an alias of a parameter
 (e.g. `connectance` or its alias `C`)
 and `<interaction_name>` is the full name or an alias of an interaction
 (e.g. `facilitation` or `f`).
-Thus if you want to set the connectance of the facilitation layer to `1.0` you can do:
+Thus, if you want to set the connectance of the facilitation layer to `1.0`, you can do:
 
 ```@example befwm2
 foodweb = FoodWeb([0 0 0; 1 0 0; 1 0 0]); # 2 and 3 consumes 1
@@ -156,8 +156,8 @@ of the [`MultiplexNetwork`](@ref) parameters.
 multiplex_network_parameters_names()
 ```
 
-Moreover if you want to specify the same parameters
-for two or more interaction you can group them as follow
+Moreover, if you want to specify the same parameters
+for two or more interactions you can group them as follow
 
 ```@example befwm2
 net1 = MultiplexNetwork(foodweb; C = (facilitation = 0.5, interference = 1.0));
@@ -172,7 +172,7 @@ net2 = MultiplexNetwork(foodweb; C_facilitation = 0.5, C_interference = 1.0);
 n_links(net1) == n_links(net2) # both ways are equivalent
 ```
 
-Reversely if you want to specify two or more parameters for the same interaction
+Reversely, if you want to specify two or more parameters for the same interaction
 you can group them as follow
 
 ```@example befwm2
@@ -192,7 +192,7 @@ n_links(net1) == n_links(net2) # both ways are equivalent
 
 *The structure of the trophic layer cannot be specified,*
 *because that latter is given*
-*by the adjacency of the [`FoodWeb`](@ref).*
+*by the adjacency matrix of the [`FoodWeb`](@ref).*
 *Thus you can only specify the structure of non-trophic interactions.*
 
 For each non-trophic interaction there are 3 ways to define the structure of the layer,
@@ -227,7 +227,7 @@ ERROR: ArgumentError: Ambiguous specifications for facilitation matrix adjacency
     where ``L_\text{max}`` is the maximum number of possible competitive links
     in the community.
     Indeed, as only pairs of sessile species can compete with each other,
-    all species pairs are not eligible for competition (e.g. a pair of mobile species).
+    not all species pairs are eligible for competition (e.g. a pair of mobile species).
     This definition ensures you that if you provide a connectance of `1.0`,
     the adjacency matrix will be filled as much as possible,
     given the rules that govern the interaction.
@@ -260,8 +260,8 @@ multi_net1.layers[:refuge].intensity == multi_net2.layers[:refuge].intensity == 
 
 In the following we go over each non-trophic interactions in more details.
 Specifically, we explain
-how they are translated in the ODEs equations and
-what are the assumptions underlying them.
+how they are translated into the ODE equations and
+what the underlying assumptions are.
 
 ## Competition for space
 
@@ -272,9 +272,9 @@ As for the [Interference between predators](@ref),
 competition is assumed to be symmetric,
 i.e. if species ``i`` competes with species ``j``
 then species ``j`` competes with species ``i``.
-In other words, the adjacency matrix of competition links is symmetric.
+In other words, the adjacency matrix of competition links is symmetrical.
 
-Competition for space leads to a decrease of net the growth rates
+Competition for space leads to a net decrease of the growth rates
 of the competing species.
 Formally, we define the net growth rate as:
 
@@ -329,8 +329,8 @@ A_competition_full(comp_module)
     use `A_<interaction_name>_full(foodweb)`.
 
 Now you can create a [`MultiplexNetwork`](@ref) including competition interactions.
-For instance, if you want to add competition interactions as much as possible,
-you can do
+For instance, if you want to add the maximum possible competition interactions,
+you can do:
 
 ```@example befwm2
 multi_net = MultiplexNetwork(comp_module; C_competition = 1.0);
@@ -347,9 +347,9 @@ ERROR: ArgumentError: L should be even.
 ```
 
 You have an error because because
-the competition links are assumed by default to be symmetric
+the competition links are assumed by default to be symmetrical
 which implies that number of competition links has to be even.
-If you want to change that assumption because
+If you want to change that assumption
 to add an odd number of competition links
 you can simply specify `sym_competition=false`.
 
@@ -396,14 +396,14 @@ We can consider the food chain module (of length 3).
 food_chain = FoodWeb([0 0 0; 1 0 0; 0 1 0]); # 1 <- 2 <- 3
 ```
 
-Let's have look where possible facilitation interactions can occur
+Let's have a look where possible facilitation interactions can occur:
 
 ```@example befwm2
 A_facilitation_full(food_chain)
 ```
 
 Now you can create a [`MultiplexNetwork`](@ref) that includes facilitation links.
-This time let's specify the links with and adjacency matrix.
+This time let's specify the links with an adjacency matrix.
 We want to have only one link which occurs from species 2 to species 1.
 
 ```@example befwm2
@@ -414,7 +414,7 @@ multi_net.layers[:facilitation].A == A_facilitation
 
 !!! note "Symmetry of facilitation"
     
-    As the facilitation interaction is not assumed to be symmetric
+    As the facilitation interaction is not assumed to be symmetrical
     you can specify an odd number of facilitation links.
 
 ## Interference between predators
@@ -423,7 +423,7 @@ multi_net.layers[:facilitation].A == A_facilitation
 
 The interspecific interference between predators
 can only happen between predators sharing at least one prey.
-Moreover, we assume interference to be symmetric,
+Moreover, we assume interference to be symmetrical,
 in the same way as for [Competition for space](@ref).
 
 Interference between predators leads to a decrease in the consumption rates
@@ -471,21 +471,21 @@ We can consider the exploitative competition module
 exp_module = FoodWeb([0 0 0; 1 0 0; 1 0 0]);
 ```
 
-The interference links can occur between the two consumers.
+The interference links can occur between the two consumers:
 
 ```@example befwm2
 A_interference_full(exp_module)
 ```
 
 Now you can create a [`MultiplexNetwork`](@ref)
-which includes interspecific interference links.
+which includes interspecific interference links:
 
 ```@example befwm2
 multi_net = MultiplexNetwork(exp_module; L_i = 2);
 n_links(multi_net)[:interference]
 ```
 
-As for competition, interference is assumed by default to be symmetric
+As with competition, interference is assumed by default to be symmetrical
 but this can be modified.
 
 ```@example befwm2
@@ -500,7 +500,7 @@ multi_net.layers[:interference].A
 The last non-trophic interaction is refuge provisioning.
 Refuge provisioning corresponds to the case where
 a sessile species provides a refuge to a prey,
-protecting that latter from its predators.
+protecting the latter from its predators.
 Therefore, this interaction is assumed to be directed from a producer to a prey.
 
 A refuge link toward prey ``j`` translates as
@@ -519,7 +519,7 @@ With:
 ### Example of a community with refuge interactions
 
 Let's create a small [`MultiplexNetwork`](@ref) that contains refuge interactions.
-To illustrate, we consider the intraguild predation module.
+To illustrate, we consider the intraguild predation module:
 
 ```@example befwm2
 intraguild_module = FoodWeb([0 0 0; 1 0 0; 1 1 0]);
@@ -550,9 +550,9 @@ into a function of the facilitating species biomass
 (``r (1 + f_0 \sum_{k \in \{\text{fac}\}} (A_\text{fac})_{ik} B_k)``).
 The default form of these functions have been set to what is written above *but*
 can be customized.
-For instance if you want that growth rate function becomes quadratic i.e.
+For instance if you want the growth rate function to become quadratic i.e.
 ``r (1 + (f_0 \sum_{k \in \{\text{fac}\}} (A_\text{fac})_{ik} B_k)^2)``
-you can do
+you can do:
 
 ```@example befwm2
 foodweb = FoodWeb([0 0; 1 0]); # define a simple food web to illustrate
@@ -567,8 +567,8 @@ multi_net = MultiplexNetwork(foodweb; L_f = 1, functional_form_facilitation = cu
 Some remarks on these functional forms,
 they always take two arguments `x` (initial parameters)
 and `δx` (by how much the parameter is changed).
-We warn you when redefining these forms to ensure that they make sense,
-because a inadequate form can totally destroy the consistency of your model.
+As a warning, please ensure that when redefining these forms they make sense,
+because an inadequate form can totally destroy the consistency of your model.
 
 !!! note "Interference functional form"
     

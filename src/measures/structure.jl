@@ -134,12 +134,12 @@ share_prey(i, j, net::MultiplexNetwork) = share_prey(i, j, net.layers[:trophic].
 
 #### Find verterbrates & invertebrates ####
 """
-Is species `i` a ectotherm vertebrate?
+Is species `i` an ectotherm vertebrate?
 """
 isvertebrate(i, net::EcologicalNetwork) = net.metabolic_class[i] == "ectotherm vertebrate"
 
 """
-Is species `i` a invertebrate?
+Is species `i` an invertebrate?
 """
 isinvertebrate(i, net::EcologicalNetwork) = net.metabolic_class[i] == "invertebrate"
 
@@ -156,7 +156,7 @@ invertebrates(net::EcologicalNetwork) = filter(isinvertebrate, net)
 
 #### Number of resources ####
 """
-Number of resource species `i` is feeding on.
+Number of resources species `i` is feeding on.
 """
 number_of_resource(i, A::AdjacencyMatrix) = length(A[i, :].nzval)
 number_of_resource(i, net::FoodWeb) = number_of_resource(i, net.A)

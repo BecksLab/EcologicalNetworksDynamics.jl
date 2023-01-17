@@ -247,7 +247,7 @@ function ExtinctionCallback(extinction_threshold, verbose::Bool)
         if verbose
             S, S_ext = length(integrator.u), length(all_extinct_sp)
             @info "Species $([new_extinct_sp...]) went extinct at time t = $t. \n" *
-                  "$S_ext over $S species are extinct."
+                  "$S_ext out of $S species are extinct."
         end
     end
 

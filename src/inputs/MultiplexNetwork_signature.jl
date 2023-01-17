@@ -1,5 +1,5 @@
 # This technical, helper file contains the machinery
-# to make the sophisticated signature of MultiplexNetwork() function work.
+# to make the sophisticated signature of the MultiplexNetwork() function work.
 
 # For use within this file.
 pstandards() = standards(MultiplexParametersDict)

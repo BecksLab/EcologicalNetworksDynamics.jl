@@ -51,7 +51,7 @@ Generate the parameters of the species community.
 
 Default values are taken from
 [Brose et al., 2006](https://doi.org/10.1890/0012-9658(2006)87%5B2411:CBRINF%5D2.0.CO%3B2).
-The parameters are compartimented in different groups:
+The parameters are compartmented in different groups:
 
   - [`FoodWeb`](@ref): foodweb information (e.g. adjacency matrix)
   - [`BioRates`](@ref): biological species rates (e.g. growth rates)
@@ -73,7 +73,7 @@ ModelParameters{BioenergeticResponse}:
   functional_response: BioenergeticResponse
   producer_competition: ProducerCompetition((2, 2) matrix)
 
-julia> p.network # check that stored foodweb is the same than the one we provided
+julia> p.network # check that stored foodweb is the same as the one we provided
 FoodWeb of 2 species:
   A: sparse matrix with 1 links
   M: [1.0, 1.0]
@@ -81,7 +81,7 @@ FoodWeb of 2 species:
   method: unspecified
   species: [s1, s2]
 
-julia> p.functional_response # default is bionergetic
+julia> p.functional_response # default is bioenergetic
 BioenergeticResponse:
   B0: [0.5, 0.5]
   c: [0.0, 0.0]

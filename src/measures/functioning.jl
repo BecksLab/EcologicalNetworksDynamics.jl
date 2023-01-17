@@ -35,8 +35,8 @@ by default set at `eps()`, which should be close to 10^-16.
 
 Number of species is the species richness over the `last` timesteps (See [`foodweb_richness`](@ref)).
 
-The number of species at the beginning of the simulation is the number of initial biomass provided, i.e.
-the starting number of species would be
+The number of species at the beginning of the simulation is the number of initial biomasses provided, i.e.
+what the starting number of species would be
 
 See also [`population_stability`](@ref)
 
@@ -45,7 +45,7 @@ See also [`population_stability`](@ref)
 # 
 
 ```jldoctest
-julia> foodweb = FoodWeb([0 0; 0 0]; quiet = true); #A foodweb of two producers
+julia> foodweb = FoodWeb([0 0; 0 0]; quiet = true); # A foodweb of two producers
 
 julia> params = ModelParameters(foodweb);
 
@@ -56,7 +56,7 @@ julia> species_persistence(sim_two; last = 1) # All the producers survived
 
 julia> sim_one = simulate(params, [0, 0.5]);
 
-julia> species_persistence(sim_one; last = 1) # All half of the producers survived
+julia> species_persistence(sim_one; last = 1) # Half of the producers survived
 0.5
 
 julia> sim_zero = simulate(params, [0, 0]);
@@ -218,11 +218,11 @@ end
 
 """
 **Producers growth rate**
-This function takes the simulation outputs from `simulate` and returns the producers
+This function takes the simulation outputs from `simulate` and returns the producer
 growth rates. Depending on the value given to the keyword `out_type`, it can return
 more specifically:
 
-  - growth rates for each producer at each time step form end-last to last (`out_type = :all`)
+  - growth rates for each producer over the last `last` time steps (`out_type = :all`)
   - the mean growth rate for each producer over the last `last` time steps (`out_type = :mean`)
   - the standard deviation of the growth rate for each producer over the last `last` time steps (`out_type = :std`)
 

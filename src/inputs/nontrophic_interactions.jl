@@ -7,7 +7,7 @@ two pieces of information concerning this interaction:
 
   - `A`: where the interactions occur given by the adjacency matrix
   - `intensity`: the intensity of the interaction
-  - `f`: the functional form of the non-trophic effect on the adequate parameter
+  - `f`: the functional form of the non-trophic effect on the necessary parameter
 
 The intensity is only defined for non-trophic interactions and is set to `nothing` for
 trophic interactions.
@@ -55,7 +55,7 @@ create_aliased_dict_type(
         :adjacency_matrix => [:A, :matrix, :adj_matrix],
         :intensity => [:I, :int],
         :functional_form => [:F, :fn],
-        # .. but the matrix can alternately be specified by number of links XOR connectance..
+        # .. but the matrix can alternately be specified by number of links OR connectance..
         :connectance => [:C, :conn],
         :number_of_links => [:L, :n_links],
         # .. in this case, it requires a symmetry specification.
@@ -222,10 +222,10 @@ Layer(A=AdjacencyMatrix(L=1), intensity=2.0)
 
 # Change assumptions about the symmetry of non-trophic interactions
 
-An interaction is symmetric iif
+An interaction is symmetric if
 "``i`` interacts with ``j``" implies that "``j`` interacts with ``i``".
 In other words, an interaction is symmetric
-iif the adjacency matrix of that interaction is symmetric.
+if the adjacency matrix of that interaction is symmetric.
 
 With default settings:
 
@@ -238,7 +238,7 @@ Change the defaults with the appropriate arguments.
 
 For example, competition is assumed to be symmetric,
 then the number of competition links has to be even.
-But you can change this default as follow:
+But you can change this default as follows:
 
 ```jldoctest
 julia> foodweb = FoodWeb([0 0 0; 0 0 0; 1 1 0]);
@@ -360,7 +360,7 @@ end
     potential_interference_links(foodweb::FoodWeb)
 
 Find possible interference links.
-Interference liks can only occur between two predators sharing at least one prey.
+Interference links can only occur between two predators sharing at least one prey.
 """
 function potential_interference_links(foodweb::FoodWeb)
     preds = predators(foodweb)
@@ -536,8 +536,8 @@ end
     asymmetrize(V)
 
 Remove duplicate tuples from a symmetric vector of tuples.
-A vector `V` of tuples is said symmetric ⟺ ((i,j) ∈ `V` ⟺ (j,i) ∈ `V`).
-The tuple that has the 1st element inferior to its 2nd element is kept
+A vector `V` of tuples is said to be symmetric ⟺ ((i,j) ∈ `V` ⟺ (j,i) ∈ `V`).
+The tuple that has its 1st element less than its 2nd element is kept
 i.e. if i < j (i,j) is kept, and (j,i) otherwise.
 
 See also [`symmetrize`](@ref).
@@ -548,7 +548,7 @@ asymmetrize(V) = [(i, j) for (i, j) in V if i < j]
     symmetrize(V)
 
 Add symmetric tuples from an asymmetric vector of tuples.
-A vector `V` of tuples is said asymmetric ⟺ ((i,j) ∈ `V` ⇒ (j,i) ∉ `V`).
+A vector `V` of tuples is said to be asymmetric ⟺ ((i,j) ∈ `V` ⇒ (j,i) ∉ `V`).
 
 See also [`asymmetrize`](@ref).
 """

@@ -90,7 +90,7 @@ of a and b. Specifically:
   - bᵢ: b for invertebrates
 
 Default parameters values taken from the literature for certain rates can be accessed by
-calling the corresponding function, for:
+calling the corresponding function, i.e. for:
 
   - growth rate (r) call [`DefaultGrowthParams`](@ref)
   - metabolic rate (x) call [`DefaultMetabolismParams`](@ref)

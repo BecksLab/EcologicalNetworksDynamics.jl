@@ -44,7 +44,7 @@ The environmental parameters are:
 ```jldoctest
 julia> foodweb = FoodWeb([0 0 0; 0 0 0; 1 1 0]); # species 1 & 2 producers, 3 consumer
 
-julia> environment = Environment(foodweb) # default behavior
+julia> environment = Environment(foodweb) # default behaviour
 Environment:
   K: [1, 1, nothing]
   T: 293.15 Kelvin
