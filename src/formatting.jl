@@ -33,7 +33,7 @@ function cpad(s, n, p = ' '; left = false)
     repeat(p, h + fl) * s * repeat(p, h + fr)
 end
 
-"""
+r"""
 
     fitin(floating_number, n_chars)
 
