@@ -2,7 +2,7 @@
 
 Food webs are at the core of this package,
 and thus can be generated in various ways depending on your needs.
-We will go in the following sections over the different generation methods.
+In the following sections, we will go over the different methods of generation.
 But, first things first, let's see what is inside a [`FoodWeb`](@ref).
 
 A [`FoodWeb`](@ref) object always contains the 5 following fields:
@@ -11,13 +11,13 @@ A [`FoodWeb`](@ref) object always contains the 5 following fields:
     indicating respectively the absence and presence of trophic interactions.
     Rows are consumers and columns resources,
     thus `A[i,j] = 1` reads "species `i` eats species `j`"
-  - `species`: vector containing species identities (e.g. good place to store species names)
+  - `species`: vector containing species identities (e.g. a good place to store species names)
   - `M`: vector of species individual body-mass
   - `metabolic_class`: vector of species metabolic class (e.g. "producer")
   - `method`: the method used to build the food web.
     This is especially useful when using a structural model
     (e.g. `nichemodel` from EcologicalNetworks.jl)
-    because it will then take automatically take the name of the model,
+    because it will then automatically take the name of the model,
     but this can also be used to store the source of empirical food web.
 
 ## From an adjacency matrix
@@ -36,15 +36,15 @@ A = [0 0 0; 1 0 0; 0 1 0] # 1 <- 2 <- 3
 foodweb = FoodWeb(A)
 ```
 
-We can check that adjacency matrix stored in [`FoodWeb`](@ref)
-corresponds to the one we provided.
+We can check that the adjacency matrix stored in [`FoodWeb`](@ref)
+corresponds to the one we provided:
 
 ```@example befwm2
 foodweb.A == A
 ```
 
 Moreover, you can see that by default all body-masses are set to 1
-and that species names correspond to their index.
+and that species names correspond to their index:
 
 ```@example befwm2
 foodweb.M
@@ -54,8 +54,8 @@ foodweb.M
 foodweb.species
 ```
 
-But you can change that behavior
-by providing additional argument to [`FoodWeb`](@ref).
+But you can change that behaviour
+by providing additional arguments to [`FoodWeb`](@ref):
 
 ```@example befwm2
 foodweb = FoodWeb(A; species = ["plant", "herbivore", "predator"], Z = 50)
@@ -74,8 +74,8 @@ Thus, the for the plant as ``T = 1`` its body-mass is set to ``M = 1``,
 for the herbivore ``T = 2`` then its body-mass is set to ``M = 50``
 and lastly for the predator ``T = 3`` then its body-mass is set to ``M = 2500``.
 
-Obviously, you can also directly provided your own vector of body-masses.
-For instance
+Obviously, you can also directly provide your own vector of body-masses.
+For instance:
 
 ```@example befwm2
 foodweb = FoodWeb(A; M = [1, 10, 50])
@@ -91,7 +91,7 @@ and non-basal species are `"invertebrate"`s.
 foodweb.metabolic_class
 ```
 
-Let's change `"invertebrate"` into `"ectotherm vertebrates"`.
+Let's change `"invertebrate"` into `"ectotherm vertebrate"`:
 
 ```@example befwm2
 custom_class = ["producer", "ectotherm vertebrate", "ectotherm vertebrate"]
@@ -100,7 +100,7 @@ foodweb.metabolic_class
 ```
 
 When you customize metabolic classes there are 2 rules that you should know.
-First, basal species are always set to `"producer"` even if you not say so.
+First, basal species are always set to `"producer"` even if you specify something different.
 
 ```@example befwm2
 custom_class = ["invertebrate", "ectotherm vertebrate", "ectotherm vertebrate"]
@@ -109,18 +109,18 @@ foodweb.metabolic_class
 ```
 
 Secondly, the only three valid metabolic classes are:
-`"producer"`, `"invertebrate"` and `"ectotherm invertebrate"`.
+`"producer"`, `"invertebrate"` and `"ectotherm vertebrate"`.
 
 Creating a [`FoodWeb`](@ref) from your own adjacency matrix is straightforward
-but is mostly useful for simple and small 'toy systems'.
+but this is mostly useful for simple and small 'toy systems'.
 If you want to work with [`FoodWeb`](@ref)s with a large size and a realistic structure,
-it is more suited to create the [`FoodWeb`](@ref) using structural models.
+it is more suitable to create the [`FoodWeb`](@ref) using structural models.
 
 ## From a structural model
 
 [EcologicalNetworks.jl](http://docs.ecojulia.org/EcologicalNetworks.jl/stable/) package
 implements various structural models to build food webs.
-You can pass any of those models, with the adequate arguments, to generate food webs.
+You can pass any of those models, with the required arguments, to generate food webs.
 
 ```@example befwm2
 using EcologicalNetworks
@@ -138,7 +138,7 @@ foodweb.method
 
 ## From a `UnipartiteNetwork` of EcologicalNetworks.jl
 
-EcologicalNetworkDynamics.jl has been thought to interact nicely with EcologicalNetworks.jl,
+EcologicalNetworkDynamics.jl has been designed to interact nicely with EcologicalNetworks.jl,
 so you can directly give a `UnipartiteNetwork` object to the [`FoodWeb`](@ref) method.
 
 ```@example befwm2

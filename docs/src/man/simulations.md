@@ -6,7 +6,7 @@ using BEFWM2
 
 Once the foodweb is created (see [How to generate food webs?](@ref))
 and the model parameters generated (see [How to generate model parameters?](@ref)),
-you are ready to run the simulation of the biomass dynamics.
+you are ready to run the simulation to produce biomass dynamics.
 By default, this can be done in one line
 and with no other arguments than the [`ModelParameters`](@ref)
 and the initial biomass (`B0`).

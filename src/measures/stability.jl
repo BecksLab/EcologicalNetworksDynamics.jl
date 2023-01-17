@@ -99,8 +99,8 @@ end
 
 """
 **Population stability**
-Population stability is measured as the mean of the negative coefficient
-of variations of all species with an abundance higher than `threshold`. By
+Population stability is measured as the mean of the negative coefficients
+of variation of all species with an abundance higher than `threshold`. By
 default, the stability is measured over the last `last=1000` timesteps.
 
 # Examples
@@ -119,7 +119,7 @@ julia> bm = [0.5, 0.5];
 
 julia> sim = simulate(p, bm);
 
-julia> producer_growth(sim; last = 3, out_type = :all) #default
+julia> producer_growth(sim; last = 3, out_type = :all) # default
 
 julia> producer_growth(sim; last = 50, out_type = :mean) # Average per species
 

@@ -37,8 +37,8 @@ The parameters are:
   - αij the interspecific competition term for all species, 0.0 by default.
 
 By default, the producers compete only with themselves (i.e. αii = 1.0, αij = 0.0).
-In the resulting α matrix, the element α[i,j] represents the percapita
-effect of the species j on the species i. If α matrix is specified, it overrides
+In the resulting α matrix, the element α[i,j] represents the per capita
+effect of species j on species i. If α matrix is specified, it overrides
 the αii and αij parameters. Moreover, all the αij coefficients should be 0 for
 non producers.
 
@@ -80,7 +80,7 @@ true
 See also [`ModelParameters`](@ref).
 """
 function ProducerCompetition(network::EcologicalNetwork; α = nothing, αii = 1.0, αij = 0.0)
-    # Matrix initialization
+    # Matrix initialisation
     S = richness(network)
     non_producer = filter(!isproducer, network)
 

@@ -11,10 +11,10 @@ CurrentModule = BEFWM2
 This package provides tools to easily simulate ecological network dynamics using Julia.
 These networks can either trophic interactions only (i.e. food webs),
 or trophic interactions plus various non-trophic interactions (i.e. multiplex networks).
-We provide functions to generate food webs structure from well-known model
+We provide functions to generate food web structure from well-known models
 (e.g. niche model).
 Default community parameters are taken from the literature,
-but can also be easily customized if wanted.
+but can also be easily customized if desired.
 
 !!! note "Todo"
     

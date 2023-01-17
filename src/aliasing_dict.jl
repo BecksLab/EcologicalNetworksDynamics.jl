@@ -9,7 +9,7 @@
 # The structure should protect from ambiguous aliasing specifications.
 
 """
-(not exported, so we need this few `BEFWM2.` adjustments in doctest)
+(not exported, so we need these few `BEFWM2.` adjustments in doctest)
 
 ```jldoctest
 julia> import BEFWM2: OrderedCollections.OrderedDict

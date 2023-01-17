@@ -33,7 +33,7 @@ to simplify analytical derivations.
 response = ClassicResponse(foodweb; aᵣ = 1, hₜ = 1, h = 1);
 ```
 
-Then, the system dynamic is governed by the following set of ODEs:
+Then, the system dynamics are governed by the following set of ODEs:
 
 ```math
 \begin{aligned}
@@ -106,8 +106,8 @@ J(R_2, C_2) =
 
 This equilibrium is stable if ``K \leq K_c = \frac{\frac{x}{e}}{1 - \frac{x}{e}}``.
 In other words, when the carrying capacity becomes large enough
-the consumer can coexist with resource,
-and ``K_c`` is the minimal capacity needed to maintain the consumer alive.
+the consumer can coexist with the resource,
+and ``K_c`` is the minimal capacity needed for the consumer to persist.
 
 !!! note
     
@@ -115,7 +115,7 @@ and ``K_c`` is the minimal capacity needed to maintain the consumer alive.
     which is the second condition for the consumer to survive.
     Its assimilation of the resource has to be high enough to fulfill its metabolic demand.
 
-Formally, above ``K_c`` the system switch to the third equilibrium whose Jacobian is:
+Formally, above ``K_c`` the system switches to the third equilibrium whose Jacobian is:
 
 ```math
 J(R_3, C_3) =
@@ -133,14 +133,14 @@ Eventually, we find that both species can coexist if
 ``K \leq 1 + 2K_c``.
 Here appears the *paradox of enrichment*:
 when we increase the resource carrying capacity too much (above ``1 + 2K_c``)
-the system is destabilized and start to oscillate.
+the system is destabilized and starts to oscillate.
 Moreover, the amplitude of the oscillations increases with the carrying capacity,
 and eventually the species collapse.
 
 ## Summary: orbit diagram
 
-All the system behavior can be summarized in one plot, that we call an *orbit diagram*.
-The orbit diagram represent the evolution of system (stable) equilibrium
+All of the system behavior can be summarized in one plot, which we call an *orbit diagram*.
+The orbit diagram represents the evolution of system (stable) equilibrium
 depending on the carrying capacity.
 
 ```@example befwm2
@@ -179,5 +179,5 @@ and has a biomass equal to its carrying capacity.
 Secondly, if ``K_c \leq K \leq 1 + 2 K_c`` both species can coexist:
 the resource has a constant biomass equal to ``K_c``,
 while the consumer biomass increases with the carrying capacity.
-Thirdly, if ``K \geq 1 + 2 K_c`` then the system is destabilized and start to oscillate
+Thirdly, if ``K \geq 1 + 2 K_c`` then the system is destabilized and starts to oscillate
 resulting eventually in the extinction of the species.
