@@ -7,7 +7,7 @@ two pieces of information concerning this interaction:
 
   - `A`: where the interactions occur given by the adjacency matrix
   - `intensity`: the intensity of the interaction
-  - `f`: the functional form of the non-trophic effect on the necessary parameter
+  - `f`: the functional form of the non-trophic effect on the parameter associated with the layer
 
 The intensity is only defined for non-trophic interactions and is set to `nothing` for
 trophic interactions.
@@ -55,7 +55,7 @@ create_aliased_dict_type(
         :adjacency_matrix => [:A, :matrix, :adj_matrix],
         :intensity => [:I, :int],
         :functional_form => [:F, :fn],
-        # .. but the matrix can alternately be specified by number of links OR connectance..
+        # .. but the matrix can alternately be specified by number of links XOR connectance..
         :connectance => [:C, :conn],
         :number_of_links => [:L, :n_links],
         # .. in this case, it requires a symmetry specification.
@@ -222,10 +222,10 @@ Layer(A=AdjacencyMatrix(L=1), intensity=2.0)
 
 # Change assumptions about the symmetry of non-trophic interactions
 
-An interaction is symmetric if
+An interaction is symmetric iff
 "``i`` interacts with ``j``" implies that "``j`` interacts with ``i``".
 In other words, an interaction is symmetric
-if the adjacency matrix of that interaction is symmetric.
+iff the adjacency matrix of that interaction is symmetric.
 
 With default settings:
 
