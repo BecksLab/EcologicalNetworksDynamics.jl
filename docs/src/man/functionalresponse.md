@@ -87,7 +87,7 @@ The third term quantifies the biomass loss by being eaten by consumers.
 The fourth term quantifies the biomass loss due to the species metabolic demand (``x_i``).
 
 Although linear response can be useful in simple cases,
-for most scenarios it is probably better for you to consider using one of the two 
+for most scenarios it is probably better for you to consider using one of the two
 following responses, which are more biologically realistic
 as they consider a saturation effect with resource biomass.
 

@@ -31,7 +31,7 @@ In this package, four types of non-trophic interactions are available:
 
 We chose these four non-trophic interactions because
 they have been shown to significantly impact the dynamics of ecological communities
-(*e.g.* see 
+(*e.g.* see
 [Kefi et al. 2012](https://doi-org.inee.bib.cnrs.fr/10.1111/j.1461-0248.2011.01732.x),
 [Kefi et al. 2016](https://doi.org/10.1371/journal.pbio.1002527),
 [Miele et al. 2019](https://doi.org/10.1371/journal.pcbi.1007269)).
