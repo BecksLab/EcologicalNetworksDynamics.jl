@@ -60,7 +60,8 @@ end
     @test exp_ba_vector_rate(foodweb, temp, customparams) ==
           [0, 0, 1 * 1.0^0.5 * ba, 1 * 10.0^1 * ba]
     @test exp_ba_vector_rate(foodweb, temp, exp_ba_growth()) ≈ [
-        (exp(-15.68) * 1^-0.25 * exp(-0.84 * (norm_t - temp) / (boltz * temp * norm_t))), # a * M^b * boltz
+        # a * M^b * boltz
+        (exp(-15.68) * 1^-0.25 * exp(-0.84 * (norm_t - temp) / (boltz * temp * norm_t))),
         (exp(-15.68) * 1^-0.25 * exp(-0.84 * (norm_t - temp) / (boltz * temp * norm_t))),
         0,
         0,
@@ -79,22 +80,34 @@ end
     @test actual_K[3:4] == [nothing, nothing]
     @test exp_ba_matrix_rate(foodweb, temp, customparams) ≈
           sparse([0 0 0 0; 0 0 0 0; (1*1^0.5*1^1*ba) 0 0 0; 0 (1*10^1*1^2*ba) 0 0])
-    @test exp_ba_matrix_rate(foodweb, temp, exp_ba_handling_time()) ≈ sparse(
-        [
-            0 0 0 0
-            0 0 0 0
-            (exp(9.66)*1^-0.45*1^0.47*exp(0.26 * (norm_t - temp) / (boltz * temp * norm_t))) 0 0 0
-            0 (exp(9.66)*10^-0.45*1^0.47*exp(0.26 * (norm_t - temp) / (boltz * temp * norm_t))) 0 0
-        ],
-    )
-    @test exp_ba_matrix_rate(foodweb, temp, exp_ba_attack_rate()) ≈ sparse(
-        [
-            0 0 0 0
-            0 0 0 0
-            (exp(-13.1)*1^0.25*1^-0.8*exp(-0.38 * (norm_t - temp) / (boltz * temp * norm_t))) 0 0 0
-            0 (exp(-13.1)*10^0.25*1^-0.8*exp(-0.38 * (norm_t - temp) / (boltz * temp * norm_t))) 0 0
-        ],
-    )
+    a = exp(9.66) * 1^-0.45 * 1^0.47 * exp(0.26 * (norm_t - temp) / (boltz * temp * norm_t))
+    b =
+        exp(9.66) *
+        10^-0.45 *
+        1^0.47 *
+        exp(0.26 * (norm_t - temp) / (boltz * temp * norm_t))
+    @test exp_ba_matrix_rate(foodweb, temp, exp_ba_handling_time()) ≈ sparse([
+        0 0 0 0
+        0 0 0 0
+        a 0 0 0
+        0 b 0 0
+    ])
+    a =
+        exp(-13.1) *
+        1^0.25 *
+        1^-0.8 *
+        exp(-0.38 * (norm_t - temp) / (boltz * temp * norm_t))
+    b =
+        exp(-13.1) *
+        10^0.25 *
+        1^-0.8 *
+        exp(-0.38 * (norm_t - temp) / (boltz * temp * norm_t))
+    @test exp_ba_matrix_rate(foodweb, temp, exp_ba_attack_rate()) ≈ sparse([
+        0 0 0 0
+        0 0 0 0
+        a 0 0 0
+        0 b 0 0
+    ])
 end
 
 @testset "Helper functions for exponential BA rate computation" begin
