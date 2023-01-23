@@ -449,7 +449,7 @@ function (F::LinearResponse)(parms, ::Symbol)
 
     # Basic information made available as variables in the generated code.
     S = richness(parms.network)
-    data = Dict(:S => S, :α => F.α)
+    data = Dict(:S => S, :α_F => F.α)
 
     # Flatten sparse matrices into plain compact arrays.
     cons, res = findnz(parms.network.A)
@@ -464,7 +464,7 @@ function (F::LinearResponse)(parms, ::Symbol)
         # Construct FR values.
         # (only one iteration over nonzero (i,j) entries is needed)
         for (ij, (i, j)) in enumerate(zip(nonzero_links...))
-            F[ij] = ω[ij] * α[i] * B[j]
+            F[ij] = ω[ij] * α_F[i] * B[j]
         end
     )]
 

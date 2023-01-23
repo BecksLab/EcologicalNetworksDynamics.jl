@@ -39,11 +39,13 @@ function generate_dbdt_compact(parms::ModelParameters)
         for (k, v) in d
             if haskey(data, k) && v != data[k]
                 throw(
-                    "Error in package source: \n" *
-                    "$(gen) code generator produced data '$(k)': $v " *
-                    "($(typeof(v)))\n" *
-                    "inconsistently with previously generated data '$(k)': $(data[k]) " *
-                    "($(typeof(data[k])))\n",
+                    AssertionError(
+                        "Error in package source: \n" *
+                        "$(gen) code generator produced data '$(k)': $v " *
+                        "($(typeof(v)))\n" *
+                        "inconsistently with previously generated data '$(k)': $(data[k]) " *
+                        "($(typeof(data[k])))\n",
+                    ),
                 )
             end
             data[k] = v
