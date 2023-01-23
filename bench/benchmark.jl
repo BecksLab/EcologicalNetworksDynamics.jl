@@ -43,7 +43,7 @@ end
 
 function large_foodweb(S, FR)
     Random.seed!(12)
-    foodweb = FoodWeb(nichemodel, S; C = 0.2)
+    foodweb = FoodWeb(nichemodel, S; C = 0.04)
     parms = ModelParameters(foodweb; functional_response = FR(foodweb))
     B0 = repeat([0.5], S)
     parms, B0
@@ -63,7 +63,7 @@ function check_scenario(FR, (situation, S), tlims)
     print("Single invocation of generic code.. ")
     flush(stdout)
     expected_dB = [v for v in B0]
-    @time EcologicalNetworksDynamics.dBdt!(expected_dB, B0, parms, 0)
+    @time EcologicalNetworksDynamics.dBdt!(expected_dB, B0, (parms, Dict()), 0)
 
     codes = Dict()
     datas = Dict()
@@ -79,7 +79,7 @@ function check_scenario(FR, (situation, S), tlims)
         actual_dB = [v for v in B0]
         print("Compile:  ") #  ↓ ⚠  takes forever with too big :raw generated code.
         flush(stdout)
-        @time Base.invokelatest(dbdt, actual_dB, B0, data, 0)
+        @time Base.invokelatest(dbdt, actual_dB, B0, (data, Dict()), 0)
 
         print("Check consistency with basic generic invocation.. ")
         flush(stdout)
@@ -151,9 +151,9 @@ scenarios = [
     (LinearResponse, small, [100, 1e6, 5e6])
     (LinearResponse, large, [100, 1e5, 5e5])
     (ClassicResponse, small, [100, 1e5, 1e6])
-    (ClassicResponse, large, [100, 2e4, 2e5])
+    (ClassicResponse, large, [100, 2e3, 2e4])
     (BioenergeticResponse, small, [100, 1e5, 1e6])
-    (BioenergeticResponse, large, [100, 2e4, 2e5])
+    (BioenergeticResponse, large, [100, 2e3, 2e4])
 ]
 
 for (FR, (situation, S), tlims) in scenarios
