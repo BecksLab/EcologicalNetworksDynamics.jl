@@ -7,17 +7,17 @@ function (F::NoTemperatureResponse)(params::ModelParameters, T)
 end
 
 # Exponential Boltzmann Arrhenius Functor.
-function (F::ExponentialBA)(params::ModelParameters, T)
+function (F::ExponentialBA)(params::ModelParameters, T;)
     net = params.network
     tp = ExponentialBA()
     ## change params within BioRates
-    params.biorates.r = Vector{Float64}(exponentialBA_vector_rate(net, T, tp.r))
-    params.biorates.x = Vector{Float64}(exponentialBA_vector_rate(net, T, tp.x))
+    params.biorates.r = Vector{Float64}(exp_ba_vector_rate(net, T, tp.r))
+    params.biorates.x = Vector{Float64}(exp_ba_vector_rate(net, T, tp.x))
     ## change params within FunctionalResponse
-    params.functional_response.hₜ = exponentialBA_matrix_rate(net, T, tp.hₜ)
-    params.functional_response.aᵣ = exponentialBA_matrix_rate(net, T, tp.aᵣ)
+    params.functional_response.hₜ = exp_ba_matrix_rate(net, T, tp.hₜ)
+    params.functional_response.aᵣ = exp_ba_matrix_rate(net, T, tp.aᵣ)
     ## change params within Environment
-    params.environment.K = exponentialBA_vector_rate(net, T, tp.K)
+    params.environment.K = exp_ba_vector_rate(net, T, tp.K)
     params.environment.T = T
 end
 

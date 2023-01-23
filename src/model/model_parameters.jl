@@ -120,6 +120,7 @@ ModelParameters{ClassicResponse}:
   biorates: BioRates(d, r, x, y, e)
   functional_response: ClassicResponse
   producer_competition: ProducerCompetition((2, 2) matrix)
+  temperature_response: NoTemperatureResponse
 ```
 """
 function ModelParameters(
