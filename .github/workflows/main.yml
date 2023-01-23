@@ -1,40 +1,33 @@
 name: Documentation
 
 concurrency:
-    # Skip intermediate builds: always.
-    # Cancel intermediate builds: only if it is a pull request build.
-    group: ${{ github.workflow }}-${{ github.ref }}
-    cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
+  # Skip intermediate builds: always.
+  # Cancel intermediate builds: only if it is a pull request build.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
 
 on:
-    push:
-        branches:
-            - main
-        tags: "*"
-    pull_request:
+  push:
+    branches:
+      - main
+    tags: "*"
+  pull_request:
 
 jobs:
-    build:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v2
-            - uses: julia-actions/setup-julia@v1
-              with:
-                  version: "1.8"
-            - run: |
-                  julia --project=docs -e '
-                      using Pkg
-                      Pkg.develop(PackageSpec(path=pwd()))
-                      Pkg.instantiate()'
-            - run: |
-                  julia --color=yes --project=docs/ -e '
-                      using BEFWM2
-                      # using Pkg; Pkg.activate("docs")
-                      using Documenter
-                      using Documenter: doctest
-                      DocMeta.setdocmeta!(BEFWM2, :DocTestSetup, :(using BEFWM2); recursive=true)
-                      doctest(BEFWM2)'
-            - run: julia --project=docs docs/make.jl
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                  DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: "1.8"
+      - name: Install dependencies.
+        run: julia --color=yes --project=docs -e '
+              using Pkg
+              Pkg.develop(PackageSpec(path="."))
+              Pkg.instantiate()'
+      - name: Build and deploy documentation.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
+        run: julia --project=docs/ docs/make.jl
