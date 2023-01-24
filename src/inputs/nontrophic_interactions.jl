@@ -127,17 +127,15 @@ using variably-named `args` whose general form is either:
 
 to set up `parameter` for layer `interaction`, or:
 
-    <parameter_name> = (<interaction1>=value1, <interaction2>=value2, ...)
-
-eg.       intensity = (facilitation = 2.0, interference = 1.5)
-or equivalently:  I = (f = 2.0, i = 1.5)
+       <parameter_name> = (<interaction1>=value1, <interaction2>=value2, ...)
+    eg.       intensity = (facilitation = 2.0, interference = 1.5)
+    or equivalently:  I = (f = 2.0, i = 1.5)
 
 to set up `parameter` for all layers `interaction1`, `interaction2`, etc., or again:
 
     <interaction_name> = (<parameter1>=value1, <parameter2>=value2, ...)
-
-eg.       competition = (connectance = 4, symmetry = false)
-or equivalently:    c = (L = 4, s = false)
+    eg.    competition = (connectance = 4, symmetry = false)
+    or equivalently: c = (L = 4, s = false)
 
 to set up `parameter1` and `parameter2` for the layer `interaction.
 
@@ -240,7 +238,7 @@ For example, competition is assumed to be symmetric,
 then the number of competition links has to be even.
 But you can change this default as follows:
 
-```jldoctest
+```jldoctest a
 julia> foodweb = FoodWeb([0 0 0; 0 0 0; 1 1 0]);
 
 julia> MultiplexNetwork(foodweb; competition = (sym = false, L = 1))
@@ -256,7 +254,29 @@ MultiplexNetwork of 3 species:
 
     If you don't specify `sym=false` an error will be thrown.
 
-    # The parameters to parse into actual layers.
+# Construct arguments dynamically.
+
+Sometimes you need to dynamically choose the layer or parameters in a group.
+Use `Dict`s instead of named tuples to this end:
+
+```jldoctest a
+julia> MultiplexNetwork(foodweb; f = (L = 1, I = 2.0))
+MultiplexNetwork of 3 species:
+  trophic_layer: 2 links
+  competition_layer: 0 links
+  facilitation_layer: 1 links
+  interference_layer: 0 links
+  refuge_layer: 0 links
+
+julia> dict = Dict(:L => 1, :I => 2.0);
+       b = MultiplexNetwork(foodweb; f = dict)
+MultiplexNetwork of 3 species:
+  trophic_layer: 2 links
+  competition_layer: 0 links
+  facilitation_layer: 1 links
+  interference_layer: 0 links
+  refuge_layer: 0 links
+```
 
 See also [`FoodWeb`](@ref), [`Layer`](@ref).
 """

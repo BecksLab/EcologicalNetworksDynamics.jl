@@ -189,7 +189,7 @@ function parse_MultiplexNetwork_arguments(foodweb, args)
                             ),
                         )
                     end
-                    for (nested_arg, val) in zip(keys(value), value)
+                    for (nested_arg, val) in zip(keys(value), values(value))
                         parm, int = ro(arg, nested_arg)
                         nested = ArgType(parm, int)
                         if already(parm, int)
