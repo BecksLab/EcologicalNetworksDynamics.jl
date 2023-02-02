@@ -44,7 +44,7 @@ Default allometric parameters (a, b) values for mortality rate (d).
 
 See also [`AllometricParams`](@ref)
 """
-DefaultMortalityParams() = AllometricParams(0.138, 0.314, 0.314, -0.25, -0.25, -0.25)
+DefaultMortalityParams() = AllometricParams(0.0138, 0.0314, 0.0314, -0.25, -0.25, -0.25)
 
 """
     DefaultGrowthParams()

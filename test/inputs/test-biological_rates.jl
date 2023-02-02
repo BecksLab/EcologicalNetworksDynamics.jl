@@ -8,7 +8,7 @@ foodweb.M = [1.0, 1.0, 10.0, 10.0]
     @test DefaultMetabolismParams() == AllometricParams(0, 0.88, 0.314, 0, -0.25, -0.25)
     @test DefaultMaxConsumptionParams() == AllometricParams(0.0, 4.0, 8.0, 0.0, 0.0, 0.0)
     @test DefaultMortalityParams() ==
-          AllometricParams(0.138, 0.314, 0.314, -0.25, -0.25, -0.25)
+          AllometricParams(0.0138, 0.0314, 0.0314, -0.25, -0.25, -0.25)
 end
 
 @testset "Computing allometric rates" begin
@@ -22,7 +22,7 @@ end
           [0, 0, 0.314 * 10^-0.25, 0.88 * 10^-0.25]
     @test allometric_rate(foodweb, DefaultMaxConsumptionParams()) == [0, 0, 8, 4]
     @test allometric_rate(foodweb, DefaultMortalityParams()) ≈
-          [0.138, 0.138, 0.314 * 10^(-0.25), 0.314 * 10^(-0.25)]
+          0.1 .* [0.138, 0.138, 0.314 * 10^(-0.25), 0.314 * 10^(-0.25)]
 end
 
 @testset "Helper functions for allometric rate computation" begin
