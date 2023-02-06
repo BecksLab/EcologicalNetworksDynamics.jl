@@ -120,3 +120,56 @@ end
     expBA_params = ExponentialBAParams(1, 0, 0, 10.0, 1.1, 1.2, 2.0, 2.1, 2.2, 5.0)
     @test exp_ba_params_to_vec(foodweb, expBA_params) == expected_paramsvec
 end
+
+@testset "Exponential Boltzmann-Arrhenius parameter customisation" begin
+    @test exp_ba_growth(; aₚ = exp(-3.0)) == ExponentialBAParams(
+        exp(-3.0),
+        0.0,
+        0.0,
+        -0.25,
+        -0.25,
+        -0.25,
+        0.0,
+        0.0,
+        0.0,
+        -0.84,
+    )
+    @test exp_ba_metabolism(; aₑ = exp(-18), aᵢ = exp(-10)) == ExponentialBAParams(
+        0.0,
+        exp(-18),
+        exp(-10),
+        -0.31,
+        -0.31,
+        -0.31,
+        0.0,
+        0.0,
+        0.0,
+        -0.69,
+    )
+    @test exp_ba_handling_time(; bₚ = -0.2, cₑ = 0.7) == ExponentialBAParams(
+        0.0,
+        exp(9.66),
+        exp(9.66),
+        -0.2,
+        -0.45,
+        -0.45,
+        0.47,
+        0.7,
+        0.47,
+        0.26,
+    )
+    @test exp_ba_attack_rate(; bₑ = 0.8, cᵢ = -0.1, Eₐ = -1.0) == ExponentialBAParams(
+        0.0,
+        exp(-13.1),
+        exp(-13.1),
+        0.25,
+        0.8,
+        0.25,
+        -0.8,
+        -0.8,
+        -0.1,
+        -1.0,
+    )
+    @test exp_ba_carrying_capacity(; aₚ = 10, bᵢ = 0.5) ==
+          ExponentialBAParams(10.0, nothing, nothing, 0.28, 0.28, 0.5, 0.0, 0.0, 0.0, 0.71)
+end
