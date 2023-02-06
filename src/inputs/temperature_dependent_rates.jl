@@ -69,7 +69,7 @@ for growth rate (`r`).
 ([Savage et al., 2004](https://doi.org/10.1086/381872),
 [Binzer et al., 2016](https://doi.org/10.1111/gcb.13086))
 """
-exp_ba_growth(
+exp_ba_growth(;
     aₚ = exp(-15.68),
     aₑ = 0,
     aᵢ = 0,
@@ -90,7 +90,7 @@ for metabolic rate (`x`).
 ([Ehnes et al., 2011](https://doi.org/10.1111/j.1461-0248.2011.01660.x),
 [Binzer et al., 2016](https://doi.org/10.1111/gcb.13086))
 """
-exp_ba_metabolism(
+exp_ba_metabolism(;
     aₚ = 0,
     aₑ = exp(-16.54),
     aᵢ = exp(-16.54),
@@ -111,7 +111,7 @@ for handling time (`hₜ`).
 ([Rall et al., 2012](https://doi.org/10.1098/rstb.2012.0242),
 [Binzer et al., 2016](https://doi.org/10.1111/gcb.13086))
 """
-exp_ba_handling_time(
+exp_ba_handling_time(;
     aₚ = 0,
     aₑ = exp(9.66),
     aᵢ = exp(9.66),
@@ -132,7 +132,7 @@ for attack rate (aᵣ).
 ([Rall et al., 2012](https://doi.org/10.1098/rstb.2012.0242),
 [Binzer et al., 2016](https://doi.org/10.1111/gcb.13086))
 """
-exp_ba_attack_rate(
+exp_ba_attack_rate(;
     aₚ = 0,
     aₑ = exp(-13.1),
     aᵢ = exp(-13.1),
@@ -153,7 +153,7 @@ for carrying capacity.
 ([Meehan, 2006](https://doi.org/10.1890/0012-9658(2006)87%5B1650:EUAAAI%5D2.0.CO%3B2),
 [Binzer et al., 2016](https://doi.org/10.1111/gcb.13086))
 """
-exp_ba_carrying_capacity(
+exp_ba_carrying_capacity(;
     aₚ = 3,
     aₑ = nothing,
     aᵢ = nothing,
@@ -185,7 +185,7 @@ end
 Generates the default parameters used to calculate temperature dependent rates
 using the exponential Boltzmann-Arrhenius method
 """
-function ExponentialBA(
+function ExponentialBA(;
     r = exp_ba_growth(),
     x = exp_ba_metabolism(),
     aᵣ = exp_ba_attack_rate(),

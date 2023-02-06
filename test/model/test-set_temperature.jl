@@ -36,3 +36,22 @@ temp = 303.15 # temperature in Kelvin
     @test p.temperature_response.hₜ == exp_ba_handling_time()
     @test p.temperature_response.K == exp_ba_carrying_capacity()
 end
+
+@testset "Exponential BA customisation in set_temperature" begin
+    # MP with Classic Response
+    p = ModelParameters(foodweb; functional_response = ClassicResponse(foodweb))
+    # Exponential Boltzmann-Arrhenius temperature dependence 
+    set_temperature!(
+        p,
+        temp,
+        ExponentialBA(; K = exp_ba_carrying_capacity(; aₚ = 10, bᵢ = 0.5)),
+    )
+
+    @test p.temperature_response.K ==
+          ExponentialBAParams(10.0, nothing, nothing, 0.28, 0.28, 0.5, 0.0, 0.0, 0.0, 0.71)
+    @test p.temperature_response.r == exp_ba_growth()
+    @test p.temperature_response.x == exp_ba_metabolism()
+    @test p.temperature_response.aᵣ == exp_ba_attack_rate()
+    @test p.temperature_response.hₜ == exp_ba_handling_time()
+    @test typeof(p.temperature_response) == ExponentialBA
+end
