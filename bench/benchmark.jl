@@ -3,15 +3,15 @@
 print("Loading packages.. ")
 flush(stdout)
 @time begin
-    using BEFWM2
+    using EcologicalNetworksDynamics
     using DiffEqBase
     using DiffEqCallbacks
     using EcologicalNetworks
     using Formatting
     using Random
     using DataStructures
-    fitin = BEFWM2.fitin
-    cpad = BEFWM2.cpad
+    fitin = EcologicalNetworksDynamics.fitin
+    cpad = EcologicalNetworksDynamics.cpad
 end
 
 # Collect output of @timed macros into this global structure.
@@ -34,7 +34,8 @@ function small_foodweb(S, FR)
         1 0 0 0
         0 1 0 0
     ])
-    (BEFWM2.richness(foodweb) != S) && throw("Actual foodweb does not involve $S species.")
+    (EcologicalNetworksDynamics.richness(foodweb) != S) &&
+        throw("Actual foodweb does not involve $S species.")
     parms = ModelParameters(foodweb; functional_response = FR(foodweb))
     B0 = [0.5, 0.5, 0.5, 0.5]
     parms, B0
@@ -62,7 +63,7 @@ function check_scenario(FR, (situation, S), tlims)
     print("Single invocation of generic code.. ")
     flush(stdout)
     expected_dB = [v for v in B0]
-    @time BEFWM2.dBdt!(expected_dB, B0, parms, 0)
+    @time EcologicalNetworksDynamics.dBdt!(expected_dB, B0, parms, 0)
 
     codes = Dict()
     datas = Dict()
@@ -115,7 +116,8 @@ function check_scenario(FR, (situation, S), tlims)
     for (i, tlim) in enumerate(tlims)
         println("\n- - - tlim = $(format(tlim, commas=true)) - - -")
         println("Simulate with generic code..")
-        expected_solution = time_simulate(:generic, tlim, BEFWM2.dBdt!, parms)
+        expected_solution =
+            time_simulate(:generic, tlim, EcologicalNetworksDynamics.dBdt!, parms)
         # Only check consistency the first time
         # to not keep heavily large simulation results around when tlim gets high.
         if i > 1

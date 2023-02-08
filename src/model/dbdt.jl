@@ -27,7 +27,7 @@ function dBdt!(dB, B, p, t)
     end
 
     # Avoid zombie species by forcing extinct biomasses to zero.
-    # https://github.com/BecksLab/BEFWM2/issues/65
+    # https://github.com/BecksLab/EcologicalNetworksDynamics.jl/issues/65
     for sp in keys(extinct_sp)
         B[sp] = 0.0
     end

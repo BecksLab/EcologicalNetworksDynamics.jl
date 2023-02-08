@@ -9,16 +9,16 @@
 # The structure should protect from ambiguous aliasing specifications.
 
 """
-(not exported, so we need these few `BEFWM2.` adjustments in doctest)
+(not exported, so we need these few `EcologicalNetworksDynamics.` adjustments in doctest)
 
 ```jldoctest
-julia> import BEFWM2: OrderedCollections.OrderedDict
+julia> import EcologicalNetworksDynamics: OrderedCollections.OrderedDict
 
-julia> import BEFWM2: AliasingSystem, create_aliased_dict_type, AliasingError
+julia> import EcologicalNetworksDynamics: AliasingSystem, create_aliased_dict_type, AliasingError
 
-julia> import BEFWM2: standards, references, aliases, standardize
+julia> import EcologicalNetworksDynamics: standards, references, aliases, standardize
 
-julia> import BEFWM2: name, is, isin, shortest
+julia> import EcologicalNetworksDynamics: name, is, isin, shortest
 
 julia> al = AliasingSystem("fruit", (:apple => [:ap, :a], :pear => [:p, :pe]));
 
@@ -141,20 +141,20 @@ isin(ref, refs, a::AliasingSystem) =
 Generate an "AliasDict" type, with all associated methods, from an aliasing system.
 
 ```jldoctest AliasDict
-julia> import BEFWM2: OrderedCollections.OrderedDict
+julia> import EcologicalNetworksDynamics: OrderedCollections.OrderedDict
 
-julia> import BEFWM2: AliasingError, create_aliased_dict_type, AliasingError
+julia> import EcologicalNetworksDynamics: AliasingError, create_aliased_dict_type, AliasingError
 
-julia> import BEFWM2: standards, references, aliases, standardize
+julia> import EcologicalNetworksDynamics: standards, references, aliases, standardize
 
-julia> import BEFWM2: name, is, isin, shortest
+julia> import EcologicalNetworksDynamics: name, is, isin, shortest
 
 julia> create_aliased_dict_type(:FruitDict, "fruit", (:apple => [:a], :berry => [:b, :br]))
 
-julia> import BEFWM2: FruitDict #  (not exported)
+julia> import EcologicalNetworksDynamics: FruitDict #  (not exported)
 
 julia> FruitDict()
-BEFWM2.FruitDict{Any}()
+EcologicalNetworksDynamics.FruitDict{Any}()
 
 julia> d = FruitDict(:a => 5, :b => 8.0)  # Mimick Dict constructor.
 FruitDict{Real} with 2 entries:

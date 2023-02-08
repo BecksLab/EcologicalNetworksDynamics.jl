@@ -27,11 +27,11 @@ define your own adjacency matrix (`A`) by hand
 and give it to the [`FoodWeb`](@ref) method
 that will return you the corresponding [`FoodWeb`](@ref) object.
 
-```@setup befwm2
-using BEFWM2
+```@setup econetd
+using EcologicalNetworksDynamics
 ```
 
-```@example befwm2
+```@example econetd
 A = [0 0 0; 1 0 0; 0 1 0] # 1 <- 2 <- 3
 foodweb = FoodWeb(A)
 ```
@@ -39,30 +39,30 @@ foodweb = FoodWeb(A)
 We can check that the adjacency matrix stored in [`FoodWeb`](@ref)
 corresponds to the one we provided:
 
-```@example befwm2
+```@example econetd
 foodweb.A == A
 ```
 
 Moreover, you can see that by default all body-masses are set to 1
 and that species names correspond to their index:
 
-```@example befwm2
+```@example econetd
 foodweb.M
 ```
 
-```@example befwm2
+```@example econetd
 foodweb.species
 ```
 
 But you can change that behaviour
 by providing additional arguments to [`FoodWeb`](@ref):
 
-```@example befwm2
+```@example econetd
 foodweb = FoodWeb(A; species = ["plant", "herbivore", "predator"], Z = 50)
 foodweb.species
 ```
 
-```@example befwm2
+```@example econetd
 foodweb.M
 ```
 
@@ -77,7 +77,7 @@ and lastly for the predator ``T = 3`` then its body-mass is set to ``M = 2500``.
 Obviously, you can also directly provide your own vector of body-masses.
 For instance:
 
-```@example befwm2
+```@example econetd
 foodweb = FoodWeb(A; M = [1, 10, 50])
 foodweb.M
 ```
@@ -87,13 +87,13 @@ as they determine the allometric scaling parameters of the bioenergetic model.
 By default, basal species are `"producer"`s
 and non-basal species are `"invertebrate"`s.
 
-```@example befwm2
+```@example econetd
 foodweb.metabolic_class
 ```
 
 Let's change `"invertebrate"` into `"ectotherm vertebrate"`:
 
-```@example befwm2
+```@example econetd
 custom_class = ["producer", "ectotherm vertebrate", "ectotherm vertebrate"]
 foodweb = FoodWeb(A; metabolic_class = custom_class)
 foodweb.metabolic_class
@@ -102,7 +102,7 @@ foodweb.metabolic_class
 When you customize metabolic classes there are 2 rules that you should know.
 First, basal species are always set to `"producer"` even if you specify something different.
 
-```@example befwm2
+```@example econetd
 custom_class = ["invertebrate", "ectotherm vertebrate", "ectotherm vertebrate"]
 foodweb = FoodWeb(A; metabolic_class = custom_class)
 foodweb.metabolic_class
@@ -122,7 +122,7 @@ it is more suitable to create the [`FoodWeb`](@ref) using structural models.
 implements various structural models to build food webs.
 You can pass any of those models, with the required arguments, to generate food webs.
 
-```@example befwm2
+```@example econetd
 using EcologicalNetworks
 S = 20 # species richness
 C = 0.2 # connectance
@@ -132,7 +132,7 @@ foodweb = FoodWeb(nichemodel, S; C = C)
 Moreover, the `method` field has automatically stored
 the model used to generate the food web.
 
-```@example befwm2
+```@example econetd
 foodweb.method
 ```
 
@@ -141,7 +141,7 @@ foodweb.method
 EcologicalNetworkDynamics.jl has been designed to interact nicely with EcologicalNetworks.jl,
 so you can directly give a `UnipartiteNetwork` object to the [`FoodWeb`](@ref) method.
 
-```@example befwm2
+```@example econetd
 uni_net = EcologicalNetworks.nz_stream_foodweb()[1] # load network
 foodweb = FoodWeb(uni_net; method = "NZ stream")
 ```
@@ -149,6 +149,6 @@ foodweb = FoodWeb(uni_net; method = "NZ stream")
 You can see that species names have been automatically filled
 with the names provided in the `UnipartiteNetwork`.
 
-```@example befwm2
+```@example econetd
 foodweb.species == uni_net.S
 ```

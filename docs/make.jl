@@ -1,10 +1,15 @@
-using BEFWM2
+using EcologicalNetworksDynamics
 using Documenter
 
-DocMeta.setdocmeta!(BEFWM2, :DocTestSetup, :(using BEFWM2); recursive = true)
+DocMeta.setdocmeta!(
+    EcologicalNetworksDynamics,
+    :DocTestSetup,
+    :(using EcologicalNetworksDynamics);
+    recursive = true,
+)
 
 makedocs(;
-    modules = [BEFWM2],
+    modules = [EcologicalNetworksDynamics],
     authors = "Eva Delmas" *
               ", Ismaël Lajaaiti" *
               ", Thomas Malpas" *
@@ -12,8 +17,8 @@ makedocs(;
               ", Iago Bonnici" *
               ", Sonia Kéfi" *
               ", Andrew Beckerman",
-    repo = "https://github.com/BecksLab/BEFWM2/blob/{commit}{path}#{line}",
-    sitename = "BEFWM2.jl",
+    repo = "https://github.com/BecksLab/EcologicalNetworksDynamics.jl/blob/{commit}{path}#{line}",
+    sitename = "EcologicalNetworksDynamics.jl",
     format = Documenter.HTML(;
         prettyurls = get(ENV, "CI", "false") == "true",
         assets = String[],
@@ -37,4 +42,4 @@ makedocs(;
     ],
 )
 
-deploydocs(; repo = "github.com/BecksLab/BEFWM2.jl.git", devbranch = "doc")
+deploydocs(; repo = "github.com/BecksLab/EcologicalNetworksDynamics.jl", devbranch = "doc")

@@ -1,6 +1,6 @@
 # Internal Documentation
 
-Documentation for BioenergeticFoodwebs.jl internal interface.
+Documentation for EcologicalNetworksDynamics.jl internal interface.
 
 ## Index
 
@@ -11,6 +11,6 @@ Pages = ["internals.md"]
 ## Functions
 
 ```@autodocs
-Modules = [BEFWM2]
+Modules = [EcologicalNetworksDynamics]
 Public = false
 ```

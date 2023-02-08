@@ -62,7 +62,7 @@ end
 
 # Arguments:
 
-  - solution: output of BEFWM2.simulate()
+  - solution: output of EcologicalNetworksDynamics.simulate()
   - threshold: threshold to consider that a species is extinct
   - last: the number of timesteps to consider
 
@@ -72,7 +72,7 @@ population stability (avg_cv_sp) and species synchrony (sync)
 """
 function foodweb_cv(solution; threshold::Float64 = eps(), last = 1000)
 
-    measure_on = BEFWM2.filter_sim(solution; last = last)
+    measure_on = EcologicalNetworksDynamics.filter_sim(solution; last = last)
 
     # Transpose to get the time x species matrix
     mat = transpose(measure_on)

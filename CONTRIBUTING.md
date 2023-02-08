@@ -1,6 +1,6 @@
 # Contribution guidelines
 
-You are willing to contribute to BEFWM2 project
+You are willing to contribute to EcologicalNetworksDynamics project
 and edit the source code. Thank you <3  
 This small guide is supposed to help you through the installation process
 as a developer instead of a simple user,
@@ -11,16 +11,16 @@ This guide assumes you're working on a standard linux distribution
 and makes use of basic shell commands
 and [Julia's REPL].
 If you are not and you have trouble following along,
-don't hesitate to reach out at [BecksLab/BEFWM2]
+don't hesitate to reach out at [BecksLab/EcologicalNetworksDynamics.jl]
 and ask for support.
 
-[BecksLab/BEFWM2]: https://github.com/BecksLab/BEFWM2
+[BecksLab/EcologicalNetworksDynamics.jl]: https://github.com/BecksLab/EcologicalNetworksDynamics.jl
 [Julia's REPL]: https://docs.julialang.org/en/v1/stdlib/REPL/
 
 ## Set up a clean working directory to host the project
 
 The package sources are essentially contained
-within one folder named `BEFWM2/`,
+within one folder named `EcologicalNetworksDynamics/`,
 that you can freely __(1)__ __navigate and edit to contribute__.
 When you are done, you will likely want to
 __(2)__ __try your modifications__ out
@@ -29,7 +29,7 @@ This is how you can decide that you are happy with your contribution.
 
 Regarding __(2)__,
 we advise against working directly in the source directory.
-Instead, use another directory like `BEFWM2_sandbox/` or `BEFWM2-dev/`.
+Instead, use another directory like `EcoNetD/` or `EcoNetD-dev/`.
 This gives you full latitude to use custom IDE configurations there,
 generate figures *etc.* without polluting the sources.
 
@@ -38,23 +38,23 @@ generate figures *etc.* without polluting the sources.
 Make yourself at home with:
 
 ```console
-$ mkdir BEFWM2-dev
-$ cd BEFWM2-dev
+$ mkdir EcoNetD-dev
+$ cd EcoNetD-dev
 ```
 
-### 2. Clone BEFWM2 sources
+### 2. Clone EcologicalNetworksDynamics sources
 
 Download latest state of the project with:
 
 ```console
-$ git clone git@github.com:BecksLab/BEFWM2.git
+$ git clone git@github.com:BecksLab/EcologicalNetworksDynamics.jl
 ```
 
 At this point, your directories structure should look something like:
 
 ```
-BEFWM2-dev/
-├── BEFWM2/
+EcoNetD-dev/
+├── EcologicalNetworksDynamics/
 │   ├── .git/
 │   ├── README.md
 │   ├── CONTRIBUTING.md
@@ -81,12 +81,12 @@ Then, from the REPL:
 
 ```julia
 julia> ]                      # Just type ']' key at the prompt.
-(BEFWM2-dev) pkg> dev BEFWM2/ # Add BEFWM2 as a dev-dependency.
-(BEFWM2-dev) pkg> add Revise  # Track sources modifications.
-(BEFWM2-dev) pkg> update      # This takes a while the first time.
+(EcoNetD-dev) pkg> dev EcologicalNetworksDynamics/ # Add EcologicalNetworksDynamics as a dev-dependency.
+(EcoNetD-dev) pkg> add Revise  # Track sources modifications.
+(EcoNetD-dev) pkg> update      # This takes a while the first time.
 ```
 
-[`Revise`] is very useful to not to have to re-load `BEFWM2` package manually
+[`Revise`] is very useful to not to have to re-load `EcologicalNetworksDynamics` package manually
 after every modification and restart your development session.
 
 [`Revise`]: https://timholy.github.io/Revise.jl/stable/
@@ -95,18 +95,18 @@ At this point, you should be able to use the package from this environment.
 To verify it, create the following toy script:
 
 ```
-BEFWM2-dev/
+EcoNetD-dev/
 ├── sandbox.jl     <- "toy script"
 ├── Project.toml   <- (automatically created during `dev` and `add` commands)
 ├── Manifest.toml  <- (automatically created during `update` command)
-├── BEFWM2/
+├── EcologicalNetworksDynamics/
 │   ├── ...
 ```
 
 In `sandbox.jl`:
 ```julia
 using Revise
-using BEFWM2
+using EcologicalNetworksDynamics
 
 # Dummy use of the package just to try it out.
 foodweb = FoodWeb([0 0; 1 0])
@@ -123,21 +123,21 @@ $ julia --project=. sandbox.jl
 Then your initial setup is successful.
 
 
-### 4. Setup/Refresh BEFWM2 source directory
+### 4. Setup/Refresh EcologicalNetworksDynamics source directory
 
 At this point you can use and modify the package,
 but you cannot generate documentation, run the tests or the benchmarks yet.
 
-This section explains how to correctly set up the source `BEFWM2/` directory.
+This section explains how to correctly set up the source `EcologicalNetworksDynamics/` directory.
 It is also useful if you feel like you have messed up everything
 and you wish to reset this folder to a clean state.
 
 #### Clean up whole sources folder
 
-The following needs to happen at the root source folder `./BEFWM2`:
+The following needs to happen at the root source folder `./EcologicalNetworksDynamics.jl`:
 
 ```console
-$ cd path/to/BEFWM2/
+$ cd path/to/EcologicalNetworksDynamics.jl/
 ```
 
 Delete every file not tracked by git, including `Manifest.toml` files.  
@@ -151,28 +151,28 @@ $ git clean -xdf    # Delete all non-staged files.
 
 #### Setup source projects environments.
 
-The file `BEFWM2/Manifest.toml` needs to be re-generated
+The file `EcologicalNetworksDynamics/Manifest.toml` needs to be re-generated
 with latest version of dependencies.
 
 ```console
 $ julia --project=.
 julia> ]
-(BEFWM2) pkg> update   # (precompilation does take a while the first time)
+(EcologicalNetworksDynamics) pkg> update   # (precompilation does take a while the first time)
 ```
 
-While standing in this `(BEFWM2) pkg>` package mode,
+While standing in this `(EcologicalNetworksDynamics) pkg>` package mode,
 take this opportunity to set up tests, documentation and benchmark environments:
 ```julia
-(BEFWM2) pkg> activate test  # Switch to `BEFWM2/test` environment.
-(test) pkg> update           # Re-generate `BEFWM2/test/Manifest.toml`.
+(EcologicalNetworksDynamics) pkg> activate test  # Switch to `EcologicalNetworksDynamics/test` environment.
+(test) pkg> update           # Re-generate `EcologicalNetworksDynamics/test/Manifest.toml`.
 
-(test) pkg> activate docs    # Switch to `BEFWM2/docs` environment.
-(docs) pkg> dev .            # add `BEFWM2` as a dev-dependency to `BEFWM2/docs`
-(docs) pkg> update           # Re-generate `BEFWM2/docs/Manifest.toml`.
+(test) pkg> activate docs    # Switch to `EcologicalNetworksDynamics/docs` environment.
+(docs) pkg> dev .            # add `EcologicalNetworksDynamics` as a dev-dependency to `EcologicalNetworksDynamics/docs`
+(docs) pkg> update           # Re-generate `EcologicalNetworksDynamics/docs/Manifest.toml`.
 
-(docs) pkg> activate bench   # Switch to `BEFWM2/bench` environment.
-(bench) pkg> dev .           # add `BEFWM2` as a dev-dependency to `BEFWM2/bench`
-(bench) pkg> update          # Re-generate `BEFWM2/bench/Manifest.toml`.
+(docs) pkg> activate bench   # Switch to `EcologicalNetworksDynamics/bench` environment.
+(bench) pkg> dev .           # add `EcologicalNetworksDynamics` as a dev-dependency to `EcologicalNetworksDynamics/bench`
+(bench) pkg> update          # Re-generate `EcologicalNetworksDynamics/bench/Manifest.toml`.
 ```
 
 The whole source project is now ready to go.
@@ -183,30 +183,30 @@ The whole source project is now ready to go.
 You have modified existing functions
 and you wish to ensure that you have not broken anything.
 Alternately, you have written new functions
-and added new tests to the `BEFWM2/test` folder
+and added new tests to the `EcologicalNetworksDynamics/test` folder
 or in doctests strings.
 In any case, you can run all tests with:
 
 ```console
-$ cd path/to/BEFWM2
+$ cd path/to/EcologicalNetworksDynamics.jl
 $ julia --project=.
 julia> ]
-(BEFWM2) pkg> test  # Run all tests in docstrings and `test/` folder.
+(EcologicalNetworksDynamics) pkg> test  # Run all tests in docstrings and `test/` folder.
 ```
 
 ### Generate and read the documentation
 
 You need to read the latest source documentation on current branch,
-or you have written new docstrings, documentation pages in `BEFWM2/docs/src/`
+or you have written new docstrings, documentation pages in `EcologicalNetworksDynamics/docs/src/`
 and you would like to check what they look like.
 Generate all documentation with:
 
 ```console
-$ cd path/to/BEFWM2/docs
+$ cd path/to/EcologicalNetworksDynamics.jl/docs
 $ julia --project=. make.jl   # (fails if doctests fail)
 ```
 
-Documentation is generated in `BEFWM2/docs/build/` folder.
+Documentation is generated in `EcologicalNetworksDynamics/docs/build/` folder.
 Browse with any web browser, like for instance:
 
 ```console
@@ -239,7 +239,7 @@ Your code will be reviewed there before it is eventually merged into `dev`.
 
 ### Keep your work downstream the `dev` branch
 
-BEFWM2 enforces linear git history with a rebase strategy.
+EcologicalNetworksDynamics enforces linear git history with a rebase strategy.
 As a consequence, as you are working on your branch,
 it sometimes happens that `dev` moves forward in another direction.
 This is not a problem and you can keep going until your pull request is ready.
@@ -279,7 +279,7 @@ it is okay to submit it by force-pushing it to the main repo:
 $ git push --force origin my_cool_feature
 ```
 
-__Don't hesitate to reach out to [BecksLab/BEFWM2]
+__Don't hesitate to reach out to [BecksLab/EcologicalNetworksDynamics.jl]
 in case you need any sort of kind help or support.__
 __Happy contributing <3__
 

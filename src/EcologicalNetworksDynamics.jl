@@ -1,4 +1,4 @@
-module BEFWM2
+module EcologicalNetworksDynamics
 
 # Dependencies
 import DifferentialEquations.Rodas4

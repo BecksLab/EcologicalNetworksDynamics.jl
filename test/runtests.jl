@@ -1,5 +1,5 @@
 using Documenter
-using BEFWM2
+using EcologicalNetworksDynamics
 using Test
 using SparseArrays
 using Random
@@ -15,8 +15,13 @@ Random.seed!(seed)
 @info "Seed set to $seed."
 
 # Run doctests first
-DocMeta.setdocmeta!(BEFWM2, :DocTestSetup, :(using BEFWM2); recursive = true)
-doctest(BEFWM2)
+DocMeta.setdocmeta!(
+    EcologicalNetworksDynamics,
+    :DocTestSetup,
+    :(using EcologicalNetworksDynamics);
+    recursive = true,
+)
+doctest(EcologicalNetworksDynamics)
 println("------------------------------------------")
 
 # Run test files
@@ -45,14 +50,14 @@ test_files = [
 # Wrap 'simulate' in a routine testing identity between
 # generic simulation code and generated code.
 function simulates(parms, B0; compare_atol = nothing, compare_rtol = nothing, kwargs...)
-    g = BEFWM2.simulate(parms, B0; verbose = false, kwargs...)
+    g = EcologicalNetworksDynamics.simulate(parms, B0; verbose = false, kwargs...)
 
     # Compare with raw specialized code.
     xp, data = Logging.with_logger(() -> generate_dbdt(parms, :raw), Logging.NullLogger())
     # Guard against explosive compilation times with this approach.
     if SyntaxTree.callcount(xp) <= 20_000 #  wild rule of thumb
         dbdt = eval(xp)
-        s = BEFWM2.simulate(
+        s = EcologicalNetworksDynamics.simulate(
             parms,
             B0;
             diff_code_data = (dbdt, data),
@@ -66,7 +71,7 @@ function simulates(parms, B0; compare_atol = nothing, compare_rtol = nothing, kw
     xp, data =
         Logging.with_logger(() -> generate_dbdt(parms, :compact), Logging.NullLogger())
     dbdt = eval(xp)
-    s = BEFWM2.simulate(
+    s = EcologicalNetworksDynamics.simulate(
         parms,
         B0;
         diff_code_data = (dbdt, data),
