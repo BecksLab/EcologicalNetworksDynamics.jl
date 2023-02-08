@@ -2,7 +2,7 @@
 Use case 1: Reproducing Brose et al., 2006 (fig. 2)
 =#
 
-using BEFWM2
+using EcologicalNetworksDynamics
 using EcologicalNetworks
 using DataFrames
 
@@ -72,7 +72,7 @@ for m in models
                         - type of the functional response 
                         - stability ("Population stability is the negative coefficient of variation of the persistent species", from Brose and al, 2006)
                         =#
-                        ppmr = BEFWM2.massratio(sim.ModelParameters)
+                        ppmr = EcologicalNetworksDynamics.massratio(sim.ModelParameters)
                         z0 = z
                         out = (
                             z0 = log10(z0),
@@ -82,7 +82,10 @@ for m in models
                             s_eq = sum(sim.B[end, :] .> 0),
                             mdl = string(Symbol(m)),
                             fr = f.type,
-                            cv = BEFWM2.population_stability(sim; last = 500),
+                            cv = EcologicalNetworksDynamics.population_stability(
+                                sim;
+                                last = 500,
+                            ),
                         )
                         push!(df, out)
                     end

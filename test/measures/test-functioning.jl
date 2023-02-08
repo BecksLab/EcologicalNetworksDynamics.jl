@@ -16,7 +16,7 @@
     s, r, K = params.network.species, params.biorates.r, params.environment.K
 
     @test first_growth.G[first_growth.s.=="s2"][1][1] ==
-          BEFWM2.logisticgrowth.(0.5, r[s.=="s2"], K[s.=="s2"])[1]
+          EcologicalNetworksDynamics.logisticgrowth.(0.5, r[s.=="s2"], K[s.=="s2"])[1]
     @test first_growth.G[first_growth.s.=="s2"][1][1] == 0.25
 
     # Growth rate should converge to 0 as B converges to K
@@ -63,41 +63,45 @@ end
     @test foodweb_richness(sim_zero; last = 2) ≈ 0.0
     @test species_persistence(sim_zero; last = 2) ≈ 0.0 # Weird but it is a feature
 
-    @test BEFWM2.species_richness(sim_two_sp[:, end]) ==
+    @test EcologicalNetworksDynamics.species_richness(sim_two_sp[:, end]) ==
           foodweb_richness(sim_two_sp; last = 1) ==
           2
-    @test BEFWM2.species_richness(sim_one_sp[:, end]) ==
+    @test EcologicalNetworksDynamics.species_richness(sim_one_sp[:, end]) ==
           foodweb_richness(sim_one_sp; last = 1) ==
           1
-    @test BEFWM2.species_richness(sim_zero[:, end]) ==
+    @test EcologicalNetworksDynamics.species_richness(sim_zero[:, end]) ==
           foodweb_richness(sim_zero; last = 1) ==
           0
 
     # Other hill diversity numbers
     ## Shannon
-    @test BEFWM2.shannon(sim_two_sp[:, end]) ==
+    @test EcologicalNetworksDynamics.shannon(sim_two_sp[:, end]) ==
           foodweb_shannon(sim_two_sp; last = 1) ==
           log(2)
-    @test BEFWM2.shannon(sim_one_sp[:, end]) == foodweb_shannon(sim_one_sp; last = 1) ≈ 0.0 # 0 entropy if 1 species only
-    @test isnan(BEFWM2.shannon(sim_zero[:, end])) ==
+    @test EcologicalNetworksDynamics.shannon(sim_one_sp[:, end]) ==
+          foodweb_shannon(sim_one_sp; last = 1) ≈
+          0.0 # 0 entropy if 1 species only
+    @test isnan(EcologicalNetworksDynamics.shannon(sim_zero[:, end])) ==
           isnan(foodweb_shannon(sim_zero; last = 1)) # Not defined for 0 species
 
     ## Simpson
-    @test BEFWM2.simpson(sim_two_sp[:, end]) ==
+    @test EcologicalNetworksDynamics.simpson(sim_two_sp[:, end]) ==
           foodweb_simpson(sim_two_sp; last = 1) ==
           1 / sum(2 .^ [1 / 2, 1 / 2])
-    @test BEFWM2.simpson(sim_one_sp[:, end]) ==
+    @test EcologicalNetworksDynamics.simpson(sim_one_sp[:, end]) ==
           foodweb_simpson(sim_one_sp; last = 1) ==
           1 / sum(2 .^ 1) ==
           0.5# 0.5 if 1 species only
-    @test isnan(BEFWM2.simpson(sim_zero[:, end])) ==
+    @test isnan(EcologicalNetworksDynamics.simpson(sim_zero[:, end])) ==
           isnan(foodweb_simpson(sim_zero; last = 1)) # Not defined for 0 species
 
     # Community evenness
-    @test BEFWM2.pielou(sim_two_sp[:, end]) == foodweb_evenness(sim_two_sp; last = 1) ≈ 1.0 # Maximum equity of species biomass
-    @test isnan(BEFWM2.pielou(sim_one_sp[:, end])) ==
+    @test EcologicalNetworksDynamics.pielou(sim_two_sp[:, end]) ==
+          foodweb_evenness(sim_two_sp; last = 1) ≈
+          1.0 # Maximum equity of species biomass
+    @test isnan(EcologicalNetworksDynamics.pielou(sim_one_sp[:, end])) ==
           isnan(foodweb_evenness(sim_one_sp; last = 1))# Should be NaN if 1 species
-    @test isnan(BEFWM2.pielou(sim_zero[:, end])) ==
+    @test isnan(EcologicalNetworksDynamics.pielou(sim_zero[:, end])) ==
           isnan(foodweb_evenness(sim_zero; last = 1))# Should be NaN if 0 species
 
 end

@@ -1,9 +1,9 @@
-# BioenergeticFoodwebs.jl
+# EcologicalNetworksDynamics.jl
 
-![CI](https://github.com/BecksLab/BEFWM2.jl/workflows/CI/badge.svg?branch=main)
-[![codecov.io](http://codecov.io/github/BecksLab/BEFWM2.jl/coverage.svg?branch=main)](http://codecov.io/github/BecksLab/BEFWM2.jl?branch=main)
+![CI](https://github.com/BecksLab/EcologicalNetworksDynamics.jl.jl/workflows/CI/badge.svg?branch=main)
+[![codecov.io](http://codecov.io/github/BecksLab/EcologicalNetworksDynamics.jl.jl/coverage.svg?branch=main)](http://codecov.io/github/BecksLab/EcologicalNetworksDynamics.jl.jl?branch=main)
 
-BioenergeticFoodwebs is a Julia package that implements the bioenergetic
+EcologicalNetworksDynamics is a Julia package that implements the bioenergetic
 consumer-resource model from [Yodzis and Innès (1992)](https://www.journals.uchicago.edu/doi/abs/10.1086/285380) adapted to foodwebs
 (see [Williams et al., 2008](https://link.springer.com/chapter/10.1007/978-1-4020-5337-5_2) for more details).
 
@@ -21,10 +21,10 @@ Expected features on top of the core model:
 From the Julia REPL package mode (accessed with `]`), run:
 
 ```pkg-julia
-add BioenergeticFoodwebs
+add EcologicalNetworksDynamics
 ```
 
-To use BioenergeticFoodwebs.jl at its full potential you probably want to install
+To use EcologicalNetworksDynamics.jl at its full potential you probably want to install
 [EcologicalNetworks.jl](http://docs.ecojulia.org/EcologicalNetworks.jl/stable/):
 
 ```pkg-julia
@@ -34,13 +34,13 @@ add EcologicalNetworks
 ## First simulation
 
 We describe below the most straightforward way to run a simulation with
-BioenergeticFoodwebs.jl to illustrate the overall workflow. You will find more details and
+EcologicalNetworksDynamics.jl to illustrate the overall workflow. You will find more details and
 more elaborated examples in the package [Documentation](https://docs-url).
 
 ### Set up
 
 ```julia
-using BioenergeticFoodwebs
+using EcologicalNetworksDynamics
 using EcologicalNetworks
 ```
 

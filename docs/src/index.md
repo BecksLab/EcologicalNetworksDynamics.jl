@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = BEFWM2
+CurrentModule = EcologicalNetworksDynamics
 ```
 
 # EcologicalNetworkDynamics
@@ -36,7 +36,7 @@ but can also be easily customized if desired.
 
 ## How can I contribute?
 
-The easiest way to contribute is to [open an issue](https://github.com/BecksLab/BEFWM2/issues)
+The easiest way to contribute is to [open an issue](https://github.com/BecksLab/EcologicalNetworksDynamics.jl/issues)
 if you spot a bug, a typo or can't manage to do something.
 Another way is to fork the repository,
 start working from the `develop` branch,

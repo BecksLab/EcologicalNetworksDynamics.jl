@@ -9,7 +9,7 @@
     for exp in expectations
         A, expected_cyclic, expected_connected = exp
         fw = FoodWeb(A; quiet = true)
-        @test expected_cyclic == BEFWM2.is_cyclic(fw)
-        @test expected_connected == BEFWM2.is_connected(fw)
+        @test expected_cyclic == EcologicalNetworksDynamics.is_cyclic(fw)
+        @test expected_connected == EcologicalNetworksDynamics.is_connected(fw)
     end
 end

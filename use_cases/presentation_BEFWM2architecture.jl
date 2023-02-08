@@ -11,7 +11,7 @@ import Pkg
 Pkg.activate("../")
 
 # ╔═╡ 78bf2904-c529-44d8-9207-6f3b7e1b0477
-using BEFWM2
+using EcologicalNetworksDynamics
 
 # ╔═╡ f4e082f5-95bf-4dc3-9b14-ade08d87bac7
 using PlutoUI
@@ -97,7 +97,7 @@ BEFWM is still based on a `ModelParameters` function with a default behavior, bu
 # ╔═╡ ca50e4a9-359a-4506-a946-7177100ff9ad
 TwoColumn(
     md""" $(LocalResource("modules_befwm1.png")) """,
-    md""" $(LocalResource("modules_befwm2.png")) """,
+    md""" $(LocalResource("modules_econetd.png")) """,
 )
 
 # ╔═╡ f4445127-bf56-425d-b1dd-44041e97803c
@@ -241,7 +241,7 @@ metab[2] = "invertebrate"
 fw_mcwrg = FoodWeb(A2; metabolic_class = metab)
 
 # ╔═╡ 067ab6e6-4bc1-4f76-aa3c-2f2d15c84f8e
-md"""` Warning: You provided a metabolic class for basal species - replaced by producer @BEFWM2 ~/projets/BEFWM2/src/inputs/foodwebs.jl:28`"""
+md"""` Warning: You provided a metabolic class for basal species - replaced by producer @EcologicalNetworksDynamics ~/projets/EcologicalNetworksDynamics.jl/src/inputs/foodwebs.jl:28`"""
 
 # ╔═╡ f7619ae6-2b5a-4590-820d-01b1bb076fb0
 fw_mcwrg.metabolic_class[2]

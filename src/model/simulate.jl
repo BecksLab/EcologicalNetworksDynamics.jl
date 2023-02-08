@@ -40,7 +40,7 @@ to reject time steps that lead to negative biomass values due to numerical error
 
 Extra performance may be achieved
 by providing specialized julia code to the `diff_code_data` argument
-instead of the default, generic `BEFWM2.dBdt!` code.
+instead of the default, generic `EcologicalNetworksDynamics.dBdt!` code.
 No need to write it yourself as [`generate_dbdt`](@ref) does it for you.
 
 Thanks to the extra keywords arguments `kwargs...`,

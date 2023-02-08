@@ -1,7 +1,7 @@
 # Paradox of enrichment
 
-```@setup befwm2
-using BEFWM2
+```@setup econetd
+using EcologicalNetworksDynamics
 ```
 
 The *paradox of enrichment* is a counter-intuitive phenomenon discovered by
@@ -19,7 +19,7 @@ and check that our simulations fit with analytical predictions.
 
 We consider a 2-species system with one resource (``R``) and one consumer (``C``).
 
-```@example befwm2
+```@example econetd
 foodweb = FoodWeb([0 0; 1 0]); # 2 eats 1
 ```
 
@@ -29,7 +29,7 @@ Here we choose the [`ClassicResponse`](@ref)
 with a handling time (`hₜ`), an attack rate (`aᵣ`), and a hill exponent (`h`) equal to one
 to simplify analytical derivations.
 
-```@example befwm2
+```@example econetd
 response = ClassicResponse(foodweb; aᵣ = 1, hₜ = 1, h = 1);
 ```
 
@@ -143,7 +143,7 @@ All of the system behavior can be summarized in one plot, which we call an *orbi
 The orbit diagram represents the evolution of system (stable) equilibrium
 depending on the carrying capacity.
 
-```@example befwm2
+```@example econetd
 using Plots # hide
 ENV["GKSwstype"] = "100" # don't open a plot window while building the documentation # hide
 

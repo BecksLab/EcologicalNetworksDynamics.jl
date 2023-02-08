@@ -69,7 +69,9 @@ end
                 tC = tL / S^2
                 C = L / S^2
                 c_vec = [
-                    BEFWM2.connectance(FoodWeb(model, S; C = C, tol = tC)) for i in 1:n_rep
+                    EcologicalNetworksDynamics.connectance(
+                        FoodWeb(model, S; C = C, tol = tC),
+                    ) for i in 1:n_rep
                 ]
                 @test all((C - tC) .<= c_vec .<= (C + tC))
             end

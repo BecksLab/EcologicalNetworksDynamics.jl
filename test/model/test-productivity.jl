@@ -1,18 +1,18 @@
 @testset "Logistic growth" begin
     # Intern method
     B, r, K = 1, 1, nothing
-    @test BEFWM2.logisticgrowth(B, r, K) == 0 # K is nothing, growth is null
+    @test EcologicalNetworksDynamics.logisticgrowth(B, r, K) == 0 # K is nothing, growth is null
     B, r, K = 1, 0, 1
-    @test BEFWM2.logisticgrowth(B, r, K) == 0 # r is null, growth is null
+    @test EcologicalNetworksDynamics.logisticgrowth(B, r, K) == 0 # r is null, growth is null
     B, r, K = 0, 1, 1
-    @test BEFWM2.logisticgrowth(B, r, K) == 0 # B is null, growth is null
+    @test EcologicalNetworksDynamics.logisticgrowth(B, r, K) == 0 # B is null, growth is null
     B, r, K = 2, 1, 2
-    @test BEFWM2.logisticgrowth(B, r, K) == 0 # B = K, growth is null
-    @test BEFWM2.logisticgrowth.(0.5, 1, 1) == 0.5 * 1 * (1 - 0.5 / 1)
+    @test EcologicalNetworksDynamics.logisticgrowth(B, r, K) == 0 # B = K, growth is null
+    @test EcologicalNetworksDynamics.logisticgrowth.(0.5, 1, 1) == 0.5 * 1 * (1 - 0.5 / 1)
 
     # Extern method without facilitation and with intracompetition only
     foodweb = FoodWeb([0 0 0; 0 0 0; 1 1 0]) # 1 & 2 producers
-    S = BEFWM2.richness(foodweb)
+    S = EcologicalNetworksDynamics.richness(foodweb)
     p = ModelParameters(
         foodweb;
         producer_competition = ProducerCompetition(foodweb; αii = 1.0, αij = 0.0),
@@ -22,8 +22,15 @@
     mat_expected_growth = [0 0 0; 0.25 0.25 0]
     for (i, B) in enumerate(fill.([1, 0.5], S)) # ~ [[1, 1, 1], [0.5, 0.5, 0.5]]
         for (sp, expected_growth) in enumerate(mat_expected_growth[i, :])
-            @test BEFWM2.logisticgrowth(sp, B, r[sp], K[sp], foodweb) ==
-                  BEFWM2.logisticgrowth(sp, B, r[sp], K[sp], sum(α[i, :] .* B), foodweb) ==
+            @test EcologicalNetworksDynamics.logisticgrowth(sp, B, r[sp], K[sp], foodweb) ==
+                  EcologicalNetworksDynamics.logisticgrowth(
+                      sp,
+                      B,
+                      r[sp],
+                      K[sp],
+                      sum(α[i, :] .* B),
+                      foodweb,
+                  ) ==
                   expected_growth
         end
     end
@@ -33,8 +40,15 @@
     B = [0.5, 0.5, 0.5]
     expected_growth = [0.5, 0.5, 0]
     for i in 1:3
-        @test BEFWM2.logisticgrowth(i, B, r[i], K[i], foodweb) ==
-              BEFWM2.logisticgrowth(i, B, r[i], K[i], sum(α[i, :] .* B), foodweb) ==
+        @test EcologicalNetworksDynamics.logisticgrowth(i, B, r[i], K[i], foodweb) ==
+              EcologicalNetworksDynamics.logisticgrowth(
+                  i,
+                  B,
+                  r[i],
+                  K[i],
+                  sum(α[i, :] .* B),
+                  foodweb,
+              ) ==
               expected_growth[i]
     end
 
@@ -48,8 +62,15 @@
     for i in 1:3
         # It is like each producer had a density of one (look the "B * 2" in the
         # left call of the function)
-        @test BEFWM2.logisticgrowth(i, B * 2, r[i], K[i], foodweb) ==
-              BEFWM2.logisticgrowth(i, B, r[i], K[i], sum(α[i, :] .* B), foodweb) ==
+        @test EcologicalNetworksDynamics.logisticgrowth(i, B * 2, r[i], K[i], foodweb) ==
+              EcologicalNetworksDynamics.logisticgrowth(
+                  i,
+                  B,
+                  r[i],
+                  K[i],
+                  sum(α[i, :] .* B),
+                  foodweb,
+              ) ==
               0
     end
 
@@ -93,32 +114,77 @@
     p = ModelParameters(multiplex_network; functional_response = response)
     K, r = p.environment.K, p.biorates.r
     B = [1, 1, 1]
-    @test BEFWM2.logisticgrowth(1, B, r[1], K[1], multiplex_network) == 0
-    @test BEFWM2.logisticgrowth(2, B, r[2], K[2], multiplex_network) == 0
-    @test BEFWM2.logisticgrowth(3, B, r[3], K[3], multiplex_network) == 0
+    @test EcologicalNetworksDynamics.logisticgrowth(1, B, r[1], K[1], multiplex_network) ==
+          0
+    @test EcologicalNetworksDynamics.logisticgrowth(2, B, r[2], K[2], multiplex_network) ==
+          0
+    @test EcologicalNetworksDynamics.logisticgrowth(3, B, r[3], K[3], multiplex_network) ==
+          0
     B = [0.5, 0.5, 0.5]
-    @test BEFWM2.logisticgrowth(1, B, r[1], K[1], multiplex_network) == 0.25
-    @test BEFWM2.logisticgrowth(2, B, r[2], K[2], multiplex_network) == 0.25
-    @test BEFWM2.logisticgrowth(3, B, r[3], K[3], multiplex_network) == 0
+    @test EcologicalNetworksDynamics.logisticgrowth(1, B, r[1], K[1], multiplex_network) ==
+          0.25
+    @test EcologicalNetworksDynamics.logisticgrowth(2, B, r[2], K[2], multiplex_network) ==
+          0.25
+    @test EcologicalNetworksDynamics.logisticgrowth(3, B, r[3], K[3], multiplex_network) ==
+          0
     rates = BioRates(multiplex_network; r = 2)
     p = ModelParameters(multiplex_network; functional_response = response, biorates = rates)
     K, r = p.environment.K, p.biorates.r
-    @test BEFWM2.logisticgrowth(1, B, r[1], K[1], multiplex_network) == 0.5
-    @test BEFWM2.logisticgrowth(2, B, r[2], K[2], multiplex_network) == 0.5
-    @test BEFWM2.logisticgrowth(3, B, r[3], K[3], multiplex_network) == 0
+    @test EcologicalNetworksDynamics.logisticgrowth(1, B, r[1], K[1], multiplex_network) ==
+          0.5
+    @test EcologicalNetworksDynamics.logisticgrowth(2, B, r[2], K[2], multiplex_network) ==
+          0.5
+    @test EcologicalNetworksDynamics.logisticgrowth(3, B, r[3], K[3], multiplex_network) ==
+          0
     # Facilitation > 0 <=> the growth is changed (compared to above section)
     for f0 in [1.0, 2.0, 5.0, 10.0]
         multiplex_network.layers[:facilitation].intensity = f0
         p = ModelParameters(multiplex_network; functional_response = response)
         K, r = p.environment.K, p.biorates.r
         B = [1, 1, 1]
-        @test BEFWM2.logisticgrowth(1, B, r[1], K[1], multiplex_network) == 0
-        @test BEFWM2.logisticgrowth(2, B, r[2], K[2], multiplex_network) == 0
-        @test BEFWM2.logisticgrowth(3, B, r[3], K[3], multiplex_network) == 0
+        @test EcologicalNetworksDynamics.logisticgrowth(
+            1,
+            B,
+            r[1],
+            K[1],
+            multiplex_network,
+        ) == 0
+        @test EcologicalNetworksDynamics.logisticgrowth(
+            2,
+            B,
+            r[2],
+            K[2],
+            multiplex_network,
+        ) == 0
+        @test EcologicalNetworksDynamics.logisticgrowth(
+            3,
+            B,
+            r[3],
+            K[3],
+            multiplex_network,
+        ) == 0
         B = [0.5, 0.5, 0.5]
-        @test BEFWM2.logisticgrowth(1, B, r[1], K[1], multiplex_network) == 0.25 * (1 + f0)
-        @test BEFWM2.logisticgrowth(2, B, r[2], K[2], multiplex_network) == 0.25 * (1 + f0)
-        @test BEFWM2.logisticgrowth(3, B, r[3], K[3], multiplex_network) == 0
+        @test EcologicalNetworksDynamics.logisticgrowth(
+            1,
+            B,
+            r[1],
+            K[1],
+            multiplex_network,
+        ) == 0.25 * (1 + f0)
+        @test EcologicalNetworksDynamics.logisticgrowth(
+            2,
+            B,
+            r[2],
+            K[2],
+            multiplex_network,
+        ) == 0.25 * (1 + f0)
+        @test EcologicalNetworksDynamics.logisticgrowth(
+            3,
+            B,
+            r[3],
+            K[3],
+            multiplex_network,
+        ) == 0
         rates = BioRates(multiplex_network; r = 2)
         p = ModelParameters(
             multiplex_network;
@@ -126,8 +192,26 @@
             biorates = rates,
         )
         K, r = p.environment.K, p.biorates.r
-        @test BEFWM2.logisticgrowth(1, B, r[1], K[1], multiplex_network) == 0.5 * (1 + f0)
-        @test BEFWM2.logisticgrowth(2, B, r[2], K[2], multiplex_network) == 0.5 * (1 + f0)
-        @test BEFWM2.logisticgrowth(3, B, r[3], K[3], multiplex_network) == 0
+        @test EcologicalNetworksDynamics.logisticgrowth(
+            1,
+            B,
+            r[1],
+            K[1],
+            multiplex_network,
+        ) == 0.5 * (1 + f0)
+        @test EcologicalNetworksDynamics.logisticgrowth(
+            2,
+            B,
+            r[2],
+            K[2],
+            multiplex_network,
+        ) == 0.5 * (1 + f0)
+        @test EcologicalNetworksDynamics.logisticgrowth(
+            3,
+            B,
+            r[3],
+            K[3],
+            multiplex_network,
+        ) == 0
     end
 end

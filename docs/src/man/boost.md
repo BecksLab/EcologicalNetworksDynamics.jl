@@ -1,12 +1,12 @@
 # Boosting simulations
 
-```@setup befwm2
-using BEFWM2
+```@setup econetd
+using EcologicalNetworksDynamics
 using Logging # TODO: remove once boost warnings are removed.
 using Random
 ```
 
-BEFWM2 helps you construct an ecological model
+EcologicalNetworksDynamics helps you construct an ecological model
 under the form of a [`ModelParameters`](@ref) value.
 The major benefit of this value is that
 it can automatically be translated into a set of "executable" ODEs.
@@ -14,10 +14,10 @@ Under the hood, this set of ODEs is implemented as a function
 able to calculate, for every time step,
 the temporal derivative of the biomass vector
 ``\frac{\mathrm{d}B}{\mathrm{d}t}``.
-The function is named `BEFWM2.dBdt!`,
+The function is named `EcologicalNetworksDynamics.dBdt!`,
 but you are not supposed to call it directly.
 Instead, you call [`simulate`](@ref)
-which essentially parametrizes `BEFWM2.dBdt!` correctly
+which essentially parametrizes `EcologicalNetworksDynamics.dBdt!` correctly
 and hands it to the ODE solver for you.
 
 Your ecological model can take various different forms
@@ -25,14 +25,14 @@ Your ecological model can take various different forms
 [functional response](@ref functional_response),
 [(non-)trophic interaction layers](@ref multiplex),
 *etc.*).
-As a consequence, `BEFWM2.dBdt!` needs to be very flexible
+As a consequence, `EcologicalNetworksDynamics.dBdt!` needs to be very flexible
 to support all these possible features.
 This comes at the cost of a heavy performance burden,
 that needs to be carried on every time step during the simulation.
 
 However, once your `model` has been created, for example with:
 
-```@example befwm2
+```@example econetd
 foodweb = FoodWeb([
     0 0 0 0
     0 0 1 0
@@ -50,13 +50,14 @@ will *not* change throughout the simulation.
 As a consequence, the performance penalty is unfair:
 you pay for more flexibility than you actually need.
 
-There is no direct way around this: `BEFWM2.dBdt!` needs to be flexible
+There is no direct way around this:
+`EcologicalNetworksDynamics.dBdt!` needs to be flexible
 because we (as developers) do not know what your model will look like,
 but you (as a user) do not need this flexibility
 for your particular `model` variable
 since it is *fixed* for the time of simulation.
 
-To address this problem, `BEFWM2`
+To address this problem, `EcologicalNetworksDynamics`
 leverages the powerful Julia
 [metaprogramming](https://docs.julialang.org/en/v1/manual/metaprogramming/)
 facilities and makes it possible to generate,
@@ -68,7 +69,7 @@ like `x2` or `x10`, and even up to `x100`
 depending on your model and your machine.
 To make use of it, instead of using the regular:
 
-```@example befwm2
+```@example econetd
 GC.gc() # hide
 Logging.with_logger(Logging.NullLogger()) do # hide
 
@@ -80,7 +81,7 @@ end #hide
 
 You would use the following three-steps process:
 
-```@example befwm2
+```@example econetd
 GC.gc() # hide
 xp, data, dBdt! = nothing, nothing, nothing # hide
 Logging.with_logger(Logging.NullLogger()) do # hide
@@ -97,7 +98,7 @@ nothing # hide
 Note that it's even faster once Julia has got rid
 of the initial `dBdt!` compilation time.
 
-```@example befwm2
+```@example econetd
 GC.gc() # hide
 B1 = B0 .+ 0.1
 Logging.with_logger(Logging.NullLogger()) do # hide
@@ -113,10 +114,11 @@ translates your model into a dedicated Julia
 In the second step, you
 [`eval`](https://docs.julialang.org/en/v1/base/base/#Core.eval)uate
 this expression into an actual function
-that [`simulate`](@ref) can handle instead of the default one `BEFWM2.dBdt!`.
+that [`simulate`](@ref) can handle
+instead of the default one `EcologicalNetworksDynamics.dBdt!`.
 The generated expression can be inspected with the following:
 
-```@example befwm2
+```@example econetd
 print(xp)
 ```
 
@@ -140,7 +142,7 @@ actually overcomes the speedup gain
 In this situation, instead of asking for `:raw` code generation,
 you may ask for `:compact` generation instead:
 
-```@example befwm2
+```@example econetd
 Random.seed!(1) # hide
 
 # Define model with numerous species and interactions.
@@ -170,7 +172,7 @@ end # hide
 
 And once you have got rid of the initial `dBdt!` compilation time:
 
-```@example befwm2
+```@example econetd
 GC.gc() # hide
 B1 = B0 .+ 0.1
 Logging.with_logger(Logging.NullLogger()) do # hide
@@ -182,7 +184,7 @@ nothing # hide
 
 In this situation, the generated expression looks a bit different:
 
-```@example befwm2
+```@example econetd
 print(xp)
 ```
 
@@ -210,13 +212,13 @@ otherwise takes too much time to compile.
     as non-boosted simulations (using only [`simulate`](@ref)).
     This has been verified on small simulations
     while testing this package,
-    but not on a very diverse, large set of simulations
-    that would span all the features available in `BEFWM2` yet.
+    but not on a very diverse, large set of simulations that would span
+    all the features available in `EcologicalNetworksDynamics` yet.
     For this reason,
     a warning is printed whenever you use [`generate_dbdt`](@ref) for now,
     to explain why you should be careful.
     This warning will be removed once
-    [#92](https://github.com/BecksLab/BEFWM2/issues/92)
+    [#92](https://github.com/BecksLab/EcologicalNetworksDynamics.jl/issues/92)
     has been adressed.
 
 !!! warning
@@ -228,4 +230,4 @@ otherwise takes too much time to compile.
     As a consequence, some features available today in regular simulation
     (like producers competition and [Non-Trophic Interactions](@ref multiplex))
     cannot yet be "boosted"
-    ([#82](https://github.com/BecksLab/BEFWM2/issues/82)).
+    ([#82](https://github.com/BecksLab/EcologicalNetworksDynamics.jl/issues/82)).

@@ -1,6 +1,6 @@
 # Public documentation
 
-Documentation for BioenergeticFoodwebs.jl public interface.
+Documentation for EcologicalNetworksDynamics.jl public interface.
 
 ## Index
 
@@ -13,7 +13,7 @@ Pages = ["public.md"]
 ### Functions
 
 ```@autodocs
-Modules = [BEFWM2]
+Modules = [EcologicalNetworksDynamics]
 Private = false
 Order = [:function]
 ```
@@ -21,7 +21,7 @@ Order = [:function]
 ### Types
 
 ```@autodocs
-Modules = [BEFWM2]
+Modules = [EcologicalNetworksDynamics]
 Private = false
 Order = [:type]
 ```
