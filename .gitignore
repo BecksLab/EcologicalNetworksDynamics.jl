@@ -3,4 +3,5 @@ Manifest.toml
 LocalPreferences.toml
 docs/Manifest.toml
 docs/build/
-.DS_Store
+use_cases/figures/
+use_cases/data/

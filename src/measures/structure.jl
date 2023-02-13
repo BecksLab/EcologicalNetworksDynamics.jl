@@ -1,6 +1,4 @@
-#=
-Quantifying food webs structural properties
-=#
+# Quantify food webs structural properties.
 
 """
 Number of species in the network.
@@ -182,7 +180,17 @@ function _ftl(A::AbstractMatrix)
 end
 
 """
+    trophic_levels(net::EcologicalNetwork)
+
 Trophic level of each species.
+
+```jldoctest
+julia> foodweb = FoodWeb([1 => 2])
+       trophic_levels(foodweb) == [2.0, 1.0]
+true
+```
+
+See also [`top_predators`](@ref) and [`trophic_classes`](@ref).
 """
 function trophic_levels(A::AbstractMatrix)
     A = Bool.(A)
@@ -192,7 +200,150 @@ function trophic_levels(A::AbstractMatrix)
     species_idx = parse.(Int64, [split(t, "s")[2] for t in trophiclvl_keys])
     trophiclvl_val[sortperm(species_idx)]
 end
+
 trophic_levels(net::EcologicalNetwork) = trophic_levels(get_trophic_adjacency(net))
+
+"""
+    top_predators(net::EcologicalNetwork)
+
+Top predator indexes (species eaten by nobody) of the given `net`work.
+
+```jldoctest
+julia> foodweb = FoodWeb([1 => 2, 2 => 3])
+       top_predators(foodweb) == [1]
+true
+```
+
+See also [`trophic_levels`](@ref) and [`trophic_classes`](@ref).
+"""
+function top_predators(net::EcologicalNetwork)
+    A = get_trophic_adjacency(net)
+    top_predators(A)
+end
+
+function top_predators(A)
+    S = richness(A)
+    [i for i in 1:S if all(A[:, i] .== 0)]
+end
+
+"""
+    trophic_classes(foodweb::FoodWeb)
+
+Categorize each species into three classes:
+either `producers`, `intermediate_consumers` or `top_predators`.
+
+```jldoctest
+julia> foodweb = FoodWeb([1 => 2, 2 => 3])
+       trophic_classes(foodweb)
+(producers = [3], intermediate_consumers = [2], top_predators = [1])
+```
+
+To access the name of the trophic classes
+you can simply call `trophic_classes` without any argument.
+
+```jldoctest
+julia> trophic_classes()
+(:producers, :intermediate_consumers, :top_predators)
+```
+
+See also [`trophic_levels`](@ref) and [`top_predators`](@ref).
+"""
+function trophic_classes(A; extinct_sp = Set())
+    S = richness(A)
+    prod = producers(A)
+    top_pred = top_predators(A)
+    intermediate_cons = setdiff(1:S, union(prod, top_pred))
+    # Order here must match the semantics of `trophic_classes()` order.
+    class = [prod, intermediate_cons, top_pred]
+    if !isempty(extinct_sp) # filter extinct species
+        class = [setdiff(cl, extinct_sp) for cl in class]
+    end
+    names = trophic_classes()
+    NamedTuple{names}(class)
+end
+
+trophic_classes() = (:producers, :intermediate_consumers, :top_predators)
+
+"""
+    remove_species(net::EcologicalNetwork, species_to_remove)
+
+Remove a list of species from a `FoodWeb`, a `MultiplexNetwork` or an adjacency matrix.
+
+# Examples
+
+Adjacency matrix.
+
+```jldoctest
+julia> A = [0 0 0; 1 0 0; 1 0 0]
+       remove_species(A, [1]) == [0 0; 0 0]
+true
+
+julia> remove_species(A, [2]) == [0 0; 1 0]
+true
+```
+
+`FoodWeb`.
+
+```jldoctest
+julia> foodweb = FoodWeb([0 0 0; 1 0 0; 1 0 0]; M = [1, 10, 20])
+       new_foodweb = remove_species(foodweb, [2])
+       new_foodweb.A == [0 0; 1 0]
+true
+
+julia> new_foodweb.M == [1, 20]
+true
+```
+
+`MultiplexNetwork`.
+
+```jldoctest
+julia> foodweb = FoodWeb([0 0 0; 1 0 0; 1 0 0]; M = [1, 10, 20])
+       net = MultiplexNetwork(foodweb; A_facilitation = [0 0 0; 1 0 0; 0 0 0])
+       new_net = remove_species(net, [2])
+       new_net.layers[:trophic].A == [0 0; 1 0]
+true
+
+julia> new_net.layers[:facilitation].A == [0 0; 0 0]
+true
+
+julia> new_net.M == [1, 20]
+true
+```
+"""
+function remove_species(foodweb::FoodWeb, species_to_remove)
+    S = richness(foodweb)
+    A_new = remove_species(foodweb.A, species_to_remove)
+    species_to_keep = setdiff(1:S, species_to_remove)
+    M_new = foodweb.M[species_to_keep]
+    metabolic_class_new = foodweb.metabolic_class[species_to_keep]
+    species_new = foodweb.species[species_to_keep]
+    method = foodweb.method
+    FoodWeb(A_new, species_new, M_new, metabolic_class_new, method)
+end
+
+function remove_species(net::MultiplexNetwork, species_to_remove)
+    trophic = convert(FoodWeb, net)
+    new_trophic = remove_species(trophic, species_to_remove)
+    multi_net = MultiplexNetwork(new_trophic) # no non-trophic interactions yet
+    for (name, layer) in net.layers
+        A_nti_new = remove_species(layer.A, species_to_remove)
+        multi_net.layers[name].A = A_nti_new
+        multi_net.layers[name].intensity = layer.intensity
+        multi_net.layers[name].f = layer.f
+    end
+    multi_net
+end
+
+function remove_species(A::AbstractMatrix, species_to_remove)
+    S = richness(A)
+    species_to_keep = setdiff(1:S, species_to_remove)
+    n_kept = length(species_to_keep)
+    A_simplified = zeros(Integer, n_kept, n_kept)
+    for (i_idx, i) in enumerate(species_to_keep), (j_idx, j) in enumerate(species_to_keep)
+        A_simplified[i_idx, j_idx] = A[i, j]
+    end
+    A_simplified
+end
 
 function massratio(obj::Union{ModelParameters,FoodWeb})
 
