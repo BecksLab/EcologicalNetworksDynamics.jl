@@ -145,13 +145,16 @@ export preys_of
 export producer_growth
 export ProducerCompetition
 export producers
+export remove_species
 export richness
 export set_temperature!
 export simulate
 export species_persistence
 export species_richness
 export TemperatureResponse
+export top_predators
 export total_biomass
+export trophic_classes
 export trophic_levels
 
 end
