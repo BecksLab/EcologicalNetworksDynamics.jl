@@ -139,6 +139,7 @@ julia> simulate(params, [0.5, 1e-12]; verbose = true); # no message thrown
 function simulate(
     params::ModelParameters,
     B0::AbstractVector;
+    N0::AbstractVector = [10.0, 10.0],
     alg = nothing,
     t0::Number = 0,
     tmax::Number = 500,
@@ -171,6 +172,9 @@ function simulate(
         )
     end
 
+    #Set N0 to 0 if growth model is not nutrient intake 
+    N0 = isa(params.producer_growth, LogisticGrowth) ? 0.0 : N0
+
     # Define ODE problem and solve
     timespan = (t0, tmax)
     code, data = diff_code_data
@@ -188,14 +192,17 @@ function simulate(
     fun = (args...) -> Base.invokelatest(code, args...)
     extinct_sp = Dict(i => 0.0 for (i, b) in enumerate(B0) if b == 0.0)
     p = (params = data, extinct_sp = extinct_sp)
+    B0 = vcat(B0, N0)
     problem = ODEProblem(fun, B0, timespan, p)
-    solve(
+    sol = solve(
         problem,
         alg;
         callback = callback,
         isoutofdomain = (u, p, t) -> any(x -> x < 0, u),
         kwargs...,
     )
+    isa(params.producer_growth, LogisticGrowth) && [deleteat!(x, Int(S+1)) for x in sol.u]
+    return sol
 end
 #### end ####
 

@@ -223,14 +223,16 @@ end
 """
     LogisticGrowth(B, i, j)
 """
-function (F::LogisticGrowth)(i, B, r, s, network::MultiplexNetwork, N = nothing)
+function (F::LogisticGrowth)(i, B, r, network::MultiplexNetwork, N = nothing)
     r = effect_facilitation(r, i, B, network)
+    s = sum(F.α[i, :])
     logisticgrowth(B[i], r[i], F.Kᵢ[i], s)
 end
-function (F::LogisticGrowth)(i, B, r, s, network::FoodWeb, N = nothing)
+function (F::LogisticGrowth)(i, B, r, network::FoodWeb, N = nothing)
+    s = sum(F.α[i, :])
     logisticgrowth(B[i], r[i], F.Kᵢ[i], s)
 end
-function logisticgrowth(B, r, K, s = B)
+function logisticgrowth(B, r, K, s)
     !isnothing(K) || return 0
     r * B * (1 - s / K)
 end
@@ -238,14 +240,14 @@ end
 """
     NutrientIntake(B, i, j)
 """
-function (F::NutrientIntake)(i, B, r, s, network::MultiplexNetwork, N)
+function (F::NutrientIntake)(i, B, r, network::MultiplexNetwork, N)
     r = effect_facilitation(r, i, B, network)
-    nutrientintake(B[i], r[i], F.Kₗᵢ[i,:], N, s)
+    nutrientintake(B[i], r[i], F.Kₗᵢ[i,:], N)
 end
-function (F::NutrientIntake)(i, B, r, s, network::FoodWeb, N)
-    nutrientintake(B[i], r[i], F.Kₗᵢ[i,:], N, s) 
+function (F::NutrientIntake)(i, B, r, network::FoodWeb, N)
+    nutrientintake(B[i], r[i], F.Kₗᵢ[i,:], N) 
 end
-function nutrientintake(B, r, K, N, s = B)
+function nutrientintake(B, r, K, N)
     !all(isnothing.(K)) || return 0
     G_li = N ./ (K .+ N)
     minG = minimum(G_li)
