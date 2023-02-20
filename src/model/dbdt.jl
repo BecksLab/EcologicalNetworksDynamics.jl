@@ -31,6 +31,10 @@ function dBdt!(dB, B, p, t)
         net_growth_rate = growth + eating - metabolism_loss
         net_growth_rate = EcologicalNetworksDynamics.effect_competition(net_growth_rate, i, B, network)
         dB[i] = net_growth_rate - being_eaten - natural_death
+        #pseudo coding starting here
+        #if type(params.ProducerGrowth) == NutrientIntak
+            #dN[i] = dndt(dN, N, p, t)
+        #end 
     end
     
     for j in S+1:S+length(N)

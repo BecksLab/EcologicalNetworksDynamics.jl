@@ -68,7 +68,7 @@ export DefaultGrowthParams
 export DefaultMaxConsumptionParams
 export DefaultMetabolismParams
 export DefaultMortalityParams
-export dNdt
+export DefaultNIntakeParams
 export draw_asymmetric_links
 export draw_symmetric_links
 export efficiency
@@ -124,8 +124,8 @@ export potential_refuge_links
 export predators_of
 export preys_of
 export producer_growth
-export ProducerGrowth
 export ProducerCompetition
+export ProducerGrowth
 export producers
 export richness
 export set_temperature!
