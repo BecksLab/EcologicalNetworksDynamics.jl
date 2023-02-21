@@ -6,11 +6,11 @@
 
     # Solution converges
     solution1 = simulates(params, [0.5, 0.5]; verbose = false)
-    @test solution1.retcode == :Terminated
+    @test is_terminated(solution1)
     solution2 = simulates(params, [0.3, 0.3]; saveat = 0.25, tmax = 10, verbose = false)
-    @test solution2.retcode == :Success
+    @test is_success(solution2)
     solution3 = simulates(params, [0.2, 0.2]; saveat = 0.5, tmax = 5, verbose = false)
-    @test solution3.retcode == :Success
+    @test is_success(solution3)
 
 
     # Initial biomass

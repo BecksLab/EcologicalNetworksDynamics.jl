@@ -69,7 +69,7 @@ julia> B0 = [0.5, 0.5]; # set initial biomass
 
 julia> solution = simulate(params, B0); # run simulation
 
-julia> solution.retcode == :Terminated # => a steady state has been found
+julia> is_terminated(solution) # => a steady state has been found
 true
 
 julia> solution[begin] == B0 # initial biomass equals initial biomass
@@ -95,7 +95,7 @@ julia> xpr, data = Logging.with_logger(Logging.NullLogger()) do
 
 julia> solution = simulate(params, B0; diff_code_data = (eval(xpr), data));
 
-julia> solution.retcode == :Terminated #  the same result is obtained, more efficiently.
+julia> is_terminated(solution) #  the same result is obtained, more efficiently.
 true
 
 julia> solution[begin] == B0
@@ -112,7 +112,7 @@ julia> xpr, data = Logging.with_logger(Logging.NullLogger()) do
 
 julia> solution = simulate(params, B0; diff_code_data = (eval(xpr), data));
 
-julia> solution.retcode == :Terminated
+julia> is_terminated(solution)
 true
 
 julia> solution[begin] == B0
@@ -294,10 +294,15 @@ julia> round.(solution.steady_state, digits = 2) # steady state biomass
 """
 function find_steady_state(params::ModelParameters, B0::AbstractVector; kwargs...)
     solution = simulate(params, B0; kwargs...)
-    terminated = has_terminated(solution)
+    terminated = is_terminated(solution)
     steady_state = terminated ? solution.u[end] : nothing
     (steady_state = steady_state, terminated = terminated)
 end
 
-has_terminated(solution) = solution.retcode == :Terminated
+# 2023-02-21: Our test suite broke twice this year
+# due to breaking updates of DifferentialEquations.jl,
+# so better isolate these unstable checks here.
+is_terminated(solution) = solution.retcode == ReturnCode.Terminated
+is_success(solution) = solution.retcode == ReturnCode.Success
+
 #### end ####
