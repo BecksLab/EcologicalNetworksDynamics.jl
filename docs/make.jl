@@ -24,8 +24,9 @@ makedocs(;
         assets = String[],
     ),
     pages = [
-        "Home" => "index.md",
-        "Manual" => [
+        "Welcome" => "index.md",
+        "Guide" => [
+            "Quick start" => "man/quickstart.md",
             "Generate food webs" => "man/foodwebs.md",
             "Generate multiplex networks" => "man/multiplexnetworks.md",
             "Generate model parameters" => "man/modelparameters.md",
@@ -34,7 +35,7 @@ makedocs(;
             "Boost simulations" => "man/boost.md",
             "Measure stability" => "man/stability.md",
         ],
-        "Examples" => [
+        "Tutorials" => [
             "Paradox of enrichment" => "example/paradox_enrichment.md",
             "Intraspecific competition and stability" => "example/intracomp_stability.md",
         ],

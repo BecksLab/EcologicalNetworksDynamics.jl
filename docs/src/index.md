@@ -2,51 +2,69 @@
 CurrentModule = EcologicalNetworksDynamics
 ```
 
-# EcologicalNetworkDynamics
+# EcologicalNetworksDynamics
 
-!!! warning "Work in progress"
-    
-    🚧🚧🚧
-
-This package provides tools to easily simulate ecological network dynamics using Julia.
+EcologicalNetworksDynamics is a library designed to simulate species biomass dynamics
+in ecological networks.
 These networks can either trophic interactions only (i.e. food webs),
 or trophic interactions plus various non-trophic interactions (i.e. multiplex networks).
 We provide functions to generate food web structure from well-known models
 (e.g. niche model).
-Default community parameters are taken from the literature,
-but can also be easily customized if desired.
+We designed EcologicalNetworksDynamics so that
+it is easy to use for non-specialists
+while remaining flexible for more adventurous and experienced users
+who would like to tweak the model.
 
-!!! note "Todo"
-    
-    Complete the package description and explain in more detail the package features and the
-    package "philosophy".
+## Before you start
 
-## References
+Before anything else, to use EcologicalNetworksDynamics you have to install Julia.
+For that go to the [official download page](https://julialang.org/downloads/).
+Once you have successfully installed Julia,
+you can install the library by running from a Julia REPL:
 
-  - [Delmas et al., 2016, MEE](https://doi.org/10.1111/2041-210X.12713) -
-    Simulations of biomass dynamics in community food webs
-  - [Miele et al., 2019, PLOS](https://doi.org/10.1371/journal.pcbi.1007269) -
-    Effect of non-trophic interactions on diversity-productivity relationship
-  - [Kefi et al. 2018, Ecology Letters](https://doi.org/10.1111/j.1461-0248.2011.01732.x) -
-    More than a meal... integrating non-feeding interactions into food webs
+```julia
+using Pkg
+Pkg.add("EcologicalNetworksDynamics")
+```
 
-!!! note "Todo"
-    
-    Add other references.
+To check that the package installation went well,
+you can create a simple food web with:
+
+```julia
+using EcologicalNetworkDynamics
+FoodWeb([1 => 2])
+```
+
+## Learning EcologicalNetworkDynamics
+
+The [Quick start](@ref) page shows how to simulate biomass dynamics in a simple food web.
+The rest of the guide provides a step by step introduction to the package features,
+from the generation of the network structure to the simulation of the biomass dynamics.
+At each step, we detail how the model can be customized at your will.
+Lastly, the Tutorials section contains
+realistic use-cases of EcologicalNetworksDynamics.
+
+## Getting help
+
+During your journey learning EcologicalNetworksDynamics you might encounter issues.
+If so the best is to open an issue on the
+[GitHub page of EcologicalNetworksDynamics](https://github.com/BecksLab/EcologicalNetworksDynamics.jl/issues).
+To ensure that we can help you efficiently,
+please provide a short description of your problem
+and a minimal example to reproduce the error you encountered.
 
 ## How can I contribute?
 
-The easiest way to contribute is to [open an issue](https://github.com/BecksLab/EcologicalNetworksDynamics.jl/issues)
+The easiest way to contribute is to
+[open an issue](https://github.com/BecksLab/EcologicalNetworksDynamics.jl/issues)
 if you spot a bug, a typo or can't manage to do something.
 Another way is to fork the repository,
-start working from the `develop` branch,
+start working from the `dev` branch,
 and when ready, submit a pull request.
-
-!!! note "Todo"
-    
-    Update url address if needed when the package is released.
+The contribution guidelines are detailed
+[here](https://github.com/BecksLab/EcologicalNetworksDynamics.jl/blob/dev/CONTRIBUTING.md).
 
 ## Citing
 
-Please mention EcologicalNetworkDynamics.jl
+Please mention EcologicalNetworksDynamics
 if you use it in research, teaching, or other activities.

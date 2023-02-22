@@ -126,7 +126,7 @@ You can pass any of those models, with the required arguments, to generate food 
 using EcologicalNetworks
 S = 20 # species richness
 C = 0.2 # connectance
-foodweb = FoodWeb(nichemodel, S; C = C)
+foodweb = FoodWeb(nichemodel, S; C, tol_C = 0.01)
 ```
 
 Moreover, the `method` field has automatically stored
