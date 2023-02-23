@@ -63,27 +63,40 @@ end
         for (S, L) in SL_tuple
             for tL in 0:3
                 # From number of links (L)
-                n_link_vec = [n_links(FoodWeb(model, S; L = L, tol = tL)) for i in 1:n_rep]
+                n_link_vec =
+                    [n_links(FoodWeb(model, S; L = L, tol_L = tL)) for i in 1:n_rep]
                 @test all((L - tL) .<= n_link_vec .<= (L + tL))
                 # From connectance (C)
                 tC = tL / S^2
                 C = L / S^2
                 c_vec = [
                     EcologicalNetworksDynamics.connectance(
-                        FoodWeb(model, S; C = C, tol = tC),
+                        FoodWeb(model, S; C = C, tol_C = tC),
                     ) for i in 1:n_rep
                 ]
                 @test all((C - tC) .<= c_vec .<= (C + tC))
             end
         end
     end
+
+    # Cannot provide both number of links (L) and connectance.
+    @test_throws ArgumentError FoodWeb(nichemodel, 10, C = 0.1, L = 10)
+
+    # Cannot provide both tolerance on number of links (tol_L) and connectance (tol_C).
+    @test_throws ArgumentError FoodWeb(nichemodel, 10, C = 0.1, tol_L = 1, tol_C = 0.01)
+    @test_throws ArgumentError FoodWeb(nichemodel, 10, L = 10, tol_L = 1, tol_C = 0.01)
+
+    # Cannot provide a number of links and a tolerance on the connectance.
+    @test_throws ArgumentError FoodWeb(nichemodel, 10, L = 10, tol_C = 0.01)
+
+    # Cannot provide a connectance and a tolerance on the number of links.
+    @test_throws ArgumentError FoodWeb(nichemodel, 10, C = 0.1, tol_L = 1)
 end
 
-@testset "Warning if foodweb has cycle(s) or disconnected species." begin
+@testset "Warning if foodweb has disconnected species." begin
     A_throwing_warning = [
-        [1 => 1], # self-loop is a cycle
         [0 0 0; 1 0 0; 0 0 0], # species 3 is disconnected
-        [0 1; 1 0], # loop of length > 1
+        [0 0; 0 0], # 2 disconnected species
     ]
     for A in A_throwing_warning
         @test_logs (:warn,) FoodWeb(A) # warning expected
@@ -94,4 +107,8 @@ end
     for A in A_no_warning
         @test_logs FoodWeb(A)
     end
+
+    # Test when the FoodWeb is generated with a structural model.
+    @test_logs (:warn,) FoodWeb(nichemodel, 10; C = 0.0, check_disconnected = false)
+    @test_logs FoodWeb(nichemodel, 10; C = 0.0, check_disconnected = false, quiet = true)
 end
