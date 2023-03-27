@@ -1,5 +1,7 @@
 @testset "Simulate" begin
 
+    default_extinction = 1e-20
+
     # Set up
     foodweb = FoodWeb([0 0; 1 0])
     params = ModelParameters(foodweb; biorates = BioRates(foodweb; d = 0))
@@ -39,21 +41,29 @@
     # Verbose - Is there a log message to inform the user of species going extinct?
     foodweb = FoodWeb([0 0; 1 0])
     params = ModelParameters(foodweb; biorates = BioRates(foodweb; d = 0))
-    @test_nowarn simulates(params, [0.5, 1e-12], verbose = false)
-    @test keys(get_extinct_species(simulates(params, [0.5, 1e-12]; verbose = false))) ==
-          Set([2])
+    @test_nowarn simulates(params, [0.5, 0.1 * default_extinction], verbose = false)
+    @test keys(
+        get_extinct_species(
+            simulates(params, [0.5, 0.1 * default_extinction]; verbose = false),
+        ),
+    ) == Set([2])
     log_msg =
         "Species [2] went extinct at time t = 0.1. \n" * "1 out of 2 species are extinct."
     @test_logs (:info, log_msg) (:info, log_msg) (:info, log_msg) simulates(
         params,
-        [0.5, 1e-12],
+        [0.5, 0.1 * default_extinction],
         verbose = true,
         tstops = [0.1],
         compare_rtol = 1e-6,
     )
     @test keys(
         get_extinct_species(
-            simulates(params, [0.5, 1e-12]; verbose = true, tstops = [0.1]),
+            simulates(
+                params,
+                [0.5, 0.1 * default_extinction];
+                verbose = true,
+                tstops = [0.1],
+            ),
         ),
     ) == Set([2])
 

@@ -1,4 +1,4 @@
-#### Run biomass simulations ####
+### Run biomass simulations ####
 """
     simulate(
         params::ModelParameters,
@@ -141,11 +141,11 @@ function simulate(
     B0::AbstractVector;
     alg = nothing,
     t0::Number = 0,
-    tmax::Number = 500,
-    extinction_threshold::Union{Number,AbstractVector} = 1e-5,
+    tmax::Number = 1_000_000,
+    extinction_threshold::Union{Number,AbstractVector} = 1e-18,
     verbose = true,
     callback = CallbackSet(
-        TerminateSteadyState(1e-6, 1e-4),
+        TerminateSteadyState(1e-20, 1e-18),
         ExtinctionCallback(extinction_threshold, verbose),
     ),
     diff_code_data = (dBdt!, params),
