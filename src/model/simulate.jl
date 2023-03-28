@@ -141,11 +141,11 @@ function simulate(
     B0::AbstractVector;
     alg = nothing,
     t0::Number = 0,
-    tmax::Number = 1_000_000,
+    tmax::Number = 1e8,
     extinction_threshold::Union{Number,AbstractVector} = 1e-18,
     verbose = true,
     callback = CallbackSet(
-        TerminateSteadyState(1e-20, 1e-18),
+        TerminateSteadyState(1e-20, 1e-8),
         ExtinctionCallback(extinction_threshold, verbose),
     ),
     diff_code_data = (dBdt!, params),
