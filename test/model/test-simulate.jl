@@ -48,12 +48,12 @@
         ),
     ) == Set([2])
     log_msg =
-        "Species [2] went extinct at time t = 0.1. \n" * "1 out of 2 species are extinct."
+        "Species [2] went extinct at time t = 0.001. \n" * "1 out of 2 species are extinct."
     @test_logs (:info, log_msg) (:info, log_msg) (:info, log_msg) simulates(
         params,
         [0.5, 0.1 * default_extinction],
         verbose = true,
-        tstops = [0.1],
+        tstops = [0.001],
         compare_rtol = 1e-6,
     )
     @test keys(

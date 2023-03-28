@@ -28,6 +28,7 @@ module EcologicalNetworksDynamics
 import DifferentialEquations.Rodas4
 import DifferentialEquations.SSRootfind
 import DifferentialEquations.Tsit5
+import DifferentialEquations.RK4
 using DiffEqBase
 using DiffEqCallbacks
 using EcologicalNetworks

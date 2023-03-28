@@ -139,16 +139,18 @@ julia> simulate(params, [0.5, 1e-12]; verbose = true); # no message thrown
 function simulate(
     params::ModelParameters,
     B0::AbstractVector;
-    alg = nothing,
+    alg = RK4(),
     t0::Number = 0,
-    tmax::Number = 1e8,
-    extinction_threshold::Union{Number,AbstractVector} = 1e-18,
+    tmax::Number = 1e6,
+    extinction_threshold::Union{Number,AbstractVector} = 1e-10,
     verbose = true,
     callback = CallbackSet(
-        TerminateSteadyState(1e-20, 1e-8),
+    TerminateSteadyState(1e-15, 1e-6),
         ExtinctionCallback(extinction_threshold, verbose),
     ),
     diff_code_data = (dBdt!, params),
+    reltol = 1e-6,
+    abstol = 1e-8,
     kwargs...,
 )
 
@@ -194,6 +196,8 @@ function simulate(
         alg;
         callback = callback,
         isoutofdomain = (u, p, t) -> any(x -> x < 0, u),
+        reltol = reltol,
+        abstol = abstol,
         kwargs...,
     )
 end
