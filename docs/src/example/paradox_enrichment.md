@@ -1,9 +1,5 @@
 # Paradox of enrichment
 
-```@setup econetd
-using EcologicalNetworksDynamics
-```
-
 The *paradox of enrichment* is a counter-intuitive phenomenon discovered by
 [Micheal Rosenzweig in 1961](https://www.science.org/doi/10.1126/science.171.3969.385).
 In a simple 2-species system with one consumer feeding on a resource,
@@ -20,6 +16,7 @@ and check that our simulations fit with analytical predictions.
 We consider a 2-species system with one resource (``R``) and one consumer (``C``).
 
 ```@example econetd
+using EcologicalNetworksDynamics
 foodweb = FoodWeb([0 0; 1 0]); # 2 eats 1
 ```
 
@@ -30,7 +27,7 @@ with a handling time (`hₜ`), an attack rate (`aᵣ`), and a hill exponent (`h`
 to simplify analytical derivations.
 
 ```@example econetd
-response = ClassicResponse(foodweb; aᵣ = 1, hₜ = 1, h = 1);
+functional_response = ClassicResponse(foodweb; aᵣ = 1, hₜ = 1, h = 1);
 ```
 
 Then, the system dynamics are governed by the following set of ODEs:
@@ -104,18 +101,18 @@ J(R_2, C_2) =
 \end{pmatrix}
 ```
 
-This equilibrium is stable if ``K \leq K_c = \frac{\frac{x}{e}}{1 - \frac{x}{e}}``.
+This equilibrium is stable if ``K \leq K_0 = \frac{\frac{x}{e}}{1 - \frac{x}{e}}``.
 In other words, when the carrying capacity becomes large enough
 the consumer can coexist with the resource,
-and ``K_c`` is the minimal capacity needed for the consumer to persist.
+and ``K_0`` is the minimal capacity needed for the consumer to persist.
 
 !!! note
     
-    ``K_c`` is positive if and only if ``e \geq x``
+    ``K_0`` is positive if and only if ``e \geq x``
     which is the second condition for the consumer to survive.
     Its assimilation of the resource has to be high enough to fulfill its metabolic demand.
 
-Formally, above ``K_c`` the system switches to the third equilibrium whose Jacobian is:
+Formally, above ``K_0`` the system switches to the third equilibrium whose Jacobian is:
 
 ```math
 J(R_3, C_3) =
@@ -130,54 +127,94 @@ i.e. that the sum of eigenvalues is negative (``Tr(J) \leq 0``)
 and the product of eigenvalues is positive (``\Delta(J) \geq 0``).
 
 Eventually, we find that both species can coexist if
-``K \leq 1 + 2K_c``.
+``K \leq 1 + 2K_0``.
 Here appears the *paradox of enrichment*:
-when we increase the resource carrying capacity too much (above ``1 + 2K_c``)
+when we increase the resource carrying capacity too much (above ``1 + 2K_0``)
 the system is destabilized and starts to oscillate.
 Moreover, the amplitude of the oscillations increases with the carrying capacity,
 and eventually the species collapse.
 
 ## Summary: orbit diagram
 
-All of the system behavior can be summarized in one plot, which we call an *orbit diagram*.
+The system behavior can be summarized in a single plot, an *orbit diagram*.
 The orbit diagram represents the evolution of system (stable) equilibrium
 depending on the carrying capacity.
+On this orbit diagram, as we expect to obtain limit cycles (for large `K`),
+we will only record the biomass extrema during the cycle.
 
 ```@example econetd
-using Plots # hide
+"""
+    biomass_extrema(solution, last)
+
+Compute biomass extrema for each species during the `last` time steps.
+"""
+function biomass_extrema(solution, last)
+    trajectories = extract_last_timesteps(solution; last, quiet = true)
+    S = size(trajectories, 1) # Row = species, column = time steps.
+    [(min = minimum(trajectories[i, :]), max = maximum(trajectories[i, :])) for i in 1:S]
+end
+```
+
+All ingredients are ready, we can now mix them together to produce the orbit diagram.
+
+```@example econetd
+using AlgebraOfGraphics, CairoMakie, DataFrames
 ENV["GKSwstype"] = "100" # don't open a plot window while building the documentation # hide
 
-# Setup
-K_list = [1 + 0.1 * i for i in 1:46]
-append!(K_list, [5.6 + i * 0.01 for i in 1:440])
-R_list = [] # resource final biomass
-C_list = [] # consumer final biomass
+K_values = LinRange(1, 10, 50)
+tmax = 1_000 # Simulation length.
+verbose = false # Do not show '@info' messages during the simulation.
+df = DataFrame(;
+    K = Float64[],
+    B_resource_min = Float64[],
+    B_resource_max = Float64[],
+    B_consumer_min = Float64[],
+    B_consumer_max = Float64[],
+)
 
-# Run simulations
-for K in K_list
-    e = Environment(foodweb; K = K)
-    p = ModelParameters(foodweb; functional_response = response, environment = e)
-    out = simulate(p, [0.5 + rand() / 2]; tmax = rand(500:1000), verbose = false)
-    append!(R_list, out.u[end][1])
-    append!(C_list, out.u[end][2])
+# Run simulations: for each carrying capacity we compute the equilibrium biomass.
+for K in K_values
+    environment = Environment(foodweb; K)
+    params = ModelParameters(foodweb; functional_response, environment)
+    B0 = rand(2) # Inital biomass.
+    solution = simulate(params, B0; tmax, verbose)
+    extrema = biomass_extrema(solution, "10%")
+    push!(df, [K, extrema[1].min, extrema[1].max, extrema[2].min, extrema[2].max])
 end
 
-# Plot orbit diagram
-plot(K_list, R_list; label = "resource", xlabel = "K", ylabel = "B", seriestype = :scatter)
-plot!(K_list, C_list; label = "consumer", seriestype = :scatter, legend = :topleft)
-vline!([2.3]; linestyle = :dashdot, lw = 3, color = :grey, label = "Kc")
-vline!([1 + 2 * 2.3]; linestyle = :dashdot, lw = 3, color = :darkgrey, label = "1 + 2Kc")
-savefig("enrichment_orbit-diagram.svg");
+# Plot the orbit diagram with Makie.
+set_aog_theme!() # AlgebraOfGraphics theme.
+c_r = :green # Resource color.
+c_c = :purple # Consumer color.
+c_v = :grey # Vertical lines color.
+fig = Figure()
+ax = Axis(fig[2, 1]; xlabel = "Carrying capacity, K", ylabel = "Equilibrium biomass")
+resource_line = scatterlines!(df.K, df.B_resource_min; color = c_r, markercolor = c_r)
+scatterlines!(df.K, df.B_resource_max; color = c_r, markercolor = c_r)
+consumer_line = scatterlines!(df.K, df.B_consumer_min; color = c_c, markercolor = c_c)
+scatterlines!(df.K, df.B_consumer_max; color = c_c, markercolor = c_c)
+K0 = 2.3
+v_line1 = vlines!(ax, [K0]; color = c_v)
+v_line2 = vlines!(ax, [1 + 2 * K0]; color = c_v, linestyle = :dashdot)
+Legend(
+    fig[1, 1],
+    [resource_line, consumer_line, v_line1, v_line2],
+    ["resource", "consumer", "K₀", "1+2K₀"];
+    orientation = :horizontal,
+    tellheight = true, # Adjust the height of the legend sub-figure.
+    tellwidth = false, # Do not adjust the width of the orbit diagram.
+)
+save("enrichment_orbit-diagram.png", fig; px_per_unit = 3, resolution = (450, 350)); # hide
 nothing; # hide
 ```
 
-![](enrichment_orbit-diagram.svg)
+![](enrichment_orbit-diagram.png)
 
 As described above we observe three parts in this plot.
-First, if ``K \leq K_c`` only the resource survives
+First, if ``K \leq K_0`` only the resource survives
 and has a biomass equal to its carrying capacity.
-Secondly, if ``K_c \leq K \leq 1 + 2 K_c`` both species can coexist:
-the resource has a constant biomass equal to ``K_c``,
+Secondly, if ``K_0 \leq K \leq 1 + 2 K_0`` both species can coexist:
+the resource has a constant biomass equal to ``K_0``,
 while the consumer biomass increases with the carrying capacity.
-Thirdly, if ``K \geq 1 + 2 K_c`` then the system is destabilized and starts to oscillate
+Thirdly, if ``K \geq 1 + 2 K_0`` then the system is destabilized and starts to oscillate
 resulting eventually in the extinction of the species.
