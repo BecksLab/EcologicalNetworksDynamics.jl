@@ -100,7 +100,7 @@ calling the corresponding function, i.e. for:
 
 ```jldoctest
 julia> params = AllometricParams(1, 2, 3, 4, 5, 6)
-AllometricParams(aₚ=1, aₑ=2, aᵢ=3, bₚ=4, aₚ=1, bₑ=5, bᵢ=6)
+AllometricParams(aₚ=1, aₑ=2, aᵢ=3, bₚ=4, bₑ=5, bᵢ=6)
 
 julia> params.aₚ
 1
@@ -123,7 +123,7 @@ end
 function Base.show(io::IO, params::AllometricParams)
     aₚ, aₑ, aᵢ = params.aₚ, params.aₑ, params.aᵢ
     bₚ, bₑ, bᵢ = params.bₚ, params.bₑ, params.bᵢ
-    print(io, "AllometricParams(aₚ=$aₚ, aₑ=$aₑ, aᵢ=$aᵢ, bₚ=$bₚ, aₚ=$aₚ, bₑ=$bₑ, bᵢ=$bᵢ)")
+    print(io, "AllometricParams(aₚ=$aₚ, aₑ=$aₑ, aᵢ=$aᵢ, bₚ=$bₚ, bₑ=$bₑ, bᵢ=$bᵢ)")
 end
 #### end ####
 
