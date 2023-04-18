@@ -29,10 +29,9 @@ julia> fw = FoodWeb([0 0; 1 0]);
        [0.219659439; 0.188980349;;]
 true
 
-julia> sim = extract_last_timesteps(m; last = 1, idxs = [1, 2]);
-       sim ==
-       extract_last_timesteps(m; last = 1, idxs = ["s1", "s2"]) ≈
-       [0.188980349; 0.219659439;;]
+julia> sim1 = extract_last_timesteps(m; last = 1, idxs = [1, 2]);
+       sim2 = extract_last_timesteps(m; last = 1, idxs = ["s1", "s2"]);
+       sim1 ≈ sim2 ≈ [0.188980349; 0.219659439;;]
 true
 
 julia> sim = extract_last_timesteps(m; last = 1, idxs = [2]);
@@ -41,17 +40,13 @@ true
 ```
 """
 function extract_last_timesteps(solution; idxs = nothing, quiet = false, kwargs...)
-
-    last = process_last_timesteps(solution; quiet = quiet, kwargs...)
-
-
+    last = process_last_timesteps(solution; quiet, kwargs...)
     out = solution[:, end-(last-1):end]
 
-    idxs = process_idxs(solution; idxs)
     # Extract species indices:
+    idxs = process_idxs(solution; idxs)
     out = out[idxs, :]
-
-    quiet || check_last_extinction(solution; idxs = idxs, last = last)
+    quiet || check_last_extinction(solution; idxs, last)
 
     deepcopy(out)
 end
@@ -78,24 +73,27 @@ function process_idxs(solution; idxs = nothing)
         idxs_in = indexin(idxs, sp)
         # Handle missing species
         absent_sp = isnothing.(idxs_in)
-        any(absent_sp) && throw(ArgumentError("Species $(idxs[absent_sp]) are not \
-                                               found in the network. Any mispelling?"))
-
+        any(absent_sp) && throw(
+            ArgumentError("Species $(idxs[absent_sp]) are not found in the network. \
+                           Any mispelling?"),
+        )
         # Get the index of the species names in solution matrix
         idxs = idxs_in[.!absent_sp]
         # remove Union{nothing, ...}
         idxs = something.(idxs)
-
     elseif eltype(idxs) <: Integer
         check_bound_idxs = 1 .<= idxs .<= length(sp)
         absent_sp = idxs[findall(.!check_bound_idxs)]
-        all(check_bound_idxs) || throw(ArgumentError("Cannot extract idxs $(absent_sp) \
-                                                     when there are $(length(sp)) species."))
-
+        all(check_bound_idxs) || throw(
+            ArgumentError(
+                "Cannot extract idxs $(absent_sp) when there are $(length(sp)) species.",
+            ),
+        )
     else
-        throw(ArgumentError("`idxs` should be a vector of Integer (species indices) or \
-                            String (species names)"))
+        throw(ArgumentError("`idxs` should be a vector of integers (species indices) \
+                             or strings (species names)"))
     end
+
     idxs
 end
 
@@ -104,66 +102,67 @@ function process_last_timesteps(solution; last = 1, quiet = false)
     n_timesteps = length(solution.t)
 
     if last isa AbstractString
-        endswith(last, "%") || throw(ArgumentError("The `last` argument, when given as a \
-                                                   string, should end with character '%'"))
-
+        endswith(last, "%") ||
+            throw(ArgumentError("The `last` argument, when given as a string, \
+                                 should end with character '%'"))
         perc = parse(Float64, last[1:(end-1)])
         is_valid_perc = 0.0 < perc <= 100.0
-        is_valid_perc || throw(ArgumentError("Cannot extract $(perc)% of the solution's \
-                                             timesteps: 0% < `last` <= 100% must hold."))
+        is_valid_perc ||
+            throw(ArgumentError("Cannot extract $(perc)% of the solution's timesteps: \
+                                 0% < `last` <= 100% must hold."))
         last = round(Int, n_timesteps * perc / 100)
-        last > 0 || quiet || @warn "$perc% of $n_timesteps \
-       timesteps correspond to $last output lines: an empty table has been extracted."
+        (last > 0 || quiet) ||
+            @warn("$perc% of $n_timesteps timesteps correspond to $last output lines: \
+                   an empty table has been extracted.")
     elseif last isa Integer
-        last > 0 || throw(ArgumentError("Cannot extract $last timesteps. `last` should be \
-                                        a positive integer."))
+        last > 0 || throw(ArgumentError("Cannot extract $last timesteps. \
+                                         `last` should be a positive integer."))
     elseif last isa Float64
         throw(ArgumentError("Cannot extract `last` from a floating point number. \
-                            Did you mean \"$last%\"?"))
+                             Did you mean \"$last%\"?"))
     else
         throw(ArgumentError("Cannot extract timesteps with `last=$last` \
-                            of type $(typeof(last)). \
-                            `last` should be a positive integer \
-                            or a string representing a percentage."))
+                             of type $(typeof(last)). \
+                             `last` should be a positive integer \
+                             or a string representing a percentage."))
     end
 
-    last > n_timesteps && throw(ArgumentError("Cannot extract $last timesteps from a \
-                                              trajectory solution with only \
-                                              $(n_timesteps) timesteps. \
-                                              Consider decreasing the `last` argument value \
-                                              and/or specifying it as a percentage instead \
-                                              (e.g. `\"10%\"`)."))
+    last > n_timesteps && throw(
+        ArgumentError("Cannot extract $last timesteps from a trajectory solution \
+                       with only $(n_timesteps) timesteps. \
+                       Consider decreasing the `last` argument value \
+                       and/or specifying it as a percentage instead (e.g. `\"10%\"`)."),
+    )
+
     last
 end
 
 function check_last_extinction(solution; idxs = nothing, last = 1)
     ext = get_extinction_timesteps(solution; idxs)
     ext_t = ext.extinction_timestep
-
     n_timesteps = length(solution.t)
-
-    check_last_extinction(n_timesteps; t = ext_t, species = ext.species, last = last)
+    check_last_extinction(n_timesteps; t = ext_t, species = ext.species, last)
 
 end
 function check_last_extinction(n_timesteps::Integer; t, species, last)
     extinct = t .!== nothing
     if any(extinct)
         check_last = findall(>(n_timesteps - (last - 1)), t[extinct])
-
-        isempty(check_last) || @warn "With `last` = $last, a table has been extracted with \
-        the species $(species[extinct][check_last]), \
-        that went extinct at timesteps = $(t[extinct][check_last]). Set `last` <= \
-        $(n_timesteps - (maximum(t[extinct]) - 1)) to get rid of them."
+        sp = species[extinct][check_last]
+        ts = t[extinct][check_last]
+        max = n_timesteps - (maximum(t[extinct]) - 1)
+        isempty(check_last) ||
+            @warn("With `last` = $last, a table has been extracted with the species $sp, \
+                   that went extinct at timesteps = $ts. \
+                   Set `last` <= $max to get rid of them.")
     end
 end
 
 function get_extinction_timesteps(solution; idxs = nothing)
     idxs = process_idxs(solution; idxs)
     sp = get_parameters(solution).network.species[idxs]
-
     ext_t = findfirst.(isequal(0), eachrow(solution[idxs, :]))
     extinct = ext_t .!== nothing
-
     (
         species = sp[extinct],
         idxs = idxs[extinct],
@@ -205,12 +204,9 @@ julia> sim = simulate(params, [0, 0]; tmax = 20);
 function get_alive_species(solution; idxs = nothing, threshold = 0)
     idxs = process_idxs(solution; idxs)
     sp = get_parameters(solution).network.species[idxs]
-
-    alive_idxs = get_alive_species(solution[idxs, end]; threshold = threshold)
-
-    (species = sp[alive_idxs], idxs = idxs[alive_idxs])
+    alive = get_alive_species(solution[idxs, end]; threshold = threshold)
+    (species = sp[alive], idxs = idxs[alive])
 end
 
 get_extinct_species(m::AbstractVector; threshold = 0) = findall(<=(threshold), m)
-
 get_alive_species(m::AbstractVector; threshold = 0) = findall(>(threshold), m)

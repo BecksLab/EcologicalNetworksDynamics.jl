@@ -35,7 +35,6 @@
           species_cv(mat; corrected = false).mean * sqrt(synchrony(mat; corrected = false))
     @test community_cv(mat) ≈ species_cv(mat).mean * sqrt(synchrony(mat))
 
-
     @test all(isnan.(community_cv.(([0 0; 0 0], mc, mr))))
 
     foodweb = FoodWeb([0 0; 1 0]; Z = 1) # Two producers and one consumer
@@ -83,6 +82,5 @@
 
     cv_one_sp2 = coefficient_of_variation(one_sp; idxs = 2, last = 10)
     @test all(isnan.(values(cv_one_sp2)))
-
 
 end

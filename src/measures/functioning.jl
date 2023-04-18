@@ -1,6 +1,5 @@
 #=
-Quantifying functions
-Adapted from BioenergeticFoodWeb.jl
+Quantifying functions.
 =#
 
 """
@@ -167,14 +166,12 @@ https://en.wikipedia.org/wiki/Diversity_index#Shannon_index
 """
 function shannon_diversity(solution; threshold = 0, kwargs...)
     measure_on = extract_last_timesteps(solution; kwargs...)
-
     shan = shannon_diversity.(eachcol(measure_on); threshold)
     mean(shan)
 end
 
 function shannon_diversity(n::AbstractVector; threshold = 0)
     x = filter(>(threshold), n)
-
     if length(x) >= 1
         p = x ./ sum(x)
         p_ln_p = p .* log.(p)
@@ -203,14 +200,12 @@ https://en.wikipedia.org/wiki/Diversity_index#Simpson_index
 """
 function simpson(solution; threshold = 0, kwargs...)
     measure_on = extract_last_timesteps(solution; kwargs...)
-
     simp = simpson.(eachcol(measure_on); threshold)
     mean(simp)
 end
 
 function simpson(n::AbstractVector; threshold = 0)
     x = filter(>(threshold), n)
-
     if length(x) >= 1
         p = x ./ sum(x)
         p2 = 2 .^ p
@@ -237,7 +232,6 @@ https://en.wikipedia.org/wiki/Species_evenness
 """
 function evenness(solution; threshold = 0, kwargs...)
     measure_on = extract_last_timesteps(solution; kwargs...)
-
     piel = evenness.(eachcol(measure_on); threshold)
     mean(piel)
 end
@@ -371,10 +365,10 @@ julia> foodweb = FoodWeb([0 0 0; 0 1 0; 1 1 0]; quiet = true);
 """
 function trophic_structure(solution; threshold = 0, idxs = nothing, kwargs...)
 
-    isnothing(idxs) || throw(ArgumentError("`trophic_structure()` operates at the whole \
-                                           network level, so it makes no sense to ask for \
-                                           particular species with anything other than \
-                                           `idxs = nothing`."))
+    isnothing(idxs) ||
+        throw(ArgumentError("`trophic_structure()` operates at the whole network level, \
+                             so it makes no sense to ask for particular species \
+                             with anything other than `idxs = nothing`."))
 
 
     # Measure trophic structure over last timesteps
@@ -388,7 +382,6 @@ function trophic_structure(solution; threshold = 0, idxs = nothing, kwargs...)
         alive = alive_trophic_network(measure_on[:, i], net; threshold)
         tlvl = alive.trophic_level
         bm = alive.species_biomass
-
         push!(maxl, max_trophic_level(tlvl))
         push!(meanl, mean_trophic_level(tlvl))
         push!(wmean, weighted_mean_trophic_level(bm, tlvl))
@@ -600,9 +593,7 @@ julia> B0 = [0, 0.5, 0.5];
 function living_species(solution::Solution; threshold = 0, idxs = nothing, kwargs...)
 
     measure_on = extract_last_timesteps(solution; idxs, kwargs...)
-
     alive_sp = living_species(measure_on; threshold)
-
     sp = get_parameters(solution).network.species
 
     tmp_idxs = process_idxs(solution; idxs)
@@ -614,7 +605,6 @@ end
 
 living_species(mat::AbstractMatrix; threshold = 0) =
     findall(>(threshold), biomass(mat).species)
-
 living_species(n::AbstractVector; threshold = 0) = findall(>(threshold), n)
 
 """
