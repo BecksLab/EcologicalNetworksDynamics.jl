@@ -439,18 +439,20 @@ function alive_trophic_network(n::AbstractVector, A::AbstractMatrix; kwargs...)
     (; species, species_biomass, trophic_level, A)
 end
 
-"""
+docstring = """
     max_trophic_level(solution::SciMLBase.ODESolution; threshold = 0, kwargs...)
+    mean_trophic_level(solution::SciMLBase.ODESolution; threshold = 0, kwargs...)
+    weighted_mean_trophic_level(solution::SciMLBase.ODESolution; threshold = 0, kwargs...)
 
-Returns the maximum trophic level averaged over the `last` timesteps.
+Return the aggregated trophic level over the `last` timesteps,
+either with `max` or `mean` aggregation,
+or by the mean trophic level weighted by species biomasses.
 
 kwargs... arguments are forwarded to [`extract_last_timesteps`](@ref). See
 [`extract_last_timesteps`](@ref) for the argument details.
 
-`max_trophic_level()` also handles biomass vectors associated with a network, as well as
+These functions also handle biomass vectors associated with a network, as well as
 a vector of trophic levels (See examples).
-`mean_trophic_level()` and `weighted_mean_trophic_level()`, respectively computing the
-mean trophic level and the mean trophic level weighted by species biomasses work the same.
 
 # Examples
 
@@ -497,58 +499,60 @@ julia> w = weighted_mean_trophic_level(sol);
 1.54
 ```
 """
-function max_trophic_level(solution::SciMLBase.ODESolution; threshold = 0, kwargs...)
-    measure_on = extract_last_timesteps(solution; kwargs...)
-    net = get_parameters(solution).network.A
 
-    out = []
-    for i in 1:size(measure_on, 2)
-        tmp = max_trophic_level(measure_on[:, i], net; threshold)
-        push!(out, tmp)
+# Use metaprog to generate the three functions in a row.
+function aggregate_trophic_level(op_name, aggregate_function)
+    op_trophic_level = Symbol(op_name, :_trophic_level)
+    if isnothing(aggregate_function)
+        from_matrices_code = :()
+    else
+        from_matrices_code = from_matrices(op_name, aggregate_function)
     end
-    mean(out)
-end
-function max_trophic_level(n::AbstractVector, A::AbstractMatrix; kwargs...)
-    out = alive_trophic_network(n, A; kwargs...)
-    tlvl = out.trophic_level
-    max_trophic_level(tlvl)
-end
-max_trophic_level(A::AbstractMatrix;) = max_trophic_level(trophic_levels(A))
-max_trophic_level(tlvl::AbstractVector) = isempty(tlvl) ? NaN : maximum(tlvl)
+    # Generate user-facing method, feeding from the solution.
+    return quote
 
-function mean_trophic_level(solution::SciMLBase.ODESolution; threshold = 0, kwargs...)
-    measure_on = extract_last_timesteps(solution; kwargs...)
-    net = get_parameters(solution).network.A
+        @doc $docstring function $op_trophic_level(
+            solution::SciMLBase.ODESolution;
+            threshold = 0,
+            kwargs...,
+        )
+            measure_on = extract_last_timesteps(solution; kwargs...)
+            net = get_parameters(solution).network.A
 
-    out = []
-    for i in 1:size(measure_on, 2)
-        tmp = mean_trophic_level(measure_on[:, i], net; threshold)
-        push!(out, tmp)
+            out = []
+            for i in 1:size(measure_on, 2)
+                tmp = $op_trophic_level(measure_on[:, i], net; threshold)
+                push!(out, tmp)
+            end
+            mean(out)
+        end
+
+        $from_matrices_code
+
     end
-    mean(out)
 end
-function mean_trophic_level(n::AbstractVector, A::AbstractMatrix; kwargs...)
-    out = alive_trophic_network(n, A; kwargs...)
-    mean_trophic_level(out.trophic_level)
-end
-mean_trophic_level(A::AbstractMatrix;) = mean_trophic_level(trophic_levels(A))
-mean_trophic_level(tlvl::AbstractVector) = isempty(tlvl) ? NaN : mean(tlvl)
 
-function weighted_mean_trophic_level(
-    solution::SciMLBase.ODESolution;
-    threshold = 0,
-    kwargs...,
-)
-    measure_on = extract_last_timesteps(solution; kwargs...)
-    net = get_parameters(solution).network.A
-
-    out = []
-    for i in 1:size(measure_on, 2)
-        tmp = weighted_mean_trophic_level(measure_on[:, i], net; threshold)
-        push!(out, tmp)
+function from_matrices(op_name, aggregate_function)
+    op_trophic_level = Symbol(op_name, :_trophic_level)
+    # Generate underlying methods, feeding from raw matrices.
+    return quote
+        function $op_trophic_level(n::AbstractVector, A::AbstractMatrix; kwargs...)
+            out = alive_trophic_network(n, A; kwargs...)
+            tlvl = out.trophic_level
+            $op_trophic_level(tlvl)
+        end
+        $op_trophic_level(A::AbstractMatrix;) = $op_trophic_level(trophic_levels(A))
+        $op_trophic_level(tlvl::AbstractVector) =
+            isempty(tlvl) ? NaN : $aggregate_function(tlvl)
     end
-    mean(out)
 end
+
+# Generation happens here.
+eval(aggregate_trophic_level(:max, :maximum))
+eval(aggregate_trophic_level(:mean, :mean))
+eval(aggregate_trophic_level(:weighted_mean, nothing))
+
+# The code differs slightly in the weighted_mean case.
 function weighted_mean_trophic_level(n::AbstractVector, A::AbstractMatrix; kwargs...)
     out = alive_trophic_network(n, A; kwargs...)
     bm = out.species_biomass
