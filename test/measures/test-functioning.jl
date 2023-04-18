@@ -1,43 +1,159 @@
+@testset "Extraction of living species" begin
+
+    foodweb = FoodWeb([0 0; 1 0])
+    params = ModelParameters(foodweb)
+    sol = simulates(params, [0.5, 0.5])
+
+
+    @test living_species(sol) == (species = ["s1", "s2"], idxs = [1, 2])
+    @test living_species(sol; idxs = 1) ==
+          living_species(sol; idxs = [1]) ==
+          living_species(sol; idxs = "s1") ==
+          living_species(sol; idxs = ["s1"]) ==
+          (species = ["s1"], idxs = [1])
+
+    @test living_species(sol; idxs = 2) ==
+          living_species(sol; idxs = [2]) ==
+          living_species(sol; idxs = "s2") ==
+          living_species(sol; idxs = ["s2"]) ==
+          (species = ["s2"], idxs = [2])
+
+    sol0 = simulates(params, [0, 0])
+
+    @test living_species(sol0; quiet = true).idxs == living_species([0 0; 0 0]) == Int64[]
+    @test living_species(sol0; quiet = true).species == String[]
+
+end
+
+@testset "Trophic structure" begin
+    # With trophic levels
+    #
+    net = [0 0; 1 0]
+    tlvl = trophic_levels(net)
+    @test max_trophic_level(tlvl) == 2.0
+    @test mean_trophic_level(tlvl) == 1.5
+    @test weighted_mean_trophic_level([2, 1], tlvl) == sum([2 / 3 * 1, 1 / 3 * 2])
+    @test weighted_mean_trophic_level([1, 2], tlvl) == sum([1 / 3 * 1, 2 / 3 * 2])
+
+    # With a vector of species biomass and a network
+    ## Both species survived
+    bm = [1, 1]
+    @test max_trophic_level(bm, net) == 2.0
+    @test weighted_mean_trophic_level(bm, tlvl) == mean_trophic_level(bm, net) == 1.5
+    @test trophic_structure(bm, net) == (
+        max = 2.0,
+        mean = 1.5,
+        weighted_mean = 1.5,
+        alive_species = [1, 2],
+        alive_trophic_level = [1.0, 2.0],
+        alive_A = sparse(net),
+    )
+
+    ## Only one species survived
+    bm1 = [1, 0]
+    bm2 = [0, 1]
+    @test max_trophic_level(bm1, net) ==
+          max_trophic_level(bm2, net) ==
+          weighted_mean_trophic_level(bm1, net) ==
+          weighted_mean_trophic_level(bm2, net) ==
+          mean_trophic_level(bm1, net) ==
+          mean_trophic_level(bm2, net) ==
+          1.0
+    @test trophic_structure(bm1, net) == (
+        max = 1.0,
+        mean = 1.0,
+        weighted_mean = 1.0,
+        alive_species = [1],
+        alive_trophic_level = [1.0],
+        alive_A = sparse(net[[1], [1]]),
+    )
+    @test trophic_structure(bm2, net) == (
+        max = 1.0,
+        mean = 1.0,
+        weighted_mean = 1.0,
+        alive_species = [2],
+        alive_trophic_level = [1.0],
+        alive_A = sparse(net[[2], [2]]),
+    )
+
+    ## Zero species survived
+    bm0 = [0, 0]
+    @test all(
+        isnan.([
+            max_trophic_level(bm0, net),
+            weighted_mean_trophic_level(bm0, net),
+            mean_trophic_level(bm0, net),
+        ]),
+    )
+    @test all(isnan.(values(trophic_structure(bm0, net))[1:3]))
+    @test values(trophic_structure(bm0, net))[4:6] == (Any[], Any[], Any[])
+
+    foodweb = FoodWeb([0 1 1; 0 0 0; 0 0 0])
+    params = ModelParameters(foodweb)
+    sim_zero = simulates(params, [0, 0, 0]; verbose = true)
+    sim_three = simulates(params, [0.5, 0.5, 0.5]; verbose = true)
+
+    @test_throws ArgumentError("`trophic_structure()` operates at the whole \
+                                           network level, so it makes no sense to ask for \
+                                           particular species with anything other than \
+                                           `idxs = nothing`.") trophic_structure(
+        sim_zero;
+        last = 10,
+        idxs = 2,
+    )
+
+    troph_zero = trophic_structure(sim_zero; quiet = true)
+    troph_three = trophic_structure(sim_three)
+    troph_three_nan = trophic_structure(sim_three; threshold = 1000)
+
+    alive_keys = (:alive_species, :alive_A, :alive_trophic_level)
+    nan_keys = (:max, :mean, :weighted_mean)
+    @test all(isnan.(values(troph_zero[nan_keys])))
+    @test all(isempty.(values(troph_zero[alive_keys])))
+    @test all(isnan.(values(troph_three_nan[nan_keys])))
+    @test all(isempty.(values(troph_three_nan[alive_keys])))
+
+    @test troph_three[alive_keys] == (
+        alive_species = [1, 2, 3],
+        alive_A = foodweb.A,
+        alive_trophic_level = [2.0, 1.0, 1.0],
+    )
+end
+
 @testset "Producer growth rate" begin
 
     # Set up
     foodweb = FoodWeb([0 0; 0 0]; quiet = true)
     params = ModelParameters(foodweb; biorates = BioRates(foodweb; d = 0))
 
-    sim = simulates(params, [0, 0.5]; verbose = false)
-    normal_growth = producer_growth(sim; last = 1, out_type = :all)
+    sim = simulates(params, [0, 0.5])
+    normal_growth = producer_growth(sim; last = 1)
     # If biomass equal to 0, growth rate equal to 0
-    @test normal_growth.G[normal_growth.s.=="s1"][1][1] ≈ 0.0
+    @test normal_growth.all[normal_growth.species.=="s1"][1][1] ≈ 0.0
 
-    first_growth = producer_growth(sim; last = length(sim.t), out_type = :all)
+    first_growth = producer_growth(sim; last = length(sim.t), quiet = true)
     # First growth rate should be equal to the logisticgrowth with initial
     # biomass
     params = get_parameters(sim)
     s, r, K = params.network.species, params.biorates.r, params.environment.K
 
-    @test first_growth.G[first_growth.s.=="s2"][1][1] ==
+    @test first_growth.all[first_growth.species.=="s2", :][1] ==
           EcologicalNetworksDynamics.logisticgrowth.(0.5, r[s.=="s2"], K[s.=="s2"])[1]
-    @test first_growth.G[first_growth.s.=="s2"][1][1] == 0.25
+    @test first_growth.all[first_growth.species.=="s2", :][1] == 0.25
 
     # Growth rate should converge to 0 as B converges to K
-    @test isapprox(
-        first_growth.G[first_growth.s.=="s2"][1][length(sim.t)],
-        0.0,
-        atol = 10^-3,
-    )
+    @test first_growth.all[first_growth.species.=="s2", :][length(sim.t)] ≈ 0 atol = 10^-3
 
     # Growth rate computed only for producers
     foodweb = FoodWeb([1 0; 0 0]; quiet = true)
     params = ModelParameters(foodweb)
-    sim = simulates(params, [0.5, 0.5]; verbose = true)
-    normal_growth = producer_growth(sim; last = 1, out_type = :all)
+    sim = simulates(params, [0.5, 0.5])
+    normal_growth = producer_growth(sim; last = 1)
 
-    @test length(normal_growth.s) == 1
+    @test length(normal_growth.species) == 1
 
     # Test structure:
-    avg_g = producer_growth(sim; last = 20, out_type = :mean)
-    sd_g = producer_growth(sim; last = 20, out_type = :std)
-    @test length(avg_g.G) == length(sd_g.G) == 1
+    @test length(normal_growth.mean) == length(normal_growth.std) == 1
 end
 
 
@@ -50,58 +166,106 @@ end
     sim_two_sp = simulates(params, [0.5, 0.5]; verbose = false)
     sim_one_sp = simulates(params, [0, 0.5]; verbose = false)
     sim_zero = simulates(params, [0, 0]; verbose = false)
+    m0, m1, m2 = sim_zero, sim_one_sp, sim_two_sp
 
     # Total biomass should converge to K
-    @test isapprox(
-        total_biomass(sim_one_sp; last = 1),
-        get_parameters(sim_one_sp).environment.K[2],
-        rtol = 0.001,
-    )
+    tmp_K = get_parameters(m1).environment.K[2]
+    @test biomass(m1; last = 1).total ≈ tmp_K rtol = 0.001
+    @test biomass(m1; last = 1).total ≈ tmp_K rtol = 0.001
+    bm_two_sp = biomass(m2; last = 1)
+    @test bm_two_sp.total == sum(bm_two_sp.species)
+    @test bm_two_sp.total ≈ 2 atol = 0.001
 
-    @test total_biomass(sim_zero; last = 2) ≈ 0.0
+    # Species sub selection works
+    @test biomass(m1; last = 1, idxs = [1]).species[1] ≈
+          biomass(m1; last = 1, idxs = [1]).total
+
+    @test biomass(m0; last = 2, quiet = true).total ≈ 0.0
     # Species richness is the binary equivalent of total_biomass
-    @test foodweb_richness(sim_zero; last = 2) ≈ 0.0
-    @test species_persistence(sim_zero; last = 2) ≈ 0.0 # Weird but it is a feature
+    @test richness(m0; last = 2, quiet = true) ≈ 0.0
+    @test species_persistence(m0; last = 2, quiet = true) ≈ 0.0 # Weird but it is a feature
 
-    @test EcologicalNetworksDynamics.species_richness(sim_two_sp[:, end]) ==
-          foodweb_richness(sim_two_sp; last = 1) ==
-          2
-    @test EcologicalNetworksDynamics.species_richness(sim_one_sp[:, end]) ==
-          foodweb_richness(sim_one_sp; last = 1) ==
-          1
-    @test EcologicalNetworksDynamics.species_richness(sim_zero[:, end]) ==
-          foodweb_richness(sim_zero; last = 1) ==
-          0
+    @test richness(m2[:, end]) == richness(m2; last = 1) == 2
+
+    @test richness(m1[:, end]) == richness(m1; last = 1) == 1
+
+    @test richness(m0[:, end]) == richness(m0; last = 1) == 0
 
     # Other hill diversity numbers
     ## Shannon
-    @test EcologicalNetworksDynamics.shannon(sim_two_sp[:, end]) ==
-          foodweb_shannon(sim_two_sp; last = 1) ==
+    @test shannon_diversity(m2[:, end]) ==
+          shannon_diversity(m2; last = 1) ==
+          shannon_diversity([1, 1]) ==
           log(2)
-    @test EcologicalNetworksDynamics.shannon(sim_one_sp[:, end]) ==
-          foodweb_shannon(sim_one_sp; last = 1) ≈
-          0.0 # 0 entropy if 1 species only
-    @test isnan(EcologicalNetworksDynamics.shannon(sim_zero[:, end])) ==
-          isnan(foodweb_shannon(sim_zero; last = 1)) # Not defined for 0 species
+
+    # 0 entropy if 1 species only
+    @test shannon_diversity(m1[:, end]) ==
+          shannon_diversity([1]) ==
+          shannon_diversity(m2; idxs = 1) ==
+          shannon_diversity(m2; idxs = "s1") ==
+          shannon_diversity(m2; idxs = 2) ==
+          shannon_diversity(m2; idxs = "s2") ==
+          shannon_diversity(m1; last = 1) ==
+          0.0
+
+
+    shannan(m; kwargs...) = isnan(shannon_diversity(m; kwargs...))
+    shannan_check = [
+        # Not defined for 0 species
+        shannan(m0[:, end]),
+        shannan(m0; last = 1),
+        shannan([0, 0]),
+        shannan([1, 1]; threshold = 1),
+    ]
+    @test all(shannan_check)
+
+    @test shannon_diversity(m1[:, end]) == shannon_diversity(m1; last = 1) ≈ 0.0 # 0 entropy if 1 species only
 
     ## Simpson
-    @test EcologicalNetworksDynamics.simpson(sim_two_sp[:, end]) ==
-          foodweb_simpson(sim_two_sp; last = 1) ==
+    @test simpson(m2[:, end]) ==
+          simpson(m2; last = 1) ==
+          simpson([1, 1]) ==
           1 / sum(2 .^ [1 / 2, 1 / 2])
-    @test EcologicalNetworksDynamics.simpson(sim_one_sp[:, end]) ==
-          foodweb_simpson(sim_one_sp; last = 1) ==
+    # 0.5 if 1 species only
+    @test simpson(m1[:, end]) ==
+          simpson(m1; last = 1) ==
+          simpson(m2; idxs = 1) ==
+          simpson(m2; idxs = "s1") ==
+          simpson(m2; idxs = 2) ==
+          simpson(m2; idxs = "s2") ==
+          simpson([1]) ==
           1 / sum(2 .^ 1) ==
-          0.5# 0.5 if 1 species only
-    @test isnan(EcologicalNetworksDynamics.simpson(sim_zero[:, end])) ==
-          isnan(foodweb_simpson(sim_zero; last = 1)) # Not defined for 0 species
+          0.5
+
+    simpnan(m; kwargs...) = isnan(simpson(m; kwargs...))
+    simpnan_check = [
+        # Not defined for 0 species
+        simpnan(m0[:, end]),
+        simpnan(m0; last = 1),
+        simpnan([0, 0]),
+        simpnan([1, 1]; threshold = 1),
+    ]
+    @test all(simpnan_check)
 
     # Community evenness
-    @test EcologicalNetworksDynamics.pielou(sim_two_sp[:, end]) ==
-          foodweb_evenness(sim_two_sp; last = 1) ≈
-          1.0 # Maximum equity of species biomass
-    @test isnan(EcologicalNetworksDynamics.pielou(sim_one_sp[:, end])) ==
-          isnan(foodweb_evenness(sim_one_sp; last = 1))# Should be NaN if 1 species
-    @test isnan(EcologicalNetworksDynamics.pielou(sim_zero[:, end])) ==
-          isnan(foodweb_evenness(sim_zero; last = 1))# Should be NaN if 0 species
+    # Maximum equity of species biomass
+    @test evenness(m2[:, end]) == evenness(m2; last = 1) == evenness([1, 1]) == 1.0
+    evennan(m; kwargs...) = isnan(evenness(m; kwargs...))
+    evennan_check = [
+        # Should be NaN if 1 species
+        evennan(m1[:, end]),
+        evennan(m2; idxs = 1),
+        evennan(m2; idxs = "s1"),
+        evennan(m2; idxs = "s2"),
+        evennan(m2; idxs = 2),
+        evennan([1, 0]),
+        evennan([2, 1]; threshold = 1),
+        # Should be NaN if 0 species
+        evennan(m0[:, end]),
+        evennan(m0; last = 1),
+        evennan([0, 0]),
+        evennan([1, 1]; threshold = 1),
+    ]
+    @test all(evennan_check)
 
 end
