@@ -3,13 +3,13 @@ Various measures of stability
 =#
 
 """
-    species_cv(solution::SciMLBase.ODESolution; threshold = 0, last = "10%", kwargs...)
+    species_cv(solution::Solution; threshold = 0, last = "10%", kwargs...)
 
 Computes the temporal coefficient of variation of species biomass and its average.
 
 See [`coefficient_of_variation`](@ref) for the details.
 """
-function species_cv(solution::SciMLBase.ODESolution; threshold = 0, last = "10%", kwargs...)
+function species_cv(solution::Solution; threshold = 0, last = "10%", kwargs...)
 
     measure_on = extract_last_timesteps(solution; last, kwargs...)
     # Fetch species that are alive, whose mean biomass is > threshold
@@ -41,7 +41,7 @@ end
 
 """
     synchrony(
-        solution::SciMLBase.ODESolution;
+        solution::Solution;
         threshold = 0,
         last = "10%",
         corrected = true,
@@ -60,7 +60,7 @@ Neutral and Nonneutral Community Dynamics in Fluctuating Environments. The
 American Naturalist, 172(2), E48‑E66. https://doi.org/10.1086/589746
 """
 function synchrony(
-    solution::SciMLBase.ODESolution;
+    solution::Solution;
     threshold = 0,
     last = "10%",
     corrected = true,
@@ -96,7 +96,7 @@ end
 
 """
     community_cv(
-        solution::SciMLBase.ODESolution;
+        solution::Solution;
         threshold = 0,
         last = "10%",
         corrected = true,
@@ -108,7 +108,7 @@ Compute the temporal Coefficient of Variation of community biomass.
 See [`coefficient_of_variation`](@ref) for the argument details.
 """
 function community_cv(
-    solution::SciMLBase.ODESolution;
+    solution::Solution;
     threshold = 0,
     last = "10%",
     corrected = true,
@@ -138,7 +138,7 @@ end
 
 """
     coefficient_of_variation(
-        solution;
+        solution::Solution;
         threshold = 0,
         last = "10%",
         corrected = true,
@@ -182,7 +182,7 @@ julia> B0 = [0, 0.5, 0.5]; # Two producers
 ```
 """
 function coefficient_of_variation(
-    solution;
+    solution::Solution;
     threshold = 0,
     last = "10%",
     corrected = true,

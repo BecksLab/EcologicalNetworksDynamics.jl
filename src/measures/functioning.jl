@@ -4,7 +4,7 @@ Adapted from BioenergeticFoodWeb.jl
 =#
 
 """
-    richness(solution; threshold = 0, kwargs...)
+    richness(solution::Solution; threshold = 0, kwargs...)
 
 Returns the average number of species with a biomass larger than `threshold`
 over the `last` timesteps. `kwargs...` are optional arguments passed to
@@ -40,7 +40,7 @@ julia> even = evenness(sol);
 0.996
 ```
 """
-function richness(solution; threshold = 0, kwargs...)
+function richness(solution::Solution; threshold = 0, kwargs...)
     measure_on = extract_last_timesteps(solution; kwargs...)
     rich = richness.(eachcol(measure_on); threshold)
     mean(rich)
@@ -440,9 +440,9 @@ function alive_trophic_network(n::AbstractVector, A::AbstractMatrix; kwargs...)
 end
 
 docstring = """
-    max_trophic_level(solution::SciMLBase.ODESolution; threshold = 0, kwargs...)
-    mean_trophic_level(solution::SciMLBase.ODESolution; threshold = 0, kwargs...)
-    weighted_mean_trophic_level(solution::SciMLBase.ODESolution; threshold = 0, kwargs...)
+    max_trophic_level(solution::Solution; threshold = 0, kwargs...)
+    mean_trophic_level(solution::Solution; threshold = 0, kwargs...)
+    weighted_mean_trophic_level(solution::Solution; threshold = 0, kwargs...)
 
 Return the aggregated trophic level over the `last` timesteps,
 either with `max` or `mean` aggregation,
@@ -512,7 +512,7 @@ function aggregate_trophic_level(op_name, aggregate_function)
     return quote
 
         @doc $docstring function $op_trophic_level(
-            solution::SciMLBase.ODESolution;
+            solution::Solution;
             threshold = 0,
             kwargs...,
         )
@@ -570,12 +570,7 @@ end
 
 
 """
-    living_species(
-        solution::SciMLBase.ODESolution;
-        threshold = 0,
-        idxs = nothing,
-        kwargs...,
-    )
+    living_species(solution::Solution; threshold = 0, idxs = nothing, kwargs...)
 
 Returns the vectors of alive species and their indices in the original network.
 Living species are the ones having, in average, a biomass above `threshold` over
@@ -602,12 +597,7 @@ julia> B0 = [0, 0.5, 0.5];
 (species = ["s2", "s3"], idxs = [2, 3])
 ```
 """
-function living_species(
-    solution::SciMLBase.ODESolution;
-    threshold = 0,
-    idxs = nothing,
-    kwargs...,
-)
+function living_species(solution::Solution; threshold = 0, idxs = nothing, kwargs...)
 
     measure_on = extract_last_timesteps(solution; idxs, kwargs...)
 

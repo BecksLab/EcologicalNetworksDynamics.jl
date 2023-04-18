@@ -37,7 +37,10 @@ using OrderedCollections
 using SparseArrays
 using Statistics
 using Decimals
+using SciMLBase
 
+# Convenience aliases.
+const Solution = SciMLBase.AbstractODESolution
 
 # Include scripts
 include(joinpath(".", "macros.jl"))
