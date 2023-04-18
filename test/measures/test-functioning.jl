@@ -4,7 +4,6 @@
     params = ModelParameters(foodweb)
     sol = simulates(params, [0.5, 0.5])
 
-
     @test living_species(sol) == (species = ["s1", "s2"], idxs = [1, 2])
     @test living_species(sol; idxs = 1) ==
           living_species(sol; idxs = [1]) ==
@@ -26,8 +25,8 @@
 end
 
 @testset "Trophic structure" begin
+
     # With trophic levels
-    #
     net = [0 0; 1 0]
     tlvl = trophic_levels(net)
     @test max_trophic_level(tlvl) == 2.0
@@ -93,13 +92,11 @@ end
     sim_zero = simulates(params, [0, 0, 0]; verbose = true)
     sim_three = simulates(params, [0.5, 0.5, 0.5]; verbose = true)
 
-    @test_throws ArgumentError("`trophic_structure()` operates at the whole \
-                                           network level, so it makes no sense to ask for \
-                                           particular species with anything other than \
-                                           `idxs = nothing`.") trophic_structure(
-        sim_zero;
-        last = 10,
-        idxs = 2,
+    @test_throws(
+        ArgumentError("`trophic_structure()` operates at the whole network level, \
+                       so it makes no sense to ask for particular species \
+                       with anything other than `idxs = nothing`."),
+        trophic_structure(sim_zero; last = 10, idxs = 2)
     )
 
     troph_zero = trophic_structure(sim_zero; quiet = true)
@@ -154,8 +151,8 @@ end
 
     # Test structure:
     @test length(normal_growth.mean) == length(normal_growth.std) == 1
-end
 
+end
 
 @testset "Total biomass, species persistence, Hill numbers" begin
 
@@ -207,7 +204,6 @@ end
           shannon_diversity(m2; idxs = "s2") ==
           shannon_diversity(m1; last = 1) ==
           0.0
-
 
     shannan(m; kwargs...) = isnan(shannon_diversity(m; kwargs...))
     shannan_check = [

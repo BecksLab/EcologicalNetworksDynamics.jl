@@ -1,5 +1,5 @@
 #=
-Various measures of stability
+Various measures of stability.
 =#
 
 """
@@ -10,8 +10,8 @@ Computes the temporal coefficient of variation of species biomass and its averag
 See [`coefficient_of_variation`](@ref) for the details.
 """
 function species_cv(solution::Solution; threshold = 0, last = "10%", kwargs...)
-
     measure_on = extract_last_timesteps(solution; last, kwargs...)
+
     # Fetch species that are alive, whose mean biomass is > threshold
     living_sp = living_species(measure_on; threshold)
 
@@ -22,7 +22,6 @@ function species_cv(solution::Solution; threshold = 0, last = "10%", kwargs...)
 end
 
 function species_cv(mat::AbstractMatrix; corrected = true)
-
     if any(size(mat) .== 0)
         mn = NaN
         species = NaN
@@ -66,8 +65,8 @@ function synchrony(
     corrected = true,
     kwargs...,
 )
-
     measure_on = extract_last_timesteps(solution; last, kwargs...)
+
     # Fetch species that are alive, whose mean biomass is > threshold
     living_sp = living_species(measure_on; threshold)
 
@@ -75,10 +74,9 @@ function synchrony(
     mat = transpose(measure_on[living_sp, :])
 
     synchrony(mat; corrected = corrected)
-
 end
-function synchrony(mat::AbstractMatrix; corrected = true)
 
+function synchrony(mat::AbstractMatrix; corrected = true)
     if any(size(mat) .== 0)
         phi = NaN
     else
@@ -89,9 +87,7 @@ function synchrony(mat::AbstractMatrix; corrected = true)
 
         phi = com_var / std_sp^2
     end
-
     phi
-
 end
 
 """
@@ -114,19 +110,18 @@ function community_cv(
     corrected = true,
     kwargs...,
 )
+    measure_on = extract_last_timesteps(solution; last, kwargs...)
 
-    measure_on = extract_last_timesteps(solution; last = last, kwargs...)
     # Fetch species that are alive, whose mean biomass is > threshold
-    living_sp = living_species(measure_on; threshold = threshold, kwargs...)
+    living_sp = living_species(measure_on; threshold, kwargs...)
 
     # Transpose to get the time x species matrix
     mat = transpose(measure_on[living_sp, :])
 
     community_cv(mat; corrected)
-
 end
-function community_cv(mat::AbstractMatrix; corrected = true)
 
+function community_cv(mat::AbstractMatrix; corrected = true)
     if any(size(mat) .== 0)
         cv_com = NaN
     else
@@ -172,7 +167,7 @@ julia> foodweb = FoodWeb([0 1 1; 0 0 0; 0 0 0]); # Two producers and one consume
        key = (:community, :species_mean, :synchrony);
        s = coefficient_of_variation(sol; last = 10)[key];
        keys(s), round.(values(s); digits = 2)
-((:community, :mean_species, :synchrony), (0.02, 0.06, 0.1))
+((:community, :species_mean, :synchrony), (0.02, 0.06, 0.1))
 
 julia> B0 = [0, 0.5, 0.5]; # Two producers
        sol = simulate(params, B0; verbose = true);
@@ -188,7 +183,6 @@ function coefficient_of_variation(
     corrected = true,
     kwargs...,
 )
-
     measure_on = extract_last_timesteps(solution; last, kwargs...)
     # Fetch species that are alive, whose mean biomass is > threshold
     alive_sp = living_species(measure_on; threshold)
@@ -200,5 +194,5 @@ function coefficient_of_variation(
     sync = synchrony(mat; corrected)
     cv_com = community_cv(mat; corrected)
 
-    (community = cv_com, mean_species = cvsp.mean, synchrony = sync, species = cvsp.species)
+    (community = cv_com, species_mean = cvsp.mean, synchrony = sync, species = cvsp.species)
 end
