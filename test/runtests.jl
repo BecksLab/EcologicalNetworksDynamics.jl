@@ -3,14 +3,14 @@ using EcologicalNetworksDynamics
 using Test
 using SparseArrays
 using Random
-using EcologicalNetworks
 using JuliaFormatter
 using SyntaxTree
 using Logging #  TODO: remove once warnings are removed from `generate_dbdt`.
+using Statistics
 
 
 # Set and print seed
-seed = sample(1:100000)
+seed = rand(1:100000)
 Random.seed!(seed)
 @info "Seed set to $seed."
 
@@ -43,6 +43,7 @@ test_files = [
     "model/test-simulate.jl",
     "model/test-set_temperature.jl",
     "measures/test-functioning.jl",
+    "measures/test-stability.jl",
     "measures/test-structure.jl",
     "measures/test-utils.jl",
 ]
