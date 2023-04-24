@@ -3,6 +3,7 @@
     simulate(
         params::ModelParameters,
         B0::AbstractVector;
+        N0::AbstractVector = [1.0]
         alg = nothing,
         t0::Number = 0,
         tmax::Number = 500,
@@ -10,7 +11,7 @@
         verbose = true,
         callback = CallbackSet(
             TerminateSteadyState(1e-6, 1e-4),
-            ExtinctionCallback(extinction_threshold, verbose),
+            ExtinctionCallback(extinction_threshold, length(B0), verbose),
         ),
         diff_code_data = (dBdt!, params),
         kwargs...,
@@ -139,6 +140,7 @@ julia> simulate(params, [0.5, 1e-12]; verbose = true); # no message thrown
 function simulate(
     params::ModelParameters,
     B0::AbstractVector;
+    N0::AbstractVector = [1.0],
     alg = nothing,
     t0::Number = 0,
     tmax::Number = 500,
@@ -146,7 +148,7 @@ function simulate(
     verbose = true,
     callback = CallbackSet(
         TerminateSteadyState(1e-6, 1e-4),
-        ExtinctionCallback(extinction_threshold, verbose),
+        ExtinctionCallback(extinction_threshold, length(B0), verbose),
     ),
     diff_code_data = (dBdt!, params),
     kwargs...,
@@ -187,15 +189,26 @@ function simulate(
     end
     fun = (args...) -> Base.invokelatest(code, args...)
     extinct_sp = Dict(i => 0.0 for (i, b) in enumerate(B0) if b == 0.0)
+
+    # Set N0 to 0 if growth model is not nutrient intake.
+    if isa(params.producer_growth, NutrientIntake)
+        n = params.producer_growth.n
+        length(N0) == 1 && (N0 = repeat(N0, n))
+        B0 = vcat(B0, N0)
+    else
+        N0 = 0.0
+    end
+
     p = (params = data, extinct_sp = extinct_sp, original_params = params)
     problem = ODEProblem(fun, B0, timespan, p)
-    solve(
+    sol = solve(
         problem,
         alg;
         callback = callback,
-        isoutofdomain = (u, p, t) -> any(x -> x < 0, u),
+        isoutofdomain = (u, p, t) -> any(x -> x < 0, u[1:S]),
         kwargs...,
     )
+    sol
 end
 #### end ####
 
@@ -211,7 +224,7 @@ or an `AbstractVector` of length species richness (one threshold per species).
 If `verbose = true` a message is printed when a species goes extinct,
 otherwise no message are printed.
 """
-function ExtinctionCallback(extinction_threshold, verbose::Bool)
+function ExtinctionCallback(extinction_threshold, S, verbose::Bool)
 
     # The callback is triggered whenever
     # a non-extinct species biomass goes below the threshold.
@@ -219,23 +232,23 @@ function ExtinctionCallback(extinction_threshold, verbose::Bool)
     # Use either adequate code based on `extinction_threshold` type.
     # This avoids that the type condition be checked on every timestep.
     species_under_threshold = if isa(extinction_threshold, Number)
-        (u, t, integrator) -> any(u[u.>0] .< extinction_threshold)
+        (u, t, integrator) -> any(u[1:S][u[1:S].>0] .< extinction_threshold)
     else
-        (u, t, integrator) -> any(u[u.>0] .< extinction_threshold[u.>0])
+        (u, t, integrator) -> any(u[1:S][u[1:S].>0] .< extinction_threshold[u[1:S].>0])
     end
 
     get_extinct_species = if isa(extinction_threshold, Number)
-        (u, _) -> Set(findall(x -> x < extinction_threshold, u))
+        (u, _) -> Set(findall(x -> x < extinction_threshold, u[1:S]))
     else
-        (u, S) -> Set((1:S)[u.<extinction_threshold])
+        (u, S) -> Set((1:S)[u[1:S].<extinction_threshold])
     end
 
     # Effect of the callback: the species biomass below the threshold are set to 0.
     function extinguish_species!(integrator)
         # All species that are extinct, include previous extinct species and the new species
         # that triggered the callback. (Its/Their biomass still has to be set to 0.0)
-        S = length(integrator.u)
-        all_extinct_sp = get_extinct_species(integrator.u, S)
+        #S = length(integrator.u)
+        all_extinct_sp = get_extinct_species(integrator.u[1:S], S)
         prev_extinct_sp = keys(integrator.p.extinct_sp)
         # Species that are newly extinct, i.e. the species that triggered the callback.
         new_extinct_sp = setdiff(all_extinct_sp, prev_extinct_sp)
@@ -245,7 +258,7 @@ function ExtinctionCallback(extinction_threshold, verbose::Bool)
         merge!(integrator.p.extinct_sp, new_extinct_sp_dict) # update extinct species list
         # Info message (printed only if verbose = true).
         if verbose && !isempty(new_extinct_sp)
-            S, S_ext = length(integrator.u), length(all_extinct_sp)
+            S, S_ext = length(integrator.u[1:S]), length(all_extinct_sp)
             @info "Species $([new_extinct_sp...]) went extinct at time t = $t. \n" *
                   "$S_ext out of $S species are extinct."
         end
