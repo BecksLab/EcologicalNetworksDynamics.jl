@@ -5,7 +5,7 @@ using SparseArrays
 using Random
 using JuliaFormatter
 using SyntaxTree
-using Logging #  TODO: remove once warnings are removed from `generate_dbdt`.
+using Logging
 using Statistics
 
 
@@ -41,6 +41,7 @@ test_files = [
     "model/test-model_parameters.jl",
     "model/test-consumption.jl",
     "model/test-simulate.jl",
+    "model/test-zombies.jl",
     "model/test-set_temperature.jl",
     "measures/test-functioning.jl",
     "measures/test-stability.jl",

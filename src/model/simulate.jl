@@ -244,7 +244,7 @@ function ExtinctionCallback(extinction_threshold, verbose::Bool)
         new_extinct_sp_dict = Dict(sp => t for sp in new_extinct_sp)
         merge!(integrator.p.extinct_sp, new_extinct_sp_dict) # update extinct species list
         # Info message (printed only if verbose = true).
-        if verbose
+        if verbose && !isempty(new_extinct_sp)
             S, S_ext = length(integrator.u), length(all_extinct_sp)
             @info "Species $([new_extinct_sp...]) went extinct at time t = $t. \n" *
                   "$S_ext out of $S species are extinct."
