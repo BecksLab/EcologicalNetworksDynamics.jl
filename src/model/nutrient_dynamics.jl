@@ -1,7 +1,7 @@
 """
 **Nutrient uptake**
 """
-function dNdt(growthparams::NutrientIntake, l, B, N, G)
+function nutrient_dynamics(growthparams::NutrientIntake, l, B, N, G)
     D = growthparams.D
     S = growthparams.Sₗ[l]
     cli = growthparams.Cₗᵢ[l]
@@ -12,7 +12,7 @@ end
 **Nutrient uptake**
 Methode for logistic growth rate
 """
-function dNdt(growthparams::LogisticGrowth, l, B, N, G)
+function nutrient_dynamics(growthparams::LogisticGrowth, l, B, N, G)
     return 0.0
 end
 
