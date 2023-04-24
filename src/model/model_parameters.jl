@@ -9,6 +9,7 @@ mutable struct ModelParameters
     environment::Environment
     functional_response::FunctionalResponse
     producer_growth::ProducerGrowth
+    temperature_response::TemperatureResponse
 end
 #### end ####
 
@@ -36,6 +37,7 @@ function Base.show(io::IO, ::MIME"text/plain", params::ModelParameters)
     println(io, "  biorates: ", params.biorates)
     println(io, "  functional_response: ", params.functional_response)
     println(io, "  producer_growth: ", params.producer_growth)
+    println(io, "  temperature_response: ", params.temperature_response)
 end
 #### end ####
 
@@ -46,6 +48,7 @@ end
         environment::Environment=Environment(foodweb),
         functional_response::FunctionalResponse=BioenergeticResponse(foodweb),
         producer_growth::ProducerGrowth=ProducerGrowth(foodweb),
+        temperature_response::TemperatureResponse
     )
 
 Generate the parameters of the species community.
@@ -60,19 +63,21 @@ The parameters are compartmented in different groups:
   - [`FunctionalResponse`](@ref) (F): functional response form
     (e.g. classic or bioenergetic functional response)
   - [`ProducerGrowth`](@ref): model for producer growth (e.g. logistic or nutrient intake)
+  - [`TemperatureResponse`](@ref): method used for temperature dependency
 
 # Examples
 
 ```jldoctest
 julia> foodweb = FoodWeb([0 1; 0 0]); # create a simple foodweb
 
-julia> p = ModelParameters(foodweb) #TODO
+julia> p = ModelParameters(foodweb) 
 ModelParameters{BioenergeticResponse}:
   network: FoodWeb(S=2, L=1)
   environment: Environment(T=293.15K)
   biorates: BioRates(d, r, x, y, e)
   functional_response: BioenergeticResponse
   producer_growth: LogisticGrowth
+  temperature_response: NoTemperatureResponse
 
 julia> p.network # check that stored foodweb is the same as the one we provided
 FoodWeb of 2 species:
@@ -125,6 +130,7 @@ function ModelParameters(
     environment::Environment = Environment(network),
     functional_response::FunctionalResponse = BioenergeticResponse(network),
     producer_growth::ProducerGrowth = LogisticGrowth(network),
+    temperature_response::TemperatureResponse = NoTemperatureResponse()
 )
     if isa(network, MultiplexNetwork) & !(isa(functional_response, ClassicResponse))
         type_response = typeof(functional_response)
@@ -137,5 +143,6 @@ function ModelParameters(
         environment,
         functional_response,
         producer_growth,
+        temperature_response
     )
 end
