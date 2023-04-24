@@ -50,15 +50,16 @@ include(joinpath(".", "inputs/functional_response.jl"))
 include(joinpath(".", "inputs/biological_rates.jl"))
 include(joinpath(".", "inputs/environment.jl"))
 include(joinpath(".", "inputs/temperature_dependent_rates.jl"))
-include(joinpath(".", "inputs/producer_competition.jl"))
+#include(joinpath(".", "inputs/producer_competition.jl"))
 include(joinpath(".", "inputs/nutrient_intake.jl"))
 include(joinpath(".", "inputs/producer_growth.jl"))
 include(joinpath(".", "model/model_parameters.jl"))
 include(joinpath(".", "model/set_temperature.jl"))
-include(joinpath(".", "model/productivity.jl"))
+#include(joinpath(".", "model/productivity.jl"))
 include(joinpath(".", "model/consumption.jl"))
 include(joinpath(".", "model/metabolic_loss.jl"))
 include(joinpath(".", "model/dbdt.jl"))
+include(joinpath(".", "model/nutrient_dynamics.jl"))
 include(joinpath(".", "model/generate_dbdt.jl"))
 include(joinpath(".", "model/simulate.jl"))
 include(joinpath(".", "model/effect_nti.jl"))
@@ -148,6 +149,7 @@ export NIntakeParams
 export nontrophic_adjacency_matrix
 export NonTrophicIntensity
 export NoTemperatureResponse
+export NutrientIntake
 export population_stability
 export potential_competition_links
 export potential_facilitation_links
