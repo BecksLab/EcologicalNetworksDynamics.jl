@@ -7,7 +7,7 @@ abstract type ProducerGrowth end
 
 struct LogisticGrowth <: ProducerGrowth
     α::SparseMatrixCSC{Float64,Int64} # relative inter to intra-specific competition between producers
-    Kᵢ::Vector{Union{Nothing,<:Real}}
+    Kᵢ::Vector{Union{Nothing,Float64}}
 end
 
 struct NutrientIntake <: ProducerGrowth
@@ -15,7 +15,7 @@ struct NutrientIntake <: ProducerGrowth
     D::Real
     Sₗ::Vector{Float64}
     Cₗᵢ::SparseMatrixCSC{Float64}
-    Kₗᵢ::Matrix{Union{Nothing,<:Real}}
+    Kₗᵢ::Matrix{Union{Nothing,Float64}}
 end
 #### end ####
 
@@ -39,12 +39,11 @@ end
 Multiline NutrientIntake display.
 """
 function Base.show(io::IO, ::MIME"text/plain", model::NutrientIntake)
-    S = size(model.Cₗᵢ, 1)
     println(io, "NutrientIntake - $(model.n) nutrients:")
     println(io, "  D - turnover rate: $(model.D)")
     println(io, "  Sₗ - supply concentrations: " * vector_to_string(model.Sₗ))
-    println(io, "  Cₗᵢ - relative contents: ($S, $S) sparse matrix")
-    print(io, "  Kₗᵢ - half sat. densities: ($S, $S) sparse matrix")
+    println(io, "  Cₗᵢ - relative contents: (S, n) sparse matrix")
+    print(io, "  Kₗᵢ - half sat. densities: (S, n) matrix")
 end
 
 #### end ####
@@ -57,9 +56,11 @@ Creates the parameters needed for the logistic producer growth model, these para
     - α the competition matrix of dimensions S*S, S being the species number of the network. Set to nothing by default.
     - αii the intracompetition term for all species, 1.0 by default.
     - αij the interspecific (relative to intraspecific) competition term for all species, 0.0 by default.
-    - Kᵢ the vector of carrying capacities, set to 1 for all producer by default, meaning that each producer gets its own carrying capacity and that the more producer in the system, the larger the overall carrying capacity.
+    - Kᵢ the vector of carrying capacities, set to 1 for all producer by default, meaning that each producer 
+    gets its own carrying capacity and that the more producer in the system, the larger the overall carrying capacity.
 
-By default, with intraspecific competition set to unity and interspecific competition set to 0, the competition matrix does not affect the system and the model behaves as if where not here. 
+By default, with intraspecific competition set to unity and interspecific competition set to 0, the competition matrix 
+does not affect the system and the model behaves as if where not here. 
 
 # Examples
 ```jldoctest
@@ -122,7 +123,7 @@ julia> myc = LogisticGrowth(foodweb; α = my_α).α
 
 See also [`ModelParameters`](@ref).
 """
-function LogisticGrowth(network::EcologicalNetwork; α = nothing, αii = 1.0, αij = 0.0, K::Union{Tp,Vector{Union{Nothing,Tp}},Vector{Tp}} = 1) where {Tp<:Real}
+function LogisticGrowth(network::EcologicalNetwork; α = nothing, αii = 1.0, αij = 0.0, K = 1) 
     S = richness(network)
     
     # carrying capacity
@@ -155,60 +156,110 @@ function LogisticGrowth(network::EcologicalNetwork; α = nothing, αii = 1.0, α
 end
 
 """
-TODO
+NutrientIntake(network, n = 2, D = 0.25, Sₗ = repeat([10.0], n), Cₗ = [range(1, 0.5, length = n);], Kₗᵢ = 1.0)
+
+Creates the parameters needed for the nutrient intake producer growth model, these parameters are: 
+    - n the number of nutrient in the model 
+    - D the nutrients turnover rate
+    - Sₗ the supply concentration for each nutrient
+    - Cₗ the relative contents of the nutrients in producers
+    - Kₗᵢ the half-saturation densities for nutrient / producer pair
+
+# Examples
+```jldoctest
+julia> foodweb = FoodWeb([0 0 0; 0 0 0; 1 1 0]); # species 1 & 2 producers, 3 consumer
+
+julia> def = NutrientIntake(foodweb) # default behavior
+NutrientIntake - 2 nutrients:
+  D - turnover rate: 0.25
+  Sₗ - supply concentrations: [10.0, 10.0]
+  Cₗᵢ - relative contents: (2, 2) sparse matrix
+  Kₗᵢ - half sat. densities: (2, 2) sparse matrix
+
+julia> def.n
+2
+
+julia> def.D
+0.25
+
+julia> def.Sₗ
+2-element Vector{Float64}:
+ 10.0
+ 10.0
+
+julia> def.Cₗᵢ
+2×2 SparseMatrixCSC{Float64, Int64} with 4 stored entries:
+ 1.0  0.5
+ 1.0  0.5
+
+julia> def.Kₗᵢ
+3×2 Matrix{Union{Nothing, Real}}:
+ 1.0       1.0
+ 1.0       1.0
+  nothing   nothing
+
+julia> # change in the number of producer affects other rates
+julia> NutrientIntake(foodweb; n = 4).Kₗᵢ
+3×4 Matrix{Union{Nothing, Real}}:
+ 1.0       1.0       1.0       1.0
+ 1.0       1.0       1.0       1.0
+  nothing   nothing   nothing   nothing
+
+```
+
+See also [`ModelParameters`](@ref).
+
 """
 function NutrientIntake(network::EcologicalNetwork; 
-    n::Int64 = 2,
-    D::Real = 0.25,
-    Sₗ::Union{Vector{<:Float64},<:Real} = repeat([10.0], n),
-    Cₗᵢ::Union{SparseMatrixCSC{<:Float64}, Vector{<:Float64}, Matrix{<:Float64}} = [range(1, 0.5, length = n);], 
-    Kₗᵢ::Union{Matrix{Union{Nothing,<:Real}}, <:Real} = 1.0)
+    n = 2,
+    D = 0.25,
+    Sₗ = repeat([10.0], n),
+    Cₗᵢ = [range(1, 0.5, length = n);], 
+    Kₗᵢ = 1.0)
 
     np = length(producers(network))
     S = richness(network)
+
     # Sanity check turnover (should be in ]0, 1])
-    if ((D <= 0) | (D > 1))
+    if (D <= 0) || (D > 1)
         throw(ArgumentError("Turnover rate (D) should be in ]0, 1]"))
     end    
 
     # Check size of supply concentration and convert if needed
-    if (length(Sₗ) == 1)
+    if length(Sₗ) == 1
         Sₗ = repeat([Sₗ], n)
     elseif (length(Sₗ) != n)
         throw(ArgumentError("Sₗ should have length n"))
     end
 
     # Convert C to array if needed
-    if (typeof(Cₗᵢ) == Vector{Float64})
-        if (length(Cₗᵢ) != n) 
-            throw(ArgumentError("Cₗᵢ should be of length n or dimensions (number of producer, n)"))
-        end
+    sc = size(Cₗᵢ)
+    if sc == (np, n)
+        Cₗᵢ = sparse(Cₗᵢ)
+    elseif sc == (n,)
         C = repeat(Cₗᵢ, np)
         Cₗᵢ = sparse(reshape(C, n, np) |> transpose)
-    elseif (typeof(Cₗᵢ) == Matrix{Float64})
-        if (size(Cₗᵢ) != (2,2)) 
-            throw(ArgumentError("Cₗᵢ should be of length n or dimensions (number of producer, n)"))
-        end
-        Cₗᵢ = sparse(Cₗᵢ)
+    else
+        throw(ArgumentError("Cₗᵢ should be a vector of length n or a matrix with dimensions (number of producer, n)"))
     end
 
     #Check K and convert if needed
-    if (typeof(Kₗᵢ) == Vector{Float64})
-        if (length(Kₗᵢ) != n) 
-            throw(ArgumentError("Kₗᵢ should be of length n or dimensions (number of producer, n)"))
-        end
-        C = repeat(Kₗᵢ, np)
-        Kₗᵢ = sparse(reshape(C, n, np) |> transpose)
-    elseif (typeof(Kₗᵢ) == Matrix{Float64})
-        if (size(Kₗᵢ) != (2,2)) 
-            throw(ArgumentError("Kₗᵢ should be of length n or dimensions (number of producer, n)"))
-        end
-        Kₗᵢ = sparse(Kₗᵢ)
-    elseif (typeof(Kₗᵢ) <: Real)
-        K = Matrix{Union{Nothing,Float64}}(nothing, 3, n)
-        K[producers(network), 1:n] .= Kₗᵢ
+    sk = size(Kₗᵢ)
+    if sk == (S, n)
+        K = Matrix{Union{Nothing,Float64}}(nothing, S, n)
+        K[producers(network), :] = Kₗᵢ[producers(network), :]
         Kₗᵢ = K
-    end 
+    elseif sk == (np, n)
+        K = Matrix{Union{Nothing,Float64}}(nothing, S, n)
+        K[producers(network), :] = Kₗᵢ
+        Kₗᵢ = K
+    elseif sk == (np,) || sk == () 
+        K = Matrix{Union{Nothing,Float64}}(nothing, S, n)
+        K[producers(network), :] .= Kₗᵢ
+        Kₗᵢ = K
+    else
+        throw(ArgumentError("Kₗᵢ should be a Number, a vector of length n or a matrix with dimensions (number of producer, n)"))
+    end
     
     NutrientIntake(n, D, Sₗ, Cₗᵢ, Kₗᵢ)
 
@@ -225,15 +276,15 @@ end
 """
 function (F::LogisticGrowth)(i, B, r, network::MultiplexNetwork, N = nothing)
     r = effect_facilitation(r, i, B, network)
-    s = sum(F.α[i, :])
+    s = sum(F.α[i, :] .* B) 
     logisticgrowth(B[i], r[i], F.Kᵢ[i], s)
 end
 function (F::LogisticGrowth)(i, B, r, network::FoodWeb, N = nothing)
-    s = sum(F.α[i, :])
+    s = sum(F.α[i, :] .* B)
     logisticgrowth(B[i], r[i], F.Kᵢ[i], s)
 end
 function logisticgrowth(B, r, K, s)
-    !isnothing(K) || return 0
+    isnothing(K) && return 0
     r * B * (1 - s / K)
 end
 
@@ -248,8 +299,10 @@ function (F::NutrientIntake)(i, B, r, network::FoodWeb, N)
     nutrientintake(B[i], r[i], F.Kₗᵢ[i,:], N) 
 end
 function nutrientintake(B, r, K, N)
-    !all(isnothing.(K)) || return 0
+    all(isnothing.(K)) && return 0
     G_li = N ./ (K .+ N)
+    #if N = 0 -> G = NaN, but we want 0 (no growth)
+    G_li[isnan.(G_li)] .= 0.0
     minG = minimum(G_li)
     r * B * minG
 end
