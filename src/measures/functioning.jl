@@ -270,24 +270,24 @@ julia> foodweb = FoodWeb([0 1 1; 0 0 0; 0 0 0]);
 """
 function producer_growth(solution; kwargs...)
     parameters = get_parameters(solution)
-    producer_idxs = producers(parameters.network)
-    producer_species = parameters.network.species[producer_idxs]
+    g = parameters.producer_growth
+    isa(g, LogisticGrowth) || throw(ArgumentError("
+        This function is implemented only for producer growth of type `LogisticGrowth`.
+    "))
+    prods = producers(parameters.network) # Producer indexes.
+    n_prods = length(prods)
 
-    Kp = parameters.environment.K[producer_idxs]
-    rp = parameters.biorates.r[producer_idxs]
-    αp = parameters.producer_competition.α[producer_idxs, producer_idxs]
+    # Extract the producer biomass over the last timesteps.
+    measure_on = extract_last_timesteps(solution; kwargs...)
+    n_time_steps = size(measure_on, 2)
 
-    #Extract the producer_species biomass over the last timesteps
-    measure_on = extract_last_timesteps(solution; idxs = producer_idxs, kwargs...)
-
-    growth = zeros(length(producer_idxs), size(measure_on, 2))
-    for (i, α) in enumerate(eachrow(αp)), (j, B) in enumerate(eachcol(measure_on))
-        s = sum(α .* B)
-        growth[i, j] = logisticgrowth(B[i], rp[i], Kp[i], s)
+    growth = zeros(n_prods, n_time_steps)
+    for (i, p) in enumerate(prods), (j, B) in enumerate(eachcol(measure_on))
+        growth[i, j] = g(p, B, parameters)
     end
 
     (
-        species = producer_species,
+        species = parameters.network.species[prods],
         mean = mean.(eachrow(growth)),
         std = std.(eachrow(growth)),
         all = growth,

@@ -1,181 +1,70 @@
-@testset "Logistic growth" begin
-    # Intern method
-    B, r, K, s = 1, 1, nothing, 0
-    @test EcologicalNetworksDynamics.logisticgrowth(B, r, K, s) == 0 # K is nothing, growth is null
-    B, r, K, s = 1, 0, 1, 0
-    @test EcologicalNetworksDynamics.logisticgrowth(B, r, K, s) == 0 # r is null, growth is null
-    B, r, K, s = 0, 1, 1, 0
-    @test EcologicalNetworksDynamics.logisticgrowth(B, r, K, s) == 0 # B is null, growth is null
-    B, r, K, s = 2, 1, 2, 2
-    @test EcologicalNetworksDynamics.logisticgrowth(B, r, K, s) == 0 # B = K, growth is null
-    @test EcologicalNetworksDynamics.logisticgrowth.(0.5, 1, 1, 0.5) == 0.5 * 1 * (1 - 0.5 / 1)
+@testset "LogisticGrowth functor" begin
 
-    # Extern method without facilitation and with intracompetition only
-    foodweb = FoodWeb([0 0 0; 0 0 0; 1 1 0]) # 1 & 2 producers
-    S = EcologicalNetworksDynamics.richness(foodweb)
-    p = ModelParameters(
-        foodweb;
-        producer_growth = LogisticGrowth(foodweb; αii = 1.0, αij = 0.0),
-    )
-    K, r, α = p.environment.K, p.biorates.r, p.producer_growth.α
+    foodweb_to_test = [
+        FoodWeb([0 0; 0 0]; quiet = true), # 2 producers.
+        FoodWeb([0 0 0; 0 0 0; 1 1 0]; quiet = true), # 2 producers and 1 consumer.
+    ]
 
-    mat_expected_growth = [0 0 0; 0.25 0.25 0]
-    for (i, B) in enumerate(fill.([1, 0.5], S)) # ~ [[1, 1, 1], [0.5, 0.5, 0.5]]
-        for (sp, expected_growth) in enumerate(mat_expected_growth[i, :])
-            println((i, sp))
-            prodgrowth = LogisticGrowth(foodweb)
-            prodgrowth_α = LogisticGrowth(foodweb, α = α)
-            @test prodgrowth(sp, B, r, foodweb, nothing) == 
-                prodgrowth_α(sp, B, r, foodweb, nothing) == 
-                expected_growth
-        end
+    for (i, network) in enumerate(foodweb_to_test), f0 in [0, rand()]
+        # Default behavior.
+        S = richness(network)
+        A = zeros(Integer, S, S)
+        A[1, 2] = A[2, 1] = 1
+        f0 > 0 && (network = MultiplexNetwork(network; facilitation = (A = A, I = f0)))
+        functional_response = ClassicResponse(network)
+        model = ModelParameters(network; functional_response)
+        g = model.producer_growth
+        @test isa(g, LogisticGrowth)
+        u = rand(richness(model))
+        @test g(1, u, model) == (1 + f0 * u[2]) * u[1] * (1 - u[1] / 1)
+        @test g(2, u, model) == (1 + f0 * u[1]) * u[2] * (1 - u[2] / 1)
+        i == 2 && @test g(3, u, model) == 0.0
+
+        # Change carrying capacity and intrinsic growth rate.
+        K = [isproducer(i, network) ? 1 + rand() : nothing for i in species(model)]
+        r = [isproducer(i, network) ? rand() : 0 for i in species(model)]
+        g = LogisticGrowth(network; K)
+        biorates = BioRates(network; r)
+        model = ModelParameters(network; producer_growth = g, biorates, functional_response)
+        @test g(1, u, model) == r[1] * (1 + f0 * u[2]) * u[1] * (1 - u[1] / K[1])
+        @test g(2, u, model) == r[2] * (1 + f0 * u[1]) * u[2] * (1 - u[2] / K[2])
+        i == 2 && @test g(3, u, model) == 0.0
+
+        # With producer competition.
+        # Change intra-specific competition only.
+        a_ii = rand()
+        g = LogisticGrowth(network; a_ii)
+        model = ModelParameters(network; producer_growth = g, functional_response)
+        @test g(1, u, model) == 1 * (1 + f0 * u[2]) * u[1] * (1 - (a_ii * u[1]) / 1)
+        @test g(2, u, model) == 1 * (1 + f0 * u[1]) * u[2] * (1 - (a_ii * u[2]) / 1)
+        # Change intra and inter-specific competition.
+        a_ii, a_ij = rand(2)
+        g = LogisticGrowth(network; a_ii, a_ij)
+        model = ModelParameters(network; producer_growth = g, functional_response)
+        s1 = a_ii * u[1] + a_ij * u[2]
+        s2 = a_ii * u[2] + a_ij * u[1]
+        @test g(1, u, model) == 1 * (1 + f0 * u[2]) * u[1] * (1 - s1 / 1)
+        @test g(2, u, model) == 1 * (1 + f0 * u[1]) * u[2] * (1 - s2 / 1)
+        i == 2 && @test g(3, u, model) == 0.0
     end
 
-    p = ModelParameters(foodweb; biorates = BioRates(foodweb; r = 2))
-    K, r, α = p.environment.K, p.biorates.r, p.producer_growth.α
-    B = [0.5, 0.5, 0.5]
-    expected_growth = [0.5, 0.5, 0]
-    for i in 1:3
-        prodgrowth = LogisticGrowth(foodweb)
-        prodgrowth_α = LogisticGrowth(foodweb, α = α)
-        @test prodgrowth(i, B, r, foodweb, nothing) == 
-            prodgrowth_α(i, B, r, foodweb, nothing) == 
-            expected_growth[i]
+    # Test a simple simulation with producer competition.
+    foodweb = FoodWeb([0 0 0; 0 0 0; 0 0 1]; quiet = true)
+    biorates = BioRates(foodweb; d = 0)
+    producer_growth = LogisticGrowth(foodweb; a_ii = 1, a_ij = 1)
+    model = ModelParameters(foodweb; producer_growth, biorates)
+    u0 = 0.5 # All species have an initial biomass of u0.
+    sol = simulates(model, u0; verbose = false)
+    @test sol[1:2, end] == [0.5, 0.5]
+
+    # Test a simulation with only inter-specific producer competition and
+    # another simulation with only intra-specific competition.
+    kwargs = [Dict(:a_ii => 0, :a_ij => 1), Dict(:a_ii => 1, :a_ij => 0)]
+    for kw in kwargs
+        producer_growth = LogisticGrowth(foodweb; kw...)
+        model = ModelParameters(foodweb; producer_growth, biorates)
+        sol = simulates(model, u0; verbose = false)
+        @test sol[1:2, end] ≈ [1, 1]
     end
 
-    # Extern method with intra and intercompetition
-    p = ModelParameters(
-        foodweb;
-        producer_growth = LogisticGrowth(foodweb; αii = 1.0, αij = 1.0),
-    )
-    K, r, α = p.environment.K, p.biorates.r, p.producer_growth.α
-    B = [0.5, 0.5, 0.5]
-    for i in 1:3
-        # It is like each producer had a density of one (look the "B * 2" in the
-        # left call of the function)
-        prodgrowth = LogisticGrowth(foodweb)
-        prodgrowth_α = LogisticGrowth(foodweb, α = α)
-        @test prodgrowth(i, B*2, r, foodweb, nothing) == 
-            prodgrowth_α(i, B, r, foodweb, nothing) == 
-            0.0
-    end
-
-    # Test producer competition
-    # 1 & 2 producer; 3 consumer
-    A = [0 0 0; 0 0 0; 0 0 1]
-    foodweb = FoodWeb(A; quiet = true)
-    rates = BioRates(foodweb; d = 0)
-    # K = 1, intercompetition (default)
-    p = ModelParameters(
-        foodweb;
-        producer_growth = LogisticGrowth(foodweb; αii = 1.0, αij = 1.0),
-        biorates = rates
-    )
-    @test simulates(p, [0.5, 0.5, 0.5])[1:2, end] == [0.5, 0.5]
-
-    p_inter_only = ModelParameters(
-        foodweb;
-        producer_growth = LogisticGrowth(foodweb; αii = 0.0, αij = 1.0),
-        biorates = rates,
-    )
-    s_inter_only = simulates(p_inter_only, [0.5, 0.5, 0.5])
-    p_intra_only = ModelParameters(
-        foodweb;
-        producer_growth = LogisticGrowth(foodweb; αii = 1.0, αij = 0.0),
-        biorates = rates,
-    )
-    s_intra_only = simulates(p_intra_only, [0.5, 0.5, 0.5])
-    @test s_inter_only[1:2, end] == s_intra_only[1:2, end] ≈ [1.0, 1.0]
-
-    # Extern method with facilitation
-    foodweb = FoodWeb([0 0 0; 0 0 0; 1 1 0]) # 1 & 2 producers
-    multiplex_network = MultiplexNetwork(foodweb; C_facilitation = 1.0)
-    # Facilitation to 0 <=> the growth is unchanged (compared to above section)
-    multiplex_network.layers[:facilitation].intensity = 0.0
-    response = ClassicResponse(multiplex_network) # avoid warning
-    p = ModelParameters(multiplex_network; functional_response = response)
-    K, r = p.producer_growth.Kᵢ, p.biorates.r
-    B = [1, 1, 1]
-    @test p.producer_growth(1, B, r, multiplex_network) == 0
-    @test p.producer_growth(2, B, r, multiplex_network) == 0
-    @test p.producer_growth(3, B, r, multiplex_network) == 0
-    B = [0.5, 0.5, 0.5]
-    @test p.producer_growth(1, B, r, multiplex_network) == 0.25
-    @test p.producer_growth(2, B, r, multiplex_network) == 0.25
-    @test p.producer_growth(3, B, r, multiplex_network) == 0
-    rates = BioRates(multiplex_network; r = 2)
-    p = ModelParameters(multiplex_network; functional_response = response, biorates = rates)
-    K, r = p.producer_growth.Kᵢ, p.biorates.r
-    @test p.producer_growth(1, B, r, multiplex_network) == 0.5
-    @test p.producer_growth(2, B, r, multiplex_network) == 0.5
-    @test p.producer_growth(3, B, r, multiplex_network) == 0
-    # Facilitation > 0 <=> the growth is changed (compared to above section)
-    for f0 in [1.0, 2.0, 5.0, 10.0]
-        multiplex_network.layers[:facilitation].intensity = f0
-        p = ModelParameters(multiplex_network; functional_response = response)
-        K, r = p.producer_growth.Kᵢ, p.biorates.r
-        B = [1, 1, 1]
-        @test p.producer_growth(
-            1,
-            B,
-            r,
-            multiplex_network,
-        ) == 0
-        @test p.producer_growth(
-            2,
-            B,
-            r,
-            multiplex_network,
-        ) == 0
-        @test p.producer_growth(
-            3,
-            B,
-            r,
-            multiplex_network,
-        ) == 0
-        B = [0.5, 0.5, 0.5]
-        @test p.producer_growth(
-            1,
-            B,
-            r,
-            multiplex_network
-        ) == 0.25 * (1 + f0)
-        @test p.producer_growth(
-            2,
-            B,
-            r,
-            multiplex_network
-        ) == 0.25 * (1 + f0)
-        @test p.producer_growth(
-            3,
-            B,
-            r,
-            multiplex_network
-        ) == 0
-        rates = BioRates(multiplex_network; r = 2)
-        p = ModelParameters(
-            multiplex_network;
-            functional_response = response,
-            biorates = rates
-        )
-        K, r = p.producer_growth.Kᵢ, p.biorates.r
-        @test p.producer_growth(
-            1,
-            B,
-            r,
-            multiplex_network,
-        ) == 0.5 * (1 + f0)
-        @test p.producer_growth(
-            2,
-            B,
-            r,
-            multiplex_network,
-        ) == 0.5 * (1 + f0)
-        @test p.producer_growth(
-            3,
-            B,
-            r,
-            multiplex_network,
-        ) == 0
-    end
 end

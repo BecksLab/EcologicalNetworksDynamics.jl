@@ -1,22 +1,25 @@
-#=
-Productivity
-=#
-
-function logisticgrowth(i, B, r, K, s, network::MultiplexNetwork)
-    r = effect_facilitation(r, i, B, network)
-    logisticgrowth(B[i], r, K, s)
+function (g::LogisticGrowth)(i, u, params::ModelParameters)
+    isnothing(g.K[i]) && return 0.0 # Species i is not a producer.
+    B = u[species(params)]
+    network = params.network
+    r = params.biorates.r
+    r_i = isa(network, MultiplexNetwork) ? effect_facilitation(r[i], i, B, network) : r[i]
+    s = sum(g.a[i, :] .* B)
+    r_i * B[i] * (1 - s / g.K[i])
 end
 
-logisticgrowth(i, B, r, K, s, _::FoodWeb) = logisticgrowth(B[i], r, K, s)
-logisticgrowth(i, B, r, K, ::FoodWeb) = logisticgrowth(B[i], r, K, B[i])
-
-logisticgrowth(i, B, r, K, network::MultiplexNetwork) =
-    logisticgrowth(i, B, r, K, B[i], network::MultiplexNetwork)
-
-function logisticgrowth(B, r, K, s = B)
-    !isnothing(K) || return 0
-    r * B * (1 - s / K)
+function (g::NutrientIntake)(i, u, params::ModelParameters)
+    isproducer(i, params.network) || return 0.0
+    network = params.network
+    B = u[species(params)]
+    N = u[nutrients(params)]
+    r = params.biorates.r
+    r_i = isa(network, MultiplexNetwork) ? effect_facilitation(r[i], i, B, network) : r[i]
+    growth(N, k) = (N, k) == (0, 0) ? 0 : N / (N + k)
+    growth_vec = growth.(N, g.half_saturation[i, :])
+    r_i * B[i] * minimum(growth_vec)
 end
+
 # Code generation version (raw) (↑ ↑ ↑ DUPLICATED FROM ABOVE ↑ ↑ ↑).
 # (update together as long as the two coexist)
 function logisticgrowth(i, parms::ModelParameters)

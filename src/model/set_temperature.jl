@@ -1,26 +1,24 @@
 #### Functors for temperature dependence methods ####
 
-# No Temperature Response Functor
-function (F::NoTemperatureResponse)(params::ModelParameters, T)
-    # record temperature in env, even though it has no effect
-    params.environment.T = T
-end
+(F::NoTemperatureResponse)(params::ModelParameters, T) = params.environment.T = T
 
 # Exponential Boltzmann Arrhenius Functor.
 function (F::ExponentialBA)(params::ModelParameters, T;)
+    isa(params.producer_growth, NutrientIntake) && throw(
+        ArgumentError(
+            "Temperature dependence is not compatible with nutrient intake dynamics. \
+            Either deactivate temperature dependence or \
+            switch producer growth to `LogisticGrowth`.",
+        ),
+    )
     net = params.network
-    ## change params within BioRates
     params.biorates.r = Vector{Float64}(exp_ba_vector_rate(net, T, F.r))
     params.biorates.x = Vector{Float64}(exp_ba_vector_rate(net, T, F.x))
-    ## change params within FunctionalResponse
     params.functional_response.hₜ = exp_ba_matrix_rate(net, T, F.hₜ)
     params.functional_response.aᵣ = exp_ba_matrix_rate(net, T, F.aᵣ)
-    ## change params within Environment
-    params.environment.K = exp_ba_vector_rate(net, T, F.K)
+    params.producer_growth.K = exp_ba_vector_rate(net, T, F.K)
     params.environment.T = T
 end
-
-### setting the temperature
 
 # The entry point for the user.
 """

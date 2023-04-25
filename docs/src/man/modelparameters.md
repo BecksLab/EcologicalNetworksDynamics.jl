@@ -127,8 +127,8 @@ biorates = BioRates(foodweb; x = rate) # custom metabolic demand
 
 Two models are available for producers growth:
 
-- a logistic growth model, used by default and a
-- a nutrient intake model.
+  - a logistic growth model, used by default and a
+  - a nutrient intake model.
 
 In both models, the producer biomasses $B_p$ grow following the general equation:
 
@@ -138,11 +138,11 @@ $$
 
 where $r_i$ is producer's $i$ intrinsic growth rate, $B_i$ its biomass and $G_i$ its net growth term. The latter can take different forms depending on the growth model in use.
 
-The model is controlled by the field `producer_growth` in model parameters. 
+The model is controlled by the field `producer_growth` in model parameters.
 
 ### The logistic model
 
-In the logistic model, $G_i$ takes the general form 
+In the logistic model, $G_i$ takes the general form
 
 $$
 G_i = 1 - \frac{s}{K_i}
@@ -150,7 +150,7 @@ $$
 
 where the numerator $s$ can take the simplest form $s = B_i$ (default) or include a matrix $\alpha$ describing the relative strength of the inter- vs intra-specific competition among producer. In this case, $s = \sum\alpha_{ij}B_j$ The matrix $\alpha$ should have as many rows and columns as there are producers in the food web. When the intra-specific competition is $1$ ($\alpha_{ii} = 1$), then species pairing with values below $1$ ($\alpha_{ij} < 1$) describe something akin to facilitation and values above $1$ ($\alpha_{ij} > 1$) describe a stronger inter-specific competition (that would lead to competitive exclusion in the absence of other processes). Note that when all non diagonal values are set to $0$, then $s = \sum\alpha_{ij}B_j = B_j$ and the two models are equivalent.
 
-When setting up the simulations, the logistic model is controlled as followed: 
+When setting up the simulations, the logistic model is controlled as followed:
 
 ```
 julia> foodweb = FoodWeb([0 0 0; 0 0 0; 1 1 0])
@@ -177,7 +177,7 @@ ModelParameters{BioenergeticResponse, LogisticGrowth}:
   temperature_response: NoTemperatureResponse
 ```
 
-which allows to control the value of the carrying capacities and the matrix of competition: 
+which allows to control the value of the carrying capacities and the matrix of competition:
 
 ```
 julia> logmod = LogisticGrowth(foodweb, K = [10, 5, nothing], αij = 0.8)
@@ -186,9 +186,9 @@ LogisticGrowth:
   α - competition: (3, 3) sparse matrix
 ```
 
-### The nutrient intake model 
+### The nutrient intake model
 
-The nutrient intake model is implemented following Brose et al., 2005. In this model, the net growth terms depends on nutrients $l$ concentration ($N_l$) and take the form: 
+The nutrient intake model is implemented following Brose et al., 2005. In this model, the net growth terms depends on nutrients $l$ concentration ($N_l$) and take the form:
 
 $$
 G_i(N) = MIN(\frac{N_l}{K_{li} + N_l}, ...)
@@ -196,7 +196,7 @@ $$
 
 where $K_{li}$ describes the species-specific half saturation densities for each nutrient $l$. In the absence of other factors it describes the producers hierarchy of competition (lower values means higher intake efficiency).
 
-The nutrients concentrations are described as: 
+The nutrients concentrations are described as:
 
 $$
 dN_l/dt = D(S_l - N_l)-\sum^n_{i = 1}(C_{li}G_i(N)B_i)
@@ -204,7 +204,7 @@ $$
 
 where $D$ is the system turnover (default is 0.25), $S_l$ is nutrient $l$'s supply concentration and $C_{li}$ is the concentration of the nutrients in the producers biomass (the higher it is the most needed the nutrient is for the species growth).
 
-As for the logistic model, the nutrient intake model's behavior is controlled through the use of the `producer_growth` field: 
+As for the logistic model, the nutrient intake model's behavior is controlled through the use of the `producer_growth` field:
 
 ```
 julia> foodweb = FoodWeb([0 0 0; 0 0 0; 1 1 0])
@@ -223,7 +223,7 @@ NutrientIntake - 2 nutrients:
   Kₗᵢ - half sat. densities: (S, n) matrix
 ```
 
-By default, the models has 2 nutrients, but has for every other parameters, this can be changed: 
+By default, the models has 2 nutrients, but has for every other parameters, this can be changed:
 
 ```
 julia> ni4 = NutrientIntake(foodweb, n = 4)

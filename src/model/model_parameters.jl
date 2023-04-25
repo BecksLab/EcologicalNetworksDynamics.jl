@@ -68,10 +68,9 @@ The parameters are compartmented in different groups:
 # Examples
 
 ```jldoctest
-julia> foodweb = FoodWeb([0 1; 0 0]); # create a simple foodweb
-
-julia> p = ModelParameters(foodweb) 
-ModelParameters{BioenergeticResponse}:
+julia> foodweb = FoodWeb([0 1; 0 0])
+       p = ModelParameters(foodweb)
+ModelParameters{BioenergeticResponse, LogisticGrowth}:
   network: FoodWeb(S=2, L=1)
   environment: Environment(T=293.15K)
   biorates: BioRates(d, r, x, y, e)
@@ -79,7 +78,7 @@ ModelParameters{BioenergeticResponse}:
   producer_growth: LogisticGrowth
   temperature_response: NoTemperatureResponse
 
-julia> p.network # check that stored foodweb is the same as the one we provided
+julia> p.network # Check that stored foodweb is the same as the one we provided.
 FoodWeb of 2 species:
   A: sparse matrix with 1 links
   M: [1.0, 1.0]
@@ -87,18 +86,16 @@ FoodWeb of 2 species:
   method: unspecified
   species: [s1, s2]
 
-julia> p.functional_response # default is bioenergetic
+julia> p.functional_response # Default is bioenergetic.
 BioenergeticResponse:
   B0: [0.5, 0.5]
   c: [0.0, 0.0]
   h: 2.0
   ω: (2, 2) sparse matrix
 
-julia> classic_response = ClassicResponse(foodweb); # choose classic functional response
-
-julia> p = ModelParameters(foodweb; functional_response = classic_response);
-
-julia> p.functional_response # check that the functional response is now "classic"
+julia> classic_response = ClassicResponse(foodweb)
+       p = ModelParameters(foodweb; functional_response = classic_response);
+       p.functional_response # Check that the functional response is now "classic".
 ClassicResponse:
   c: [0.0, 0.0]
   h: 2.0
@@ -110,31 +107,29 @@ ClassicResponse:
 [`ModelParameters`](@ref) can also be generated from a [`MultiplexNetwork`](@ref).
 
 ```jldoctest
-julia> foodweb = FoodWeb([0 1; 0 0]); # create a simple foodweb
-
-julia> net = MultiplexNetwork(foodweb); # convert to Multiplex Network
-
-julia> p = ModelParameters(net; functional_response = ClassicResponse(net))
-ModelParameters{ClassicResponse}:
+julia> foodweb = FoodWeb([0 1; 0 0])
+       net = MultiplexNetwork(foodweb)
+       p = ModelParameters(net; functional_response = ClassicResponse(net))
+ModelParameters{ClassicResponse, LogisticGrowth}:
   network: MultiplexNetwork(S=2, Lt=1, Lc=0, Lf=0, Li=0, Lr=0)
-  environment: Environment(K=[nothing, 1], T=293.15K)
+  environment: Environment(T=293.15K)
   biorates: BioRates(d, r, x, y, e)
   functional_response: ClassicResponse
-  producer_competition: ProducerCompetition((2, 2) matrix)
+  producer_growth: LogisticGrowth
   temperature_response: NoTemperatureResponse
 ```
 """
 function ModelParameters(
     network::EcologicalNetwork;
     biorates::BioRates = BioRates(network),
-    environment::Environment = Environment(network),
+    environment::Environment = Environment(),
     functional_response::FunctionalResponse = BioenergeticResponse(network),
     producer_growth::ProducerGrowth = LogisticGrowth(network),
-    temperature_response::TemperatureResponse = NoTemperatureResponse()
+    temperature_response::TemperatureResponse = NoTemperatureResponse(),
 )
     if isa(network, MultiplexNetwork) & !(isa(functional_response, ClassicResponse))
         type_response = typeof(functional_response)
-        @warn "Non-trophic interactions aren't implented for '$type_response'.
+        @warn "Non-trophic interactions are not implented for '$type_response'.
             Use a functional response of type 'ClassicResponse' instead."
     end
     ModelParameters(
@@ -143,6 +138,6 @@ function ModelParameters(
         environment,
         functional_response,
         producer_growth,
-        temperature_response
+        temperature_response,
     )
 end
