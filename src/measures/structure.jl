@@ -7,7 +7,7 @@ richness(net::EcologicalNetwork) = richness(get_trophic_adjacency(net))
 richness(A::AbstractMatrix) = size(A, 1)
 
 """
-Connectance of network: number of links / (number of species)^2
+Connectance of network: number of links / (number of species)²
 """
 connectance(A::AbstractMatrix) = sum(A) / richness(A)^2
 connectance(foodweb::FoodWeb) = connectance(foodweb.A)
@@ -34,7 +34,7 @@ isproducer(i, net::FoodWeb) = isproducer(i, net.A)
 isproducer(i, net::MultiplexNetwork) = isproducer(i, net.layers[:trophic].A)
 
 """
-Return indexes of the producers of the given `network`.
+Return indices of the producers of the given `network`.
 """
 producers(net) = filter(isproducer, net)
 producers(A::AbstractMatrix) = (1:richness(A))[all(A .== 0; dims = 2)|>vec]
@@ -44,9 +44,9 @@ producers(A::AbstractMatrix) = (1:richness(A))[all(A .== 0; dims = 2)|>vec]
 """
     predators_of(i, network)
 
-Return indexes of the predators of species `i` for the given `network`.
+Return indices of the predators of species `i` for the given `network`.
 
-# Examples
+# Examples:
 
 ```jldoctest
 julia> foodweb = FoodWeb([0 0 0; 1 0 0; 1 1 0]);
@@ -78,7 +78,7 @@ ispredator(i, net::FoodWeb) = ispredator(i, net.A)
 ispredator(i, net::MultiplexNetwork) = ispredator(i, net.layers[:trophic].A)
 
 """
-Return indexes of the predators of the given `network`.
+Return indices of the predators of the given `network`.
 """
 predators(net::EcologicalNetwork) = filter(ispredator, net)
 #### end ####
@@ -87,9 +87,9 @@ predators(net::EcologicalNetwork) = filter(ispredator, net)
 """
     preys_of(i, network)
 
-Return indexes of the preys of species `i` for the given `network`.
+Return indices of the preys of species `i` for the given `network`.
 
-# Examples
+# Examples:
 
 ```jldoctest
 julia> foodweb = FoodWeb([0 0 0; 0 0 0; 1 1 0]);
@@ -117,7 +117,7 @@ isprey(i, net::FoodWeb) = isprey(i, net.A)
 isprey(i, net::MultiplexNetwork) = isprey(i, net.layers[:trophic].A)
 
 """
-Return indexes of the preys of the network (`net`).
+Return indices of the preys of the network (`net`).
 """
 preys(net::EcologicalNetwork) = filter(isprey, net)
 preys(A::AbstractSparseMatrix) = [i for i in 1:size(A, 1) if !isempty(A[:, i].nzval)]
@@ -269,7 +269,7 @@ trophic_classes() = (:producers, :intermediate_consumers, :top_predators)
 
 Remove a list of species from a `FoodWeb`, a `MultiplexNetwork` or an adjacency matrix.
 
-# Examples
+# Examples:
 
 Adjacency matrix.
 
