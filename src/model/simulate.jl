@@ -155,14 +155,11 @@ function simulate(
     diff_code_data = (dudt!, params),
     kwargs...,
 )
-    # Check for consistency and format input arguments.
+    # Check for consistency and process input arguments.
     S = richness(params)
-    all(B0 .>= 0) || throw(
-        ArgumentError(
-            "Inital biomasses provided in 'B0' should be all non-negative." *
-            "You gave B0 = $B0 which contains negative value(s).",
-        ),
-    )
+    all(B0 .>= 0) ||
+        throw(ArgumentError("The argument received B0 = $B0 contains negative value(s). \
+                             Initial biomasses should all be non-negative."))
     length(B0) == 1 && (B0 = fill(B0[1], S))
     @check_equal_richness length(B0) S
     @check_lower_than t0 tmax
@@ -193,14 +190,13 @@ function simulate(
     # Set initial nutrient abundances `N0` and initial species biomass `B0`.
     if isa(params.producer_growth, NutrientIntake)
         isnothing(N0) &&
-            throw(ArgumentError("If producer growth is of type `NutrientIntake`, \
-                                you should provide initial abundances for the nutrients \
-                                via the `N0` argument."))
+            throw(ArgumentError("If producer growth is of type `$NutrientIntake`, \
+                                 use the `N0` to provide initial nutrient abundances."))
         n = nutrient_richness(params)
         length(N0) == 1 && (N0 = fill(N0[1], n))
         @assert length(N0) == n || throw(
-            ArgumentError("Initial nutrient abundances should be of length 1 or n,\
-                          where n is the number of nutrients in your model."),
+            ArgumentError("The model contains $n nutrients, \
+                          but $(length(N0)) initial nutrient abundances were provided."),
         )
         u0 = vcat(B0, N0)
     else
@@ -214,7 +210,7 @@ function simulate(
         problem,
         alg;
         callback = callback,
-        isoutofdomain = (u, p, t) -> any(x -> x < 0, u[1:S]),
+        isoutofdomain = (u, p, t) -> any(x -> x < 0, u[species_indexes(params)]),
         kwargs...,
     )
     sol
@@ -238,7 +234,7 @@ function ExtinctionCallback(extinction_threshold, p::ModelParameters, verbose::B
     # a non-extinct species biomass goes below the threshold.
     # Use either adequate code based on `extinction_threshold` type.
     # This avoids that the type condition be checked on every timestep.
-    sp = species(p) # Vector of species indexes.
+    sp = species_indexes(p) # Vector of species indexes.
     species_under_threshold = if isa(extinction_threshold, Number)
         (u, _, _) -> any(u[sp][u[sp].>0] .< extinction_threshold)
     else
@@ -248,7 +244,7 @@ function ExtinctionCallback(extinction_threshold, p::ModelParameters, verbose::B
     get_extinct_species = if isa(extinction_threshold, Number)
         (u, sp) -> Set(findall(x -> x < extinction_threshold, u[sp]))
     else
-        (u, sp) -> Set((sp)[u[sp].<extinction_threshold])
+        (u, sp) -> Set(sp[u[sp].<extinction_threshold])
     end
 
     # Effect of the callback: the species biomass below the threshold are set to 0.
@@ -259,7 +255,7 @@ function ExtinctionCallback(extinction_threshold, p::ModelParameters, verbose::B
         prev_extinct_sp = keys(integrator.p.extinct_sp)
         # Species that are newly extinct, i.e. the species that triggered the callback.
         new_extinct_sp = setdiff(all_extinct_sp, prev_extinct_sp)
-        integrator.u[[sp for sp in new_extinct_sp]] .= 0.0
+        integrator.u[collect(new_extinct_sp)] .= 0.0
         t = integrator.t
         new_extinct_sp_dict = Dict(sp => t for sp in new_extinct_sp)
         merge!(integrator.p.extinct_sp, new_extinct_sp_dict) # update extinct species list

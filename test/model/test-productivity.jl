@@ -21,8 +21,8 @@
         i == 2 && @test g(3, u, model) == 0.0
 
         # Change carrying capacity and intrinsic growth rate.
-        K = [isproducer(i, network) ? 1 + rand() : nothing for i in species(model)]
-        r = [isproducer(i, network) ? rand() : 0 for i in species(model)]
+        K = [isproducer(i, network) ? 1 + rand() : nothing for i in species_indexes(model)]
+        r = [isproducer(i, network) ? rand() : 0 for i in species_indexes(model)]
         g = LogisticGrowth(network; K)
         biorates = BioRates(network; r)
         model = ModelParameters(network; producer_growth = g, biorates, functional_response)
@@ -33,13 +33,13 @@
         # With producer competition.
         # Change intra-specific competition only.
         a_ii = rand()
-        g = LogisticGrowth(network; a_ii)
+        g = LogisticGrowth(network; a = a_ii)
         model = ModelParameters(network; producer_growth = g, functional_response)
         @test g(1, u, model) == 1 * (1 + f0 * u[2]) * u[1] * (1 - (a_ii * u[1]) / 1)
         @test g(2, u, model) == 1 * (1 + f0 * u[1]) * u[2] * (1 - (a_ii * u[2]) / 1)
         # Change intra and inter-specific competition.
         a_ii, a_ij = rand(2)
-        g = LogisticGrowth(network; a_ii, a_ij)
+        g = LogisticGrowth(network; a = (a_ii, a_ij))
         model = ModelParameters(network; producer_growth = g, functional_response)
         s1 = a_ii * u[1] + a_ij * u[2]
         s2 = a_ii * u[2] + a_ij * u[1]
@@ -51,7 +51,7 @@
     # Test a simple simulation with producer competition.
     foodweb = FoodWeb([0 0 0; 0 0 0; 0 0 1]; quiet = true)
     biorates = BioRates(foodweb; d = 0)
-    producer_growth = LogisticGrowth(foodweb; a_ii = 1, a_ij = 1)
+    producer_growth = LogisticGrowth(foodweb; a = (diag = 1, offdiag = 1))
     model = ModelParameters(foodweb; producer_growth, biorates)
     u0 = 0.5 # All species have an initial biomass of u0.
     sol = simulates(model, u0; verbose = false)
@@ -59,7 +59,7 @@
 
     # Test a simulation with only inter-specific producer competition and
     # another simulation with only intra-specific competition.
-    kwargs = [Dict(:a_ii => 0, :a_ij => 1), Dict(:a_ii => 1, :a_ij => 0)]
+    kwargs = [Dict(:a => (0, 1)), Dict(:a => (1, 0))]
     for kw in kwargs
         producer_growth = LogisticGrowth(foodweb; kw...)
         model = ModelParameters(foodweb; producer_growth, biorates)

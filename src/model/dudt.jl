@@ -1,13 +1,21 @@
+"""
+    dudt!(du, u, p, _)
+
+Compute the species and nutrients (when relevant) abundance derivatives `du`,
+given the abundances `u` and the model `p`.
+The last silent argument is the time at which is evaluated the derivates
+and is a requirement of DifferentialEquations.
+"""
 function dudt!(du, u, p, _)
     params, extinct_sp = p
     S = richness(params)
-    B = u[species(params)]
+    B = u[species_indexes(params)]
     response_matrix = params.functional_response(B, params.network)
     network = params.network
     growth = fill(0.0, S) # Vector of producer growths.
 
     # Compute species biomass dynamics.
-    for i in species(params)
+    for i in species_indexes(params)
         growth[i] = params.producer_growth(i, u, params)
         eating, being_eaten = consumption(i, B, params, response_matrix)
         metabolism_loss = metabolic_loss(i, B, params)
@@ -18,8 +26,9 @@ function dudt!(du, u, p, _)
     end
 
     # Compute nutrient abundance dynamics.
-    for i in nutrients(params)
-        du[i] = nutrient_dynamics(params, u, i, growth)
+    for (i_nutrient, i_u) in enumerate(nutrient_indexes(params))
+        n = u[i_u]
+        du[i_u] = nutrient_dynamics(params, B, i_nutrient, n, growth)
     end
 
     # Avoid zombie species by forcing extinct biomasses to zero.

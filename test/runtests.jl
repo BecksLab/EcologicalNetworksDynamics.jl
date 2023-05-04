@@ -42,7 +42,7 @@ test_files = [
     "model/test-consumption.jl",
     "model/test-simulate.jl",
     "model/test-zombies.jl",
-    "model/test-nutrientintake.jl",
+    "model/test-nutrient_intake.jl",
     "model/test-set_temperature.jl",
     "measures/test-functioning.jl",
     "measures/test-stability.jl",

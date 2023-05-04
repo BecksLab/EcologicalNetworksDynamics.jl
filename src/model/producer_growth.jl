@@ -1,7 +1,7 @@
 # Producer growth functors.
 function (g::LogisticGrowth)(i, u, params::ModelParameters)
     isnothing(g.K[i]) && return 0.0 # Species i is not a producer.
-    B = u[species(params)]
+    B = u[species_indexes(params)]
     network = params.network
     r = params.biorates.r
     r_i = isa(network, MultiplexNetwork) ? effect_facilitation(r[i], i, B, network) : r[i]
@@ -12,8 +12,8 @@ end
 function (g::NutrientIntake)(i, u, params::ModelParameters)
     isproducer(i, params.network) || return 0.0
     network = params.network
-    B = u[species(params)]
-    N = u[nutrients(params)]
+    B = u[species_indexes(params)]
+    N = u[nutrient_indexes(params)]
     r = params.biorates.r
     r_i = isa(network, MultiplexNetwork) ? effect_facilitation(r[i], i, B, network) : r[i]
     growth(N, k) = (N, k) == (0, 0) ? 0 : N / (N + k)
@@ -86,24 +86,21 @@ function growth(parms::ModelParameters, ::Symbol)
 end
 
 """
-    nutrient_dynamics(p::ProducerGrowth, i, u, G, network::EcologicalNetwork)
+    nutrient_dynamics(model::ModelParameters, u, i, G)
 
-Compute the dynamics of the nutrient `i` given the biomass `B`,
-the nutrients abundances `N` and the vector of species growths `G`.
+Compute the dynamics of the nutrient `i_nutrient` given its abundance `n`,
+the species biomass `B` and the vector of species growths `G` and the model `p`.
 
 The nutrient dynamics is on only if `p` is of type `NutrientIntake`.
 """
-function nutrient_dynamics(model::ModelParameters, u, i, G)
+function nutrient_dynamics(model::ModelParameters, B, i_nutrient, n, G)
     p = model.producer_growth
     if isa(p, LogisticGrowth)
         throw(ArgumentError("Nutrient dynamics cannot be computed for producer growth \
-                            of type `LogisticGrowth`."))
+                            of type `$LogisticGrowth`."))
     end
-    B = u[species(model)] # Species biomass.
-    N = u[nutrients(model)] # Nutrient abundances.
-    nutrient_idx = findfirst(==(i), nutrients(model)) # Index of the nutrient `i`.
-    d = p.turnover[nutrient_idx]
-    s = p.supply[nutrient_idx]
-    c = p.concentration[:, nutrient_idx]
-    d * (s - N[nutrient_idx]) - sum(c .* G .* B)
+    d = p.turnover[i_nutrient]
+    s = p.supply[i_nutrient]
+    c = p.concentration[:, i_nutrient]
+    d * (s - n) - sum(c .* G .* B)
 end

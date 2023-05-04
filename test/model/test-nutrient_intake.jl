@@ -4,7 +4,7 @@
     ni = NutrientIntake(foodweb)
 
     # Check default values.
-    @test ni.n_nutrients == 2
+    @test length(ni) == 2
     @test ni.turnover == [0.25, 0.25]
     @test ni.supply == [10.0, 10.0]
     @test ni.concentration == sparse([1 0.5; 1 0.5])
@@ -19,9 +19,9 @@
         supply = 4,
         concentration = [0.4, 0.1, 0.5],
     )
-    @test ni.n_nutrients == 3
+    @test length(ni) == 3
     @test ni.turnover == fill(0.8, 3)
-    @test ni.supply == repeat([4.0], ni.n_nutrients)
+    @test ni.supply == repeat([4.0], length(ni))
     @test ni.concentration == sparse([0.4 0.1 0.5; 0.4 0.1 0.5])
     @test ni.half_saturation == [10.0 10.0 10.0; 10.0 10.0 10.0]
 
@@ -39,7 +39,7 @@
         supply = 1,
         concentration = 0.2,
     )
-    @test ni_1.n_nutrients == ni_2.n_nutrients == 4
+    @test length(ni_1) == length(ni_2) == 4
     @test ni_1.turnover == ni_2.turnover == fill(0.25, 4)
 
     # `half_saturation` is a matrix of size (n_producers, n_nutrients)
@@ -118,7 +118,7 @@ end
     N0 = ones(2)
     sol = simulates(model, B0; N0)
     traj = reduce(hcat, sol.u) # row = species & nutrients, col = time steps.
-    sp = species(model) # Species indexes.
+    sp = species_indexes(model) # Species indexes.
     @test all(traj[sp[1], :] .== traj[sp[2], :])
 
     # `half_saturation` sets the hierarchy of competition between producers.

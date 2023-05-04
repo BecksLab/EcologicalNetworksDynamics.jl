@@ -136,19 +136,31 @@ $$
 growth = r_i * B_i * G_i
 $$
 
-where $r_i$ is producer's $i$ intrinsic growth rate, $B_i$ its biomass and $G_i$ its net growth term. The latter can take different forms depending on the growth model in use.
+Where $r_i$ is producer's $i$ intrinsic growth rate, $B_i$ its biomass
+and $G_i$ its net growth term.
+The latter can take different forms depending on the growth model in use.
 
 The model is controlled by the field `producer_growth` in model parameters.
 
 ### The logistic model
 
-In the logistic model, $G_i$ takes the general form
+In the logistic model, $G_i$ takes the general form:
 
 $$
 G_i = 1 - \frac{s}{K_i}
 $$
 
-where the numerator $s$ can take the simplest form $s = B_i$ (default) or include a matrix $\alpha$ describing the relative strength of the inter- vs intra-specific competition among producer. In this case, $s = \sum\alpha_{ij}B_j$ The matrix $\alpha$ should have as many rows and columns as there are producers in the food web. When the intra-specific competition is $1$ ($\alpha_{ii} = 1$), then species pairing with values below $1$ ($\alpha_{ij} < 1$) describe something akin to facilitation and values above $1$ ($\alpha_{ij} > 1$) describe a stronger inter-specific competition (that would lead to competitive exclusion in the absence of other processes). Note that when all non diagonal values are set to $0$, then $s = \sum\alpha_{ij}B_j = B_j$ and the two models are equivalent.
+Where the numerator $s$ can take the simplest form $s = B_i$ (default)
+or include a matrix $\alpha$ describing the relative strength of the inter- vs
+intra-specific competition among producer.
+In this case, $s = \sum\alpha_{ij}B_j$ The matrix $\alpha$ should have as many rows
+and columns as there are producers in the food web.
+When the intra-specific competition is $1$ ($\alpha_{ii} = 1$),
+then species pairing with values below $1$ ($\alpha_{ij} < 1$) describe something akin to
+facilitation and values above $1$ ($\alpha_{ij} > 1$) describe a stronger inter-specific
+competition (that would lead to competitive exclusion in the absence of other processes).
+Note that when all non-diagonal values are set to $0$,
+then $s = \sum\alpha_{ij}B_j = B_j$ and the two models are equivalent.
 
 When setting up the simulations, the logistic model is controlled as followed:
 

@@ -1,5 +1,6 @@
 #### Functors for temperature dependence methods ####
 
+# Record temperature in Environment even though it has no effect.
 (F::NoTemperatureResponse)(params::ModelParameters, T) = params.environment.T = T
 
 # Exponential Boltzmann Arrhenius Functor.
@@ -8,7 +9,7 @@ function (F::ExponentialBA)(params::ModelParameters, T;)
         ArgumentError(
             "Temperature dependence is not compatible with nutrient intake dynamics. \
             Either deactivate temperature dependence or \
-            switch producer growth to `LogisticGrowth`.",
+            switch producer growth to `$LogisticGrowth`.",
         ),
     )
     net = params.network

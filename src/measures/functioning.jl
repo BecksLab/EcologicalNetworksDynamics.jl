@@ -271,9 +271,8 @@ julia> foodweb = FoodWeb([0 1 1; 0 0 0; 0 0 0]);
 function producer_growth(solution; kwargs...)
     parameters = get_parameters(solution)
     g = parameters.producer_growth
-    isa(g, LogisticGrowth) || throw(ArgumentError("
-        This function is implemented only for producer growth of type `LogisticGrowth`.
-    "))
+    isa(g, LogisticGrowth) || throw(ArgumentError("Producer growth only makes sense for \
+        logistic growth, and cannot be calculated with `$(typeof(g))` values."))
     prods = producers(parameters.network) # Producer indexes.
     n_prods = length(prods)
 

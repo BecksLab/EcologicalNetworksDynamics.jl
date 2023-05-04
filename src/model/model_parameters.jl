@@ -127,10 +127,10 @@ function ModelParameters(
     producer_growth::ProducerGrowth = LogisticGrowth(network),
     temperature_response::TemperatureResponse = NoTemperatureResponse(),
 )
-    if isa(network, MultiplexNetwork) & !(isa(functional_response, ClassicResponse))
+    if isa(network, MultiplexNetwork) && !(isa(functional_response, ClassicResponse))
         type_response = typeof(functional_response)
-        @warn "Non-trophic interactions are not implented for '$type_response'.
-            Use a functional response of type 'ClassicResponse' instead."
+        @warn "Non-trophic interactions for `$type_response` are not supported. \
+               Use a classical functional response instead: `$ClassicResponse`."
     end
     ModelParameters(
         network,

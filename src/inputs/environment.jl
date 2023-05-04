@@ -1,16 +1,13 @@
-#### Type definition ####
 mutable struct Environment
     T::Float64
 end
-#### end ####
 
-#### Type display ####
 """
 One line Environment display.
 """
 function Base.show(io::IO, environment::Environment)
     T = environment.T
-    print(io, "Environment(" * "T=$(T)K)")
+    print(io, "Environment(T=$(T)K)")
 end
 
 """
@@ -20,7 +17,6 @@ function Base.show(io::IO, ::MIME"text/plain", environment::Environment)
     println(io, "Environment:")
     print(io, "  T: $(environment.T) Kelvin")
 end
-#### end ####
 
 """
     Environment(; T=293.15)

@@ -8,8 +8,8 @@ Number of species in the network.
 ```jldoctest
 julia> foodweb = FoodWeb([1 => 2]) # 1 eats 2.
        model = ModelParameters(foodweb)
-       richness(model) == 2
-true
+       richness(model)
+2
 ```
 
 See also [`nutrient_richness`](@ref) and [`total_richness`](@ref).
@@ -21,12 +21,12 @@ richness(A::AbstractMatrix) = size(A, 1)
 """
 Species indexes of the given `network`.
 """
-species(p::ModelParameters) = [i for i in 1:richness(p)]
+species_indexes(p::ModelParameters) = [i for i in 1:richness(p)]
 
 """
 Nutrient indexes of the given `network`.
 """
-function nutrients(p::ModelParameters)
+function nutrient_indexes(p::ModelParameters)
     n = nutrient_richness(p)
     S = richness(p) # Species richness.
     [S + i for i in 1:n]
@@ -41,20 +41,20 @@ Number of nutrients in the model `p`.
 julia> foodweb = FoodWeb([1 => 2]) # 1 eats 2.
        producer_growth = LogisticGrowth(foodweb) # No nutrients.
        model = ModelParameters(foodweb; producer_growth)
-       nutrient_richness(model) == 0
-true
+       nutrient_richness(model)
+0
 
 julia> producer_growth = NutrientIntake(foodweb; n_nutrients = 3) # Include nutrients.
        model_with_nutrients = ModelParameters(foodweb; producer_growth)
-       nutrient_richness(model_with_nutrients) == 3
-true
+       nutrient_richness(model_with_nutrients)
+3
 ```
 
 See also [`richness`](@ref) and [`total_richness`](@ref).
 """
 function nutrient_richness(p::ModelParameters)
     pg = p.producer_growth
-    isa(pg, NutrientIntake) ? pg.n_nutrients : 0
+    isa(pg, NutrientIntake) ? length(pg) : 0
 end
 
 """
