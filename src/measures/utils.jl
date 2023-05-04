@@ -7,7 +7,7 @@ Utility functions for functions in measures
 
 Returns the biomass matrix of species x time over the `last` timesteps.
 
-# Arguments
+# Arguments:
 
   - `last`: the number of last timesteps to consider. A percentage can also be also be
     provided as a `String` ending by `%`. Defaulted to 1.
@@ -17,7 +17,7 @@ Returns the biomass matrix of species x time over the `last` timesteps.
 See [`richness`](@ref) for the other arguments. If `idxs` is an integer,
 it returns a vector of the species biomass instead of a matrix.
 
-# Examples
+# Examples:
 
 ```jldoctest
 julia> fw = FoodWeb([0 0; 1 0]);
@@ -179,7 +179,7 @@ end
 
 Returns a tuple with species having a biomass above `threshold` at the end of a simulation.
 
-# Examples
+# Examples:
 
 ```jldoctest
 julia> foodweb = FoodWeb([0 0; 0 0]; quiet = true);
