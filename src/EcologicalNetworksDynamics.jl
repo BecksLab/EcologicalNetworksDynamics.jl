@@ -145,7 +145,7 @@ export NIntakeParams
 export nontrophic_adjacency_matrix
 export NonTrophicIntensity
 export NoTemperatureResponse
-export nutrient_indexes
+export nutrient_indices
 export nutrient_richness
 export NutrientIntake
 export population_stability
@@ -165,7 +165,7 @@ export shannon_diversity
 export simpson
 export simulate
 export species_cv
-export species_indexes
+export species_indices
 export species_persistence
 export species_richness
 export synchrony

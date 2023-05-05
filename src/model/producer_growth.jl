@@ -1,7 +1,7 @@
 # Producer growth functors.
 function (g::LogisticGrowth)(i, u, params::ModelParameters)
     isnothing(g.K[i]) && return 0.0 # Species i is not a producer.
-    B = u[species_indexes(params)]
+    B = u[species_indices(params)]
     network = params.network
     r = params.biorates.r
     r_i = isa(network, MultiplexNetwork) ? effect_facilitation(r[i], i, B, network) : r[i]
@@ -12,8 +12,8 @@ end
 function (g::NutrientIntake)(i, u, params::ModelParameters)
     isproducer(i, params.network) || return 0.0
     network = params.network
-    B = u[species_indexes(params)]
-    N = u[nutrient_indexes(params)]
+    B = u[species_indices(params)]
+    N = u[nutrient_indices(params)]
     r = params.biorates.r
     r_i = isa(network, MultiplexNetwork) ? effect_facilitation(r[i], i, B, network) : r[i]
     growth(N, k) = (N, k) == (0, 0) ? 0 : N / (N + k)

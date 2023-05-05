@@ -11,7 +11,7 @@ abstract type ProducerGrowth end
 See also [`NutrientIntake`](@ref).
 """
 mutable struct LogisticGrowth <: ProducerGrowth
-    a::SparseMatrixCSC{Float64,Int64}
+    a::AbstractMatrix{Float64}
     K::Vector{Union{Nothing,Float64}}
 end
 

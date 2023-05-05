@@ -21,8 +21,8 @@
         i == 2 && @test g(3, u, model) == 0.0
 
         # Change carrying capacity and intrinsic growth rate.
-        K = [isproducer(i, network) ? 1 + rand() : nothing for i in species_indexes(model)]
-        r = [isproducer(i, network) ? rand() : 0 for i in species_indexes(model)]
+        K = [isproducer(i, network) ? 1 + rand() : nothing for i in species_indices(model)]
+        r = [isproducer(i, network) ? rand() : 0 for i in species_indices(model)]
         g = LogisticGrowth(network; K)
         biorates = BioRates(network; r)
         model = ModelParameters(network; producer_growth = g, biorates, functional_response)

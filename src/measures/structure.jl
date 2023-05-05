@@ -21,12 +21,12 @@ richness(A::AbstractMatrix) = size(A, 1)
 """
 Species indexes of the given `network`.
 """
-species_indexes(p::ModelParameters) = [i for i in 1:richness(p)]
+species_indices(p::ModelParameters) = [i for i in 1:richness(p)]
 
 """
 Nutrient indexes of the given `network`.
 """
-function nutrient_indexes(p::ModelParameters)
+function nutrient_indices(p::ModelParameters)
     n = nutrient_richness(p)
     S = richness(p) # Species richness.
     [S + i for i in 1:n]

@@ -155,7 +155,7 @@ function simulate(
     diff_code_data = (dudt!, params),
     kwargs...,
 )
-    # Check for consistency and process input arguments.
+    # Interpret parameters and check them for consistency.
     S = richness(params)
     all(B0 .>= 0) ||
         throw(ArgumentError("The argument received B0 = $B0 contains negative value(s). \
@@ -210,7 +210,7 @@ function simulate(
         problem,
         alg;
         callback = callback,
-        isoutofdomain = (u, p, t) -> any(x -> x < 0, u[species_indexes(params)]),
+        isoutofdomain = (u, p, t) -> any(x -> x < 0, u[species_indices(params)]),
         kwargs...,
     )
     sol
@@ -234,7 +234,7 @@ function ExtinctionCallback(extinction_threshold, p::ModelParameters, verbose::B
     # a non-extinct species biomass goes below the threshold.
     # Use either adequate code based on `extinction_threshold` type.
     # This avoids that the type condition be checked on every timestep.
-    sp = species_indexes(p) # Vector of species indexes.
+    sp = species_indices(p) # Vector of species indexes.
     species_under_threshold = if isa(extinction_threshold, Number)
         (u, _, _) -> any(u[sp][u[sp].>0] .< extinction_threshold)
     else

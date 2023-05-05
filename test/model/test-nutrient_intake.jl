@@ -118,7 +118,7 @@ end
     N0 = ones(2)
     sol = simulates(model, B0; N0)
     traj = reduce(hcat, sol.u) # row = species & nutrients, col = time steps.
-    sp = species_indexes(model) # Species indexes.
+    sp = species_indices(model) # Species indexes.
     @test all(traj[sp[1], :] .== traj[sp[2], :])
 
     # `half_saturation` sets the hierarchy of competition between producers.
