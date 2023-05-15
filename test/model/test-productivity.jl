@@ -6,7 +6,7 @@
     ]
 
     for (i, network) in enumerate(foodweb_to_test), f0 in [0, rand()]
-        # Default behavior.
+        # Default behaviour.
         S = richness(network)
         A = zeros(Integer, S, S)
         A[1, 2] = A[2, 1] = 1

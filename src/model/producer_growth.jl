@@ -86,12 +86,12 @@ function growth(parms::ModelParameters, ::Symbol)
 end
 
 """
-    nutrient_dynamics(model::ModelParameters, u, i, G)
+    nutrient_dynamics(model::ModelParameters, B, i_nutrients, n, G)
 
 Compute the dynamics of the nutrient `i_nutrient` given its abundance `n`,
 the species biomass `B` and the vector of species growths `G` and the model `p`.
 
-The nutrient dynamics is on only if `p` is of type `NutrientIntake`.
+The nutrient dynamics is applicable only if `p` is of type `NutrientIntake`.
 """
 function nutrient_dynamics(model::ModelParameters, B, i_nutrient, n, G)
     p = model.producer_growth

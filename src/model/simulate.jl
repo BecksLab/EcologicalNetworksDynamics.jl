@@ -162,6 +162,12 @@ function simulate(
                              Initial biomasses should all be non-negative."))
     length(B0) == 1 && (B0 = fill(B0[1], S))
     @check_equal_richness length(B0) S
+    if !isnothing(N0)
+        all(N0 .>= 0) || throw(
+            ArgumentError("The argument received N0 = $N0 contains negative value(s). \
+                           Initial nutrient abundances should all be non-negative."),
+        )
+    end
     @check_lower_than t0 tmax
     if isa(extinction_threshold, AbstractVector)
         length(extinction_threshold) == S || throw(
@@ -189,9 +195,10 @@ function simulate(
 
     # Set initial nutrient abundances `N0` and initial species biomass `B0`.
     if isa(params.producer_growth, NutrientIntake)
-        isnothing(N0) &&
-            throw(ArgumentError("If producer growth is of type `$NutrientIntake`, \
-                                 use the `N0` to provide initial nutrient abundances."))
+        isnothing(N0) && throw(
+            ArgumentError("If producer growth is of type `$NutrientIntake`, \
+                           use the `N0` argument to provide initial nutrient abundances."),
+        )
         n = nutrient_richness(params)
         length(N0) == 1 && (N0 = fill(N0[1], n))
         @assert length(N0) == n || throw(

@@ -1,9 +1,9 @@
 """
     dudt!(du, u, p, _)
 
-Compute the species and nutrients (when relevant) abundance derivatives `du`,
+Compute the species and nutrient (when relevant) abundance derivatives `du`,
 given the abundances `u` and the model `p`.
-The last silent argument is the time at which is evaluated the derivates
+The last silent argument is the time at which is evaluated the derivatives
 and is a requirement of DifferentialEquations.
 """
 function dudt!(du, u, p, _)

@@ -19,17 +19,17 @@ richness(net::EcologicalNetwork) = richness(get_trophic_adjacency(net))
 richness(A::AbstractMatrix) = size(A, 1)
 
 """
-Species indexes of the given `network`.
+Species indices of the given `network`.
 """
-species_indices(p::ModelParameters) = [i for i in 1:richness(p)]
+species_indices(p::ModelParameters) = 1:richness(p)
 
 """
-Nutrient indexes of the given `network`.
+Nutrient indices of the given `network`.
 """
 function nutrient_indices(p::ModelParameters)
     n = nutrient_richness(p)
     S = richness(p) # Species richness.
-    [S + i for i in 1:n]
+    S .+ (1:n)
 end
 
 """
@@ -109,7 +109,7 @@ isproducer(i, net::FoodWeb) = isproducer(i, net.A)
 isproducer(i, net::MultiplexNetwork) = isproducer(i, net.layers[:trophic].A)
 
 """
-Return indexes of the producers of the given `network`.
+Return indices of the producers of the given `network`.
 """
 producers(net) = filter(isproducer, net)
 producers(A::AbstractMatrix) = (1:richness(A))[all(A .== 0; dims = 2)|>vec]
@@ -117,7 +117,7 @@ producers(A::AbstractMatrix) = (1:richness(A))[all(A .== 0; dims = 2)|>vec]
 """
     predators_of(i, network)
 
-Return indexes of the predators of species `i` for the given `network`.
+Return indices of the predators of species `i` for the given `network`.
 
 # Examples
 
@@ -151,7 +151,7 @@ ispredator(i, net::FoodWeb) = ispredator(i, net.A)
 ispredator(i, net::MultiplexNetwork) = ispredator(i, net.layers[:trophic].A)
 
 """
-Return indexes of the predators of the given `network`.
+Return indices of the predators of the given `network`.
 """
 predators(net::EcologicalNetwork) = filter(ispredator, net)
 #### end ####
@@ -160,7 +160,7 @@ predators(net::EcologicalNetwork) = filter(ispredator, net)
 """
     preys_of(i, network)
 
-Return indexes of the preys of species `i` for the given `network`.
+Return indices of the preys of species `i` for the given `network`.
 
 # Examples
 
@@ -190,7 +190,7 @@ isprey(i, net::FoodWeb) = isprey(i, net.A)
 isprey(i, net::MultiplexNetwork) = isprey(i, net.layers[:trophic].A)
 
 """
-Return indexes of the preys of the network (`net`).
+Return indices of the preys of the network (`net`).
 """
 preys(net::EcologicalNetwork) = filter(isprey, net)
 preys(A::AbstractSparseMatrix) = [i for i in 1:size(A, 1) if !isempty(A[:, i].nzval)]
@@ -213,12 +213,12 @@ Is species `i` an invertebrate?
 isinvertebrate(i, net::EcologicalNetwork) = net.metabolic_class[i] == "invertebrate"
 
 """
-Return indexes of the vertebrates of the network (`net`).
+Return indices of the vertebrates of the network (`net`).
 """
 vertebrates(net::EcologicalNetwork) = filter(isvertebrate, net)
 
 """
-Return indexes of the invertebrates of the network (`net`).
+Return indices of the invertebrates of the network (`net`).
 """
 invertebrates(net::EcologicalNetwork) = filter(isinvertebrate, net)
 
@@ -274,7 +274,7 @@ trophic_levels(net::EcologicalNetwork) = trophic_levels(get_trophic_adjacency(ne
 """
     top_predators(net::EcologicalNetwork)
 
-Top predator indexes (species eaten by nobody) of the given `net`work.
+Top predator indices (species eaten by nobody) of the given `net`work.
 
 ```jldoctest
 julia> foodweb = FoodWeb([1 => 2, 2 => 3])

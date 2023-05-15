@@ -1,7 +1,7 @@
 @testset "Build LogisticGrowth with producer competition" begin
     foodweb = FoodWeb([0 0 0; 0 0 0; 0 1 0]; quiet = true)
 
-    g = LogisticGrowth(foodweb) # Default behavior.
+    g = LogisticGrowth(foodweb) # Default behaviour.
     @test g.a == [1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 0.0]
 
     # Define competition matrix with a (named) tuple.

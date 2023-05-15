@@ -3,7 +3,7 @@ abstract type ProducerGrowth end
 """
 `LogisticGrowth` constructor.
 
-# Field
+# Fields
 
   - `a`: producer competition matrix
   - `K`: vector of producer carrying capacities
@@ -18,7 +18,7 @@ end
 mutable struct NutrientIntake <: ProducerGrowth
     turnover::Vector{Float64}
     supply::Vector{Float64}
-    concentration::SparseMatrixCSC{Float64}
+    concentration::Matrix{Float64}
     half_saturation::Matrix{Union{Nothing,Float64}}
 end
 
@@ -41,7 +41,7 @@ function Base.show(io::IO, ::MIME"text/plain", model::LogisticGrowth)
     S = size(model.a, 1)
     println(io, "LogisticGrowth:")
     println(io, "  K - carrying capacity: " * vector_to_string(model.K))
-    print(io, "  a - competition: ($S, $S) sparse matrix")
+    print(io, "  a - competition: ($S, $S) matrix")
 end
 
 """
@@ -53,8 +53,8 @@ function Base.show(io::IO, ::MIME"text/plain", model::NutrientIntake)
     println(io, "NutrientIntake - $n_nutrients nutrients:")
     println(io, "  `turnover` rate: $(model.turnover)")
     println(io, "  `supply` concentrations: " * vector_to_string(model.supply))
-    println(io, "  relative `concentration`: ($n_producers, $n_nutrients) sparse matrix")
-    print(io, "  `half_saturation` densities: ($n_producers, $n_nutrients) sparse matrix")
+    println(io, "  relative `concentration`: ($n_producers, $n_nutrients) matrix")
+    print(io, "  `half_saturation` densities: ($n_producers, $n_nutrients) matrix")
 end
 
 """
@@ -73,14 +73,14 @@ The carrying capacities can be specified via the `K` arguments,
 by default they are all set to 1 for the producers and to `nothing` for the consumers.
 
 By default the competition matrix `a` is assumed to have diagonal elements equal to 1
-and zero off-diagonal elements.
+and 0 for all off-diagonal elements.
 This default can be changed via the `a` argument.
-You can either pass directly the interaction matrix,
-a single `Number` that will be interpreted as the value of the diagonal elements,
+You can either directly pass the interaction matrix,
+a single `Number` that will be interpreted as the value of all diagonal elements,
 a tuple of `Number` the first will be interpreted as the diagonal value and
 the second as the off-diagonal values, or a named tuple of `Number`.
-For the latter the following alias can be used to refer to the diagonal elements
-'diagonal', 'diag', 'd' and for the off-diagonal elements 'offdiagonal', 'offdiag',
+For the latter, the following aliases can be used to refer to the diagonal elements
+'diagonal', 'diag', 'd', and for the off-diagonal elements 'offdiagonal', 'offdiag',
 'o', 'rest', 'nondiagonal', 'nond'.
 
 # Examples
@@ -188,7 +188,9 @@ function LogisticGrowth(network::EcologicalNetwork; a = nothing, K = 1, quiet = 
     # Build the matrix or read it from the raw input.
     if isnothing(raw)
         prods = producers(network)
-        a = spzeros(S, S)
+        # If the offdiagonal elements are null (nothing or zero), then the matrix
+        # has mostly null entries, in which case a sparse matrix is used.
+        a = (isnothing(offdiag) || offdiag == 0) ? spzeros(S, S) : zeros(S, S)
         for i in prods, j in prods
             a[i, j] = i == j ? diag : offdiag
         end
@@ -197,6 +199,7 @@ function LogisticGrowth(network::EcologicalNetwork; a = nothing, K = 1, quiet = 
         a = sparse(raw)
     end
 
+    # Competition between producers can only occur between a pair of producers.
     non_producer = filter(!isproducer, network)
     if !isempty(non_producer)
         @assert all(a[non_producer, :] .== 0)
@@ -265,7 +268,7 @@ function NutrientIntake(
     half_saturation = 1.0,
 )
     0 < turnover <= 1 || throw(ArgumentError("`turnover` rate should be in ]0, 1], \
-        not $turnover."))
+                                              not $turnover."))
 
     length(supply) == 1 && (supply = fill(supply[1], n_nutrients))
     length(supply) == n_nutrients || throw(
@@ -283,13 +286,15 @@ function NutrientIntake(
                             a vector of length 1 or number of producers = $n_producers, \
                             or a matrix of size \
                             (number of producer = $n_producers, \
-                            number of nutrients = $n_nutrients)."))
+                            number of nutrients = $n_nutrients) \
+                            not $concentration (of type $(typeof(concentration)))."))
     end
 
     length(turnover) == 1 && (turnover = fill(turnover[1], n_nutrients))
     length(turnover) != n_nutrients &&
         throw(ArgumentError("`turnover` should either be a number, a vector of length 1 \
-              or a vector of length `n_nutrients` = $n_nutrients."))
+                             or a vector of length `n_nutrients` = $n_nutrients \
+                             not $turnover (of type $(typeof(turnover)))."))
 
     h = size(half_saturation)
     if h == () || h == (1,)
@@ -302,7 +307,8 @@ function NutrientIntake(
                             a vector of length 1 or number of producers = $n_producers, \
                             or a matrix of size \
                             (number of producer = $n_producers, \
-                            number of nutrients = $n_nutrients)."),
+                            number of nutrients = $n_nutrients) \
+                            not $half_saturation (of type $(typeof(half_saturation))."),
         )
     end
 
