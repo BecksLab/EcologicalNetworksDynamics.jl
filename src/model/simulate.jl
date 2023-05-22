@@ -143,7 +143,7 @@ function simulate(
     alg = nothing,
     t0::Number = 0,
     tmax::Number = 500,
-    dt::Float64 = 0.25,
+    dt::Float64 = 1.0,
     extinction_threshold::Union{Number,AbstractVector} = 1e-5,
     corrmat::Union{Matrix{Float64},Nothing} = nothing,
     verbose = true,

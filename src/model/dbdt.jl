@@ -43,6 +43,7 @@ function stoch_dBdt!(dB, B, p, t)
     r = params.biorates.r # vector of intrinsic growth rates
     K = params.environment.K # vector of carrying capacities
     stochasticity = params.stochasticity
+    stressor = params.stressor
 
     # Loop over species
     for i in 1:S
@@ -66,6 +67,22 @@ function stoch_dBdt!(dB, B, p, t)
     for i in S+1:S+length(stochasticity.stochspecies)
         dB[i] = stochasticity.θ[i-S] * (stochasticity.μ[i-S] - B[i])
     end
+
+    # Apply stress
+    if stressor.addstressor == true
+        if t >= stressor.start
+
+            for i in 1:S
+                if i in stochasticity.stochspecies
+                    idx = first(findall(x -> x == i, stochasticity.stochspecies))
+                    dB[S+idx] = stochasticity.θ[idx] * ((1 + (stressor.slope * (t-stressor.start))) - B[S+idx])
+                else
+                    params.biorates.r[i] = 1 + (stressor.slope * (t-stressor.start))
+                end
+            end
+        end
+    end
+
 end
 
 function noise_equations(dW, B, p, t)

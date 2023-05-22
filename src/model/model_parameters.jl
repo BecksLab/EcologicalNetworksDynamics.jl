@@ -10,6 +10,7 @@ mutable struct ModelParameters
     functional_response::FunctionalResponse
     producer_competition::ProducerCompetition
     stochasticity::AddStochasticity
+    stressor::Stressor
 end
 #### end ####
 
@@ -37,6 +38,7 @@ function Base.show(io::IO, ::MIME"text/plain", params::ModelParameters)
     println(io, "  functional_response: ", params.functional_response)
     println(io, "  producer_competition: ", params.producer_competition)
     println(io, "  stochasticity: ", params.stochasticity)
+    println(io, "  stressor: ", params.stressor)
 end
 #### end ####
 
@@ -47,7 +49,8 @@ end
         environment::Environment=Environment(foodweb),
         functional_response::FunctionalResponse=BioenergeticResponse(foodweb),
         producer_competition::ProducerCompetition=ProducerCompetition(foodweb),
-        Stochasticity::AddStochasticity=AddStochasticity(foodweb),
+        stochasticity::AddStochasticity=AddStochasticity(foodweb),
+        stressor::Stressor=Stressor()
     )
 
 Generate the parameters of the species community.
@@ -76,6 +79,7 @@ ModelParameters{BioenergeticResponse}:
   functional_response: BioenergeticResponse
   producer_competition: ProducerCompetition((2, 2) matrix)
   stochasticity: Stochasticity not added
+  stressor: Stressor(addstressor, slope, start)
 
 julia> p.network # check that stored foodweb is the same than the one we provided
 FoodWeb of 2 species:
@@ -112,6 +116,7 @@ function ModelParameters(
     functional_response::FunctionalResponse = BioenergeticResponse(network),
     producer_competition::ProducerCompetition = ProducerCompetition(network),
     stochasticity::AddStochasticity = AddStochasticity(network),
+    stressor::Stressor = Stressor()
 )
     if isa(network, MultiplexNetwork) & !(isa(functional_response, ClassicResponse))
         type_response = typeof(functional_response)
@@ -125,5 +130,6 @@ function ModelParameters(
         functional_response,
         producer_competition,
         stochasticity,
+        stressor
     )
 end
