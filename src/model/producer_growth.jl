@@ -12,12 +12,14 @@ end
 function (g::NutrientIntake)(i, u, params::ModelParameters)
     isproducer(i, params.network) || return 0.0
     network = params.network
+    prods = producers(network)
+    j = findfirst(prods .== i)
     B = u[species_indices(params)]
     N = u[nutrient_indices(params)]
     r = params.biorates.r
     r_i = isa(network, MultiplexNetwork) ? effect_facilitation(r[i], i, B, network) : r[i]
     growth(N, k) = (N, k) == (0, 0) ? 0 : N / (N + k)
-    growth_vec = growth.(N, g.half_saturation[i, :])
+    growth_vec = growth.(N, g.half_saturation[j, :])
     r_i * B[i] * minimum(growth_vec)
 end
 
@@ -95,6 +97,7 @@ The nutrient dynamics is applicable only if `p` is of type `NutrientIntake`.
 """
 function nutrient_dynamics(model::ModelParameters, B, i_nutrient, n, G)
     p = model.producer_growth
+    isp = producers(model.network)
     if isa(p, LogisticGrowth)
         throw(ArgumentError("Nutrient dynamics cannot be computed for producer growth \
                             of type `$LogisticGrowth`."))
@@ -102,5 +105,5 @@ function nutrient_dynamics(model::ModelParameters, B, i_nutrient, n, G)
     d = p.turnover[i_nutrient]
     s = p.supply[i_nutrient]
     c = p.concentration[:, i_nutrient]
-    d * (s - n) - sum(c .* G .* B)
+    d * (s - n) - sum(c .* G[isp] .* B[isp])
 end
