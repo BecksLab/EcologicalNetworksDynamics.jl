@@ -8,7 +8,7 @@ mutable struct ModelParameters
     biorates::BioRates
     environment::Environment
     functional_response::FunctionalResponse
-    producer_competition::ProducerCompetition
+    producer_growth::ProducerGrowth
     temperature_response::TemperatureResponse
 end
 #### end ####
@@ -30,12 +30,13 @@ function Base.show(io::IO, ::MIME"text/plain", params::ModelParameters)
 
     # Display output
     response_type = typeof(params.functional_response)
-    println(io, "ModelParameters{$response_type}:")
+    pgrowth_model = typeof(params.producer_growth)
+    println(io, "ModelParameters{$response_type, $pgrowth_model}:")
     println(io, "  network: ", params.network)
     println(io, "  environment: ", params.environment)
     println(io, "  biorates: ", params.biorates)
     println(io, "  functional_response: ", params.functional_response)
-    println(io, "  producer_competition: ", params.producer_competition)
+    println(io, "  producer_growth: ", params.producer_growth)
     println(io, "  temperature_response: ", params.temperature_response)
 end
 #### end ####
@@ -46,8 +47,8 @@ end
         biorates::BioRates=BioRates(foodweb),
         environment::Environment=Environment(foodweb),
         functional_response::FunctionalResponse=BioenergeticResponse(foodweb),
-        producer_competition::ProducerCompetition=ProducerCompetition(foodweb),
-        temperature_response::TemperatureResponse,
+        producer_growth::ProducerGrowth=ProducerGrowth(foodweb),
+        temperature_response::TemperatureResponse
     )
 
 Generate the parameters of the species community.
@@ -61,7 +62,7 @@ The parameters are compartmented in different groups:
   - [`Environment`](@ref): environmental variables (e.g. carrying capacities)
   - [`FunctionalResponse`](@ref) (F): functional response form
     (e.g. classic or bioenergetic functional response)
-  - [`ProducerCompetition`](@ref): producer competition (e.g. intra and inter competition)
+  - [`ProducerGrowth`](@ref): model for producer growth (e.g. logistic or nutrient intake)
   - [`TemperatureResponse`](@ref): method used for temperature dependency
 
 # Examples
@@ -69,13 +70,13 @@ The parameters are compartmented in different groups:
 ```jldoctest
 julia> foodweb = FoodWeb([0 1; 0 0]); # create a simple foodweb
 
-julia> p = ModelParameters(foodweb)
+julia> p = ModelParameters(foodweb) 
 ModelParameters{BioenergeticResponse}:
   network: FoodWeb(S=2, L=1)
-  environment: Environment(K=[nothing, 1], T=293.15K)
+  environment: Environment(T=293.15K)
   biorates: BioRates(d, r, x, y, e)
   functional_response: BioenergeticResponse
-  producer_competition: ProducerCompetition((2, 2) matrix)
+  producer_growth: LogisticGrowth
   temperature_response: NoTemperatureResponse
 
 julia> p.network # check that stored foodweb is the same as the one we provided
@@ -128,8 +129,8 @@ function ModelParameters(
     biorates::BioRates = BioRates(network),
     environment::Environment = Environment(network),
     functional_response::FunctionalResponse = BioenergeticResponse(network),
-    producer_competition::ProducerCompetition = ProducerCompetition(network),
-    temperature_response::TemperatureResponse = NoTemperatureResponse(),
+    producer_growth::ProducerGrowth = LogisticGrowth(network),
+    temperature_response::TemperatureResponse = NoTemperatureResponse()
 )
     if isa(network, MultiplexNetwork) & !(isa(functional_response, ClassicResponse))
         type_response = typeof(functional_response)
@@ -141,7 +142,7 @@ function ModelParameters(
         biorates,
         environment,
         functional_response,
-        producer_competition,
-        temperature_response,
+        producer_growth,
+        temperature_response
     )
 end
