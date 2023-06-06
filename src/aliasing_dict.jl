@@ -154,7 +154,7 @@ julia> create_aliased_dict_type(:FruitDict, "fruit", (:apple => [:a], :berry => 
 julia> import EcologicalNetworksDynamics: FruitDict #  (not exported)
 
 julia> FruitDict()
-EcologicalNetworksDynamics.FruitDict{Any}()
+FruitDict{Any}()
 
 julia> d = FruitDict(:a => 5, :b => 8.0)  # Mimick Dict constructor.
 FruitDict{Real} with 2 entries:
