@@ -297,7 +297,7 @@ For the temperature
 you just have to provide the scalar corresponding to the wanted temperature.
 
 ```@example econetd
-environment = Environment(T = 273.15);
+environment = Environment(; T = 273.15);
 environment.T
 ```
 
