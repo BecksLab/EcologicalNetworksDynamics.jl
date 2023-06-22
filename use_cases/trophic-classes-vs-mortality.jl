@@ -69,7 +69,7 @@ Threads.@threads for i in 1:n_foodweb # Parallelize computation when possible.
         push!(df_thread, vcat(i, d0, n_per_class))
         @info "foodweb $i, d0 = $d0: done."
     end
-    push!(dfs, df_thread)
+    dfs[i] = df_thread
 end
 @info "All simulations done."
 df = reduce(vcat, dfs)

@@ -31,7 +31,7 @@ end
 # Main simulation loop.
 # Each thread writes in its own DataFrame. Merge them at the end of the loop.
 dfs = [DataFrame() for _ in 1:length(C_values)] # Fill the vector with empty DataFrames.
-Threads.@threads for C in C_values # Parallelize on connctance values.
+Threads.@threads for (i_C, C) in C_values # Parallelize on connctance values.
     df_thread = DataFrame(; C = Float64[], αij = Float64[], persistence = Float64[])
     for i in 1:n_replicates
         foodweb = FoodWeb(nichemodel, S; Z, C, tol_C)
@@ -48,7 +48,7 @@ Threads.@threads for C in C_values # Parallelize on connctance values.
             @info "C = $C, foodweb = $i, αij = $αij: done."
         end
     end
-    push!(dfs, df_thread)
+    dfs[i_C] = df_thread
 end
 @info "All simulations done."
 df = reduce(vcat, dfs)
