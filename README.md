@@ -1,104 +1,79 @@
-# EcologicalNetworksDynamics.jl
+<p align="center" width="100%">
+    <img height="150" src="https://github.com/BecksLab/EcologicalNetworksDynamics.jl/blob/readme/docs/src/assets/ecologicalnetworksdynamics.svg#gh-light-mode-only">
+    <img height="150" src="https://github.com/BecksLab/EcologicalNetworksDynamics.jl/blob/readme/docs/src/assets/ecologicalnetworksdynamics-dark.svg#gh-dark-mode-only">
+</p>
 
-![CI](https://github.com/BecksLab/EcologicalNetworksDynamics.jl.jl/workflows/CI/badge.svg?branch=main)
-[![codecov.io](http://codecov.io/github/BecksLab/EcologicalNetworksDynamics.jl.jl/coverage.svg?branch=main)](http://codecov.io/github/BecksLab/EcologicalNetworksDynamics.jl.jl?branch=main)
+EcologicalNetworksDynamics is a Julia package that simulates species biomass dynamics
+in ecological networks.
+EcologicalNetworksDynamics makes things easy for beginners
+while remaining flexible for adventurous or experienced users
+who would like to tweak the model.
 
-EcologicalNetworksDynamics is a Julia package that implements the bioenergetic
-consumer-resource model from [Yodzis and Innès (1992)](https://www.journals.uchicago.edu/doi/abs/10.1086/285380) adapted to foodwebs
-(see [Williams et al., 2008](https://link.springer.com/chapter/10.1007/978-1-4020-5337-5_2) for more details).
+## Before you start
 
-Expected features on top of the core model:
-
-  - [ ] various models for basal species growth, including a nutrient uptake function
-  - [ ] 3 different adaptive rewiring methods of trophic interactions following extinctions or
-    changes in species biomass
-  - [ ] models accounting for temperature effect on species mass or on biological rates
-  - [ ] choice of different functional response (linear, classic and bioenergetic)
-  - [ ] measuring system stability according to several metrics
-
-## Install the package
-
-From the Julia REPL package mode (accessed with `]`), run:
-
-```pkg-julia
-add EcologicalNetworksDynamics
-```
-
-To use EcologicalNetworksDynamics.jl at its full potential you probably want to install
-[EcologicalNetworks.jl](http://docs.ecojulia.org/EcologicalNetworks.jl/stable/):
-
-```pkg-julia
-add EcologicalNetworks
-```
-
-## First simulation
-
-We describe below the most straightforward way to run a simulation with
-EcologicalNetworksDynamics.jl to illustrate the overall workflow. You will find more details and
-more elaborated examples in the package [Documentation](https://docs-url).
-
-### Set up
+Before anything else, to use EcologicalNetworksDynamics you have to install Julia.
+For that go to the [official download page](https://julialang.org/downloads/).
+Once you have successfully installed Julia,
+you can install the library by running from a Julia REPL:
 
 ```julia
-using EcologicalNetworksDynamics
-using EcologicalNetworks
+using Pkg
+Pkg.add("EcologicalNetworksDynamics")
 ```
 
-### Generate a foodweb
-
-The first step is to generate the foodweb. For instance, the foodweb can be generated from
-an adjacency matrix with the `FoodWeb` method.
+To check that the package installation went well,
+you can create a simple food web with:
 
 ```julia
-A = [0 0 0; 1 0 0; 0 1 0] # 1 producer ⋅ 2 eats 1 ⋅ 3 eats 2
-foodweb = FoodWeb(A)
+using EcologicalNetworkDynamics
+FoodWeb([1 => 2]) # Species 1 eats species 2.
 ```
 
-The foodweb can also be generated using structural models from EcologicalNetworks.jl, see
-[Documentation - Foodwebs](https://docs-url/foodwebs).
+## Learning EcologicalNetworkDynamics
 
-### Generate the model parameters
+The [Quick start](https://github.com/BecksLab/EcologicalNetworksDynamics.jl/XXX)
+page shows how to simulate biomass dynamics in a simple food web.
+The rest of the
+[Guide](https://github.com/BecksLab/EcologicalNetworksDynamics.jl/XXX)
+provides a step by step introduction to the package features,
+from the generation of the network structure to the simulation of the biomass dynamics.
+At each step, we detail how the model can be customized at your will.
+Lastly, the [Tutorials](https://github.com/BecksLab/EcologicalNetworksDynamics.jl/XXX)
+section contains realistic use-cases of EcologicalNetworksDynamics.
 
-Once the foodweb is created, the next step is to attribute values to the model parameters.
-This can be simply done by calling the method `ModelParameters` with `foodweb` as an
-argument.
+## Getting help
 
-```julia
-params = ModelParameters(foodweb)
-```
+During your journey learning EcologicalNetworksDynamics you might encounter issues.
+If so the best is to open
+[an issue](https://github.com/BecksLab/EcologicalNetworksDynamics.jl/issues).
+To ensure that we can help you efficiently,
+please provide a short description of your problem
+and a minimal example to reproduce the error you encountered.
 
-You can see that the model parameters are stored in different objects (`FoodWeb`,
-`BioRates`, `Environment` and `FunctionalResponse`) depending on their nature. For instance,
-`Environment` stores environmental variables. Each of these objects can be customized to
-suit your needs, see [Documentation - Model Parameters](https://docs-url/modelparameters).
+## How can I contribute?
 
-### Simulate biomass dynamics
+The easiest way to contribute is to
+[open an issue](https://github.com/BecksLab/EcologicalNetworksDynamics.jl/issues)
+if you spot a bug, a typo or can't manage to do something.
+Another way is to fork the repository,
+start working from the `dev` branch,
+and when ready, submit a pull request.
+The contribution guidelines are detailed
+[here](https://github.com/BecksLab/EcologicalNetworksDynamics.jl/blob/dev/CONTRIBUTING.md).
 
-Everything is ready to run the simulation, which can be simply done by calling `simulate`
-with the model parameters (`params`) and species initial biomass (`B0`).
+## Citing
 
-```julia
-B0 = [0.5, 0.5, 0.5]
-sim = simulate(params, B0)
-```
+Please mention EcologicalNetworksDynamics
+if you use it in research, teaching, or other activities.
 
-The `simulate` function is obviously doing lot of work under the hood, to learn how it works
-see [Documentation - Simulation](https://docs-url/simulation).
+## Acknowledgments
 
-### Plot biomass trajectories
+EcologicalNetworksDynamics.jl benefited from
+the Montpellier Bioinformatics Biodiversity platform (MBB) supported by the LabEx CeMEB,
+an ANR "Investissements d'avenir" program (ANR-10-LABX-04-01).
 
-Eventually you may want to plot the trajectory of your community to *see* what is happening.
-For our minimal example, it can be done as follow:
-
-```julia
-using Plots
-t, B1, B2, B3 = sim.t, sim.B[:, 1], sim.B[:, 2], sim.B[:, 3]; # unpack variables
-plot(t, B1; lw = 3, label = "Producer", xlabel = "Time", ylabel = "Biomass")
-plot!(t, B2; lw = 3, label = "Consumer")
-plot!(t, B3; lw = 3, label = "Top consumer")
-```
-
-![Biomass trajectories](biomass_trajectory_example.png)
-
-To perform further analysis, especially about the system stability, see
-[Documentation - Stability](https://docs-url/stability).
+<p align="center" width="100%">
+    <img height="100" src="https://github.com/BecksLab/EcologicalNetworksDynamics.jl/blob/readme/docs/src/assets/isem.png">
+    <img height="100" src="https://github.com/BecksLab/EcologicalNetworksDynamics.jl/blob/readme/docs/src/assets/cnrs.png">
+    <img height="100" src="https://github.com/BecksLab/EcologicalNetworksDynamics.jl/blob/readme/docs/src/assets/mbb.png">
+</p>
