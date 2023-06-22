@@ -178,6 +178,7 @@ function simulate(
     end
 
     # Handle boosted simulations.
+    timespan = (t0, tmax)
     code, data = diff_code_data
     # Work around julia's world count:
     # `generate_dbdt` only produces anonymous code,
