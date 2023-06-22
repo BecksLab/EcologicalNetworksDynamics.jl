@@ -187,7 +187,7 @@ function simulate(
     end
     fun = (args...) -> Base.invokelatest(code, args...)
     extinct_sp = Dict(i => 0.0 for (i, b) in enumerate(B0) if b == 0.0)
-    p = (params = data, extinct_sp = extinct_sp)
+    p = (params = data, extinct_sp = extinct_sp, original_params = params)
     problem = ODEProblem(fun, B0, timespan, p)
     solve(
         problem,

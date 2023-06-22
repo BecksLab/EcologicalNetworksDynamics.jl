@@ -326,7 +326,7 @@ true
 
 See also [`simulate`](@ref), [`get_extinct_species`](@ref).
 """
-get_parameters(sol) = sol.prob.p.params
+get_parameters(sol) = sol.prob.p.original_params
 
 """
     trophic_structure(solution; threshold = 0, idxs = nothing, kwargs...)
