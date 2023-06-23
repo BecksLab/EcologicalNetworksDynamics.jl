@@ -26,14 +26,51 @@ end
         method::String = "unspecified",
     )
 
-# Generate a `FoodWeb` from an adjacency matrix
-
+Generate a `FoodWeb` from an adjacency matrix.
 This is the most direct way to generate a `FoodWeb`.
-You only need to provide an adjacency matrix filled with 0s and 1s,
-that respectively indicates the absence or presence of an interaction
-between the corresponding species pair.
-For instance `A = [0 0; 1 0]` corresponds to a system of 2 species
-in which species 2 eats species 1.
+
+# Arguments:
+
+  - `A`:  an adjacency matrix filled with 0s and 1s. The adjacency matrix is a square
+  matrix of size equals to the number of species with predators in rows and preys in
+  columns. Matrix entries display the absence (0) or presence (1) of a trophic interaction
+  between a predator (row) and a prey (column). For instance `A = [0 0; 1 0]` corresponds to
+  a system in which the first species does not feed on other species (first row fills with
+  0), and is therefore a primary producers while the second species is a consumer feeding on
+  the first species.
+  - `species`: a vector of species names. Set by default to "s1", "s2", ..., "si".
+  - `Z`: predator prey size ratio used to compute species body masses according to their
+  trophic level.
+  - `M`: vector of species body masses. By default, species body masses are computed as
+  `M_i = Z^{TL_i - 1}`, `TL_i` being the trophic level of the species (see also
+  [`trophic_levels`](@ref) and Brose et al., 2006).
+  - `metabolic_class`: vector of metabolic class. Metabolic classes can be either
+  "producers" for primary producers and "invertebrates" or "vertebrates" for consumers. By
+  default, species that are eating any species are set to "producers" and consumers are set
+  to "invertebrates"
+  - `method`: display which food-web generative model (e.g. niche model) was used to
+  generate `A` [This argument is not needed here]
+
+
+# Value
+
+Returns a `FoodWeb` which is a collection of the following fields:
+
+  - `A`: the adjacency matrix
+  - `species`: the vector of species names
+  - `M`: the vector of species body masses
+  - `metabolic_class`: the vector of species metabolic classes
+  - `method`: describes which model (e.g. niche model) was used to generate `A`
+    if no model has been used `method="unspecified"`
+
+See also [`MultiplexNetwork`](@ref).
+
+# References
+
+Brose, U., Williams, R. J., & Martinez, N. D. (2006). Allometric scaling enhances stability
+in complex food webs. Ecology Letters, 9(11), 1228‑1236.
+https://doi.org/10.1111/j.1461-0248.2006.00978.x
+
 
 ```jldoctest
 julia> FoodWeb([0 0; 1 0])
@@ -45,8 +82,6 @@ FoodWeb of 2 species:
   species: [s1, s2]
 ```
 
-You can also provide optional arguments e.g. to change the species names.
-
 ```jldoctest
 julia> foodweb = FoodWeb([0 0; 1 0]; species = ["plant", "herbivore"]);
 
@@ -54,6 +89,58 @@ julia> foodweb.species == ["plant", "herbivore"]
 true
 ```
 
+"""
+function FoodWeb(
+    A::AbstractMatrix;
+    species::Vector{<:Label} = default_speciesid(A),
+    Z::Real = 1,
+    M::Vector{<:Real} = compute_mass(A, Z),
+    metabolic_class::Vector{<:Label} = default_metabolic_class(A),
+    method::String = "unspecified",
+    quiet = false,
+)
+    S = richness(A)
+    @check_size_is_richness² A S
+    metabolic_class = clean_metabolic_class(metabolic_class, A)
+    species = clean_labels(species, S)
+    quiet || is_connected(SimpleDiGraph(A)) || @warn disconnected_warning
+    FoodWeb(sparse(A), species, M, metabolic_class, method)
+end
+
+"""
+# Generate a `FoodWeb` from a `UnipartiteNetwork`
+
+Lastly, EcologicalNetworkDynamics.jl has been designed to interact nicely
+with EcologicalNetworks.jl.
+Thus you can also create a `FoodWeb` from a `UnipartiteNetwork`:
+
+```jldoctest
+julia> uni_net = cascademodel(10, 0.1); # generate a UnipartiteNetwork
+
+julia> foodweb = FoodWeb(uni_net; quiet = true);
+
+julia> foodweb.A == uni_net.edges # same adjacency matrices
+true
+```
+
+"""
+function FoodWeb(
+    uni_net::UnipartiteNetwork;
+    Z::Real = 1,
+    M::AbstractVector = compute_mass(uni_net.edges, Z),
+    metabolic_class::Vector{String} = default_metabolic_class(uni_net.edges),
+    method::String = "unspecified",
+    quiet = false,
+)
+    is_from_mangal = isa(uni_net.S, Vector{Mangal.MangalNode})
+    species = is_from_mangal ? [split(string(s), ": ")[2] for s in uni_net.S] : uni_net.S
+    quiet || is_connected(SimpleDiGraph(uni_net.edges)) || @warn disconnected_warning
+    A = sparse(uni_net.edges)
+    FoodWeb(A, species, M, metabolic_class, method)
+end
+
+
+"""
 # Generate a `FoodWeb` from an adjacency list
 
 An adjacency list is an iterable of `Pair`s
@@ -85,7 +172,81 @@ true
 julia> fw_from_names.species == ["mouse", "snake", "turtle"] # ordered lexically
 true
 ```
+"""
+function FoodWeb(al; kwargs...)
+    # Flags to know if species identities
+    # are refered with indexes (Integer) or label (Symbol or String)
+    index_style = true
+    label_style = true
+    if !(eltype(al) <: Pair)
+        throw(
+            ArgumentError(
+                "Invalid adjacency list type: $(typeof(al)). " *
+                "Expected a collection of pairs.",
+            ),
+        )
+    end
+    pair_vector = []
+    for pair in al
+        pred, prey, style = parse_pair(pair)
+        style == :index ? (label_style = false) : (index_style = false) # update flags
+        if sum([label_style, index_style]) != 1
+            throw(
+                ArgumentError(
+                    "Species identity style should be consistent within the pairs. " *
+                    "You used two different style: " *
+                    "1. index style, species are identified with `Integer`s " *
+                    "2. label style, species are identified with `String`s or `Symbol`s " *
+                    "(e.g. `:lion`, `:hyena`).",
+                ),
+            )
+        end
+        push!(pair_vector, pred => prey)
+    end
+    if !allunique(first.(pair_vector))
+        throw(
+            ArgumentError(
+                "Duplicated key (predator), key cannot be repeated. " *
+                "For instance, if species 1 eats species 2 and 3, " *
+                "instead of writing [1 => 2, 1 => 3] " *
+                "write [1 => [2, 3]] or [1 => (2, 3)].",
+            ),
+        )
+    end
+    pair_dict = Dict(pair_vector)
+    al_keys = keys(pair_dict)
+    al_vals = collect(values(pair_dict))
+    al_vals_flatten = collect(Iterators.flatten(al_vals)) # [[1], [2, 3]] -> [1, 2, 3]
+    sp_set = union(al_keys, al_vals_flatten)
+    sp_sorted = sort([sp for sp in sp_set])
+    sp_dict = Dict([id => new_id for (new_id, id) in enumerate(sp_sorted)])
+    mapping = name -> sp_dict[name]
+    S = length(sp_set)
+    A = spzeros(Integer, S, S)
+    for (pred, prey_vec) in pair_dict
+        for prey in prey_vec
+            A[mapping(pred), mapping(prey)] = 1
+        end
+    end
 
+    # Automatically adjust species labels if needed.
+    kwargs = Dict{Symbol,Any}(kwargs)
+    if label_style
+        if :species in keys(kwargs)
+            throw(ArgumentError("Species names are automatically set from labels \
+                             in adjacency list. No need to provide `species` argument."))
+        else
+            kwargs[:species] = sp_sorted
+        end
+    end
+    if index_style && :species ∉ keys(kwargs)
+        kwargs[:species] = default_speciesid(A)
+    end
+
+    FoodWeb(A; kwargs...)
+end
+
+"""
 # Generate a `FoodWeb` from a structural model
 
 For larger communities it can be convenient to rely on a structural model.
@@ -148,67 +309,7 @@ or until the number of maximum iteraction `iter_max` is reached.
 If the maximum number of iterations is reached an error is thrown.
 That number can be controlled by the `iter_max` keyword argument,
 default is set to `1e5`.
-
-# Generate a `FoodWeb` from a `UnipartiteNetwork`
-
-Lastly, EcologicalNetworkDynamics.jl has been designed to interact nicely
-with EcologicalNetworks.jl.
-Thus you can also create a `FoodWeb` from a `UnipartiteNetwork`:
-
-```jldoctest
-julia> uni_net = cascademodel(10, 0.1); # generate a UnipartiteNetwork
-
-julia> foodweb = FoodWeb(uni_net; quiet = true);
-
-julia> foodweb.A == uni_net.edges # same adjacency matrices
-true
-```
-
-# `FoodWeb` struct
-
-The function returns a `FoodWeb` which is a collection of the following fields:
-
-  - `A` the adjacency matrix
-  - `species` the vector of species identities
-  - `M` the vector of species body mass
-  - `metabolic_class` the vector of species metabolic classes
-  - `method` describes which model (e.g. niche model) was used to generate `A`
-    if no model has been used `method="unspecified"`
-
-See also [`MultiplexNetwork`](@ref).
 """
-function FoodWeb(
-    A::AbstractMatrix;
-    species::Vector{<:Label} = default_speciesid(A),
-    Z::Real = 1,
-    M::Vector{<:Real} = compute_mass(A, Z),
-    metabolic_class::Vector{<:Label} = default_metabolic_class(A),
-    method::String = "unspecified",
-    quiet = false,
-)
-    S = richness(A)
-    @check_size_is_richness² A S
-    metabolic_class = clean_metabolic_class(metabolic_class, A)
-    species = clean_labels(species, S)
-    quiet || is_connected(SimpleDiGraph(A)) || @warn disconnected_warning
-    FoodWeb(sparse(A), species, M, metabolic_class, method)
-end
-
-function FoodWeb(
-    uni_net::UnipartiteNetwork;
-    Z::Real = 1,
-    M::AbstractVector = compute_mass(uni_net.edges, Z),
-    metabolic_class::Vector{String} = default_metabolic_class(uni_net.edges),
-    method::String = "unspecified",
-    quiet = false,
-)
-    is_from_mangal = isa(uni_net.S, Vector{Mangal.MangalNode})
-    species = is_from_mangal ? [split(string(s), ": ")[2] for s in uni_net.S] : uni_net.S
-    quiet || is_connected(SimpleDiGraph(uni_net.edges)) || @warn disconnected_warning
-    A = sparse(uni_net.edges)
-    FoodWeb(A, species, M, metabolic_class, method)
-end
-
 function FoodWeb(
     model::Function,
     S = nothing;
@@ -542,79 +643,6 @@ function check_structural_model(model)
 end
 #### end ####
 
-#### Create FoodWeb from an adjacency list ####
-function FoodWeb(al; kwargs...)
-    # Flags to know if species identities
-    # are refered with indexes (Integer) or label (Symbol or String)
-    index_style = true
-    label_style = true
-    if !(eltype(al) <: Pair)
-        throw(
-            ArgumentError(
-                "Invalid adjacency list type: $(typeof(al)). " *
-                "Expected a collection of pairs.",
-            ),
-        )
-    end
-    pair_vector = []
-    for pair in al
-        pred, prey, style = parse_pair(pair)
-        style == :index ? (label_style = false) : (index_style = false) # update flags
-        if sum([label_style, index_style]) != 1
-            throw(
-                ArgumentError(
-                    "Species identity style should be consistent within the pairs. " *
-                    "You used two different style: " *
-                    "1. index style, species are identified with `Integer`s " *
-                    "2. label style, species are identified with `String`s or `Symbol`s " *
-                    "(e.g. `:lion`, `:hyena`).",
-                ),
-            )
-        end
-        push!(pair_vector, pred => prey)
-    end
-    if !allunique(first.(pair_vector))
-        throw(
-            ArgumentError(
-                "Duplicated key (predator), key cannot be repeated. " *
-                "For instance, if species 1 eats species 2 and 3, " *
-                "instead of writing [1 => 2, 1 => 3] " *
-                "write [1 => [2, 3]] or [1 => (2, 3)].",
-            ),
-        )
-    end
-    pair_dict = Dict(pair_vector)
-    al_keys = keys(pair_dict)
-    al_vals = collect(values(pair_dict))
-    al_vals_flatten = collect(Iterators.flatten(al_vals)) # [[1], [2, 3]] -> [1, 2, 3]
-    sp_set = union(al_keys, al_vals_flatten)
-    sp_sorted = sort([sp for sp in sp_set])
-    sp_dict = Dict([id => new_id for (new_id, id) in enumerate(sp_sorted)])
-    mapping = name -> sp_dict[name]
-    S = length(sp_set)
-    A = spzeros(Integer, S, S)
-    for (pred, prey_vec) in pair_dict
-        for prey in prey_vec
-            A[mapping(pred), mapping(prey)] = 1
-        end
-    end
-
-    # Automatically adjust species labels if needed.
-    kwargs = Dict{Symbol,Any}(kwargs)
-    if label_style
-        if :species in keys(kwargs)
-            throw(ArgumentError("Species names are automatically set from labels \
-                             in adjacency list. No need to provide `species` argument."))
-        else
-            kwargs[:species] = sp_sorted
-        end
-    end
-    if index_style && :species ∉ keys(kwargs)
-        kwargs[:species] = default_speciesid(A)
-    end
-
-    FoodWeb(A; kwargs...)
-end
 
 """
 Parse pairs within `FoodWeb()` method working on adjacency list.

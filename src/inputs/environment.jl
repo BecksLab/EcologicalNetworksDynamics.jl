@@ -21,13 +21,11 @@ end
 """
     Environment(; T=293.15)
 
-Create environmental parameters of the system.
+Create environmental parameters of the system, which are currently only temperature (T, in
+Kelvin). The temperature default value is 293.15 Kelvins, i.e. 20 Celcius degrees.
 
-The environmental parameters are:
-
-  - T the temperature (in Kelvin)
-    By default, the carrying capacities of producers are assumed to be 1 while capacities of
-    consumers are assumed to be `nothing` as consumers do not have a growth term.
+# Arguments:
+  - `T`: temperature in Kelvin
 
 # Examples
 

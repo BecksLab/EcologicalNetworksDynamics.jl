@@ -38,13 +38,25 @@ end
 
 #### Constructors containing default parameter value for allometric scaled rates ####
 """
-    DefaultMortalityParams()
+    DefaultMortalityParams(aₚ = 0.0138, aₑ = 0.088, aᵢ = 0.0314,
+                       bₚ = -0.25, bₑ = -0.25, bᵢ = -0.25)
 
-Default allometric parameters (a, b) values for mortality rate (d).
+Default allometric parameters (a, b) values for mortality rate (d). The intercepts are
+simply one tenth of the metabolic loss allometric intercepts (a) as in Miele et al. (2016)
+(see [`DefaultMetabolismParams`](@ref)).
+
+# Reference
+
+Miele, V., Guill, C., Ramos-Jiliberto, R., & Kéfi, S. (2019). Non-trophic interactions
+strengthen the diversity—Functioning relationship in an ecological bioenergetic network
+model. PLOS Computational Biology, 15(8), e1007269.
+https://doi.org/10.1371/journal.pcbi.1007269
 
 See also [`AllometricParams`](@ref)
 """
-DefaultMortalityParams() = AllometricParams(0.0138, 0.0314, 0.0314, -0.25, -0.25, -0.25)
+DefaultMortalityParams(aₚ = 0.0138, aₑ = 0.088, aᵢ = 0.0314,
+                       bₚ = -0.25, bₑ = -0.25, bᵢ = -0.25) = AllometricParams(aₚ, aₑ, aᵢ,
+                                                                              bₚ, bₑ, bᵢ)
 
 """
     DefaultGrowthParams()
@@ -56,38 +68,64 @@ See also [`AllometricParams`](@ref)
 DefaultGrowthParams() = AllometricParams(1.0, 0.0, 0.0, -0.25, 0.0, 0.0)
 
 """
-    DefaultMetabolismParams()
+    DefaultMetabolismParams(aₚ = 0, aₑ = 0.88, aᵢ = 0.314,
+                        bₚ = 0, bₑ = -0.25, bᵢ = -0.25)
 
-Default allometric parameters (a, b) values for metabolic rate (x).
+
+
+Default allometric parameters (a, b) values to compute metabolic rates of consumers (x). The
+intercept values were taken from Brose et al. (2006). The allometric parameters for
+producers (aₚ, bₚ) are fixed to 0.
+
+# Reference
+
+Brose, U., Williams, R. J., & Martinez, N. D. (2006). Allometric scaling enhances stability
+in complex food webs. Ecology Letters, 9(11), 1228‑1236.
+https://doi.org/10.1111/j.1461-0248.2006.00978.x
+
 
 See also [`AllometricParams`](@ref)
 """
-DefaultMetabolismParams() = AllometricParams(0, 0.88, 0.314, 0, -0.25, -0.25)
+DefaultMetabolismParams(aₚ = 0, aₑ = 0.88, aᵢ = 0.314,
+                        bₚ = 0, bₑ = -0.25, bᵢ = -0.25) = AllometricParams(aₚ, aₑ, aᵢ,
+                                                                          bₚ, bₑ, bᵢ)
+
 
 """
-    DefaultMaxConsumptionParams()
+    DefaultMaxConsumptionParams(aₚ = 0.0, aₑ = 4.0, aᵢ = 8.0,
+                            bₚ = 0.0, bₑ = 0.0, bᵢ = 0.0)
 
-Default allometric parameters (a, b) values for max consumption rate (y).
+Default allometric parameters (a, b) values to compute maximum consumption rates of
+consumers (y). The maximum consumption rates do not scale with bodysize, i.e., all b
+parameters are equal to 0. The intercept values were taken from Brose et al. (2006). The
+allometric intercept for producers (aₚ) is fixed to 0.
+
+# Reference
+
+Brose, U., Williams, R. J., & Martinez, N. D. (2006). Allometric scaling enhances stability
+in complex food webs. Ecology Letters, 9(11), 1228‑1236.
+https://doi.org/10.1111/j.1461-0248.2006.00978.x
 
 See also [`AllometricParams`](@ref)
 """
-DefaultMaxConsumptionParams() = AllometricParams(0.0, 4.0, 8.0, 0.0, 0.0, 0.0)
+DefaultMaxConsumptionParams(aₚ = 0.0, aₑ = 4.0, aᵢ = 8.0,
+                            bₚ = 0.0, bₑ = 0.0, bᵢ = 0.0) = AllometricParams(aₚ, aₑ, aᵢ,
+                                                                          bₚ, bₑ, bᵢ)
 
 """
     AllometricParams(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ)
 
-Parameters used to compute allometric rates for different metabolic classes.
+Parameters used to compute metabolic rates according to allometric relationships according
+to three metabolic classes, i.e. producers, invertebrates, and ectotherm vertebrates.
 
-The rate R is expressed as follow: ``R = aMᵇ``, where a and b can take different values
-depending on the metabolic class of the species. This struct aims at storing these values
-of a and b. Specifically:
+Each rate R is computed as with allometric relationship with bodymass : ``R = aMᵇ``, where a
+and b are respectively the intercept and the slope of this relationship. a and b can take
+different values depending on the metabolic class of the species. The indices of a and b (ₚ,
+ₑ, ᵢ) correspond to the different metabolic classes:
 
-  - aₚ: a for producers
-  - aₑ: a for ectotherm vertebrates
-  - aᵢ: a for invertebrates
-  - bₚ: b for producers
-  - bₑ: b for ectotherm vertebrates
-  - bᵢ: b for invertebrates
+  - ₚ: producers
+  - ₑ: ectotherm vertebrates
+  - ᵢ: invertebrates
 
 Default parameters values taken from the literature for certain rates can be accessed by
 calling the corresponding function, i.e. for:
