@@ -180,7 +180,7 @@ function simulate(
     # As such, and in principle, the 'latest' function is unambiguous.
     if !isa(code, Function)
         message = "The given specialized code is not a `Function` but `$(typeof(code))`."
-        if isa(code, Expr)
+        if isa(code, Expr) || isa(code, GeneratedExpression)
             message *= " Did you forget to `eval()`uate it before passing it to `simulate()`?"
         end
         throw(ArgumentError(message))
