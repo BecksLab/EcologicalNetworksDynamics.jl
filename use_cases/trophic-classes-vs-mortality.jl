@@ -27,7 +27,6 @@ check_cycle = true # Check that generated food webs do not contain cycle(s).
 # To do so, we have lowered the `abstol` and `reltol` arguments of
 # `TerminateSteadyState`.
 verbose = false # Do not show '@info' messages during simulation run.
-callback = CallbackSet(ExtinctionCallback(1e-5, verbose), TerminateSteadyState(1e-8, 1e-6))
 tmax = 10_000
 
 # Main simulation loop.
@@ -55,10 +54,12 @@ Threads.@threads for i in 1:n_foodweb # Parallelize computation when possible.
         d = d0 .* allometric_rate(foodweb, DefaultMortalityParams())
         biorates = BioRates(foodweb; d)
         p = ModelParameters(foodweb; functional_response, biorates)
+        callback = CallbackSet(
+            ExtinctionCallback(1e-5, p, verbose),
+            TerminateSteadyState(1e-8, 1e-6),
+        )
         # Prepare simulation boost.
-        dBdt_expr, data = generate_dbdt(p, :compact)
-        dBdt! = eval(dBdt_expr)
-        solution = simulate(p, B0; tmax, callback, diff_code_data = (dBdt!, data))
+        solution = simulate(p, B0; tmax, callback)
         extinct_sp = keys(get_extinct_species(solution))
         surviving_sp = setdiff(1:richness(foodweb), extinct_sp)
         # Species classes are given by the the dynamics with zero mortality rate.
@@ -135,3 +136,6 @@ Legend(
     tellheight = true, # Adjust top subfigure height to legend height.
     tellwidth = false, # Do not adjust bottom subfigure width to legend width.
 )
+
+# To save the figure, uncomment and execute the line below.
+# save("/tmp/plot.png", fig; resolution = (450, 300), px_per_unit = 3)

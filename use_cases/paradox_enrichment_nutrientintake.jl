@@ -30,19 +30,12 @@ df = DataFrame(;
 
 # Run simulations: compute equilibirum biomass for each carrying capacity.
 @info "Start simulations..."
-for s in S_values
+for supply in S_values
     for _ in 1:10
-        k1 = 0.1 #round(rand(Uniform(0.1, 0.2), 1)[1]; digits = 2)
-        k2 = 0.1 #round(rand(Uniform(0.1, 0.2), 1)[1]; digits = 2)
-        d = 0.1 #round(rand(Uniform(0.1, 0.4), 1)[1]; digits = 2)
-        growthmodel = NutrientIntake(
-            foodweb;
-            supply = s,
-            half_saturation = hcat(k1, k2),
-            turnover = d,
-        )
-        params =
-            ModelParameters(foodweb; functional_response, producer_growth = growthmodel)
+        half_saturation = 0.1
+        turnover = 0.1
+        producer_growth = NutrientIntake(foodweb; supply, half_saturation, turnover)
+        params = ModelParameters(foodweb; functional_response, producer_growth)
         callback = ExtinctionCallback(1e-6, params, verbose)
         B0 = 1 .+ 3 * rand(2) # Inital biomass.
         N0 = 1 .+ 3 * rand(2) # Initial nutrient abundances.
@@ -58,7 +51,10 @@ for s in S_values
         )
         if solution.retcode == ReturnCode.Success
             extrema = biomass_extrema(solution, "10%")
-            push!(df, [s, extrema[1].min, extrema[1].max, extrema[2].min, extrema[2].max])
+            push!(
+                df,
+                [supply, extrema[1].min, extrema[1].max, extrema[2].min, extrema[2].max],
+            )
         end
     end
     @info "Simulation for supply S = $s done."
@@ -94,4 +90,6 @@ Legend(
     tellheight = true, # Adjust the height of the legend sub-figure.
     tellwidth = false, # Do not adjust width of the orbit diagram.
 )
-# save("/tmp/plot.png", fig; resolution = (450, 350), px_per_unit = 3)
+
+# To save the figure, uncomment and execute the line below.
+# save("/tmp/plot.png", fig; resolution = (450, 300), px_per_unit = 3)
