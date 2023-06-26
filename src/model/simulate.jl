@@ -3,7 +3,7 @@
     simulate(
         params::ModelParameters,
         B0::AbstractVector;
-        N0::AbstractVector = [1.0]
+        N0::AbstractVector = nothing,
         alg = nothing,
         t0::Number = 0,
         tmax::Number = 500,
@@ -61,76 +61,45 @@ but want to find directly the biomass at steady state see [`find_steady_state`](
 
 ```jldoctest
 julia> foodweb = FoodWeb([0 0; 1 0]); # create the foodweb
-
-julia> br = BioRates(foodweb; d = 0); # set natural death rate to 0
-
-julia> params = ModelParameters(foodweb; biorates = br);
-
-julia> B0 = [0.5, 0.5]; # set initial biomass
-
-julia> solution = simulate(params, B0); # run simulation
-
-julia> is_terminated(solution) # => a steady state has been found
-true
-
-julia> solution[begin] == B0 # initial biomass equals initial biomass
-true
-
-julia> isapprox(solution[end], [0.188, 0.219]; atol = 1e-2) # steady state biomass
-true
+       br = BioRates(foodweb; d = 0); # set natural death rate to 0
+       params = ModelParameters(foodweb; biorates = br);
+       B0 = [0.5, 0.5]; # set initial biomass
+       solution = simulate(params, B0); # run simulation
+       @assert is_terminated(solution) # => a steady state has been found
+       @assert solution[begin] == B0 # initial biomass equals initial biomass
+       @assert isapprox(solution[end], [0.188, 0.219]; atol = 1e-2) # steady state biomass
 
 julia> using DifferentialEquations;
-
-julia> solution_custom_alg = simulate(params, B0; alg = BS5());
-
-julia> isapprox(solution_custom_alg[end], [0.188, 0.219]; atol = 1e-2)
-true
+       solution_custom_alg = simulate(params, B0; alg = BS5());
+       @assert isapprox(solution_custom_alg[end], [0.188, 0.219]; atol = 1e-2)
 
 julia> import Logging; # TODO: remove when warnings removed from `generate_dbdt`.
-
-julia> # generate specialized code (same simulation)
-
-julia> xpr, data = Logging.with_logger(Logging.NullLogger()) do
+       # generate specialized code (same simulation)
+       xpr, data = Logging.with_logger(Logging.NullLogger()) do
            generate_dbdt(params, :raw)
        end;
-
-julia> solution = simulate(params, B0; diff_code_data = (eval(xpr), data));
-
-julia> is_terminated(solution) #  the same result is obtained, more efficiently.
-true
-
-julia> solution[begin] == B0
-true
-
-julia> isapprox(solution[end], [0.188, 0.219]; atol = 1e-2) # steady state biomass
-true
+       solution = simulate(params, B0; diff_code_data = (eval(xpr), data));
+       @assert is_terminated(solution) #  the same result is obtained, more efficiently.
+       @assert solution[begin] == B0
+       @assert isapprox(solution[end], [0.188, 0.219]; atol = 1e-2) # steady state biomass
 
 julia> # Same with alternate style.
-
-julia> xpr, data = Logging.with_logger(Logging.NullLogger()) do
+       xpr, data = Logging.with_logger(Logging.NullLogger()) do
            generate_dbdt(params, :compact)
        end;
+       solution = simulate(params, B0; diff_code_data = (eval(xpr), data));
+       @assert is_terminated(solution)
+       @assert solution[begin] == B0
+       @assert isapprox(solution[end], [0.188, 0.219]; atol = 1e-2) # steady state biomass
 
-julia> solution = simulate(params, B0; diff_code_data = (eval(xpr), data));
-
-julia> is_terminated(solution)
-true
-
-julia> solution[begin] == B0
-true
-
-julia> isapprox(solution[end], [0.188, 0.219]; atol = 1e-2) # steady state biomass
-true
 ```
 
 By default, the extinction callback throw a message when a species goes extinct.
 
 ```julia
 julia> foodweb = FoodWeb([0 0; 1 0]);
-
-julia> params = ModelParameters(foodweb; biorates = BioRates(foodweb; d = 0));
-
-julia> simulate(params, [0.5, 1e-12]; verbose = true); # default: a message is thrown
+       params = ModelParameters(foodweb; biorates = BioRates(foodweb; d = 0));
+       simulate(params, [0.5, 1e-12]; verbose = true); # default: a message is thrown
 [ Info: Species [2] is exinct. t=0.12316364776188903
 
 julia> simulate(params, [0.5, 1e-12]; verbose = true); # no message thrown
@@ -139,8 +108,8 @@ julia> simulate(params, [0.5, 1e-12]; verbose = true); # no message thrown
 """
 function simulate(
     params::ModelParameters,
-    B0::AbstractVector;
-    N0::AbstractVector = [1.0],
+    B0;
+    N0 = nothing,
     alg = nothing,
     t0::Number = 0,
     tmax::Number = 500,
@@ -148,22 +117,24 @@ function simulate(
     verbose = true,
     callback = CallbackSet(
         TerminateSteadyState(1e-6, 1e-4),
-        ExtinctionCallback(extinction_threshold, length(B0), verbose),
+        ExtinctionCallback(extinction_threshold, params, verbose),
     ),
-    diff_code_data = (dBdt!, params),
+    diff_code_data = (dudt!, params),
     kwargs...,
 )
-
-    # Check for consistency and format input arguments
-    S = richness(params.network)
-    all(B0 .>= 0) || throw(
-        ArgumentError(
-            "Inital biomasses provided in 'B0' should be all non-negative." *
-            "You gave B0 = $B0 which contains negative value(s).",
-        ),
-    )
-    length(B0) == 1 && (B0 = repeat(B0, S))
+    # Interpret parameters and check them for consistency.
+    S = richness(params)
+    all(B0 .>= 0) ||
+        throw(ArgumentError("The argument received B0 = $B0 contains negative value(s). \
+                             Initial biomasses should all be non-negative."))
+    length(B0) == 1 && (B0 = fill(B0[1], S))
     @check_equal_richness length(B0) S
+    if !isnothing(N0)
+        all(N0 .>= 0) || throw(
+            ArgumentError("The argument received N0 = $N0 contains negative value(s). \
+                           Initial nutrient abundances should all be non-negative."),
+        )
+    end
     @check_lower_than t0 tmax
     if isa(extinction_threshold, AbstractVector)
         length(extinction_threshold) == S || throw(
@@ -173,7 +144,7 @@ function simulate(
         )
     end
 
-    # Define ODE problem and solve
+    # Handle boosted simulations.
     timespan = (t0, tmax)
     code, data = diff_code_data
     # Work around julia's world count:
@@ -190,22 +161,31 @@ function simulate(
     fun = (args...) -> Base.invokelatest(code, args...)
     extinct_sp = Dict(i => 0.0 for (i, b) in enumerate(B0) if b == 0.0)
 
-    # Set N0 to 0 if growth model is not nutrient intake.
+    # Set initial nutrient abundances `N0` and initial species biomass `B0`.
     if isa(params.producer_growth, NutrientIntake)
-        n = params.producer_growth.n
-        length(N0) == 1 && (N0 = repeat(N0, n))
-        B0 = vcat(B0, N0)
+        isnothing(N0) && throw(
+            ArgumentError("If producer growth is of type `$NutrientIntake`, \
+                           use the `N0` argument to provide initial nutrient abundances."),
+        )
+        n = nutrient_richness(params)
+        length(N0) == 1 && (N0 = fill(N0[1], n))
+        @assert length(N0) == n || throw(
+            ArgumentError("The model contains $n nutrients, \
+                          but $(length(N0)) initial nutrient abundances were provided."),
+        )
+        u0 = vcat(B0, N0)
     else
-        N0 = 0.0
+        u0 = B0
     end
 
     p = (params = data, extinct_sp = extinct_sp, original_params = params)
-    problem = ODEProblem(fun, B0, timespan, p)
+    timespan = (t0, tmax)
+    problem = ODEProblem(fun, u0, timespan, p)
     sol = solve(
         problem,
         alg;
         callback = callback,
-        isoutofdomain = (u, p, t) -> any(x -> x < 0, u[1:S]),
+        isoutofdomain = (u, p, t) -> any(x -> x < 0, u[species_indices(params)]),
         kwargs...,
     )
     sol
@@ -224,41 +204,39 @@ or an `AbstractVector` of length species richness (one threshold per species).
 If `verbose = true` a message is printed when a species goes extinct,
 otherwise no message are printed.
 """
-function ExtinctionCallback(extinction_threshold, S, verbose::Bool)
-
+function ExtinctionCallback(extinction_threshold, p::ModelParameters, verbose::Bool)
     # The callback is triggered whenever
     # a non-extinct species biomass goes below the threshold.
-
     # Use either adequate code based on `extinction_threshold` type.
     # This avoids that the type condition be checked on every timestep.
+    sp = species_indices(p) # Vector of species indexes.
     species_under_threshold = if isa(extinction_threshold, Number)
-        (u, t, integrator) -> any(u[1:S][u[1:S].>0] .< extinction_threshold)
+        (u, _, _) -> any(u[sp][u[sp].>0] .< extinction_threshold)
     else
-        (u, t, integrator) -> any(u[1:S][u[1:S].>0] .< extinction_threshold[u[1:S].>0])
+        (u, _, _) -> any(u[sp][u[sp].>0] .< extinction_threshold[u[sp].>0])
     end
 
     get_extinct_species = if isa(extinction_threshold, Number)
-        (u, _) -> Set(findall(x -> x < extinction_threshold, u[1:S]))
+        (u, sp) -> Set(findall(x -> x < extinction_threshold, u[sp]))
     else
-        (u, S) -> Set((1:S)[u[1:S].<extinction_threshold])
+        (u, sp) -> Set(sp[u[sp].<extinction_threshold])
     end
 
     # Effect of the callback: the species biomass below the threshold are set to 0.
     function extinguish_species!(integrator)
         # All species that are extinct, include previous extinct species and the new species
         # that triggered the callback. (Its/Their biomass still has to be set to 0.0)
-        #S = length(integrator.u)
-        all_extinct_sp = get_extinct_species(integrator.u[1:S], S)
+        all_extinct_sp = get_extinct_species(integrator.u, sp)
         prev_extinct_sp = keys(integrator.p.extinct_sp)
         # Species that are newly extinct, i.e. the species that triggered the callback.
         new_extinct_sp = setdiff(all_extinct_sp, prev_extinct_sp)
-        integrator.u[[sp for sp in new_extinct_sp]] .= 0.0
+        integrator.u[collect(new_extinct_sp)] .= 0.0
         t = integrator.t
         new_extinct_sp_dict = Dict(sp => t for sp in new_extinct_sp)
         merge!(integrator.p.extinct_sp, new_extinct_sp_dict) # update extinct species list
         # Info message (printed only if verbose = true).
         if verbose && !isempty(new_extinct_sp)
-            S, S_ext = length(integrator.u[1:S]), length(all_extinct_sp)
+            S, S_ext = length(integrator.u[sp]), length(all_extinct_sp)
             @info "Species $([new_extinct_sp...]) went extinct at time t = $t. \n" *
                   "$S_ext out of $S species are extinct."
         end

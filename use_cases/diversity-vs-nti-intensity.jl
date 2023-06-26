@@ -25,7 +25,6 @@ n_foodweb = 50 # Replicates of trophic backbones.
 # `TerminateSteadyState`.
 tmax = 10_000
 verbose = false # Do not show '@info' messages during simulation run.
-callback = CallbackSet(ExtinctionCallback(1e-5, verbose), TerminateSteadyState(1e-8, 1e-6))
 
 # Set up non-trophic interactions.
 intensity_range_size = 5
@@ -62,6 +61,10 @@ Threads.@threads for i in 1:n_foodweb # Parallelize computation if possible.
             net = MultiplexNetwork(foodweb; [interaction => (L = L_nti, I = intensity)]...)
             functional_response = ClassicResponse(net; c = i_intra)
             params = ModelParameters(net; functional_response)
+            callback = CallbackSet(
+                ExtinctionCallback(1e-5, params, verbose),
+                TerminateSteadyState(1e-8, 1e-6),
+            )
             solution = simulate(params, rand(S); tmax, callback)
             # Save the final diversity at equilibrium.
             push!(df_thread, [i, interaction, intensity, richness(solution[end])])
@@ -119,3 +122,6 @@ end
 font = firasans("Medium") # Label font.
 Label(fig[1:2, 0], "Diversity variation"; font, rotation = pi / 2, width = 0)
 Label(fig[3, 2:3], "Interaction intensity"; font, height = 0)
+
+# To save the figure, uncomment and execute the line below.
+# save("/tmp/plot.png", fig; resolution = (450, 300), px_per_unit = 3)

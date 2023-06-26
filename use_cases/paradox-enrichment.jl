@@ -29,8 +29,8 @@ df = DataFrame(;
 # Run simulations: compute equilibirum biomass for each carrying capacity.
 @info "Start simulations..."
 for K in K_values
-    environment = Environment(foodweb; K)
-    params = ModelParameters(foodweb; functional_response, environment)
+    producer_growth = LogisticGrowth(foodweb; K)
+    params = ModelParameters(foodweb; functional_response, producer_growth)
     B0 = rand(2) # Inital biomass.
     solution = simulate(params, B0; tmax, verbose)
     extrema = biomass_extrema(solution, "10%")
@@ -61,3 +61,6 @@ Legend(
     tellheight = true, # Adjust the height of the legend sub-figure.
     tellwidth = false, # Do not adjust width of the orbit diagram.
 )
+
+# To save the figure, uncomment and execute the line below.
+# save("/tmp/plot.png", fig; resolution = (450, 300), px_per_unit = 3)

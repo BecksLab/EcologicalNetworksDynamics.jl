@@ -17,8 +17,8 @@ end
 
 foodweb = FoodWeb([2 => 1]); # 2 eats 1.
 functional_response = ClassicResponse(foodweb; aᵣ = 1, hₜ = 1, h = 1);
-S_values = LinRange(1, 60, 60)
-tmax = 1_000 # Simulation length.
+S_values = LinRange(0, 70, 20)
+tmax = 10_000 # Simulation length.
 verbose = false # Do not show '@info' messages during the simulation.
 df = DataFrame(;
     S = Float64[],
@@ -30,23 +30,31 @@ df = DataFrame(;
 
 # Run simulations: compute equilibirum biomass for each carrying capacity.
 @info "Start simulations..."
-for s in S_values
-    for i in 1:20
-        k1 = round(rand(Uniform(0.1, 0.2), 1)[1], digits = 2)
-        k2 = round(rand(Uniform(0.1, 0.2), 1)[1], digits = 2)
-        d = round(rand(Uniform(0.1, 0.4), 1)[1], digits = 2)
-        growthmodel = NutrientIntake(foodweb, 
-            supply = s,     
-            half_saturation = hcat(k1,k2), 
-            turnover = d
+for supply in S_values
+    for _ in 1:10
+        half_saturation = 0.1
+        turnover = 0.1
+        producer_growth = NutrientIntake(foodweb; supply, half_saturation, turnover)
+        params = ModelParameters(foodweb; functional_response, producer_growth)
+        callback = ExtinctionCallback(1e-6, params, verbose)
+        B0 = 1 .+ 3 * rand(2) # Inital biomass.
+        N0 = 1 .+ 3 * rand(2) # Initial nutrient abundances.
+        solution = simulate(
+            params,
+            B0;
+            N0,
+            tmax,
+            verbose,
+            alg_hints = [:stiff],
+            callback,
+            reltol = 1e-5,
+        )
+        if solution.retcode == ReturnCode.Success
+            extrema = biomass_extrema(solution, "10%")
+            push!(
+                df,
+                [supply, extrema[1].min, extrema[1].max, extrema[2].min, extrema[2].max],
             )
-        params = ModelParameters(foodweb; functional_response, producer_growth = growthmodel)
-        B0 = rand(2) # Inital biomass.
-        N0 = rand(2)
-        solution = simulate(params, B0; N0 = N0, tmax, verbose, alg_hints=[:stiff])
-        extrema = biomass_extrema(solution, "10%")
-        if solution.retcode == ReturnCode.Terminated
-            push!(df, [s, extrema[1].min, extrema[1].max, extrema[2].min, extrema[2].max])
         end
     end
     @info "Simulation for supply S = $s done."
@@ -55,20 +63,24 @@ end
 
 # Plot the orbit diagram with Makie.
 df2 = groupby(df, :S)
-df2 = combine(df2, 
-    :B_resource_min => mean, 
-    :B_resource_max => mean, 
-    :B_consumer_min => mean, 
-    :B_consumer_max => mean)
+df2 = combine(
+    df2,
+    :B_resource_min => mean,
+    :B_resource_max => mean,
+    :B_consumer_min => mean,
+    :B_consumer_max => mean,
+)
 set_aog_theme!() # AlgebraOfGraphics theme.
 c_r = :green # Resource color.
 c_c = :purple # Consumer color.
 c_v = :grey # Vertical lines color.
 fig = Figure()
 ax = Axis(fig[2, 1]; xlabel = "Supply, S", ylabel = "Equilibrium biomass")
-resource_line = scatterlines!(df2.S, df2.B_resource_min_mean; color = c_r, markercolor = c_r)
+resource_line =
+    scatterlines!(df2.S, df2.B_resource_min_mean; color = c_r, markercolor = c_r)
 scatterlines!(df2.S, df2.B_resource_max_mean; color = c_r, markercolor = c_r)
-consumer_line = scatterlines!(df2.S, df2.B_consumer_min_mean; color = c_c, markercolor = c_c)
+consumer_line =
+    scatterlines!(df2.S, df2.B_consumer_min_mean; color = c_c, markercolor = c_c)
 scatterlines!(df2.S, df2.B_consumer_max_mean; color = c_c, markercolor = c_c)
 Legend(
     fig[1, 1],
@@ -78,4 +90,6 @@ Legend(
     tellheight = true, # Adjust the height of the legend sub-figure.
     tellwidth = false, # Do not adjust width of the orbit diagram.
 )
-fig
+
+# To save the figure, uncomment and execute the line below.
+# save("/tmp/plot.png", fig; resolution = (450, 300), px_per_unit = 3)

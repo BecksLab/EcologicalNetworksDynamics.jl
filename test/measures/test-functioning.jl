@@ -118,45 +118,35 @@ end
 end
 
 @testset "Producer growth rate" begin
-
-    # Set up
     foodweb = FoodWeb([0 0; 0 0]; quiet = true)
     params = ModelParameters(foodweb; biorates = BioRates(foodweb; d = 0))
-
-    sim = simulates(params, [0, 0.5])
-    normal_growth = producer_growth(sim; last = 1)
-    # If biomass equal to 0, growth rate equal to 0
+    u0 = [0, 0.5] # Initial biomass.
+    sol = simulates(params, u0)
+    normal_growth = producer_growth(sol; last = 1)
+    # If biomass equal to 0, growth rate equal to 0.
     @test normal_growth.all[normal_growth.species.=="s1"][1][1] ≈ 0.0
 
-    first_growth = producer_growth(sim; last = length(sim.t), quiet = true)
-    # First growth rate should be equal to the logisticgrowth with initial
-    # biomass
-    params = get_parameters(sim)
-    s, r, K = params.network.species, params.biorates.r, params.environment.K
+    # First growth rate should be equal to the LogisticGrowth with initial biomass.
+    first_growth = producer_growth(sol; last = length(sol.t), quiet = true)
+    model = get_parameters(sol)
+    g = model.producer_growth # Producer growth function.
+    @test isa(g, LogisticGrowth)
+    @test first_growth.all[1, :][1] == g(1, u0, model) == 0
+    @test first_growth.all[2, :][1] == g(2, u0, model) == 0.25
 
-    @test first_growth.all[first_growth.species.=="s2", :][1] ==
-          EcologicalNetworksDynamics.logisticgrowth.(0.5, r[s.=="s2"], K[s.=="s2"])[1]
-    @test first_growth.all[first_growth.species.=="s2", :][1] == 0.25
+    # Growth rate should converge to 0 as B converges to K.
+    @test first_growth.all[2, :][length(sol.t)] ≈ 0 atol = 10^-3
 
-    # Growth rate should converge to 0 as B converges to K
-    @test first_growth.all[first_growth.species.=="s2", :][length(sim.t)] ≈ 0 atol = 10^-3
-
-    # Growth rate computed only for producers
+    # Growth rate is computed only for producers.
     foodweb = FoodWeb([1 0; 0 0]; quiet = true)
     params = ModelParameters(foodweb)
-    sim = simulates(params, [0.5, 0.5])
-    normal_growth = producer_growth(sim; last = 1)
-
+    sol = simulates(params, [0.5, 0.5])
+    normal_growth = producer_growth(sol; last = 1)
     @test length(normal_growth.species) == 1
-
-    # Test structure:
     @test length(normal_growth.mean) == length(normal_growth.std) == 1
-
 end
 
 @testset "Total biomass, species persistence, Hill numbers" begin
-
-    # Set up
     foodweb = FoodWeb([0 0; 0 0]; quiet = true)
     params = ModelParameters(foodweb; biorates = BioRates(foodweb; d = 0))
 
@@ -165,22 +155,24 @@ end
     sim_zero = simulates(params, [0, 0]; verbose = false)
     m0, m1, m2 = sim_zero, sim_one_sp, sim_two_sp
 
-    # Total biomass should converge to K
-    tmp_K = get_parameters(m1).environment.K[2]
+    # Total biomass should converge to K.
+    tmp_K = get_parameters(m1).producer_growth.K[2]
     @test biomass(m1; last = 1).total ≈ tmp_K rtol = 0.001
     @test biomass(m1; last = 1).total ≈ tmp_K rtol = 0.001
     bm_two_sp = biomass(m2; last = 1)
     @test bm_two_sp.total == sum(bm_two_sp.species)
     @test bm_two_sp.total ≈ 2 atol = 0.001
 
-    # Species sub selection works
+    # Select sub-collection of species.
     @test biomass(m1; last = 1, idxs = [1]).species[1] ≈
           biomass(m1; last = 1, idxs = [1]).total
 
     @test biomass(m0; last = 2, quiet = true).total ≈ 0.0
-    # Species richness is the binary equivalent of total_biomass
+    # Species richness is the binary equivalent of total_biomass.
     @test richness(m0; last = 2, quiet = true) ≈ 0.0
-    @test species_persistence(m0; last = 2, quiet = true) ≈ 0.0 # Weird but it is a feature
+
+    # Weird but it is a feature
+    @test species_persistence(m0; last = 2, quiet = true) ≈ 0.0
 
     @test richness(m2[:, end]) == richness(m2; last = 1) == 2
 
@@ -263,5 +255,4 @@ end
         evennan([1, 1]; threshold = 1),
     ]
     @test all(evennan_check)
-
 end
