@@ -25,14 +25,14 @@ df = DataFrame(; T = Float64[], trophic_level = Int64[], Beq = Float64[])
 # Simulation length and time steps are taken from Binzer et al., 2012.
 tmax = 315_360_000_000 # From Binzer et al., 2012.
 verbose = false # Do not show '@info' messages during simulation run.
+callback = ExtinctionCallback(1e-6, params, verbose) # Remove TerminateSteadyState callback.
 
 # Run simulations for each temperature across gradient.
 @info "Start simulations..."
 for T in T_values
     set_temperature!(params, T, ExponentialBA()) # Modify parameters with temperature.
     # Simulate biomass dynamics with modified parameters.
-    B0 = params.environment.K[1] / 8 # Inital biomass.
-    callback = ExtinctionCallback(1e-6, verbose) # Remove TerminateSteadyState callback.
+    B0 = params.producer_growth.K[1] / 8 # Inital biomass.
     solution = simulate(params, [B0]; tmax, callback)
     Beq_vec = solution[end]
     for (Beq, tlvl) in zip(Beq_vec, trophic_lvl)
@@ -63,3 +63,6 @@ Legend(
     tellheight = true, # Adjust top subfigure height to legend height.
     tellwidth = false, # Do not adjust bottom subfigure width to legend width.
 )
+
+# To save the figure, uncomment and execute the line below.
+# save("/tmp/plot.png", fig; resolution = (450, 300), px_per_unit = 3)

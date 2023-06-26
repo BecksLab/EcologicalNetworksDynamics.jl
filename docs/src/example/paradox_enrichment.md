@@ -174,8 +174,8 @@ df = DataFrame(;
 
 # Run simulations: for each carrying capacity we compute the equilibrium biomass.
 for K in K_values
-    environment = Environment(foodweb; K)
-    params = ModelParameters(foodweb; functional_response, environment)
+    producer_growth = LogisticGrowth(foodweb; K)
+    params = ModelParameters(foodweb; functional_response, producer_growth)
     B0 = rand(2) # Inital biomass.
     solution = simulate(params, B0; tmax, verbose)
     extrema = biomass_extrema(solution, "10%")

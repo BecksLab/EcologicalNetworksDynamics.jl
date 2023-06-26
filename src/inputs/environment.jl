@@ -1,31 +1,25 @@
-#### Type definition ####
 mutable struct Environment
-    T::Union{Int64,Float64}
+    T::Float64
 end
-#### end ####
 
-#### Type display ####
 """
 One line Environment display.
 """
 function Base.show(io::IO, environment::Environment)
     T = environment.T
-    print(io, "Environment(" * "T=$(T)K)")
+    print(io, "Environment(T=$(T)K)")
 end
 
 """
 Multiline Environment display.
 """
 function Base.show(io::IO, ::MIME"text/plain", environment::Environment)
-
-    # Display output
     println(io, "Environment:")
     print(io, "  T: $(environment.T) Kelvin")
 end
-#### end ####
 
 """
-    Environment(foodweb, T=293.15)
+    Environment(; T=293.15)
 
 Create environmental parameters of the system.
 
@@ -38,23 +32,15 @@ The environmental parameters are:
 # Examples
 
 ```jldoctest
-julia> foodweb = FoodWeb([0 0 0; 0 0 0; 1 1 0]); # species 1 & 2 producers, 3 consumer
+julia> e = Environment() # Default behaviour.
+       e.T == 293.15 # Kelvin
+true
 
-julia> environment = Environment(foodweb) # default behaviour
-Environment:
-  T: 293.15 Kelvin
-
-
-julia> Environment(foodweb; T = 300.15).T # change temperature
-Environment:
-  T: 300.15 Kelvin
+julia> e = Environment(; T = 300.0)
+       e.T == 300.0
+true
 ```
 
 See also [`ModelParameters`](@ref).
 """
-function Environment(
-    net::EcologicalNetwork;
-    T::Real = 293.15,
-) where {Tp<:Real}
-    Environment(T)
-end
+Environment(; T = 293.15) = Environment(T)

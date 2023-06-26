@@ -162,10 +162,9 @@ function generate_dbdt(parms::ModelParameters, type)
     style = Symbol(type)
 
     # TEMP: Summary of working and convincingly tested implementations.
-    resp = typeof(parms.functional_response)
-    net = typeof(parms.network)
+    (resp, _, pg) = boostable_criteria(parms)
     function to_test()
-        @warn "Automatic generated :$style specialized code for $resp ($net) \
+        @warn "Automatic generated :$style specialized code for $resp ($net, $pg) \
                has not been rigorously tested yet.\n\
                If you are using it for non-trivial simulation, \
                please make sure that the resulting trajectories \
@@ -174,25 +173,14 @@ function generate_dbdt(parms::ModelParameters, type)
                If they are, then consider adding that simulation to the packages tests set \
                so this warning can be removed in future upgrades."
     end
-    unimplemented() = throw("Automatic generated :$style specialized code for $resp ($net) \
-                             is not implemented yet.")
+    unimplemented() = throw("Automatic generated :$style specialized code
+                             for $resp ($net, $pg) is not implemented yet.")
     ok() = nothing
-    #! format: off
-    Dict(
-        (FoodWeb         , :raw    , LinearResponse)       => to_test,
-        (FoodWeb         , :raw    , ClassicResponse)      => to_test,
-        (FoodWeb         , :raw    , BioenergeticResponse) => to_test,
-        (FoodWeb         , :compact, LinearResponse)       => to_test,
-        (FoodWeb         , :compact, ClassicResponse)      => to_test,
-        (FoodWeb         , :compact, BioenergeticResponse) => to_test,
-        (MultiplexNetwork, :raw    , LinearResponse)       => unimplemented,
-        (MultiplexNetwork, :raw    , ClassicResponse)      => unimplemented,
-        (MultiplexNetwork, :raw    , BioenergeticResponse) => unimplemented,
-        (MultiplexNetwork, :compact, LinearResponse)       => unimplemented,
-        (MultiplexNetwork, :compact, ClassicResponse)      => unimplemented,
-        (MultiplexNetwork, :compact, BioenergeticResponse) => unimplemented,
-    )[(net, style, resp)]()
-    #! format: on
+    if !is_boostable(parms, type)
+        unimplemented()
+    else
+        to_test() # Switch to ok() once it has been tested on longer simulations.
+    end
 
     if style == :raw
         xp, data = generate_dbdt_raw(parms)
@@ -204,6 +192,25 @@ function generate_dbdt(parms::ModelParameters, type)
 
     GeneratedExpression(xp), data
 
+end
+
+"""
+    is_boostable(parms::ModelParameters, type)
+
+Return true if boost has been implemented for this parametrization
+with the given boosting style.
+"""
+function is_boostable(parms::ModelParameters, type)
+    (resp, _, pg) = boostable_criteria(parms)
+    resp != MultiplexNetwork && pg != NutrientIntake
+end
+
+# Extract necessary information to decide whether boosting is supported or not.
+function boostable_criteria(parms)
+    resp = typeof(parms.functional_response)
+    net = typeof(parms.network)
+    pg = typeof(parms.producer_growth)
+    (resp, net, pg)
 end
 
 include("./generate_dbdt_compact.jl")

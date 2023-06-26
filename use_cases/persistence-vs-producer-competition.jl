@@ -31,14 +31,18 @@ end
 # Main simulation loop.
 # Each thread writes in its own DataFrame. Merge them at the end of the loop.
 dfs = [DataFrame() for _ in 1:length(C_values)] # Fill the vector with empty DataFrames.
-Threads.@threads for (i_C, C) in C_values # Parallelize on connctance values.
+Threads.@threads for i_C in 1:length(C_values) # Parallelize on connctance values.
+    C = C_values[i_C]
     df_thread = DataFrame(; C = Float64[], αij = Float64[], persistence = Float64[])
     for i in 1:n_replicates
         foodweb = FoodWeb(nichemodel, S; Z, C, tol_C)
         for αij in αij_values
-            producer_competition = ProducerCompetition(foodweb; αii, αij)
-            environment = Environment(foodweb; K = standardize_K(foodweb, K, αij))
-            params = ModelParameters(foodweb; producer_competition, environment)
+            producer_growth = LogisticGrowth(
+                foodweb;
+                K = standardize_K(foodweb, K, αij),
+                a = (diag = αii, offdiag = αij),
+            )
+            params = ModelParameters(foodweb; producer_growth)
             B0 = rand(S) # Initial biomass.
             solution = simulate(params, B0; extinction_threshold, tmax, verbose)
             # Measure species persistence i.e. the number of species that have
@@ -90,3 +94,6 @@ Legend(
     tellheight = true, # Adjust top subfigure height to legend height.
     tellwidth = false, # Do not adjust bottom subfigure width to legend width.
 )
+
+# To save the figure, uncomment and execute the line below.
+# save("/tmp/plot.png", fig; resolution = (450, 300), px_per_unit = 3)

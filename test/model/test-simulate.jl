@@ -1,10 +1,10 @@
 @testset "Simulate" begin
 
-    # Set up
+    # Set up.
     foodweb = FoodWeb([0 0; 1 0])
     params = ModelParameters(foodweb; biorates = BioRates(foodweb; d = 0))
 
-    # Solution converges
+    # Solution converges.
     solution1 = simulates(params, [0.5, 0.5]; verbose = false)
     @test is_terminated(solution1)
     solution2 = simulates(params, [0.3, 0.3]; saveat = 0.25, tmax = 10, verbose = false)
@@ -13,16 +13,16 @@
     @test is_success(solution3)
 
 
-    # Initial biomass
+    # Initial biomass.
     @test solution1.u[begin] == [0.5, 0.5]
     @test solution2.u[begin] == [0.3, 0.3]
     @test solution3.u[begin] == [0.2, 0.2]
 
-    # Timesteps
+    # Timesteps.
     @test all([t ∈ Set(solution2.t) for t in (0:0.25:10)])
     @test all([t ∈ Set(solution3.t) for t in (0:0.5:5)])
 
-    # If biomass start at 0, biomass stay at 0
+    # If biomass start at 0, biomass stay at 0.
     solution_null = simulates(params, [0.0, 0.0]; callback = nothing)
     @test all(hcat(solution_null.u...) .== 0)
     @test keys(get_extinct_species(solution_null)) == Set([1, 2])

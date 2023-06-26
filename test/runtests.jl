@@ -42,6 +42,7 @@ test_files = [
     "model/test-consumption.jl",
     "model/test-simulate.jl",
     "model/test-zombies.jl",
+    "model/test-nutrient_intake.jl",
     "model/test-set_temperature.jl",
     "measures/test-functioning.jl",
     "measures/test-stability.jl",
@@ -54,10 +55,28 @@ test_files = [
 function simulates(parms, B0; compare_atol = nothing, compare_rtol = nothing, kwargs...)
     g = EcologicalNetworksDynamics.simulate(parms, B0; verbose = false, kwargs...)
 
-    # Compare with raw specialized code.
-    xp, data = Logging.with_logger(() -> generate_dbdt(parms, :raw), Logging.NullLogger())
-    # Guard against explosive compilation times with this approach.
-    if SyntaxTree.callcount(xp) <= 20_000 #  wild rule of thumb
+    if is_boostable(parms, :raw)
+        # Compare with raw specialized code.
+        xp, data =
+            Logging.with_logger(() -> generate_dbdt(parms, :raw), Logging.NullLogger())
+        # Guard against explosive compilation times with this approach.
+        if SyntaxTree.callcount(xp) <= 20_000 #  wild rule of thumb
+            dbdt = eval(xp)
+            s = EcologicalNetworksDynamics.simulate(
+                parms,
+                B0;
+                diff_code_data = (dbdt, data),
+                verbose = false,
+                kwargs...,
+            )
+            compare_generic_vs_specialized(g, s, :raw, compare_atol, compare_rtol)
+        end
+    end
+
+    if is_boostable(parms, :compact)
+        # Compare with compact specialized code.
+        xp, data =
+            Logging.with_logger(() -> generate_dbdt(parms, :compact), Logging.NullLogger())
         dbdt = eval(xp)
         s = EcologicalNetworksDynamics.simulate(
             parms,
@@ -66,21 +85,8 @@ function simulates(parms, B0; compare_atol = nothing, compare_rtol = nothing, kw
             verbose = false,
             kwargs...,
         )
-        compare_generic_vs_specialized(g, s, :raw, compare_atol, compare_rtol)
+        compare_generic_vs_specialized(g, s, :compact, compare_atol, compare_rtol)
     end
-
-    # Compare with compact specialized code.
-    xp, data =
-        Logging.with_logger(() -> generate_dbdt(parms, :compact), Logging.NullLogger())
-    dbdt = eval(xp)
-    s = EcologicalNetworksDynamics.simulate(
-        parms,
-        B0;
-        diff_code_data = (dbdt, data),
-        verbose = false,
-        kwargs...,
-    )
-    compare_generic_vs_specialized(g, s, :compact, compare_atol, compare_rtol)
 
     g
 end

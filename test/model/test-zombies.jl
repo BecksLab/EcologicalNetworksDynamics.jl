@@ -8,7 +8,7 @@
     sol = simulates(
         params,
         B0;
-        callback = ExtinctionCallback(1e-5, true),
+        callback = ExtinctionCallback(1e-5, params, true),
         tmax = 300_000,
         verbose = false,
         compare_rtol = 1e-6,
