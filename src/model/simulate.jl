@@ -3,7 +3,7 @@
     simulate(
         params::ModelParameters,
         B0::AbstractVector;
-        N0::AbstractVector = [1.0]
+        N0::AbstractVector = nothing,
         alg = nothing,
         t0::Number = 0,
         tmax::Number = 500,
