@@ -5,7 +5,7 @@ Various measures of stability.
 """
     species_cv(solution::Solution; threshold = 0, last = "10%", kwargs...)
 
-Computes the temporal coefficient of variation of species biomass and its average.
+Computes the temporal coefficient of variation of species biomass and calculates the mean.
 
 See [`coefficient_of_variation`](@ref) for the details.
 """
@@ -52,7 +52,7 @@ Loreau & de Mazancourt (2008).
 
 See [`coefficient_of_variation`](@ref) for the argument details.
 
-# Reference
+# Reference:
 
 Loreau, M., & de Mazancourt, C. (2008). Species Synchrony and Its Drivers :
 Neutral and Nonneutral Community Dynamics in Fluctuating Environments. The
@@ -151,13 +151,13 @@ unbiaised estimator of the variance.
 
 See [`richness`](@ref) for the argument details.
 
-# Reference
+# Reference:
 
 Thibaut, L. M., & Connolly, S. R. (2013). Understanding diversity–stability
 relationships : Towards a unified model of portfolio effects. Ecology Letters,
 16(2), 140‑150. https://doi.org/10.1111/ele.12019
 
-# Examples
+# Examples:
 
 ```jldoctest
 julia> foodweb = FoodWeb([0 1 1; 0 0 0; 0 0 0]); # Two producers and one consumer

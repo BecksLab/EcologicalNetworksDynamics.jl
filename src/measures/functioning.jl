@@ -13,10 +13,10 @@ over the `last` timesteps. `kwargs...` are optional arguments passed to
 
   - `solution`: output of `simulate()` or `solve()`
   - `threshold`: biomass threshold below which a species is considered extinct. Set to 0 by
-    debault and it is recommended to let as this. It is recommended to change the threshold
+    default and it is recommended to leave as this. It is recommended to change the threshold
     using [`ExtinctionCallback`](@ref) in [`simulate`](@ref).
 
-# Examples
+# Examples:
 
 ```jldoctest
 julia> foodweb = FoodWeb([0 0; 1 0]);
@@ -48,9 +48,9 @@ end
 """
     richness(n::AbstractVector; threshold = 0)
 
-When applied to a vector of biomass, returns the number of biomass above `threshold`
+When applied to a vector of biomass, returns the number of biomasses above `threshold`
 
-# Examples
+# Examples:
 
 ```jldoctest
 julia> richness([0, 1])
@@ -65,7 +65,7 @@ richness(n::AbstractVector; threshold = 0) = sum(n .> threshold)
 """
     species_persistence(solution; kwargs...)
 
-Returns the average proportion of species having a biomass superior or equal to threshold
+Returns the average proportion of species having a biomass greater than or equal to threshold
 over the `last` timesteps.
 
 `kwargs...` arguments are forwarded to [`extract_last_timesteps`](@ref). See
@@ -75,7 +75,7 @@ When applied to a vector of biomass, e.g.
 `species_persistence(n::Vector; threshold = 0)`, it returns the proportion of
 species which biomass is above `threshold`.
 
-# Examples
+# Examples:
 
 ```jldoctest
 julia> foodweb = FoodWeb([0 0; 0 0]; quiet = true);
@@ -111,7 +111,7 @@ species_persistence(n::AbstractVector; threshold = 0) = richness(n; threshold) /
 
 Returns a named tuple of total and species biomass, averaged over the `last` timesteps.
 
-# Arguments
+# Arguments:
 
 `kwargs...` arguments are forwarded to [`extract_last_timesteps`](@ref). See
 [`extract_last_timesteps`](@ref) for the argument details.
@@ -119,7 +119,7 @@ Returns a named tuple of total and species biomass, averaged over the `last` tim
 Can also handle a species x time biomass matrix, e.g. `biomass(mat::AbstractMatrix;)` or a
 vector, e.g. `biomass(vec::AbstractVector;)`.
 
-# Examples
+# Examples:
 
 ```jldoctest
 julia> foodweb = FoodWeb([0 0; 1 0]);
@@ -160,7 +160,7 @@ over the `last` timesteps.
 
 Can also handle a vector, e.g. shannon_diversity(n::AbstractVector; threshold = 0)
 
-# Reference
+# Reference:
 
 https://en.wikipedia.org/wiki/Diversity_index#Shannon_index
 """
@@ -194,7 +194,7 @@ over the `last` timesteps.
 
 Can also handle a vector, e.g. simpson(n::AbstractVector; threshold = 0)
 
-# Reference
+# Reference:
 
 https://en.wikipedia.org/wiki/Diversity_index#Simpson_index
 """
@@ -219,14 +219,14 @@ end
 """
     evenness(solution; threshold = 0, kwargs...)
 
-Computes the average Pielou evenness, over the `last` timesteps.
+Computes the average Pielou evenness over the `last` timesteps.
 
 `kwargs...` arguments are forwarded to [`extract_last_timesteps`](@ref). See
 [`extract_last_timesteps`](@ref) for the argument details.
 
 Can also handle a vector, e.g. `evenness(n::AbstractVector; threshold = 0)`
 
-# Reference
+# Reference:
 
 https://en.wikipedia.org/wiki/Species_evenness
 """
@@ -250,13 +250,13 @@ end
     producer_growth(solution; kwargs...)
 
 Returns the average growth rates of producers over the `last` timesteps as as well as the
-average (`mean`) and the standard deviation (`std`). It also returns  by all the growth
+average (`mean`) and the standard deviation (`std`). It also returns all the growth
 rates (`all`) as a species x timestep matrix (as the solution matrix).
 
 kwargs... arguments are forwarded to [`extract_last_timesteps`](@ref). See
 [`extract_last_timesteps`](@ref) for the argument details.
 
-# Examples
+# Examples:
 
 ```jldoctest
 julia> foodweb = FoodWeb([0 1 1; 0 0 0; 0 0 0]);
@@ -332,13 +332,13 @@ get_parameters(sol) = sol.prob.p.original_params
     trophic_structure(solution; threshold = 0, idxs = nothing, kwargs...)
 
 Returns the maximum, mean and weighted mean trophic level averaged over the `last`
-timesteps. It also returns the adjacency matrix containing only the living species and the
-vector of the living species at the last timestep.
+timesteps. It also returns the adjacency matrix containing only the living species and a
+vector of the living species' identities at the last timestep.
 
 kwargs... arguments are forwarded to [`extract_last_timesteps`](@ref). See
 [`extract_last_timesteps`](@ref) for the argument details.
 
-# Examples
+# Examples:
 
 ```jldoctest
 julia> foodweb = FoodWeb([0 0 0; 0 0 0; 1 1 0]);
@@ -447,7 +447,7 @@ kwargs... arguments are forwarded to [`extract_last_timesteps`](@ref). See
 These functions also handle biomass vectors associated with a network, as well as
 a vector of trophic levels (See examples).
 
-# Examples
+# Examples:
 
 ```jldoctest
 julia> A = [0 0; 1 0];
@@ -565,15 +565,15 @@ end
 """
     living_species(solution::Solution; threshold = 0, idxs = nothing, kwargs...)
 
-Returns the vectors of alive species and their indices in the original network.
-Living species are the ones having, in average, a biomass above `threshold` over
+Returns vectors of living species names and their indices within the original network.
+Living species are those with an average biomass above `threshold` over
 the `last` timesteps. `kwargs...` are optional arguments passed to
 [`extract_last_timesteps`](@ref).
 
 `kwargs...` arguments are forwarded to [`extract_last_timesteps`](@ref). See
 [`extract_last_timesteps`](@ref) for the argument details.
 
-# Examples
+# Examples:
 
 ```jldoctest
 julia> foodweb = FoodWeb([0 1 1; 0 0 0; 0 0 0]);
@@ -616,7 +616,7 @@ timesteps.
 `kwargs...` arguments are forwarded to [`extract_last_timesteps`](@ref). See
 [`extract_last_timesteps`](@ref) for the argument details.
 
-# Examples
+# Examples:
 
 ```jldoctest
 julia> foodweb = FoodWeb([0 0; 1 0]);
