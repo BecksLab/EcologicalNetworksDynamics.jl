@@ -1,6 +1,6 @@
 <p align="center" width="100%">
-    <img height="150" src="https://github.com/BecksLab/EcologicalNetworksDynamics.jl/blob/readme/docs/src/assets/ecologicalnetworksdynamics.svg#gh-light-mode-only">
-    <img height="150" src="https://github.com/BecksLab/EcologicalNetworksDynamics.jl/blob/readme/docs/src/assets/ecologicalnetworksdynamics-dark.svg#gh-dark-mode-only">
+    <img height="150" src="https://github.com/BecksLab/EcologicalNetworksDynamics.jl/blob/dev/docs/src/assets/ecologicalnetworksdynamics.svg#gh-light-mode-only">
+    <img height="150" src="https://github.com/BecksLab/EcologicalNetworksDynamics.jl/blob/dev/docs/src/assets/ecologicalnetworksdynamics-dark.svg#gh-dark-mode-only">
 </p>
 
 EcologicalNetworksDynamics is a Julia package that simulates species biomass dynamics
