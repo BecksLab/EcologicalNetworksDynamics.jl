@@ -98,7 +98,7 @@ end
 
 @testset "check extinction" begin
 
-    check_last = EcologicalNetworksDynamics.check_last_extinction
+    check_last = Internals.check_last_extinction
     @test check_last(100; t = [100], species = ["s2"], last = 1) == true
 
     @test_warn(
@@ -113,6 +113,6 @@ end
         functional_response = BioenergeticResponse(foodweb; h = 1.0),
     )
     sol = simulates(params, [0.25, 0.25]; tmax = 500, callback = nothing, t0 = 0)
-    @test isnothing(EcologicalNetworksDynamics.check_last_extinction(sol; last = 1))
+    @test isnothing(Internals.check_last_extinction(sol; last = 1))
 
 end

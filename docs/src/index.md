@@ -31,7 +31,7 @@ To check that the package installation went well,
 you can create a simple food web with:
 
 ```julia
-using EcologicalNetworkDynamics
+using EcologicalNetworkDynamics.Internals
 FoodWeb([1 => 2])
 ```
 

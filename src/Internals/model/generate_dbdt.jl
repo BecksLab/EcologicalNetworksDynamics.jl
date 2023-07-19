@@ -15,7 +15,7 @@
 Construct a copy of the expression with the replacements given in `rep`.
 
 ```jldoctest
-julia> import EcologicalNetworksDynamics: replace
+julia> import EcologicalNetworksDynamics.Internals: replace
 
 julia> replace(:(a + (b + c / a)), Dict(:a => 5, :b => 8))
 :(5 + (8 + c / 5))
@@ -44,7 +44,7 @@ Repeat the given expression into terms of a sum,
 successively replacing `indexes` in `term` by elements in (zipped) `lists`.
 
 ```jldoctest
-julia> import EcologicalNetworksDynamics: xp_sum
+julia> import EcologicalNetworksDynamics.Internals: xp_sum
 
 julia> xp_sum([:i], [[1, 2, 3]], :(u^i)) #  Three terms.
 :(u ^ 1 + u ^ 2 + u ^ 3)

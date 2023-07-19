@@ -9,16 +9,17 @@
 # The structure should protect from ambiguous aliasing specifications.
 
 """
-(not exported, so we need these few `EcologicalNetworksDynamics.` adjustments in doctest)
+(not exported, so we need these few `EcologicalNetworksDynamics.Internals.` adjustments in doctest)
 
 ```jldoctest
-julia> import EcologicalNetworksDynamics: OrderedCollections.OrderedDict
+julia> import EcologicalNetworksDynamics.Internals: OrderedCollections.OrderedDict
 
-julia> import EcologicalNetworksDynamics: AliasingSystem, create_aliased_dict_type, AliasingError
+julia> import EcologicalNetworksDynamics.Internals:
+           AliasingSystem, create_aliased_dict_type, AliasingError
 
-julia> import EcologicalNetworksDynamics: standards, references, aliases, standardize
+julia> import EcologicalNetworksDynamics.Internals: standards, references, aliases, standardize
 
-julia> import EcologicalNetworksDynamics: name, is, isin, shortest
+julia> import EcologicalNetworksDynamics.Internals: name, is, isin, shortest
 
 julia> al = AliasingSystem("fruit", (:apple => [:ap, :a], :pear => [:p, :pe]));
 
@@ -141,17 +142,18 @@ isin(ref, refs, a::AliasingSystem) =
 Generate an "AliasDict" type, with all associated methods, from an aliasing system.
 
 ```jldoctest AliasDict
-julia> import EcologicalNetworksDynamics: OrderedCollections.OrderedDict
+julia> import EcologicalNetworksDynamics.Internals: OrderedCollections.OrderedDict
 
-julia> import EcologicalNetworksDynamics: AliasingError, create_aliased_dict_type, AliasingError
+julia> import EcologicalNetworksDynamics.Internals:
+           AliasingError, create_aliased_dict_type, AliasingError
 
-julia> import EcologicalNetworksDynamics: standards, references, aliases, standardize
+julia> import EcologicalNetworksDynamics.Internals: standards, references, aliases, standardize
 
-julia> import EcologicalNetworksDynamics: name, is, isin, shortest
+julia> import EcologicalNetworksDynamics.Internals: name, is, isin, shortest
 
 julia> create_aliased_dict_type(:FruitDict, "fruit", (:apple => [:a], :berry => [:b, :br]))
 
-julia> import EcologicalNetworksDynamics: FruitDict #  (not exported)
+julia> import EcologicalNetworksDynamics.Internals: FruitDict #  (not exported)
 
 julia> FruitDict()
 FruitDict{Any}()

@@ -1,10 +1,11 @@
 using EcologicalNetworksDynamics
+using EcologicalNetworksDynamics.Internals
 using Documenter
 
 DocMeta.setdocmeta!(
-    EcologicalNetworksDynamics,
+    Internals,
     :DocTestSetup,
-    :(using EcologicalNetworksDynamics);
+    :(using EcologicalNetworksDynamics.Internals);
     recursive = true,
 )
 

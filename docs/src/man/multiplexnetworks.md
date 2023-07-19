@@ -213,7 +213,7 @@ For instance it does not make sense to
 define the connectance *and* the number of links of the same layer.
 Thus if you don't respect this rule an error will be thrown.
 
-```jldoctest econetd; setup = :(using EcologicalNetworksDynamics; foodweb=FoodWeb([0 0; 0 1]; quiet = true))
+```jldoctest econetd; setup = :(using EcologicalNetworksDynamics.Internals; foodweb=FoodWeb([0 0; 0 1]; quiet = true))
 julia> MultiplexNetwork(foodweb; facilitation = (C = 0.5, L = 2))
 ERROR: ArgumentError: Ambiguous specifications for facilitation matrix adjacency: both connectance ('C' within a 'facilitation' argument) and number_of_links ('L' within a 'facilitation' argument) have been specified. Consider removing one.
 ```
@@ -339,7 +339,7 @@ multi_net.layers[:competition].A == A_competition_full(comp_module)
 
 Now let's say that you want to only add 1 competition link
 
-```jldoctest econetd; setup = :(using EcologicalNetworksDynamics; comp_module = FoodWeb([0 0 0; 0 0 0; 1 1 0]))
+```jldoctest econetd; setup = :(using EcologicalNetworksDynamics.Internals; comp_module = FoodWeb([0 0 0; 0 0 0; 1 1 0]))
 julia> multi_net = MultiplexNetwork(comp_module; L_competition = 1)
 ERROR: ArgumentError: L should be even.
   Evaluated: L = 1

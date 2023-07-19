@@ -26,14 +26,14 @@ Return a matrix filled with a constant (`scalar`) for indexes where the value of
 ```jldoctest
 julia> template_matrix = ones(2, 2);
 
-julia> EcologicalNetworksDynamics.fill_sparsematrix(10, template_matrix)
+julia> Internals.fill_sparsematrix(10, template_matrix)
 2×2 SparseArrays.SparseMatrixCSC{Float64, Int64} with 4 stored entries:
  10.0  10.0
  10.0  10.0
 
 julia> template_matrix[1, 1] = 0;
 
-julia> EcologicalNetworksDynamics.fill_sparsematrix(10, template_matrix)
+julia> Internals.fill_sparsematrix(10, template_matrix)
 2×2 SparseArrays.SparseMatrixCSC{Float64, Int64} with 3 stored entries:
    ⋅   10.0
  10.0  10.0
@@ -69,7 +69,7 @@ true
 julia> multi_net = MultiplexNetwork(foodweb; L_facilitation = 1); # + 1 facilitation link
 
 julia> n_links(multi_net)
-EcologicalNetworksDynamics.InteractionDict{Int64} with 5 entries:
+EcologicalNetworksDynamics.Internals.InteractionDict{Int64} with 5 entries:
   :trophic      => 2
   :facilitation => 1
   :competition  => 0

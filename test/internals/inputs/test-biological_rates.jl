@@ -26,11 +26,10 @@ end
 end
 
 @testset "Helper functions for allometric rate computation" begin
-    @test EcologicalNetworksDynamics.allometricscale(0, 1, 1) == 0 # 0*1^1 = 0
-    @test EcologicalNetworksDynamics.allometricscale(1, 2, 10) == 100 # 1*10^2 = 100
-    @test EcologicalNetworksDynamics.allometricscale(2, 3, 2) == 16 # 2*2^3 = 16
+    @test Internals.allometricscale(0, 1, 1) == 0 # 0*1^1 = 0
+    @test Internals.allometricscale(1, 2, 10) == 100 # 1*10^2 = 100
+    @test Internals.allometricscale(2, 3, 2) == 16 # 2*2^3 = 16
     expected_paramsvec = (a = [1, 1, 2, 3], b = [11, 11, 12, 13])
     allometricparams = AllometricParams(1, 3, 2, 11, 13, 12)
-    @test EcologicalNetworksDynamics.allometricparams_to_vec(foodweb, allometricparams) ==
-          expected_paramsvec
+    @test Internals.allometricparams_to_vec(foodweb, allometricparams) == expected_paramsvec
 end
