@@ -1,3 +1,7 @@
+# This legacy module is still what makes the whole program run.
+# It needs to undergo some *very* deep refactoring before new features are added.
+# And details of it are abstracted away through the outer System/Component interface.
+
 """
 EcologicalNetworksDynamics
 
@@ -40,29 +44,43 @@ using SciMLBase
 
 const Solution = SciMLBase.AbstractODESolution
 
-include(joinpath(".", "macros.jl"))
-include(joinpath(".", "inputs/foodwebs.jl"))
-include(joinpath(".", "inputs/nontrophic_interactions.jl"))
-include(joinpath(".", "inputs/functional_response.jl"))
-include(joinpath(".", "inputs/biological_rates.jl"))
-include(joinpath(".", "inputs/environment.jl"))
-include(joinpath(".", "inputs/temperature_dependent_rates.jl"))
-include(joinpath(".", "inputs/producer_growth.jl"))
-include(joinpath(".", "model/model_parameters.jl"))
-include(joinpath(".", "model/producer_growth.jl"))
-include(joinpath(".", "model/set_temperature.jl"))
-include(joinpath(".", "model/consumption.jl"))
-include(joinpath(".", "model/metabolic_loss.jl"))
-include(joinpath(".", "model/dudt.jl"))
-include(joinpath(".", "model/generate_dbdt.jl"))
-include(joinpath(".", "model/simulate.jl"))
-include(joinpath(".", "model/effect_nti.jl"))
-include(joinpath(".", "measures/structure.jl"))
-include(joinpath(".", "measures/functioning.jl"))
-include(joinpath(".", "measures/stability.jl"))
-include(joinpath(".", "measures/utils.jl"))
-include(joinpath(".", "utils.jl"))
-include(joinpath(".", "formatting.jl"))
+# NOTE: The "ModelParameters"
+# value constitutes a tree of sub-values with no internal circular references.
+# All fields and sub-fields are turned into Options{T}
+# so that it can be constructed "empty"
+# and managed by the outer "System/Component" framework.
+# This makes this internal implementation a little bit more of a mess,
+# but it should be all refactored soon
+# before we add new features anyway.
+const Option{T} = Union{Nothing,T}
+
+# Since parts of the API is being extracted out of this module to survive,
+# authorize using it here.
+using ..EcologicalNetworksDynamics
+
+include("./macros.jl")
+include("./inputs/foodwebs.jl")
+include("./inputs/nontrophic_interactions.jl")
+include("./inputs/functional_response.jl")
+include("./inputs/biological_rates.jl")
+include("./inputs/environment.jl")
+include("./inputs/temperature_dependent_rates.jl")
+include("./inputs/producer_growth.jl")
+include("./model/model_parameters.jl")
+include("./model/producer_growth.jl")
+include("./model/set_temperature.jl")
+include("./model/consumption.jl")
+include("./model/metabolic_loss.jl")
+include("./model/dudt.jl")
+include("./model/generate_dbdt.jl")
+include("./model/simulate.jl")
+include("./model/effect_nti.jl")
+include("./measures/structure.jl")
+include("./measures/functioning.jl")
+include("./measures/stability.jl")
+include("./measures/utils.jl")
+include("./utils.jl")
+include("./formatting.jl")
 
 export @check_between
 export @check_greater_than

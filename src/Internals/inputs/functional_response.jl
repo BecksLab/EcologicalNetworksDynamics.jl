@@ -6,7 +6,7 @@ Functional response
 abstract type FunctionalResponse end
 #! Children of abstract type FunctionalResponse are all expected to have a .ω member.
 
-struct BioenergeticResponse <: FunctionalResponse
+mutable struct BioenergeticResponse <: FunctionalResponse
     h::Float64 # hill exponent
     ω::SparseMatrixCSC{Float64} # resource preferency
     c::Vector{Float64} # intraspecific interference

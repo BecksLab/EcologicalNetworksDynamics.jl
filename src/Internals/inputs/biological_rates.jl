@@ -4,11 +4,15 @@ Biological rates
 
 #### Type definiton ####
 mutable struct BioRates
-    d::Vector{<:Real}
-    r::Vector{<:Real}
-    x::Vector{<:Real}
-    y::Vector{<:Real}
-    e::SparseMatrixCSC{Float64,Int64}
+    # From the future: all these values may be empty
+    # before the appropriate component is added.
+    d::Option{Vector{<:Real}}
+    r::Option{Vector{<:Real}}
+    x::Option{Vector{<:Real}}
+    y::Option{Vector{<:Real}}
+    e::Option{SparseMatrixCSC{Float64,Int64}}
+    BioRates() = new(repeat([nothing], 5)...)
+    BioRates(args...) = new(args...)
 end
 #### end ####
 

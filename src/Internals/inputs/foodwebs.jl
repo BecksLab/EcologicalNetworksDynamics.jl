@@ -9,11 +9,29 @@ const Label = Union{String,Symbol}
 #### Type definition and FoodWeb functions ####
 abstract type EcologicalNetwork end
 mutable struct FoodWeb <: EcologicalNetwork
-    A::AdjacencyMatrix
+    # FROM THE FUTURE - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    # The "species" compartment lives here for now,
+    # so make all other fields optional:
+    # only filled when the corresponding components are added.
+    A::Option{AdjacencyMatrix}
     species::Vector{String}
-    M::Vector{Real}
-    metabolic_class::Vector{String}
-    method::String
+    M::Option{Vector{Float64}}
+    metabolic_class::Option{Vector{String}}
+    method::Option{String}
+    # User can refer to species with names instead of indices.
+    _species_index::Dict{Symbol,Int64}
+    # Called when expanding "Species" component.
+    FoodWeb(names::Vector{Symbol}) = new(
+        nothing,
+        String.(names), # Match legacy data.
+        nothing,
+        nothing,
+        nothing,
+        Dict(s => i for (i, s) in enumerate(names)),
+    )
+    # Reinject this logic into legacy internals.
+    FoodWeb(A, sp, M, mc, mth) =
+        new(A, sp, M, mc, mth, Dict(Symbol(s) => i for (i, s) in enumerate(sp)))
 end
 
 """

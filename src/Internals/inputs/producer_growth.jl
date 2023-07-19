@@ -13,13 +13,21 @@ See also [`NutrientIntake`](@ref).
 mutable struct LogisticGrowth <: ProducerGrowth
     a::AbstractMatrix{Float64}
     K::Vector{Union{Nothing,Float64}}
+    LogisticGrowth(a, K) = new(a, K)
 end
 
 mutable struct NutrientIntake <: ProducerGrowth
-    turnover::Vector{Float64}
-    supply::Vector{Float64}
-    concentration::Matrix{Float64}
-    half_saturation::Matrix{Union{Nothing,Float64}}
+    # FROM THE FUTURE - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    # Both nutrients nodes and nutrients-related edges are stored here,
+    # so make fields optional and fill them up as corresponding components are added.
+    turnover::Option{Vector{Float64}}
+    supply::Option{Vector{Float64}}
+    concentration::Option{Matrix{Float64}}
+    half_saturation::Option{Matrix{Union{Nothing,Float64}}}
+    # Name nutrients just like species.
+    names::Vector{Symbol} # (just to recall original order)
+    index::Dict{Symbol,Int64}
+    NutrientIntake(args...) = new(args...)
 end
 
 """
@@ -312,5 +320,5 @@ function NutrientIntake(
         )
     end
 
-    NutrientIntake(turnover, supply, concentration, half_saturation)
+    NutrientIntake(turnover, supply, concentration, half_saturation, [], Dict())
 end

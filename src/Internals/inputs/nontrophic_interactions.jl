@@ -1,4 +1,8 @@
 #### Multiplex network objects ####
+
+using ..EcologicalNetworksDynamics.MultiplexApi
+import .MultiplexApi.AliasingDicts
+
 """
     Layer(A::SparseMatrixCSC{Bool,Int64}, intensity::Union{Nothing,Float64})
 
@@ -18,23 +22,6 @@ mutable struct Layer
     f::Union{Nothing,Function}
 end
 
-
-# The official list of supported interactions (one per possible layer),
-# their aliases (typically shortened names)
-# and their canonical order .
-include("../aliasing_dict.jl")
-create_aliased_dict_type(
-    :InteractionDict,
-    "interaction",
-    (
-        :trophic => [:t, :trh],
-        :competition => [:c, :cpt],
-        :facilitation => [:f, :fac],
-        :interference => [:i, :itf],
-        :refuge => [:r, :ref],
-    ),
-)
-
 mutable struct MultiplexNetwork <: EcologicalNetwork
     layers::InteractionDict{Layer}
     M::Vector{Float64}
@@ -42,39 +29,10 @@ mutable struct MultiplexNetwork <: EcologicalNetwork
     metabolic_class::Vector{String}
 end
 
-# The MultiplexNetwork input signature is sophisticated,
-# with most arguments dynamically parsed based on their names.
-# There are also constraints on the 'parameter' part,
-# because not all of them can be correctly combined together.
-
-create_aliased_dict_type(
-    :MultiplexParametersDict,
-    "layer_parameter",
-    (
-        # This mirrors fields in Layer type..
-        :adjacency_matrix => [:A, :matrix, :adj_matrix],
-        :intensity => [:I, :int],
-        :functional_form => [:F, :fn],
-        # .. but the matrix can alternately be specified by number of links XOR connectance..
-        :connectance => [:C, :conn],
-        :number_of_links => [:L, :n_links],
-        # .. in this case, it requires a symmetry specification.
-        :symmetry => [:s, :sym, :symmetric],
-    ),
-)
-
-# Export aliases cheat-sheets to users:
-interaction_names() = aliases(InteractionDict)
-multiplex_network_parameters_names() = aliases(MultiplexParametersDict)
-
-# Load all boilerplate code to make the API work,
-# parsing MultiplexNetwork arguments into 2 nested AliasingDicts.
-include("MultiplexNetwork_signature.jl")
-
 # Define default values for all parameters.
 zero_layer_A(fw::FoodWeb) = spzeros(richness(fw), richness(fw))
 
-defaults = MultiplexParametersDict(;
+multiplex_defaults = MultiplexParametersDict(;
     A = InteractionDict(;
         competition = zero_layer_A,
         facilitation = zero_layer_A,
@@ -104,6 +62,9 @@ defaults = MultiplexParametersDict(;
         trophic = nothing,
     ),
 )
+
+i_standards() = AliasingDicts.standards(InteractionDict)
+p_standards() = AliasingDicts.standards(MultiplexParametersDict)
 
 """
     MultiplexNetwork(foodweb::FoodWeb; args...)
@@ -283,17 +244,96 @@ See also [`FoodWeb`](@ref), [`Layer`](@ref).
 function MultiplexNetwork(
     foodweb::FoodWeb;
     # The parameters to parse into actual layers.
-    args...,
+    kwargs...,
 )
-    all_parms = parse_MultiplexNetwork_arguments(foodweb, args)
+    S = richness(foodweb)
+
+    all_parms = parse_multiplex_arguments(kwargs)
+    is_specified(int, parm) = haskey(all_parms[int], parm)
+
+    # Construct the matrix from arguments.
+    for int in i_standards()
+
+        # Skip foodweb whose links have already been constructed.
+        if int == :trophic
+            continue
+        end
+
+        if !is_specified(int, :A)
+
+            # The matrix needs to be constructed.
+            sym = (
+                is_specified(int, :symmetry) ? all_parms[int][:sym][2] :
+                multiplex_defaults[:sym][int]
+            )
+
+            # Pick the right functions.
+            potential_links = eval(Symbol("potential_$(int)_links"))
+
+            if is_specified(int, :connectance)
+                A = nontrophic_adjacency_matrix(
+                    foodweb,
+                    potential_links,
+                    all_parms[int][:conn][2]::AbstractFloat;
+                    symmetric = sym,
+                )
+
+            elseif is_specified(int, :n_links)
+                A = nontrophic_adjacency_matrix(
+                    foodweb,
+                    potential_links,
+                    all_parms[int][:L][2]::Integer;
+                    symmetric = sym,
+                )
+
+            else
+                # Nothing has actually been specified for this matrix,
+                # it'll fall back on default matrix within the next loop.
+                continue
+            end
+
+            # Now specified although there was no user input.
+            all_parms[int][:A] = (nothing, A)
+        else
+
+            # Otherwise it's already here.
+            (_, A) = all_parms[int][:A]
+            @check_size_is_richness² A S
+
+        end
+    end
+
+    # Anything not provided by user is set to default.
+    # During this step, drop arguments name informations (eg. (arg, V) -> V).
+    for int in i_standards(), parm in p_standards()
+
+        if AliasingDicts.isin(parm, [:C, :L, :symmetry], MultiplexParametersDict)
+            # These annex parameters don't need defaults.
+            continue
+        end
+        if !is_specified(int, parm)
+            # Missing: read from defaults.
+            def = multiplex_defaults[parm][int]
+            if AliasingDicts.is(parm, :A, MultiplexParametersDict)
+                # Special case: this default is a function of the foodweb.
+                def = def(foodweb)
+            end
+            # Skip 'nothing' defaults
+            # to not have this ill-designed `Union{Nothing,P}` layer types
+            # crawl up to the modern API.
+            if isnothing(def)
+                continue
+            end
+            all_parms[int][parm] = (nothing, def)
+        end
+    end
+
+    # Restore the `nothing` values into the Internals here.
+    get(i, p) = haskey(all_parms[i], p) ? all_parms[i][p][2] : nothing
 
     # Build layers.
     layers = InteractionDict(
-        int => Layer(
-            all_parms[:A][int][2],
-            all_parms[:intensity][int][2],
-            all_parms[:F][int][2],
-        ) for int in istandards()
+        (int => Layer(get.(int, [:A, :intensity, :F])...) for int in i_standards())...,
     )
 
     # Create the resulting multiplex network
@@ -321,8 +361,8 @@ One line [`MultiplexNetwork`](@ref) display.
 function Base.show(io::IO, multiplex_net::MultiplexNetwork)
     S = richness(multiplex_net)
     layers = ""
-    for int in istandards()
-        short = shortest(int, InteractionDict)
+    for int in i_standards()
+        short = AliasingDicts.shortest(int, InteractionDict)
         layers *= ", L$(short)=$(count(multiplex_net.layers[int].A))"
     end
     print(io, "MultiplexNetwork(S=$S$layers)")
@@ -336,7 +376,7 @@ function Base.show(io::IO, ::MIME"text/plain", multiplex_net::MultiplexNetwork)
     # Specify parameters
     S = richness(multiplex_net)
     print(io, "MultiplexNetwork of $S species:")
-    for int in istandards()
+    for int in i_standards()
         L = count(multiplex_net.layers[int].A)
         print(io, "\n  $(int)_layer: $L links")
     end

@@ -35,10 +35,10 @@
     lresp = LinearResponse(multiplex_network)
     bresp = BioenergeticResponse(multiplex_network)
     cresp = ClassicResponse(multiplex_network)
-    linmsg = "Non-trophic interactions for `LinearResponse` are not supported. \
-        Use a classical functional response instead: `ClassicResponse`."
-    biomsg = "Non-trophic interactions for `BioenergeticResponse` are not supported. \
-        Use a classical functional response instead: `ClassicResponse`."
+    linmsg = "Non-trophic interactions for `$LinearResponse` are not supported. \
+        Use a classical functional response instead: `$ClassicResponse`."
+    biomsg = "Non-trophic interactions for `$BioenergeticResponse` are not supported. \
+        Use a classical functional response instead: `$ClassicResponse`."
     @test_logs (:warn, linmsg) ModelParameters(
         multiplex_network,
         functional_response = lresp,

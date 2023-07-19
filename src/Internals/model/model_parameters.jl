@@ -4,13 +4,50 @@ Model parameters
 
 #### Type definition ####
 mutable struct ModelParameters
-    network::EcologicalNetwork
-    biorates::BioRates
-    environment::Environment
-    functional_response::FunctionalResponse
-    producer_growth::ProducerGrowth
-    temperature_response::TemperatureResponse
+    # FROM THE FUTURE - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    # These already have some "empty semantics": no need to Option-ize them.
+    environment::Environment # (almost nothing left in there)
+    temperature_response::TemperatureResponse # (NoTemperatureResponse is like 'nothing')
+    # These don't exactly have an 'empty' variant.
+    network::Option{EcologicalNetwork}
+    biorates::BioRates # (this one does but all values are initially 'nothing' inside)
+    functional_response::Option{FunctionalResponse}
+    producer_growth::Option{ProducerGrowth}
+    # Since 'foodweb' is still a mandatory input to construct interaction layers,
+    # keep this artificial reference to it to make the system/components API work
+    # until we refactor all the internals.
+    _foodweb::Option{FoodWeb}
+    # From the future: store nodes/edges values in this scratch space
+    # before we actually know which functional response / producer growth type
+    # will be required. `Biorates` is currently a legacy extension to the "scratch".
+    # *Alias* the values from the scratch space
+    # when eventually distributing them to `functional_response` or `producer_growth`.
+    _scratch::Dict{Symbol,Any}
+    # From the future: use this cache to store data held
+    # by the various views handled to users.
+    # Keys into the cache are the corresponding
+    # standard (=first, not aliases) property names,
+    # that the framework ensures to be unique.
+    # All data within the cache is *redundant* with the rest of the model,
+    # so it could in principle be safely deleted.
+    _cache::Dict{Symbol,Any}
+    # Empty version for the system.
+    function ModelParameters()
+        ModelParameters(
+            Environment(),
+            NoTemperatureResponse(),
+            nothing,
+            BioRates(),
+            repeat([nothing], 3)...,
+            Dict(),
+            Dict(),
+        )
+    end
+    ModelParameters(args...) = new(args...)
 end
+# Required to fork the system.
+# Ok as long as the value above contains no critical self-references.
+Base.copy(m::ModelParameters) = deepcopy(m)
 #### end ####
 
 #### Type display ####
@@ -18,7 +55,7 @@ end
 One line ModelParameters display.
 """
 function Base.show(io::IO, params::ModelParameters)
-    response_type = typeof(params.functional_response)
+    response_type = nameof(typeof(params.functional_response))
     print(io, "ModelParameters{$response_type}")
     !get(io, :compact, false) && print(io, "(", params.network, ")")
 end
@@ -29,15 +66,16 @@ Multiline ModelParameters display.
 function Base.show(io::IO, ::MIME"text/plain", params::ModelParameters)
 
     # Display output
-    response_type = typeof(params.functional_response)
-    pgrowth_model = typeof(params.producer_growth)
+    nm(x) = nameof(typeof(x))
+    response_type = nm(params.functional_response)
+    pgrowth_model = nm(params.producer_growth)
     println(io, "ModelParameters{$response_type, $pgrowth_model}:")
     println(io, "  network: ", params.network)
     println(io, "  environment: ", params.environment)
     println(io, "  biorates: ", params.biorates)
-    println(io, "  functional_response: ", params.functional_response)
-    println(io, "  producer_growth: ", params.producer_growth)
-    println(io, "  temperature_response: ", params.temperature_response)
+    println(io, "  functional_response: ", nm(params.functional_response))
+    println(io, "  producer_growth: ", nm(params.producer_growth))
+    println(io, "  temperature_response: ", nm(params.temperature_response))
 end
 #### end ####
 
@@ -133,11 +171,14 @@ function ModelParameters(
                Use a classical functional response instead: `$ClassicResponse`."
     end
     ModelParameters(
+        environment,
+        temperature_response,
         network,
         biorates,
-        environment,
         functional_response,
         producer_growth,
-        temperature_response,
+        nothing,
+        Dict(),
+        Dict(),
     )
 end

@@ -1,37 +1,31 @@
+using Crayons
+bold = crayon"bold"
+blue = crayon"blue"
+reset = crayon"reset"
+sep(mess) = println("$blue$bold== $mess $(repeat("=", 80 - 4 - length(mess)))$reset")
+
+# Testing utils.
+include("./test_failures.jl")
+include("./dedicate_test_failures.jl")
+
 # The whole testing suite has been moved to "internals"
 # while we are focusing on constructing the library API.
-
-none_failed = true # Lower if any test fails.
+sep("Test internals.")
 include("./internals/runtests.jl")
 
-if none_failed
-    @info "Checking source code formatting.."
-    exclude = [
-        "README.md", # Not formatted according to JuliaFormatter.
-        "CONTRIBUTING.md", # Not formatted according to JuliaFormatter.
-        "docs/src/man/boost.md", # Wait on https://github.com/JuliaDocs/Documenter.jl/issues/2025 or the end of boost warnings.
-    ]
-    for (folder, _, files) in walkdir("..")
-        for file in files
-            path = joinpath(folder, file)
-            display_path = joinpath(splitpath(path)[2:end]...)
-            if display_path in exclude
-                continue
-            end
-            if !any(endswith(file, ext) for ext in [".jl", ".md", ".jmd", ".qmd"])
-                continue
-            end
-            println(display_path)
-            if !format(path; overwrite = false, format_markdown = true)
-                config_path =
-                    joinpath(basename(dirname(abspath(".."))), ".JuliaFormatter.toml")
-                dev_path = escape_string(abspath(path))
-                @warn "Source code in $file is not formatted according \
-                to the project style defined in $config_path. \
-                Consider formatting it using your editor's autoformatter or with:\n\
-                    julia> using JuliaFormatter;\n\
-                    julia> format(\"$dev_path\", format_markdown=true)\n"
-            end
-        end
-    end
-end
+sep("Test System/Blueprints/Components framework.")
+include("./framework/runtests.jl")
+
+sep("Test API utils.")
+include("./aliasing_dicts.jl")
+include("./multiplex_api.jl")
+include("./graph_data_inputs/runtests.jl")
+
+sep("Test user-facing behaviour.")
+include("./user/runtests.jl")
+
+sep("Run doctests (DEACTIVATED while migrating api from 'Internals').")
+#  include("./doctests.jl")
+
+sep("Check source code formatting.")
+include("./formatting.jl")

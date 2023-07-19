@@ -50,7 +50,7 @@ Threads.@threads for i in 1:n_foodweb # Parallelize computation if possible.
         diversity = Int64[],
     )
     # First, create a trophic backbone.
-    foodweb = FoodWeb(nichemodel, S; C, Z)
+    foodweb = Foodweb(nichemodel, S; C, Z)
     # Secondly, loop on the different non-trophic interactions to study.
     for interaction in interaction_names
         intensity_values = intensity_values_dict[interaction]
@@ -58,7 +58,8 @@ Threads.@threads for i in 1:n_foodweb # Parallelize computation if possible.
         for intensity in intensity_values
             # Add the given non-trophic interaction to the trophic backbone
             # with the given intensity.
-            net = MultiplexNetwork(foodweb; [interaction => (L = L_nti, I = intensity)]...)
+            model = Model(foodweb)
+            add_nontrophic_layers!(model, [interaction => (; intensity, L = L_nti)])
             functional_response = ClassicResponse(net; c = i_intra)
             params = ModelParameters(net; functional_response)
             callback = CallbackSet(

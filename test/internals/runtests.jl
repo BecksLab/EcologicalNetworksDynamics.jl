@@ -1,33 +1,21 @@
-using Documenter
-using EcologicalNetworksDynamics
-using EcologicalNetworksDynamics.Internals
-using Test
-using SparseArrays
-using Random
-using JuliaFormatter
-using SyntaxTree
-using Logging
-using Statistics
+module TestInternals
 
+using Crayons
+using EcologicalNetworksDynamics.Internals
+using Logging
+using Random
+using SparseArrays
+using Statistics
+using SyntaxTree
+using Test
 
 # Set and print seed
 seed = rand(1:100000)
 Random.seed!(seed)
 @info "Seed set to $seed."
 
-# Run doctests first
-DocMeta.setdocmeta!(
-    Internals,
-    :DocTestSetup,
-    :(using EcologicalNetworksDynamics.Internals);
-    recursive = true,
-)
-doctest(EcologicalNetworksDynamics)
-println("------------------------------------------")
-
 # Run test files
 test_files = [
-    "test-basic-pipeline.jl",
     "test-utils.jl",
     "inputs/test-foodwebs.jl",
     "inputs/test-biological_rates.jl",
@@ -114,18 +102,16 @@ simulate(args...; kwargs...) =
                           so that all simulation flavours are tested together at once."))
 
 # Set up text formatting
-highlight = "\033[7m"
-bold = "\033[1m"
-green = "\033[32m"
-reset = "\033[0m"
+highlight = crayon"negative"
+bold = crayon"bold"
+green = crayon"green"
+reset = crayon"reset"
 
-loop_breaks = false
 for test in test_files
     println("$(highlight)$(test)$(reset)")
-    global loop_breaks = true
-    include(test) # if a test fails, the loop is broken
-    global loop_breaks = false
+    include(test)
     println("$(bold)$(green)PASSED$(reset)")
     println("------------------------------------------")
 end
-none_failed = !loop_breaks
+
+end
