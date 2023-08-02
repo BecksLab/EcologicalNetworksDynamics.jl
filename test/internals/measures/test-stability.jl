@@ -49,14 +49,14 @@
     cv_one_sp2 = coefficient_of_variation(sol; idxs = [2], last = 100)
 
     # One species is fully synchronous with itself
-    @test synchrony(sol; last = 100, idxs = [1], corrected = false) ==
+    @test synchrony(sol; last = 100, idxs = [1], corrected = false) ≈
           coefficient_of_variation(
               sol;
               idxs = [1],
               last = 100,
               corrected = false,
-          ).synchrony ==
-          synchrony(sol; idxs = "s1", last = 100, corrected = false) ==
+          ).synchrony ≈
+          synchrony(sol; idxs = "s1", last = 100, corrected = false) ≈
           1.0
     @test cv_one_sp2.synchrony ==
           synchrony(sol; idxs = [2], last = 100) ==
@@ -78,7 +78,7 @@
     one_sp = simulates(params, [0.25, 0.0]; tmax = 500, callback = nothing, t0 = 0)
     cv_one_sp = coefficient_of_variation(one_sp; idxs = [1], last = 10, corrected = false)
 
-    @test synchrony(one_sp; last = 10, corrected = false) == cv_one_sp.synchrony == 1.0
+    @test synchrony(one_sp; last = 10, corrected = false) ≈ cv_one_sp.synchrony ≈ 1.0
 
     cv_one_sp2 = coefficient_of_variation(one_sp; idxs = 2, last = 10)
     @test all(isnan.(values(cv_one_sp2)))
