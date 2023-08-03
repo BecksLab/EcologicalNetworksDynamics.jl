@@ -17,7 +17,7 @@
 
     # Custom competition matrix.
     my_competition_matrix = [1.0 1.0 0.0; 1.0 1.0 0.0; 0.0 0.0 0.0]
-    g = LogisticGrowth(foodweb; a = my_competition_matrix, quiet = true)
+    g = LogisticGrowth(foodweb; a = my_competition_matrix)
     @test g.a == [1.0 1.0 0.0; 1.0 1.0 0.0; 0.0 0.0 0.0]
 
     # Should fail if non zero a for non-producers.
@@ -25,18 +25,12 @@
     @test_throws AssertionError(message) LogisticGrowth(
         foodweb,
         a = [1.0 1.0 0.0; 1.0 1.0 0.0; 1.0 0.0 0.0],
-        quiet = true,
     )
     # Should fail if the `a` dimension does not match the size of the foodweb.
     message = "size(a) == (S, S)"
     @test_throws AssertionError(message) LogisticGrowth(
         foodweb,
         a = [1.0 0.0; 1.0 0.0; 0.0 0.0],
-        quiet = true,
     )
-    @test_throws AssertionError(message) LogisticGrowth(
-        foodweb,
-        a = [1.0 0.0; 1.0 0.0],
-        quiet = true,
-    )
+    @test_throws AssertionError(message) LogisticGrowth(foodweb, a = [1.0 0.0; 1.0 0.0])
 end

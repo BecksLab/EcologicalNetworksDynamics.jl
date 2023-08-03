@@ -70,7 +70,6 @@ end
         network::EcologicalNetwork;
         a = nothing,
         K = 1,
-        quiet = false,
     )
 
 Create the parameters for the logistic producer growth model.
@@ -129,17 +128,18 @@ julia> my_competition_matrix = [
            1.0 0.5 0.0
            0.0 0.0 0.0
        ]
-       g = LogisticGrowth(foodweb; a = my_competition_matrix, quiet = true)
+       g = LogisticGrowth(foodweb; a = my_competition_matrix)
        g.a == my_competition_matrix
 true
 ```
 
 See also [`ModelParameters`](@ref) and [`NutrientIntake`](@ref).
 """
-function LogisticGrowth(network::EcologicalNetwork; a = nothing, K = 1, quiet = false)
+function LogisticGrowth(network::EcologicalNetwork; a = nothing, K = 1)
     S = richness(network)
     isa(K, AbstractVector) || (K = [isproducer(i, network) ? K : nothing for i in 1:S])
     @check_equal_richness length(K) S
+    err(mess) = throw(ArgumentError(mess))
 
     # Construct matrix from user input.
     # Initialize these variables from the argument `a`.
@@ -163,8 +163,8 @@ function LogisticGrowth(network::EcologicalNetwork; a = nothing, K = 1, quiet = 
         for key in diag_aliases
             if haskey(a, key)
                 if !isnothing(diag)
-                    @error "Ambiguous names in provided tuple: $(keys(a))\
-                            which one refers to the diagonal value?"
+                    err("Ambiguous names in provided tuple: $(keys(a)). \
+                         Which one refers to the diagonal value?")
                 end
                 diag = a[key]
             end
@@ -173,23 +173,19 @@ function LogisticGrowth(network::EcologicalNetwork; a = nothing, K = 1, quiet = 
         for key in offdiag_aliases
             if haskey(a, key)
                 if !isnothing(offdiag)
-                    @error "Ambiguous names in provided tuple: $(keys(a))\
-                            which one refers to the non-diagonal values?"
+                    err("Ambiguous names in provided tuple: $(keys(a)). \
+                         Which one refers to the non-diagonal values?")
                 end
                 offdiag = a[key]
             end
         end
         if isnothing(diag) || isnothing(offdiag)
-            throw(
-                ArgumentError(
-                    "Wrong name in provided named tuple names $(keys(a)). \
-                    The valid names to specify the diagonal elements of the `a` matrix are \
-                    $diag_aliases and for the off-diagonal elements $offdiag_aliases.",
-                ),
-            )
+            err("Wrong name in provided named tuple names $(keys(a)). \
+                 The valid names to specify the diagonal elements of the `a` matrix are \
+                 $diag_aliases and for the off-diagonal elements $offdiag_aliases.")
         end
     else
-        @error "Invalid matrix argument: $(a) of type $(typeof(a))."
+        err("Invalid matrix argument: $(a) of type $(typeof(a)).")
     end
 
     # The potential information to build the competition matrix has been processed.
