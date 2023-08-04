@@ -75,8 +75,8 @@ function stoch_dBdt!(dB, B, p, t)
             for i in 1:S
                 if i in stochasticity.stochspecies
                     idx = first(findall(x -> x == i, stochasticity.stochspecies))
-                    dB[S+idx] = stochasticity.θ[idx] * ((1 + (stressor.slope * (t-stressor.start))) - B[S+idx])
-                else
+                    dB[S+idx] = stochasticity.θ[idx] * ((1 + (stressor.slope[idx] * (t-stressor.start))) - B[S+idx])
+                elseif i ∈ producers(params.network)
                     params.biorates.r[i] = 1 + (stressor.slope * (t-stressor.start))
                 end
             end

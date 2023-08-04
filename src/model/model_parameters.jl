@@ -116,7 +116,7 @@ function ModelParameters(
     functional_response::FunctionalResponse = BioenergeticResponse(network),
     producer_competition::ProducerCompetition = ProducerCompetition(network),
     stochasticity::AddStochasticity = AddStochasticity(network),
-    stressor::Stressor = Stressor()
+    stressor::Stressor = Stressor(network)
 )
     if isa(network, MultiplexNetwork) & !(isa(functional_response, ClassicResponse))
         type_response = typeof(functional_response)
