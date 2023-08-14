@@ -16,7 +16,7 @@ end
 One line [`Stressor`](@ref) display.
 """
 function Base.show(io::IO, stressor::Stressor)
-    if stressor.addstressor == true &&
+    if stressor.addstressor == true
         print(io, "Stressor(addstressor, slope, start, weights)")
     else
         print(io, "Stressor not added")
@@ -39,8 +39,8 @@ function Base.show(io::IO, ::MIME"text/plain", stressor::Stressor)
         println(io, "  start: $start")
         print(io, " weights: $weights")
     else
-        println(io, "Stochasticity:")
-        print(io, "  Stochasticity not added")
+        println(io, "Stressor:")
+        print(io, "  Stressor not added")
     end
 end
 #### end ####
