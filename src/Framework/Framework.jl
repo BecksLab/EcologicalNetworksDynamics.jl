@@ -5,7 +5,7 @@
 #   The wrapped value is powerful but complicated
 #   and its state needs to be carefully maintained.
 #   Lib devs want to expose it to their users so they can enjoy the benefit of it,
-#   but they also want to protect them from the dangers of breaking the internal state.
+#   but they also want to protect them from breaking the internal state.
 #
 # Instead of exposing the value directly,
 # lib devs wrap it into a 'System':
@@ -14,10 +14,10 @@
 #
 # And then they carefully develop an associated collection of 'components' and 'methods'.
 #
-# The whole module can be viewed as an extension of the "builder pattern".
+# The whole module can be viewed as an extension of the "builder" pattern.
 # Instead of constructing the value directly,
-# lib users will start from an "empty" base system,
-# and populate it with the components at hand
+# lib users will start from an "empty" or "default" base system,
+# then populate it with the 'components' at hand
 # until it has all the component required to exhibit the behaviour they need
 # via the 'methods' at hand.
 #
@@ -44,7 +44,8 @@
 #       Considering that blueprints imply/bring other blueprints,
 #       it is even *wrong* now under certain aspects.
 #       The fix is to separate component types from blueprint types,
-#       but this requires deep refactoring with strong ergonomics consequences.
+#       but this requires deep refactoring with strong ergonomics consequences
+#       (on the framework users, but not on the users of the lib they develop with it).
 #
 # Adding a component to the system therefore reduces to:
 #
@@ -97,7 +98,9 @@ module Framework
 #   - [ ] Recurring pattern: various blueprints types provide 'the same component': reify.
 #   - [ ] Namespace properties into like system.namespace.namespace.property.
 #   - [ ] Hooks need to trigger when special components combination become available.
-#         See for instance the expansion of `Nutrients.Nodes`.
+#         See for instance the expansion of `Nutrients.Nodes`
+#         which should trigger the creation of links if there is already `Species`.. or vice
+#         versa.
 
 using Crayons
 using MacroTools

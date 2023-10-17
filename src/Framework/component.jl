@@ -3,7 +3,7 @@
 #
 # No concrete component type can be added twice to the system.
 #
-# When users wants to add a component to the system,
+# When user wants to add a component to the system,
 # they provide a blueprint value which needs to be expanded into a component.
 #
 # The data inside the blueprint is only useful to run the internal `expand!()` method once,
@@ -58,8 +58,75 @@
 # The parametric type 'V' for the component/blueprint
 # is the type of the value wrapped by the system.
 abstract type Blueprint{V} end
-const Component{V} = Type{<:Blueprint{V}} # TODO: this is too constrained: refactor.
+const Component{V} = Type{<:Blueprint{V}}
 export Blueprint, Component
+## HERE: ALTERNATE DESIGN:
+## Components are identified by nodes in a type hierarchy,
+## and exposed as singleton instances of concrete types in this hierarchy.
+##
+##    abstract type Component end
+##
+##    struct _Omega <: Component
+##       Raw::Type{Blueprint}
+##       Random::Type{Blueprint}
+##       Allometry::Type{Blueprint}
+##       Temperature::Type{Blueprint}
+##    end
+##
+##    module OmegaBlueprints
+##       # /!\ many redundant imports to factorize here.
+##       struct Raw <: Blueprint{_Omega} ... end
+##       struct Random <: Blueprint{_Omega} ... end
+##       ...
+##    end
+##
+##    const Omega = _Omega(
+##       OmegaBlueprints.Raw,
+##       OmegaBlueprints.Random,
+##       ...
+##    )
+##    export Omega
+##
+##    function (C::Omega)(args...; kwargs...)
+##       if ..
+##           C.Raw(...)
+##       elseif ...
+##           C.Random(...)
+##       else ...
+##       end
+##    end
+##
+##    # Use as a blueprint constructor, but also as a blueprint namespace.
+##    Omega(...)
+##    Omega.Random(...)
+##    Omega.Raw(...)
+##
+## Components require each other or conflict with each other.
+## Blueprints bring each other or imply components.
+## Blueprints are trees of sub-blueprints and must be treated as such.
+##
+## The add! procedure requires that:
+##   - the given blueprint be visited as a tree to collect:
+##     - all brought sub-blueprints
+##     - the possibly implied blueprints indexed by their component
+##       and associated with the set of sub-blueprints possibly implying them.
+##   - Check that all requirements *will* be met and that no conflict *will* be found.
+##   - for all components implied but not brought,
+##     construct implied blueprints from the first matching sub-blueprint.
+##   - expand/add all sub-blueprints in correct order.
+##   - eventuall expand/add the root blueprint.
+##
+## Exposing the first analysis step of the above will be useful to implement default_model.
+## The default model handles a *forest* of blueprints, and needs to possibly *move* nodes
+## from later blueprints to earlier blueprints so as to make the inference intuitive and
+## consistent.
+## Maybe this can even be implemented within the framework itself, something along:
+##    add_default!(
+##        forest::Blueprints;
+##        without = Component[],
+##        defaults = OrderedDict{Component,Function{<SomeState> ↦ Blueprint}}(),
+##        state_control! = Function{new_brought/implied_blueprint ↦ edit_state},
+##    )
 
 # Extract component from blueprint or blueprint type.
 # Not actually used within the framework logic,
