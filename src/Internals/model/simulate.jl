@@ -120,6 +120,9 @@ function simulate(
         ExtinctionCallback(extinction_threshold, params, verbose),
     ),
     diff_code_data = (dudt!, params),
+    # FROM THE FUTURE: possibly keep an owned copy of the *system*
+    # instead of a ref to inner parameters.
+    _ownedcopy = deepcopy(params),
     kwargs...,
 )
     # Interpret parameters and check them for consistency.
@@ -178,7 +181,7 @@ function simulate(
         u0 = B0
     end
 
-    p = (params = data, extinct_sp = extinct_sp, original_params = params)
+    p = (params = data, extinct_sp = extinct_sp, original_params = _ownedcopy)
     timespan = (t0, tmax)
     problem = ODEProblem(fun, u0, timespan, p)
     sol = solve(

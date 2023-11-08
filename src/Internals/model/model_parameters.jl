@@ -46,7 +46,8 @@ mutable struct ModelParameters
     ModelParameters(args...) = new(args...)
 end
 # Required to fork the system.
-# Ok as long as the value above contains no critical self-references.
+# It seems that julia's 'deepcopy'
+# is clever enough to preserve self-references based on `objectid`.
 Base.copy(m::ModelParameters) = deepcopy(m)
 #### end ####
 

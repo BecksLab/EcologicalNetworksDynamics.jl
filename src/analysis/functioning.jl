@@ -1,6 +1,5 @@
-#=
-Quantifying functions.
-=#
+# Copied and adapted from Internals/model/functioning.jl, which should vanish later.
+# TODO: Update docstrings.
 
 """
     richness(solution::Solution; threshold = 0, kwargs...)
@@ -40,10 +39,11 @@ julia> even = evenness(sol);
 ```
 """
 function richness(solution::Solution; threshold = 0, kwargs...)
-    measure_on = extract_last_timesteps(solution; kwargs...)
+    measure_on = tail(solution; kwargs...)
     rich = richness.(eachcol(measure_on); threshold)
     mean(rich)
 end
+export richness
 
 """
     richness(n::AbstractVector; threshold = 0)
@@ -60,7 +60,7 @@ julia> richness([1, 1])
 2
 ```
 """
-richness(n::AbstractVector; threshold = 0) = sum(n .> threshold)
+richness(B::AbstractVector; threshold = 0) = sum(B .> threshold)
 
 """
     species_persistence(solution; kwargs...)
@@ -99,11 +99,13 @@ julia> species_persistence([1, 1])
 1.0
 ```
 """
-function species_persistence(solution; kwargs...)
+function species_persistence(solution::Solution; kwargs...)
     r = richness(solution; kwargs...)
-    m = richness(get_parameters(solution).network)
-    r / m
+    (; S) = ref_model(solution)
+    r / S
 end
+export species_persistence
+
 species_persistence(n::AbstractVector; threshold = 0) = richness(n; threshold) / length(n)
 
 """
@@ -140,12 +142,15 @@ julia> biomass([2 1; 4 2])
 (total = 4.5, species = [1.5, 3.0])
 ```
 """
-function biomass(solution; kwargs...)
-    measure_on = extract_last_timesteps(solution; kwargs...)
+function biomass(solution::Solution; kwargs...)
+    measure_on = tail(solution; kwargs...)
     biomass(measure_on)
 end
+export biomass
+
 biomass(mat::AbstractMatrix;) =
     (total = mean(vec(sum(mat; dims = 1))), species = mean.(eachrow(mat)))
+
 biomass(vec::AbstractVector;) = (total = mean(vec), species = mean(vec))
 
 
@@ -164,8 +169,8 @@ Can also handle a vector, e.g. shannon_diversity(n::AbstractVector; threshold = 
 
 https://en.wikipedia.org/wiki/Diversity_index#Shannon_index
 """
-function shannon_diversity(solution; threshold = 0, kwargs...)
-    measure_on = extract_last_timesteps(solution; kwargs...)
+function shannon_diversity(solution::Solution; threshold = 0, kwargs...)
+    measure_on = tail(solution; kwargs...)
     shan = shannon_diversity.(eachcol(measure_on); threshold)
     mean(shan)
 end
@@ -198,11 +203,12 @@ Can also handle a vector, e.g. simpson(n::AbstractVector; threshold = 0)
 
 https://en.wikipedia.org/wiki/Diversity_index#Simpson_index
 """
-function simpson(solution; threshold = 0, kwargs...)
-    measure_on = extract_last_timesteps(solution; kwargs...)
+function simpson(solution::Solution; threshold = 0, kwargs...)
+    measure_on = tail(solution; kwargs...)
     simp = simpson.(eachcol(measure_on); threshold)
     mean(simp)
 end
+export simpson
 
 function simpson(n::AbstractVector; threshold = 0)
     x = filter(>(threshold), n)
@@ -230,11 +236,12 @@ Can also handle a vector, e.g. `evenness(n::AbstractVector; threshold = 0)`
 
 https://en.wikipedia.org/wiki/Species_evenness
 """
-function evenness(solution; threshold = 0, kwargs...)
-    measure_on = extract_last_timesteps(solution; kwargs...)
+function evenness(solution::Solution; threshold = 0, kwargs...)
+    measure_on = tail(solution; kwargs...)
     piel = evenness.(eachcol(measure_on); threshold)
     mean(piel)
 end
+export evenness
 
 function evenness(n::AbstractVector; threshold = 0)
     x = filter(>(threshold), n)
@@ -268,80 +275,40 @@ julia> foodweb = FoodWeb([0 1 1; 0 0 0; 0 0 0]);
 (["s2", "s3"], [0.15, 0.15])
 ```
 """
-function producer_growth(solution; kwargs...)
-    parameters = get_parameters(solution)
-    g = parameters.producer_growth
-    isa(g, LogisticGrowth) || throw(ArgumentError("Producer growth only makes sense for \
-        logistic growth, and cannot be calculated with `$(typeof(g))` values."))
-    prods = producers(parameters.network) # Producer indexes.
-    n_prods = length(prods)
+function producer_growth(solution::Solution; kwargs...)
+    m = ref_model(solution)
+    has_component(m, LogisticGrowth) || argerr(
+        "Producer growth only makes sense for models with component $LogisticGrowth. \
+         Found instead: $(first(components(m, ProducerGrowth))).",
+    )
+    (; _producers_indices, n_producers) = m
+    inner = m._value
+    g = inner.producer_growth # For use as a functor, based on how current Internals.
 
     # Extract the producer biomass over the last timesteps.
-    measure_on = extract_last_timesteps(solution; kwargs...)
+    measure_on = tail(solution; kwargs...)
     n_time_steps = size(measure_on, 2)
 
-    growth = zeros(n_prods, n_time_steps)
-    for (i, p) in enumerate(prods), (j, B) in enumerate(eachcol(measure_on))
-        growth[i, j] = g(p, B, parameters)
+    growth = zeros(n_producers, n_time_steps)
+    for (i, p) in enumerate(_producers_indices), (j, B) in enumerate(eachcol(measure_on))
+        growth[i, j] = g(p, B, inner)
     end
 
     (
-        species = parameters.network.species[prods],
+        species = m._species_names[m._producers_mask],
         mean = mean.(eachrow(growth)),
         std = std.(eachrow(growth)),
         all = growth,
     )
 end
+export producer_growth
 
 """
-    get_extinct_species(sol)
+    trophic_structure(solution, kwargs...)
 
-Extract list of extinct species from the solution returned by `simulate()`.
-
-```jldoctest
-julia> foodweb = FoodWeb([0 0; 1 0]);
-       params = ModelParameters(foodweb);
-       sol = simulate(params, [0.5, 0.5]);
-       isempty(get_extinct_species(sol)) # no species extinct
-true
-```
-
-See also [`simulate`](@ref), [`get_parameters`](@ref).
-"""
-get_extinct_species(sol) = sol.prob.p.extinct_sp
-
-"""
-    get_parameters(sol)
-
-Extract the [`ModelParameters`](@ref) input from the solution returned by `simulate()`.
-
-```jldoctest
-julia> foodweb = FoodWeb([0 0; 1 0]);
-       params = ModelParameters(foodweb);
-       sol = simulate(params, [0.5, 0.5]);
-       isa(get_parameters(sol), ModelParameters)
-true
-```
-
-See also [`simulate`](@ref), [`get_extinct_species`](@ref).
-"""
-function get_parameters(sol)
-    x = sol.prob.p.original_params
-    x isa ModelParameters && return x
-    # FROM THE FUTURE: unwrap system value if needed.
-    # The exposed version shall return an actual copy of the original model.
-    x._value
-end
-
-"""
-    trophic_structure(solution; threshold = 0, idxs = nothing, kwargs...)
-
-Returns the maximum, mean and weighted mean trophic level averaged over the `last`
-timesteps. It also returns the adjacency matrix containing only the living species and the
+Returns the maximum, mean and weighted mean trophic level averaged over the last
+timestep. It also returns the adjacency matrix containing only the living species and the
 vector of the living species at the last timestep.
-
-kwargs... arguments are forwarded to [`extract_last_timesteps`](@ref). See
-[`extract_last_timesteps`](@ref) for the argument details.
 
 # Examples
 
@@ -368,23 +335,36 @@ julia> foodweb = FoodWeb([0 0 0; 0 1 0; 1 1 0]; quiet = true);
 -2
 ```
 """
-function trophic_structure(solution; threshold = 0, idxs = nothing, kwargs...)
+function trophic_structure(
+    solution::Solution;
+    warn_disconnected_consumers = true,
+    warn_isolated_producers = true,
+)
 
-    isnothing(idxs) ||
-        throw(ArgumentError("`trophic_structure()` operates at the whole network level, \
-                             so it makes no sense to ask for particular species \
-                             with anything other than `idxs = nothing`."))
+    timestep = tail(solution, 1)
+    m = ref_model(solution)
+
+    # Analyze trophic graph.
+    A = copy(m.A)
+
+    g = SimpleDiGraph(m._A)
+    # Dismiss all extinct species.
+    for (i, _) in EN.extinct_species_indices(sol)
+        rem_vertex!(g, i)
+    end
+    collect(edges(g))
+    m.producers_indices
+    collect(edges(g))
+    extinct_species(solution)
+    # HERE: is the above really necessary? Why?
 
 
     # Measure trophic structure over last timesteps
-    measure_on = extract_last_timesteps(solution; kwargs...)
-    net = get_parameters(solution).network.A
-
     maxl = []
     meanl = []
     wmean = []
     for i in 1:size(measure_on, 2)
-        alive = alive_trophic_network(measure_on[:, i], net; threshold)
+        alive = alive_trophic_network(measure_on[:, i], A; threshold)
         tlvl = alive.trophic_level
         bm = alive.species_biomass
         push!(maxl, max_trophic_level(tlvl))
@@ -393,7 +373,7 @@ function trophic_structure(solution; threshold = 0, idxs = nothing, kwargs...)
     end
 
     # Get the network at the last timestep
-    alive = alive_trophic_network(measure_on[:, end], net; threshold)
+    alive = alive_trophic_network(measure_on[:, end], A; threshold)
 
     (
         max = mean(maxl),
@@ -404,6 +384,7 @@ function trophic_structure(solution; threshold = 0, idxs = nothing, kwargs...)
         alive_A = alive.A,
     )
 end
+export trophic_structure
 
 function trophic_structure(n::AbstractVector, A::AbstractMatrix; threshold = 0)
 
@@ -430,7 +411,7 @@ function alive_trophic_network(n::AbstractVector, A::AbstractMatrix; kwargs...)
         species_biomass = []
     else
         A = A[species, species]
-        trophic_level = trophic_levels(A)
+        trophic_level = Internals.trophic_levels(A)
         species_biomass = n[species]
     end
 
@@ -566,51 +547,6 @@ function weighted_mean_trophic_level(n::AbstractVector, tlvl::AbstractVector)
     w_mean
 end
 
-
-"""
-    living_species(solution::Solution; threshold = 0, idxs = nothing, kwargs...)
-
-Returns the vectors of alive species and their indices in the original network.
-Living species are the ones having, in average, a biomass above `threshold` over
-the `last` timesteps. `kwargs...` are optional arguments passed to
-[`extract_last_timesteps`](@ref).
-
-`kwargs...` arguments are forwarded to [`extract_last_timesteps`](@ref). See
-[`extract_last_timesteps`](@ref) for the argument details.
-
-# Examples
-
-```jldoctest
-julia> foodweb = FoodWeb([0 1 1; 0 0 0; 0 0 0]);
-       params = ModelParameters(foodweb);
-       B0 = [0.5, 0.5, 0.5];
-       sol = simulate(params, B0; verbose = true);
-
-julia> living_species(sol)
-(species = ["s1", "s2", "s3"], idxs = [1, 2, 3])
-
-julia> B0 = [0, 0.5, 0.5];
-       sol = simulate(params, B0; verbose = true);
-       living_species(sol; last = 1)
-(species = ["s2", "s3"], idxs = [2, 3])
-```
-"""
-function living_species(solution::Solution; threshold = 0, idxs = nothing, kwargs...)
-
-    measure_on = extract_last_timesteps(solution; idxs, kwargs...)
-    alive_sp = living_species(measure_on; threshold)
-    sp = get_parameters(solution).network.species
-
-    tmp_idxs = process_idxs(solution; idxs)
-    idxs = tmp_idxs[alive_sp]
-    species = sp[idxs]
-
-    (; species, idxs)
-end
-
-living_species(mat::AbstractMatrix; threshold = 0) =
-    findall(>(threshold), biomass(mat).species)
-living_species(n::AbstractVector; threshold = 0) = findall(>(threshold), n)
 
 """
     min_max(solution; kwargs...)

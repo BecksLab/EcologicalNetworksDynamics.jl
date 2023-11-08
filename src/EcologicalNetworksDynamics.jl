@@ -1,11 +1,13 @@
 module EcologicalNetworksDynamics
 
 using Crayons
+using DiffEqBase
 using MacroTools
 using OrderedCollections
 using SparseArrays
+using Statistics
 
-#-------------------------------------------------------------------------------------------
+# ==========================================================================================
 # Shared API internals.
 # Most of these should move to the dedicated components files
 # once the internals have been refactored to not depend on them.
@@ -27,7 +29,7 @@ using .AliasingDicts
 include("./multiplex_api.jl")
 using .MultiplexApi
 
-#-------------------------------------------------------------------------------------------
+# ==========================================================================================
 # "Inner" parts: legacy internals.
 
 # The entire implementation has been brutally made private
@@ -42,7 +44,7 @@ include("./Internals/Internals.jl")
 #   but without re-exporting anything from Internals.
 import .Internals
 
-#-------------------------------------------------------------------------------------------
+# ==========================================================================================
 # "Abstract" parts: the framework for developing user API.
 
 # The System/Components framework code used for the API is there.
@@ -53,32 +55,37 @@ export add!, properties, blueprints, components
 
 include("./dedicate_framework_to_model.jl")
 
-#-------------------------------------------------------------------------------------------
+# ==========================================================================================
 # "Outer" parts: develop user-facing stuff here.
 
-# Factorize out common optional argument processing.
+#-------------------------------------------------------------------------------------------
+# User input: construct the model.
+
+# Components machinery.
 include("./kwargs_helpers.jl")
-using .KwargsHelpers
-
-# Factorize out common user input data preprocessing.
 include("./GraphDataInputs/GraphDataInputs.jl")
-using .GraphDataInputs
-
-# Encapsulated views into internal arrays or pseudo-arrays.
 include("./graph_views.jl")
+using .KwargsHelpers
+using .GraphDataInputs
 using .GraphViews
-
-# Convenience macro to wire this all together.
 include("./expose_data.jl")
 
-# The actual user-facing components of the package are defined there,
-# connecting them to the internals via the framework.
+# Components definition.
 include("./components/main.jl")
-include("./methods/main.jl")
 
-# Additional exposed utils built on top of components and methods.
+# Higher-level utils built on top of components.
 include("./default_model.jl")
 include("./nontrophic_layers.jl")
+
+#-------------------------------------------------------------------------------------------
+# Simulation utils.
+
+include("./simulate.jl")
+
+#-------------------------------------------------------------------------------------------
+# Post-simulation utils.
+
+include("./analysis/main.jl")
 
 # Avoid Revise interruptions when redefining methods and properties.
 Framework.REVISING = true
