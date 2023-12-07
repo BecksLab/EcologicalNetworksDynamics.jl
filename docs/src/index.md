@@ -6,20 +6,18 @@ CurrentModule = EcologicalNetworksDynamics
 
 EcologicalNetworksDynamics is a library designed to simulate species biomass dynamics
 in ecological networks.
-These networks can either trophic interactions only (i.e. food webs),
+These networks can contain either trophic interactions only (i.e. food webs),
 or trophic interactions plus various non-trophic interactions (i.e. multiplex networks).
 We provide functions to generate food web structure from well-known models
-(e.g. niche model).
-We designed EcologicalNetworksDynamics so that
-it is easy to use for non-specialists
-while remaining flexible for more adventurous and experienced users
-who would like to tweak the model.
+(e.g. the niche model). 
+We designed EcologicalNetworksDynamics so that it is easy to use for non-specialists, 
+while remaining flexible for more adventurous and experienced users, who would like to tweak the model.
 
 ## Before you start
 
 Before anything else, to use EcologicalNetworksDynamics you have to install Julia.
 For that go to the [official download page](https://julialang.org/downloads/).
-Once you have successfully installed Julia,
+Once you have successfully installed Julia, 
 you can install the library by running from a Julia REPL:
 
 ```julia
@@ -28,12 +26,18 @@ Pkg.add("EcologicalNetworksDynamics")
 ```
 
 To check that the package installation went well,
-you can create a simple food web with:
+you can load the package:
+```julia
+using EcologicalNetworksDynamics
+```
+
+You can now create a simple food web with:
 
 ```julia
-using EcologicalNetworkDynamics.Internals
-FoodWeb([1 => 2])
+Foodweb([1 => 2])
 ```
+
+This is a two-species food web in which species 1 eats species 2. 
 
 ## Learning EcologicalNetworkDynamics
 
@@ -41,8 +45,7 @@ The [Quick start](@ref) page shows how to simulate biomass dynamics in a simple 
 The rest of the guide provides a step by step introduction to the package features,
 from the generation of the network structure to the simulation of the biomass dynamics.
 At each step, we detail how the model can be customized at your will.
-Lastly, the Tutorials section contains
-realistic use-cases of EcologicalNetworksDynamics.
+Lastly, the Tutorials section contains realistic use-cases of EcologicalNetworksDynamics.
 
 ## Getting help
 
@@ -66,5 +69,8 @@ The contribution guidelines are detailed
 
 ## Citing
 
-Please mention EcologicalNetworksDynamics
+Please cite EcologicalNetworksDynamics
 if you use it in research, teaching, or other activities.
+
+**TODO: add DOI of package and paper**
+

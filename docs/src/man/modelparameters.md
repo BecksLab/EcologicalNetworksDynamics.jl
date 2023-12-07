@@ -1,18 +1,22 @@
 # How to generate model parameters?
 
-Once the [`FoodWeb`](@ref) is created,
+Once the [`Foodweb`](@ref) is created,
 you still have to attribute values to the system parameters.
 To navigate easily through the parameters,
-they are split into 4 different fields depending on their nature:
+they are split into a number of components needed:
 
-  - [`BioRates`](@ref) contains species biological rates,
-    *e.g.* producer intrinsic growth rates
-  - [`Environment`](@ref) contains environmental variables,
-    *e.g.* temperature
-  - [`FunctionalResponse`](@ref) contains functional response parameters,
-    *e.g.* the hill exponent
-  - [`producer_growth`](@ref) contains producer growth model parameters,
-    *e.g.* the carrying capacity
+- [`BodyMass`](@ref) contains the species body masses
+- [`MetabolicClass`](@ref) contains the species metabolic classes (among producers, invertebrates and ectotherms)
+- [`FunctionalResponse`](@ref) contains the functional response, which can be of three types: bioenergetic, classic or linear
+- [`ProducerGrowth`](@ref) contains the growth function of the producers, which can be logictic or based on nutrients consumptions (when nutrients are explicitly present in the model)
+- [`Metabolism`](@ref) contains the species metabolic rates
+- [`Mortality`](@ref) contains the species mortality rates
+
+In addition, one can define a dependency on temperature and add different types of interactions:
+- [`Temperature`](@ref) contains a value of the temperature of the environment (in Kelvin). If a value for it is given, the species biorates depending on temperature are all automatically updated
+-  [`NonTrophicLayers`](@ref) contains possible additional types of interactions (or layers, in addition to feeding) between species 
+
+** updated until here**
 
 All the fields are stored within the same object [`ModelParameters`](@ref).
 In addition to the 4 above fields,

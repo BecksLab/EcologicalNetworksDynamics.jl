@@ -44,7 +44,7 @@ can be accessed by calling the [`LinearResponse`](@ref) method
 with the [`FoodWeb`](@ref) as a mandatory argument.
 
 ```@example econetd
-foodweb = FoodWeb([0 0 0; 1 0 0; 0 1 0]); # 1 producer ⋅ 2 eats 1 ⋅ 3 eats 2
+foodweb = Foodweb([0 0 0; 1 0 0; 0 1 0]); # 1 producer ⋅ 2 eats 1 ⋅ 3 eats 2
 f = LinearResponse(foodweb);
 f.ω # preferency
 f.α # consumption rate
@@ -121,10 +121,10 @@ with:
 
 The bioenergetic response and its parameters
 can be accessed by calling the [`BioenergeticResponse`](@ref) method
-with the [`FoodWeb`](@ref) as a mandatory argument.
+with the [`Foodweb`](@ref) as a mandatory argument.
 
 ```@example econetd
-foodweb = FoodWeb([0 0 0; 1 0 0; 0 1 0]); # 1 producer ⋅ 2 eats 1 ⋅ 3 eats 2
+foodweb = Foodweb([0 0 0; 1 0 0; 0 1 0]); # 1 producer ⋅ 2 eats 1 ⋅ 3 eats 2
 f = BioenergeticResponse(foodweb);
 f.ω # preferency
 f.B0 # half-saturation
