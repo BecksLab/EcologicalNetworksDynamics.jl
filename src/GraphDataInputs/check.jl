@@ -334,7 +334,7 @@ needles(x::Index, ::Nothing) = keys(x)
 needles(::Int64, template::AbstractSparseVector) = findnz(template)[1]
 function needles(x::Index, template::AbstractSparseVector)
     revmap = Dict(i => n for (n, i) in x)
-    sort(revmap[i] for i in findnz(template)[1])
+    sort!(collect(revmap[i] for i in findnz(template)[1]))
 end
 
 check_missing_refs(list, space, template, name, item) =

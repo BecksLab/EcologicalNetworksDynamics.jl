@@ -69,7 +69,7 @@ macro kwargs_helpers(kwargs)
             for k in ks
                 k == ref || k in aliases || continue
                 if !isnothing(found)
-                    a, b = sort((found, k))
+                    a, b = sort([found, k])
                     argerr("Cannot specify both aliases \
                             $(repr(a)) and $(repr(b)) arguments.")
                 end
