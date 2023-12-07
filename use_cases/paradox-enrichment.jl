@@ -1,23 +1,17 @@
 import AlgebraOfGraphics: set_aog_theme!
-
 using CairoMakie
 using DataFrames
 using EcologicalNetworksDynamics
 
-"""
-Compute biomass extrema for each species during the `last` time steps.
-"""
-function biomass_extrema(solution, last)
-    trajectories = extract_last_timesteps(solution; last, quiet = true)
-    S = size(trajectories, 1) # Row = species, column = time steps.
-    [(min = minimum(trajectories[i, :]), max = maximum(trajectories[i, :])) for i in 1:S]
-end
-
-foodweb = FoodWeb([2 => 1]); # 2 eats 1.
-functional_response = ClassicResponse(foodweb; aᵣ = 1, hₜ = 1, h = 1);
+foodweb = Foodweb([2 => 1]) # 2 eats 1.
+attack_rate = 1
+handling_time = 1
+h = 1 # Hill exponent.
+t = 1_000 # Simulation duration.
+verbose = false # Do not show information messages during simulation.
+functional_response = ClassicResponse(; attack_rate, handling_time, h)
+extinction_threshold = 1e-6
 K_values = LinRange(1, 10, 50)
-tmax = 1_000 # Simulation length.
-verbose = false # Do not show '@info' messages during the simulation.
 df = DataFrame(;
     K = Float64[],
     B_resource_min = Float64[],
@@ -29,12 +23,14 @@ df = DataFrame(;
 # Run simulations: compute equilibirum biomass for each carrying capacity.
 @info "Start simulations..."
 for K in K_values
-    producer_growth = LogisticGrowth(foodweb; K)
-    params = ModelParameters(foodweb; functional_response, producer_growth)
+    m = default_model(foodweb, BodyMass(1), CarryingCapacity(K), functional_response)
     B0 = rand(2) # Inital biomass.
-    solution = simulate(params, B0; tmax, verbose)
-    extrema = biomass_extrema(solution, "10%")
-    push!(df, [K, extrema[1].min, extrema[1].max, extrema[2].min, extrema[2].max])
+    solution = simulate(m, B0, t; extinction_threshold)
+    last_points = solution.(0.9*t:1:t)
+    last_points = reduce(hcat, last_points) # From vector of vector to matrix.
+    Bmin_1, Bmax_1 = extrema(last_points[1, :])
+    Bmin_2, Bmax_2 = extrema(last_points[2, :])
+    push!(df, [K, Bmin_1, Bmax_1, Bmin_2, Bmax_2])
     @info "Simulation for carrying capacity K = $K done."
 end
 @info "Simulations done."
@@ -61,6 +57,5 @@ Legend(
     tellheight = true, # Adjust the height of the legend sub-figure.
     tellwidth = false, # Do not adjust width of the orbit diagram.
 )
-
 # To save the figure, uncomment and execute the line below.
-# save("/tmp/plot.png", fig; resolution = (450, 300), px_per_unit = 3)
+save("/tmp/plot.png", fig; size = (450, 300), px_per_unit = 3)

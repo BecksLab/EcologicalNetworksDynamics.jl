@@ -3,45 +3,36 @@ using CairoMakie
 using EcologicalNetworksDynamics
 using Random
 
-foodweb = FoodWeb([0 0; 0 0]) # Two plants competing for nutrients.
-half_saturation = [0.3 0.9; 0.9 0.3] # Row <-> plants & column <-> nutrients.
-turnover = 0.9
-supply = 10
-concentration = 1
-d = [0.6, 1.2]
-r = [1, 2]
-tmax = 50
-extinction_threshold = 1e-5
+foodweb = Foodweb([0 0; 0 0]) # Two plants competing nutrients.
+half_saturation = Dict(1 => [0.3; 0.9;;], 2 => [0.3 0.9; 0.9 0.3])
+mortality = Mortality([0.6, 1.2])
 
 sol_vec = []
 for n_nutrients in 1:2
-    producer_growth = NutrientIntake(
-        foodweb;
-        n_nutrients,
-        supply,
-        half_saturation = half_saturation[:, 1:n_nutrients],
-        turnover,
-        concentration,
+    nutrients = NutrientIntake(
+        n_nutrients;
+        half_saturation = half_saturation[n_nutrients],
+        turnover = 0.9,
+        supply = 10,
+        concentration = 1,
+        r = [1, 2], # Plant intrinsic growth rates.
     )
-    biorates = BioRates(foodweb; d, r)
-    p = ModelParameters(foodweb; producer_growth, biorates)
+    m = default_model(foodweb, nutrients, mortality)
     Random.seed!(113) # Set seed for reproducibility of initial conditions.
     N0 = 0.1 .+ 3 * rand(n_nutrients)
     B0 = [0.5, 0.5]
-    callback = ExtinctionCallback(extinction_threshold, p, true)
-    sol = simulate(p, B0; N0, tmax, alg_hints = [:stiff], reltol = 1e-5, callback)
+    t = 50
+    sol = simulate(m, B0, t; N0)
     push!(sol_vec, sol)
 end
 
 set_aog_theme!() # AlgebraOfGraphics theme.
 fig = Figure()
-
 ax1 = Axis(fig[1, 1]; xlabel = "", ylabel = "", title = "1 nutrient: exclusion")
 sol = sol_vec[1]
 plant1_line = lines!(sol.t, sol[1, :]; color = :red)
 plant2_line = lines!(sol.t, sol[2, :]; color = :green)
 nutrient1_line = lines!(sol.t, sol[3, :]; color = :blue, linestyle = :dot)
-
 ax2 = Axis(fig[1, 2]; xlabel = "", ylabel = "", title = "2 nutrients: coexistence")
 sol = sol_vec[2]
 plant1_line = lines!(sol.t, sol[1, :]; color = :red)
@@ -62,4 +53,4 @@ Legend(
     tellheight = true, # Adjust the height of the legend sub-figure.
     tellwidth = false, # Do not adjust width of the orbit diagram.
 )
-save("/tmp/plot.png", fig; resolution = (450, 300), px_per_unit = 3)
+save("/tmp/plot.png", fig; size = (450, 300), px_per_unit = 3)

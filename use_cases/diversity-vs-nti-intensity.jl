@@ -2,29 +2,26 @@ import AlgebraOfGraphics: firasans, set_aog_theme!
 import DiffEqCallbacks: TerminateSteadyState
 import DifferentialEquations: CallbackSet
 import Statistics: mean, std
-
 using CairoMakie
 using DataFrames
+using DiffEqCallbacks
+using DifferentialEquations
 using EcologicalNetworksDynamics
+using Statistics
 
 # Define global community parameters.
-S = 50 # Species richness
-Z = 50 # Predator-prey bodymass ratio.
-C = 0.06 # Trophic connectance.
-i_intra = 0.8 # Intraspecific interference between predators.
+S = 50
 C_nti = 0.01 # Non-trophic connectance.
 L_nti = round(Integer, S^2 * C_nti) # Number of non-trophic links.
 L_nti += isodd(L_nti) # Ensure that number of link is even for symmetric interactions.
 n_foodweb = 50 # Replicates of trophic backbones.
-
 # Simulation parameters.
 # For this specific set-up we need to define callbacks manually
 # to ensure that the simulation stops when a fixed point is reached,
 # and not before.
 # To do so, we have lowered the `abstol` and `reltol` arguments of
 # `TerminateSteadyState`.
-tmax = 10_000
-verbose = false # Do not show '@info' messages during simulation run.
+t = 10_000
 
 # Set up non-trophic interactions.
 intensity_range_size = 5
@@ -49,24 +46,24 @@ Threads.@threads for i in 1:n_foodweb # Parallelize computation if possible.
         intensity = Float64[],
         diversity = Int64[],
     )
-    # First, create a trophic backbone.
-    foodweb = Foodweb(nichemodel, S; C, Z)
-    # Secondly, loop on the different non-trophic interactions to study.
+    fw = Foodweb(:niche; S = 50, C = 0.06)
     for interaction in interaction_names
         intensity_values = intensity_values_dict[interaction]
         # Third, increase the non-trophic interaction intensity.
         for intensity in intensity_values
             # Add the given non-trophic interaction to the trophic backbone
             # with the given intensity.
-            model = Model(foodweb)
-            add_nontrophic_layers!(model, [interaction => (; intensity, L = L_nti)])
-            functional_response = ClassicResponse(net; c = i_intra)
-            params = ModelParameters(net; functional_response)
-            callback = CallbackSet(
-                ExtinctionCallback(1e-5, params, verbose),
+            m = default_model(
+                fw,
+                BodyMass(; Z = 50),
+                ClassicResponse(; c = 0.8),
+                NontrophicLayers(; interaction => (; intensity, L = L_nti)),
+            )
+            callback(m) = CallbackSet(
+                extinction_callback(m, 1e-5),
                 TerminateSteadyState(1e-8, 1e-6),
             )
-            solution = simulate(params, rand(S); tmax, callback)
+            solution = simulate(m, rand(S), t; callback = callback(m))
             # Save the final diversity at equilibrium.
             push!(df_thread, [i, interaction, intensity, richness(solution[end])])
         end
@@ -99,7 +96,6 @@ df_processed = combine(
 # Plot diversity variation versus non-trophic interaction intensity.
 set_aog_theme!()
 fig = Figure()
-
 # Each non-trophic interaction has its own sub-figure.
 groups = groupby(df_processed, :interaction)
 indices = Iterators.product(1:2, 1:2) # Iterate over (1, 1) -> (1, 2) -> (2, 1) -> (2, 2).
@@ -118,11 +114,9 @@ for (idx, interaction) in zip(indices, interaction_names)
     scatterlines!(x, y)
     errorbars!(x, y, ci; whiskerwidth = 5)
 end
-
 # Write x and y labels.
 font = firasans("Medium") # Label font.
 Label(fig[1:2, 0], "Diversity variation"; font, rotation = pi / 2, width = 0)
-Label(fig[3, 2:3], "Interaction intensity"; font, height = 0)
-
+Label(fig[3, 1:2], "Interaction intensity"; font, height = 0)
 # To save the figure, uncomment and execute the line below.
-# save("/tmp/plot.png", fig; resolution = (450, 300), px_per_unit = 3)
+save("/tmp/plot.png", fig; size = (450, 320), px_per_unit = 3)
