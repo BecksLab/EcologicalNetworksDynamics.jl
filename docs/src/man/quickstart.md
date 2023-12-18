@@ -23,7 +23,12 @@ For instance, we can access the species natural mortality rates with:
 ```@example quickstart
 m.mortality
 ```
-**TODO: explain how to get the names of m. Properties(m) does not work. When it does, add this. **
+
+Use `properties` to list all such properties of the model,
+they depend on the actual component it contains:
+```@example quickstart
+properties(m)
+```
 
 At this step we are ready to run simulations,
 we just need to provide initial conditions for species biomasses.

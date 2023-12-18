@@ -11,6 +11,9 @@
 #  - adjacency lists
 #  - random links drawn according to the given model
 
+"""
+DOCSTRING FOR FOODWEB
+"""
 mutable struct Foodweb <: ModelBlueprint
     A::@GraphData {SparseMatrix, Adjacency}{:bin}
 

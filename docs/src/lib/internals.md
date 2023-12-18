@@ -11,6 +11,6 @@ Pages = ["internals.md"]
 ## Functions
 
 ```@autodocs
-Modules = [EcologicalNetworksDynamics]
+Modules = [EcologicalNetworksDynamics.Internals]
 Public = false
 ```

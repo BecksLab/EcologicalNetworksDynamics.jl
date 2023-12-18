@@ -9,15 +9,15 @@ in ecological networks.
 These networks can contain either trophic interactions only (i.e. food webs),
 or trophic interactions plus various non-trophic interactions (i.e. multiplex networks).
 We provide functions to generate food web structure from well-known models
-(e.g. the niche model). 
-We designed EcologicalNetworksDynamics so that it is easy to use for non-specialists, 
+(e.g. the niche model).
+We designed EcologicalNetworksDynamics so that it is easy to use for non-specialists,
 while remaining flexible for more adventurous and experienced users, who would like to tweak the model.
 
 ## Before you start
 
 Before anything else, to use EcologicalNetworksDynamics you have to install Julia.
 For that go to the [official download page](https://julialang.org/downloads/).
-Once you have successfully installed Julia, 
+Once you have successfully installed Julia,
 you can install the library by running from a Julia REPL:
 
 ```julia
@@ -37,7 +37,7 @@ You can now create a simple food web with:
 Foodweb([1 => 2])
 ```
 
-This is a two-species food web in which species 1 eats species 2. 
+This is a two-species food web in which species 1 eats species 2.
 
 ## Learning EcologicalNetworkDynamics
 

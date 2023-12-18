@@ -6,7 +6,7 @@ you still have to build the model.
 
 ## Use the default set up
 
-The model structure and parameters can be generated automatically by providing only the [`Foodweb`](@ref) as follows: 
+The model structure and parameters can be generated automatically by providing only the [`Foodweb`](@ref) as follows:
 
 ```@setup econetd
 using EcologicalNetworksDynamics
@@ -23,14 +23,14 @@ The created model contains a number of components whose list can be seen by typi
 properties(m)
 ```
 
-Note that in the default model, the growth is assumed to be logistic and the functional response a bioenergetic one. 
+Note that in the default model, the growth is assumed to be logistic and the functional response a bioenergetic one.
 Values from individual components can be seen by typing:
 
 ```@example econetd
 m.A # adjacency matrix
 m.richness # number of species
 m.species_names
-m.r # growth rate 
+m.r # growth rate
 m.K # species' carrying capacities
 m.mortality
 m.metabolism
@@ -205,4 +205,4 @@ they are split into a number of components needed:
 
 In addition, one can define a dependency on temperature and add different types of interactions:
 - [`Temperature`](@ref) contains a value of the temperature of the environment (in Kelvin). If a value for it is given, the species biorates depending on temperature are all automatically updated
--  [`NonTrophicLayers`](@ref) contains possible additional types of interactions (or layers, in addition to feeding) between species 
+- [`NonTrophicLayers`](@ref) contains possible additional types of interactions (or layers, in addition to feeding) between species
