@@ -22,9 +22,10 @@ makedocs(;
         "Welcome" => "index.md",
         "Guide" => [
             "Quick start" => "man/quickstart.md",
+            "The Ecological Model and Components" => "man/components.md",
             "Generate food webs" => "man/foodwebs.md",
             #  "Generate multiplex networks" => "man/multiplexnetworks.md",
-            "Generate model parameters" => "man/model.md",
+            "Construct an ecological model" => "man/model.md",
             #  "Choose a functional reponse" => "man/functionalresponse.md",
             #  "Run simulations" => "man/simulations.md",
             #  "Boost simulations" => "man/boost.md",

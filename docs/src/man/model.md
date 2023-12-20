@@ -1,16 +1,99 @@
-# How to generate the model parameters?
+# The Ecological Model
+
+`EcologicalNetworksDynamics` represents an ecological network
+as a julia object of type [`Model`](@ref).
+
+```@setup econetd
+using EcologicalNetworksDynamics
+```
+
+```@example econetd
+m = default_model(Foodweb([:a => :b, :b => :c]))
+```
+Values of this type essentially describe a *graph*,
+with various *nodes* compartment representing
+*eg.* species or nutrients
+and various *edges* compartment representing
+*eg.* trophic links, or facilitation links.
+In addition to the network topology,
+the model also holds *data* describing the model further.
+There are three possible "levels" for this data:
+- __Graph-level__: data describe properties of the whole system.
+  *e.g.*  temperature, hill-exponent *etc.*
+  Graph-level data are typically scalar values.
+- __Node-level__: vector data describe properties
+  of particular nodes in the graph:
+  *e.g.* species body mass, nutrients turnover *etc.*
+  Node-level data are typically vector values.
+- __Edge-level__: matrix data describe properties of particular links:
+  *e.g.* trophic links efficiency,
+  half-saturation of a producer-to-nutrient links *etc.*
+  Edge-level data are typically matrix values.
+
+## Model properties
+
+The data held by the model can be accessed via the various model "properties",
+with functions named `get_<X>`:
+```@example econetd
+get_hill_exponent(m) # Graph-level data (a number).
+```
+```@example econetd
+get_body_masses(m) # Node-level data (a vector).
+```
+```@example econetd
+get_efficiency(m) # Edge-level data (a matrix).
+```
+
+Alternately, the data can also be accessed
+*via* julia's `m.<x>` property accessor:
+```@example econetd
+m.hill_exponent # Same as get_hill_exponent(m).
+m.body_masses # Same as get_body_masses(m).
+m.efficiency # Same as get_efficiency(m).
+nothing # hide
+```
+
+Some data can be modified this way,
+either with `set_<x>!(m, value)`.
+But not all.
+```@example econetd
+# Okay: this is terminal data.
+set_hill_exponent!(m, 2.1)
+m.hill_exponent = 2.1 # (same)
+
+try # hide
+# Not okay: this could make the rest of the model data inconsistent.
+m.species_richness = 4
+catch err; print(stderr, "ERROR: "); showerror(stderr, err); end # hide
+```
+
+If you need a model with different values for non-modifiable properties,
+you need to build a new model with the values you desire.
+```@example econetd
+m = default_model(Foodweb([:a => :b, :b => [:c, :d]])) # Add a 4th species.
+m.species_richness # Now the value is what you want.
+```
+
+## Model components.
+
+The properties available in a model
+depend on the "components" that have been added to it.
+For instance, the following fails
+because no component in the model brings `competition`-related data:
+```@example econetd
+m.competition_links # HERE: fix nontrophic A_competition = m.potential_competition first.
+```
+
 
 Once the [`Foodweb`](@ref) is created,
 you still have to build the model.
 
 
+
 ## Use the default set up
 
-The model structure and parameters can be generated automatically by providing only the [`Foodweb`](@ref) as follows:
-
-```@setup econetd
-using EcologicalNetworksDynamics
-```
+The model structure and parameters can be generated automatically by providing
+only the [`Foodweb`](@ref) as follows:
 
 ```@example econetd
 fw = Foodweb([:a => (:b, :c), :b => (:c, :d)])
