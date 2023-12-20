@@ -5,14 +5,214 @@
 # Typically, many default values are calculated from this layer,
 # and values checks are performed against this layer.
 
-#-------------------------------------------------------------------------------------------
-# Specify from trophic edges:
-#  - binary matrix
-#  - adjacency lists
-#  - random links drawn according to the given model
-
 """
-DOCSTRING FOR FOODWEB
+The Foodweb component, aka. "Trophic layer",
+adds a set of trophic links connecting species in the model.
+This is one of the most structuring components.
+
+# Blueprint Creation from Raw Links.
+
+From an adjacency list:
+```jldoctest
+julia> fw = Foodweb([:a => :b, :b => [:c, :d]])
+blueprint for Foodweb with 2 trophic links:
+  A:
+  :a eats :b
+  :b eats :c and :d
+
+julia> Model(fw) # Automatically brings a 'Species' component.
+Model with 2 components:
+  - Species: 4 (:a, :b, :c, :d)
+  - Foodweb: 3 links
+
+julia> Model(Foodweb([4 => [2, 1], 2 => 1])) #  From species indices.
+Model with 2 components:
+  - Species: 4 (:s1, :s2, :s3, :s4)
+  - Foodweb: 3 links
+```
+
+From a matrix:
+```jldoctest
+julia> fw = Foodweb([0 0 1; 1 0 1; 0 0 0])
+blueprint for Foodweb with 3 trophic links:
+  A: 3×3 SparseArrays.SparseMatrixCSC{Bool, Int64} with 3 stored entries:
+ ⋅  ⋅  1
+ 1  ⋅  1
+ ⋅  ⋅
+
+julia> Model(fw)
+Model with 2 components:
+  - Species: 3 (:s1, :s2, :s3)
+  - Foodweb: 3 links
+```
+
+# Blueprint Creation from Random Models.
+
+__Cascade__ model: specify the desired number of species `S` and connectance `C`.
+```jldoctest
+julia> using Random
+       Random.seed!(12)
+       fw = Foodweb(:cascade, S = 5, C = 0.2)
+blueprint for Foodweb with 5 trophic links:
+  A: 5×5 SparseArrays.SparseMatrixCSC{Bool, Int64} with 5 stored entries:
+ ⋅  1  ⋅  1  1
+ ⋅  ⋅  ⋅  ⋅  ⋅
+ ⋅  ⋅  ⋅  1  ⋅
+ ⋅  ⋅  ⋅  ⋅  1
+ ⋅  ⋅  ⋅  ⋅  ⋅
+```
+
+Random foodwebs are drawn until the desired connectance is obtained,
+within a tolerance level defaulted to `tol_C = 0.1 * C`,
+modifiable as a keyword argument.
+
+__Niche__ model: either specify the connectance `C` or number of links `L`.
+```jldoctest
+julia> fw = Foodweb(:niche, S = 5, C = 0.2) #  From connectance.
+blueprint for Foodweb with 5 trophic links:
+  A: 5×5 SparseArrays.SparseMatrixCSC{Bool, Int64} with 5 stored entries:
+ ⋅  ⋅  ⋅  ⋅  ⋅
+ ⋅  ⋅  ⋅  ⋅  ⋅
+ 1  1  ⋅  ⋅  ⋅
+ ⋅  ⋅  1  ⋅  ⋅
+ 1  1  ⋅  ⋅  ⋅
+
+julia> fw = Foodweb(:niche, S = 5, L = 4) #  From number of links.
+blueprint for Foodweb with 4 trophic links:
+  A: 5×5 SparseArrays.SparseMatrixCSC{Bool, Int64} with 4 stored entries:
+ ⋅  ⋅  ⋅  ⋅  ⋅
+ ⋅  ⋅  ⋅  ⋅  ⋅
+ ⋅  ⋅  ⋅  ⋅  ⋅
+ 1  ⋅  ⋅  ⋅  ⋅
+ 1  1  1  ⋅  ⋅
+```
+
+The default tolerance levels for the niche model
+are `tol_C = 0.1 * C` and `tol_L = 0.1 * L`,
+modifiable as keyword arguments.
+
+For either random model, the following keyword arguments can also be specified:
+- `reject_cycles = false` (default): raise to forbid trophic cycles.
+- `reject_if_disconnected = true` (default): lower to allow disconnected trophic networks.
+- `max_iterations = 10^5` (default): give up if no satisfying network can be found
+                                     after this number of random trials.
+
+# Properties.
+
+A model `m` with a `Foodweb` has the following properties.
+
+- `m.A` or `m.trophic_links`: a view into the matrix of trophic links.
+- `m.n_trophic_links`: the number of trophic links in the model.
+- `m.trophic_levels`: calculate the trophic level of every species in the model.
+
+- Distinguishing between `producers` (species without outgoing trophic links)
+  and `consumers` (species with outgoing trophic links):
+  - `m.{producers,consumers}_mask`: a boolean vector to select either kind of species.
+  - `m.n_{producers,consumers}`: count number of species of either kind.
+  - `is_{producer,consumer}(m, i)`: check whether species `i` (name or index) is of either kind.
+  - `m.{producers,consumer}_indices`: iterate over either species kind indices.
+  - `m.{producers,consumer}_{sparse,dense}_index`: obtain a
+    \$species\\_name \\mapsto species\\_index\$ mapping:
+    - the `sparse` index yields indices valid within the whole collection of species.
+    - the `dense` index yields indices only valid within the restricted collection
+      of species of either kind.
+
+- Distinguishing betwen `preys` (species with incoming trophic links)
+  and `tops` predators (species without incoming trophic links) works the same way.
+
+- `m.producers_links`: boolean matrix highlighting potential links between producers.
+
+- `m.herbivorous_links`: highlight only consumer-to-producer trophic links.
+- `m.carnivorous_links`: highlight only consumer-to-consumer trophic links.
+
+
+```jldoctest
+julia> m = Model(Foodweb([:a => :b, :b => [:c, :d], :d => :e]));
+
+julia> m.n_trophic_links
+4
+
+julia> m.A
+5×5 EcologicalNetworksDynamics.TrophicLinks:
+ 0  1  0  0  0
+ 0  0  1  1  0
+ 0  0  0  0  0
+ 0  0  0  0  1
+ 0  0  0  0  0
+
+julia> m.trophic_levels
+5-element EcologicalNetworksDynamics.TrophicLevels:
+ 3.5
+ 2.5
+ 1.0
+ 2.0
+ 1.0
+
+julia> m.producers_mask
+5-element EcologicalNetworksDynamics.ProducersMask:
+ 0
+ 0
+ 1
+ 0
+ 1
+
+julia> m.preys_mask
+5-element EcologicalNetworksDynamics.PreysMask:
+ 0
+ 1
+ 1
+ 1
+ 1
+
+julia> m.n_producers, m.n_consumers
+(2, 3)
+
+julia> m.n_tops, m.n_preys
+(1, 4)
+
+julia> is_top(m, 1), is_top(m, 2)
+(true, false)
+
+julia> collect(m.consumers_indices)
+3-element Vector{Int64}:
+ 1
+ 2
+ 4
+
+julia> m.producers_sparse_index
+OrderedCollections.OrderedDict{Symbol, Int64} with 2 entries:
+  :c => 3
+  :e => 5
+
+julia> m.producers_dense_index
+OrderedCollections.OrderedDict{Symbol, Int64} with 2 entries:
+  :c => 1
+  :e => 2
+
+julia> m.producers_links
+5×5 EcologicalNetworksDynamics.ProducersLinks:
+ 0  0  0  0  0
+ 0  0  0  0  0
+ 0  0  1  0  1
+ 0  0  0  0  0
+ 0  0  1  0  1
+
+julia> m.herbivorous_links
+5×5 EcologicalNetworksDynamics.HerbivorousLinks:
+ 0  0  0  0  0
+ 0  0  1  0  0
+ 0  0  0  0  0
+ 0  0  0  0  1
+ 0  0  0  0  0
+
+julia> m.carnivorous_links
+5×5 EcologicalNetworksDynamics.CarnivorousLinks:
+ 0  1  0  0  0
+ 0  0  0  1  0
+ 0  0  0  0  0
+ 0  0  0  0  0
+ 0  0  0  0  0
+```
 """
 mutable struct Foodweb <: ModelBlueprint
     A::@GraphData {SparseMatrix, Adjacency}{:bin}
