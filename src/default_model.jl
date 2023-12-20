@@ -3,6 +3,33 @@
 # Default blueprints can be overriden by listing them as simple arguments,
 # and default components are not added if listed within the 'without' keyword argument.
 
+
+"""
+    default_model(
+    foodweb::Foodweb;
+    kwargs...
+
+)
+
+Generate a model from a food web with parameters set to default values.
+
+Let's first illustrate the use of `default_model` with a simple example.
+
+```julia
+foodweb = Foodweb([1 => 2])
+default_model(foodweb)
+```
+
+In this example, *all* parameters are set to default values,
+however for your needs, you can override any of the default parameters.
+For instance, if you want to override the default metabolic rate,
+you can do it as follows:
+
+```julia
+my_x = [0.0, 1.2] # One value per species.
+default_model(foodweb, Metabolism(my_x))
+```
+"""
 function default_model(
     blueprints::Union{ModelBlueprint,ModelBlueprintSum}...;
     without = ModelComponent[],

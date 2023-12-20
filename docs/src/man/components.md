@@ -11,10 +11,10 @@ using EcologicalNetworksDynamics
 m = default_model(Foodweb([:a => :b, :b => :c]))
 ```
 Values of this type essentially describe a *graph*,
-with various *nodes* compartment representing
-*eg.* species or nutrients
-and various *edges* compartment representing
-*eg.* trophic links, or facilitation links.
+with various *nodes* compartments representing
+*e.g.* species or nutrients
+and various *edges* compartments representing
+*e.g.* trophic links, or facilitation links.
 In addition to the network topology,
 the model also holds *data* describing the model further,
 and brought by the various models *components*.

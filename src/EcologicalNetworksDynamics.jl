@@ -54,6 +54,14 @@ export add!, properties, blueprints, components
 include("./dedicate_framework_to_model.jl")
 
 #-------------------------------------------------------------------------------------------
+# Analysis tools working on the output of the simulation.
+include("output-analysis.jl")
+export richness
+export persistence
+export shannon_diversity
+export total_biomass
+
+#-------------------------------------------------------------------------------------------
 # "Outer" parts: develop user-facing stuff here.
 
 # Factorize out common optional argument processing.
