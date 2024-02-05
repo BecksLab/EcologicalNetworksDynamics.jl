@@ -45,7 +45,11 @@ function extract_last_timesteps(solution; idxs = nothing, quiet = false, kwargs.
 
     # Extract species indices:
     idxs = process_idxs(solution; idxs)
-    out = out[idxs, :]
+    out = if isempty(out)
+        zeros((length(idxs), 0))
+    else
+        out[idxs, :]
+    end
     quiet || check_last_extinction(solution; idxs, last)
 
     deepcopy(out)
