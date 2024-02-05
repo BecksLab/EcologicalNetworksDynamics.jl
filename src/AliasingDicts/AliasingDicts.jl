@@ -2,6 +2,7 @@ module AliasingDicts
 
 using OrderedCollections
 using StringCases
+using MacroTools
 import ..Option
 
 # Design a data structure behaving like a julia's Dict{Symbol, T},
@@ -11,161 +12,211 @@ import ..Option
 # Terminology:
 #   - "reference": anything given by user to access data in the structure.
 #   - "standard": the actual key used to store the data
-#   - "alias": non-standard key possibly used to access the data.
-# The structure should protect from ambiguous aliasing specifications.
-#
-# TODO: AliasingSystem should be defined \
-# along with a `struct `Enum` s::Symbol end` \
-# only accepting valid symbols values,
-# and conveniently used as keys.
+#   - "alias": non-standard reference possibly used to access the data.
+# The type should protect from ambiguous aliasing specifications.
 
 # ==========================================================================================
-# The aliasing system is the value taking care
+# The aliased type takes care
 # of bookeeping aliases, references and standards.
+# Subtypes can be created with the dedicated macro.
 
-struct AliasingSystem
-    # {standard ↦ [ref, ref, ref..]} with refs sorted by length then lexicog.
-    _references::OrderedDict{Symbol,Vector{Symbol}} # Standards are ordered by user.
-    # {reference ↦ standard}
-    _surjection::Dict{Symbol,Symbol}
-    # What kind of things are we referring to?
-    # (useful for error messages and code generation)
-    name::String
-    shortname::Symbol
+abstract type AliasingDict{T} <: AbstractDict{Symbol,T} end
 
-    # Construct from a non-sorted aliases dict.
-    function AliasingSystem(name, shortname, g)
-        err(mess) = throw(AliasingError(name, mess))
-        references = OrderedDict()
-        surjection = Dict()
-        for (std, aliases) in g
-            std = Symbol(std)
-            refs = vcat([Symbol(a) for a in aliases], [std])
-            references[std] = sort!(sort!(refs); by = x -> length(string(x)))
-            for ref in refs
-                # Protect from ambiguity.
-                if ref in keys(surjection)
-                    target = surjection[ref]
-                    if target == std
-                        err("Duplicated $name alias for '$std': '$ref'.")
-                    end
-                    err(
-                        "Ambiguous $name reference: " *
-                        "'$ref' either means '$target' or '$std'.",
-                    )
-                end
-                surjection[ref] = std
-            end
-        end
-        new(references, surjection, name, shortname)
-    end
-end
+#-------------------------------------------------------------------------------------------
+# Base queries that subtypes should answer.
+# Note: only return immutable data/references for them,
+# or the aliasing system could become corrupted.
 
-Base.length(a::AliasingSystem) = Base.length(a._references)
+# (standard ↦ (ref, ref, ref..)) with refs sorted by length then lexicog, including.
+# (repeat the standard among aliases within references so that it is also ordered with them)
+references(D::Type{<:AliasingDict}) = throw("Unimplemented references for $D.")
+# (reference ↦ standard)
+revmap(D::Type{<:AliasingDict}) = throw("Unimplemented revmap for $D.")
+# What kind of things are we referring to?
+# (useful for error messages and code generation)
+name(D::Type{<:AliasingDict}) = throw("Unimplemented name for $D.")
+shortname(D::Type{<:AliasingDict}) = throw("Unimplemented shortname for $D.")
 
-# Access copies of underlying aliasing information.
-# (not actual references: we do *not* want the alias system to be mutated)
-name(a::AliasingSystem) = a.name
-shortname(a::AliasingSystem) = a.shortname
-standards(a::AliasingSystem) = (r for r in keys(a._references))
-references(a::AliasingSystem) = (r for refs in values(a._references) for r in refs)
+#-------------------------------------------------------------------------------------------
+# Construct upon the above aliasing system "trait".
 
-# One cheat-sheet with all standards, their order and aliases.
-aliases(a::AliasingSystem) =
-    OrderedDict(s => [r for r in references(s, a) if r != s] for s in standards(a))
-function standardize(ref, a::AliasingSystem)
+Base.length(D::Type{<:AliasingDict}) = Base.length(references(D))
+standards(D::Type{<:AliasingDict}) = keys(references(D))
+
+function standardize(ref, D::Type{<:AliasingDict})
     key = Symbol(ref)
-    if key in references(a)
-        return a._surjection[key]
+    r = revmap(D)
+    if key in keys(r)
+        r[key]
+    else
+        throw(AliasingError(name(D), "Invalid reference: '$ref'."))
     end
-    throw(AliasingError(a.name, "Invalid $(a.name) name: '$ref'."))
 end
 
 # Get all alternate references.
-references(ref, a::AliasingSystem) = (r for r in a._references[standardize(ref, a)])
+references(ref, D::Type{<:AliasingDict}) = references(D)[standardize(ref, D)]
+all_references(D::Type{<:AliasingDict}) = (r for refs in references(D) for r in refs)
+
+# Construct cheat-sheet with all standards, their order and aliases.
+aliases(D::Type{<:AliasingDict}) =
+    OrderedDict(s => [r for r in references(s, D) if r != s] for s in standards(D))
 
 # Get first alias (shortest + earliest lexically).
-shortest(ref, a::AliasingSystem) = first(references(ref, a))
+shortest(ref, D::Type{<:AliasingDict}) = first(references(ref, D))
 
 # Match reference to others, regardless of aliasing.
-is(ref_a, ref_b, a::AliasingSystem) = standardize(ref_a, a) == standardize(ref_b, a)
-isin(ref, refs, a::AliasingSystem) =
-    any(standardize(ref, a) == standardize(r, a) for r in refs)
+is(ref_a, ref_b, D::Type{<:AliasingDict}) = standardize(ref_a, D) == standardize(ref_b, D)
+isin(ref, refs, D::Type{<:AliasingDict}) =
+    any(standardize(ref, D) == standardize(r, D) for r in refs)
+isref(key, D::Type{<:AliasingDict}) = any(Symbol(key) in refs for refs in references(D))
 
-# ==========================================================================================
-# The actual aliasing dict type internally refers to one aliasing system to work.
-abstract type AliasingDict{T} <: AbstractDict{Symbol,T} end
-
-# Defer basic interface to the interface of dict,
+#-------------------------------------------------------------------------------------------
+# Defer basic instances interface to the interface of dict,
 # assuming all subtypes are of the form:
-#  struct Sub <: AliasingDict{T}
+#  struct Sub{T} <: AliasingDict{T}
 #      _d::Dict{Symbol,T}
 #  end
-Base.haskey(a::AliasingDict, k) = Base.haskey(a._d, standardize(k, a))
-Base.getindex(a::AliasingDict, k) = Base.getindex(a._d, standardize(k, a))
-Base.setindex!(a::AliasingDict, k, v) = Base.setindex!(a._d, standardize(k, a), v)
-Base.get(a::AliasingDict, k, d) = Base.get(a._d, standardize(k, a), d)
-Base.get!(a::AliasingDict, k, d) = Base.get!(a._d, standardize(k, a), d)
-Base.get(f, a::AliasingDict, k) = Base.get(f, a._d, standardize(k, a))
-Base.get!(f, a::AliasingDict, k) = Base.get!(f, a._d, standardize(k, a))
-Base.pop!(a::AliasingDict, k) = Base.pop!(a._d, standardize(k, a))
-Base.pop!(a::AliasingDict, k, d) = Base.pop!(a._d, standardize(k, a), d)
-Base.length(a::AliasingDict) = length(a._d)
-Base.merge(a::AliasingDict, b::AliasingDict) = AliasingDict(merge(a._d, b._d))
-Base.iterate(a::AliasingDict) = Base.iterate(a._d)
-Base.iterate(a::AliasingDict, state) = Base.iterate(a._d, state)
-Base.:(==)(a::AliasingDict, b::AliasingDict) = a._d == b._d
-# Forward all basic request on instances to the actual types.
 
-# The methods for types are defined within the type definition macro.
-shortname(a::AliasingDict) = shortname(typeof(a))
-name(a::AliasingDict) = name(typeof(a))
-standards(a::AliasingDict) = standards(typeof(a))
-aliases(a::AliasingDict) = aliases(typeof(a))
-references(a::AliasingDict) = references(typeof(a))
-references(ref, a::AliasingDict) = references(ref, typeof(a))
-standardize(ref, a::AliasingDict) = standardize(ref, typeof(a))
-shortest(ref, a::AliasingDict) = shortest(ref, typeof(a))
-is(ref_a, ref_b, a::AliasingDict) = is(ref_a, ref_b, typeof(a))
-isin(ref, refs, a::AliasingDict) = isin(ref, refs, typeof(a))
+# Basic methods(dict).
+for fn in (:length, :iterate)
+    eval(quote
+        Base.$fn(d::AliasingDict) = Base.$fn(d._d)
+    end)
+end
+# Basic methods(dict, key).
+for fn in (:haskey, :getindex, :get, :pop!)
+    eval(quote
+        Base.$fn(d::D, k) where {D<:AliasingDict} = Base.$fn(d._d, standardize(k, D))
+    end)
+end
+# Basic methods(dict, key, third_arg).
+for fn in (:get, :get!, :pop!)
+    eval(
+        quote
+            Base.$fn(d::D, k, x) where {D<:AliasingDict} =
+                Base.$fn(d._d, standardize(k, D), x)
+        end,
+    )
+end
+# Less basic methods.
+Base.setindex!(d::D, v, k) where {D<:AliasingDict} =
+    Base.setindex!(d._d, v, standardize(k, D))
+Base.merge(d::AliasingDict, b::AliasingDict) = AliasingDict(merge(d._d, b._d))
+Base.iterate(d::AliasingDict, state) = Base.iterate(d._d, state)
+Base.:(==)(d::AliasingDict, b::AliasingDict) = d._d == b._d
 
-# Generate a correct subtype for the above class,
-# with the associated aliasing system.
-# TODO: refresh the following code now that julia metaprog is less of a mystery.
-macro aliasing_dict(DictName, system_name, shortname, g_xp)
+# Extend all type-related methods to corresponding instances.
+# Basic methods(D).
+for fn in (:shortname, :name, :standards, :references, :aliases)
+    eval(quote
+        $fn(::D) where {D<:AliasingDict} = $fn(D)
+    end)
+end
+# Basic methods(ref, D).
+for fn in (:references, :standardize, :shortest, :isref)
+    eval(quote
+        $fn(ref, ::D) where {D<:AliasingDict} = $fn(ref, D)
+    end)
+end
+# Less basic methods(first_arg, second_arg, D).
+for fn in (:is, :isin)
+    eval(quote
+        $fn(x, y, ::D) where {D<:AliasingDict} = $fn(x, y, D)
+    end)
+end
+
+#-------------------------------------------------------------------------------------------
+# Generate a correct AliasingDict concrete subtype.
+
+# Note: Implemented using named tuples,
+# so don't overuse entries and aliases,
+# or we could get performance issues above 32/64 entries?
+
+:((a => [:ref], b => [:ref])).args[1].args
+macro aliasing_dict(DictName, system_name, shortname, raw_refs)
     argerr(mess) = throw(ArgumentError(mess))
+    is_symbol(xp) = xp isa Symbol
+    is_sequence(xp) = xp isa Expr && xp.head in (:vect, :tuple)
+    unwrap_quotenode(xp) =
+        if xp isa QuoteNode
+            xp.value
+        else
+            argerr("Not a QuoteNode: $(repr(xp)).")
+        end
 
-    DictName isa Symbol ||
+    is_symbol(DictName) ||
         argerr("Not a symbol name for an aliasing dict type: $(repr(DictName)).")
+
+    shortname = unwrap_quotenode(shortname)
+    is_symbol(shortname) ||
+        argerr("Not a symbol short name for '$DictName' dict type: $(repr(shortname))")
 
     system_name isa String ||
         argerr("Not a string name for an aliasing dict type: $(repr(system_name)).")
 
-    # The aliasing system is unfortunately mutable: do not expose to the invoker.
-    alias_system = Symbol(DictName, :_alias_system)
+    is_sequence(raw_refs) || argerr("Not a vect or tuple of references: $(repr(raw_refs)).")
 
-    # Type/methods generation.
+    # Construct references and surjections.
+    references = OrderedDict()
+    revmap = OrderedDict()
+    err(mess) = throw(AliasingError(system_name, mess))
+    for arg in raw_refs.args
+        @capture(arg, std_ => refs_)
+        isnothing(std) &&
+            argerr("Not a pair of `standard => [references..]`: $(repr(arg)).")
+        std = unwrap_quotenode(std)
+        is_symbol(std) || argerr("Not a symbol: $(repr(std)).")
+        is_sequence(refs) ||
+            argerr("Not a vect or tuple of aliases for $(repr(std)): $(repr(refs)).")
+        aliases = map(refs.args) do al
+            al = unwrap_quotenode(al)
+            is_symbol(al) || argerr("Not a symbol alias for $(repr(std)): $(repr(al))")
+            al
+        end
+        refs = vcat([Symbol(a) for a in aliases], [std])
+        references[std] = sort!(sort!(refs); by = x -> length(string(x)))
+        for ref in refs
+            # Protect from ambiguity.
+            if ref in keys(revmap)
+                target = revmap[ref]
+                if target == std
+                    err("Duplicated $system_name alias for '$std': '$ref'.")
+                end
+                err(
+                    "Ambiguous $system_name reference: " *
+                    "'$ref' either means '$target' or '$std'.",
+                )
+            end
+            revmap[ref] = std
+        end
+    end
+
+    # Generate tuple expressions to implement base methods.
+    refs_xp = :(())
+    refs_xp.args =
+        [:($std = $(Expr(:tuple, Meta.quot.(refs)...))) for (std, refs) in references]
+
+    rev_xp = :(())
+    rev_xp.args = [:($rev = $(Meta.quot(std))) for (rev, std) in revmap]
+
+    # Type generation.
     DictName = esc(DictName)
-    res = quote
+    quote
 
-        # Unexposed as unescaped here.
-        $alias_system = $AliasingSystem($system_name, $shortname, $g_xp)
-
-        # Newtype a plain dict.
-        struct $DictName{T} <: $AliasingDict{T}
+        struct $DictName{T} <: AliasingDict{T}
             _d::Dict{Symbol,T}
 
-            # Construct from generator with explicit type.
-            function $DictName{T}(::$Type{$InnerConstruct}, generator) where {T}
+            # Construct from (key ↦ value) generator with explicit type.
+            function $DictName{T}(::Type{InnerConstruct}, generator) where {T}
                 d = Dict{Symbol,T}()
                 # Guard against redundant/ambiguous specifications.
                 norm = Dict{Symbol,Symbol}() #  standard => ref
                 for (ref, value) in generator
-                    standard = $standardize(ref, $alias_system)
+                    standard = standardize(ref, $DictName)
                     if standard in keys(norm)
-                        aname = titlecase($alias_system.name)
+                        aname = titlecase(name($DictName))
                         throw(
-                            $AliasingError(
+                            AliasingError(
                                 $system_name,
                                 "$aname type '$standard' specified twice: " *
                                 "once with '$(norm[standard])' " *
@@ -178,80 +229,36 @@ macro aliasing_dict(DictName, system_name, shortname, g_xp)
                 end
                 new{T}(d)
             end
-
         end
+
+        # Base methods.
+        AliasingDicts.references(::Type{<:$DictName}) = $refs_xp
+        AliasingDicts.revmap(::Type{<:$DictName}) = $rev_xp
+        AliasingDicts.name(::Type{<:$DictName}) = $system_name
+        AliasingDicts.shortname(::Type{<:$DictName}) = $(Meta.quot(shortname))
 
         # Infer common type from pairs, and automatically convert keys to symbols.
         function $DictName(args::Pair...)
             g = ((Symbol(k), v) for (k, v) in args)
-            $DictName{$common_type_for(g)}($InnerConstruct, g)
+            $DictName{common_type_for(g)}(InnerConstruct, g)
         end
+
         # Same with keyword arguments as keys, default to Any for empty dict.
         $DictName(; kwargs...) =
             if isempty(kwargs)
-                $DictName{Any}($InnerConstruct, ())
+                $DictName{Any}(InnerConstruct, ())
             else
-                $DictName{$common_type_for(kwargs)}($InnerConstruct, kwargs)
+                $DictName{common_type_for(kwargs)}(InnerConstruct, kwargs)
             end
+
         # Automatically convert keys to symbols, and values to the given T.
         $DictName{T}(args...) where {T} =
-            $DictName{T}($InnerConstruct, ((Symbol(k), v) for (k, v) in args))
+            $DictName{T}(InnerConstruct, ((Symbol(k), v) for (k, v) in args))
+
         # Same with keyword arguments as keys.
-        $DictName{T}(; kwargs...) where {T} = $DictName{T}($InnerConstruct, kwargs)
-
-        # Correct data access with aliasing ystem.
-        # TODO: this throws KeyError(:reference) instead of KeyError(:alias).
-        $Base.getindex(adict::$DictName, ref) =
-            (Base.getindex(adict._d, $standardize(ref, $alias_system)))
-        $Base.setindex!(adict::$DictName, v, ref) =
-            (Base.setindex!(adict._d, v, $standardize(ref, $alias_system)))
+        $DictName{T}(; kwargs...) where {T} = $DictName{T}(InnerConstruct, kwargs)
 
     end
-
-    # Specialize dedicated methods to access underlying AliasingSystem information.
-    push_res!(quoted) = push!(res.args, quoted.args[2])
-    for (fn, first_args) in [
-        (:name, [()]),
-        (:shortname, [()]),
-        (:standards, [()]),
-        (:aliases, [()]),
-        (:references, [(), (:ref,)]),
-        (:standardize, [(:ref,)]),
-        (:shortest, [(:ref,)]),
-        (:is, [(:ref_a, :ref_b)]),
-        (:isin, [(:ref, :refs)]),
-    ]
-
-        fn = :($AliasingDicts.$fn)
-
-        for fargs in first_args
-
-            # Specialize for the UnionAll type.
-            code = quote
-                $fn(::Type{$DictName}) = $fn($alias_system)
-            end
-            for a in fargs
-                insert!(code.args[2].args[1].args, 2, a)
-                insert!(code.args[2].args[2].args[2].args, 2, a)
-            end
-            push_res!(code)
-
-            # Specialize for the DataType.
-            code = quote
-                $fn(::Type{$DictName{T}}) where {T} = $fn($alias_system)
-            end
-            for a in fargs
-                insert!(code.args[2].args[1].args[1].args, 2, a)
-                insert!(code.args[2].args[2].args[2].args, 2, a)
-            end
-            push_res!(code)
-
-        end
-
-    end
-
-    res
-
 end
 export @aliasing_dict
 
@@ -276,7 +283,6 @@ end
 
 # Useful APIs can be crafted out of nesting two aliased dicts together.
 include("./nested_2D_api.jl")
-
 
 # ==========================================================================================
 # Display.
