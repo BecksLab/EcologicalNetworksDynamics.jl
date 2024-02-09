@@ -108,7 +108,7 @@ end
     B0 = ones(S)
     N0 = ones(nutrient_richness(model))
     sim = simulates(model, B0; N0)
-    @test sim[end][2:3] == [0.0, 0.0]
+    @test sim.u[end][2:3] == [0.0, 0.0]
 
     # In the absence of consumers, all biomasses are equal (for equal growth parameters).
     foodweb = FoodWeb([0 0; 0 0])
@@ -128,5 +128,5 @@ end
     B0 = ones(2)
     N0 = ones(2)
     sol = simulates(model, B0; N0)
-    @test sol[end][1] > sol[end][2]
+    @test sol.u[end][1] > sol.u[end][2]
 end
