@@ -1,5 +1,5 @@
 # Components are not values, but they are reified here as julia *types*
-# whose instances are the blueprints required to construct them.
+# whose corresponding blueprint types are statically associated to.
 #
 # No concrete component type can be added twice to the system.
 #
@@ -15,50 +15,51 @@
 # This also permits that the whole system forks,
 # including its own history of components as a collection of the blueprints used.
 #
-# Components require other components:
+# Components may 'require' other components,
+# because the data they bring are meaningless without them.
 #
-#   - Either because the data it brings is meaningless without the requirement ('requires').
+# Blueprint may 'bring' other components than their own,
+# because they contain enough data to construct more than one component.
+# There are two ways for blueprints to do so:
 #
-#   - Or because it actually adds other components prior to its own expansion process.
-#     TODO: This is actually a property of the *blueprint* and not exactly the component,
-#           and this should be clarified in future refactoring of the framework.
-#     In this situation, the blueprint either:
-#       - Automatically adds them if not already present ('implies').
-#       - Automatically adds them but errors if already present ('brings').
-#     TODO: unify the above two situations into just 'bringing' with different behaviours?
+#   - Either they 'embed' other blueprints as sub-blueprints,
+#     which expand as part of their own expansion process.
+#     It is an error to embed a blueprint for a component already in the system.
 #
-#   - Or because the blueprint just needs the data
-#     for its own check/expand! process ('buildsfrom'),
-#     but the component data produced after expansion is meaningful even without them.
+#   - Or they 'imply' other blueprints,
+#     which could be calculated from the data they contain if needed.
+#     This does not need to happen if the implied blueprints components
+#     are already in the system.
+#
+# Blueprint may also require that other components be present
+# for their expansion process to happen correctly,
+# even though the component they bring does not.
+# This blueprint requirement is specified by the 'buildsfrom' function.
 #
 # Components also 'conflict' with each other:
 #
 #   - It is a failure to add a component if it conflicts
 #     with another component already added.
 #
-#   - An abstract component type cannot conflict with a component subtyping itself.
+#   - An abstract component cannot conflict with a component subtyping itself.
 #
 # Component types can be structured with a julia abstract type hierarchy:
 #
-#   - Requiring an abstract component A
-#     is requiring that any component subtyping A be present.
-#
-#   - Implying / Bringing / Building-from an abstract component A
-#     is implying or bringing or building-from some component subtyping A
-#     but it is unspecified which one.
+#   - Requiring/Building-from an abstract component A
+#     is requiring/building-from any component subtyping A.
 #
 #   - Conflicting with an abstract component A
 #     is conflicting with any component subtyping A.
 #
 # It is not currently possible for an abstract component
-# to 'require', 'imply', 'bring', 'buildfrom', 'check' or 'expand!'.
+# to 'require', 'check' or 'expand!'.
 # But this might be implemented for a convincingly motivated need,
 # at the cost of extending @component macro to accept abstract types.
-#
+
 # The parametric type 'V' for the component/blueprint
 # is the type of the value wrapped by the system.
 abstract type Blueprint{V} end
-const Component{V} = Type{<:Blueprint{V}}
+abstract type Component{V} end
 export Blueprint, Component
 ## HERE: ALTERNATE DESIGN:
 ## Components are identified by nodes in a type hierarchy,
@@ -102,21 +103,27 @@ export Blueprint, Component
 ##    Omega.Raw(...)
 ##
 ## Components require each other or conflict with each other.
-## Blueprints bring each other or imply components.
+## Blueprints bring each other.
 ## Blueprints are trees of sub-blueprints and must be treated as such.
 ##
-## The add! procedure requires that:
-##   - the given blueprint be visited as a tree to collect:
-##     - all brought sub-blueprints
-##     - the possibly implied blueprints indexed by their component
-##       and associated with the set of sub-blueprints possibly implying them.
-##   - Check that all requirements *will* be met and that no conflict *will* be found.
-##   - for all components implied but not brought,
-##     construct implied blueprints from the first matching sub-blueprint.
-##   - expand/add all sub-blueprints in correct order.
-##   - eventuall expand/add the root blueprint.
+## During the add! procedure:
+##   - The given blueprint is visited pre-order
+##     to collect the corresponding graph of sub-blueprints:
+##     it is the root node, and edges are colored depending on whether
+##     the brought is an 'embedding' or an 'implication'.
+##     - Error if an embedded blueprint brings a component already in the system.
+##     - Ignore implied blueprints bringing components already in the system.
+##     - Error if any brought component is already brought by another blueprint
+##       and the two differ.
+##     - Error if any brought component conflicts with components already in the system.
+##   - When collection is over, visit the tree post-order to:
+##     - Check requirements/conflicts against components already brought in pre-order.
+##     - Run the `early_check`.
+##   - Visit post-order again to:
+##     - Run the late `check`.
+##     - Expand the blueprint into a component.
 ##
-## Exposing the first analysis step of the above will be useful to implement default_model.
+## Exposing the first analysis steps of the above will be useful to implement default_model.
 ## The default model handles a *forest* of blueprints, and needs to possibly *move* nodes
 ## from later blueprints to earlier blueprints so as to make the inference intuitive and
 ## consistent.
@@ -128,13 +135,11 @@ export Blueprint, Component
 ##        state_control! = Function{new_brought/implied_blueprint ↦ edit_state},
 ##    )
 
-# Extract component from blueprint or blueprint type.
-# Not actually used within the framework logic,
-# because it needs to be all refactored in this respect,
-# but useful to framework users for future compatibility.
-# Override to fix semantics when implementing the 'several blueprints for one component' pattern.
-componentof(::Type{B}) where {B<:Blueprint} = B
-componentof(bp::B) where {B<:Blueprint} = componentof(typeof(bp))
+# Every blueprint is supposed to bring exactly one major component.
+# This method implements the mapping,
+# and must be explicited by components devs.
+componentof(::Type{B}) where {B<:Blueprint} = throw("Unspecified component for $(repr(B)).")
+componentof(::B) where {B<:Blueprint} = componentof(B)
 
 # Blueprints must be copyable, but be careful that the default (deepcopy)
 # is not necessarily what component devs are after.
@@ -143,76 +148,77 @@ Base.copy(b::Blueprint) = deepcopy(b)
 #-------------------------------------------------------------------------------------------
 # Requirements.
 
-# Specify which components are needed for the focal one to make sense.
-# like [Component => "reason", OtherComponent].
-# (these may or may not be implied/brought by the corresponding blueprints)
-requires(::Component) = Component[]
+# (when specifying a 'component' requirement,
+# optionally use a 'component => "reason"' instead)
+const Reason = Union{Nothing,String}
+const CompsReasons = OrderedDict{Component,Reason}
 
-# Same, but the returned components are needed for the expansion process
-# of this particular blueprint,
+# Specify which components are needed for the focal one to make sense.
+# (these may or may not be implied/brought by the corresponding blueprints)
+requires(::Component) = CompsReasons()
+
+# Return non-empty list if components are required
+# for this blueprint to expand,
 # even though the corresponding component itself would make sense without these.
-buildsfrom(::Blueprint) = Union{Component,Pair{Component,String}}[]
+expands_from(::Blueprint) = CompsReasons()
 # TODO: not formally tested yet.. but maybe wait on the framework to be refactored first?
 
-# Specify which components are automatically added
-# during blueprint expansion if not present.
+# Specify blueprints to be automatically created and expanded
+# before the focal blueprint expansion their component if not present.
 # Every blueprint type listed here needs to be constructible from the focal blueprint.
 implies(::Blueprint) = Type{<:Blueprint}[]
 construct_implied(B::Type{<:Blueprint}, b::Blueprint) =
     throw("Implying '$B' from '$(typeof(b))' is unimplemented.")
-# Same, but these components need to be not present.
+
+# Same, but the listed blueprints are always created and expanded,
+# resulting in an error if their components are already present.
 brings(::Blueprint) = Type{<:Blueprint}[]
-construct_brought(B::Type{<:Blueprint}, b::Component) =
+construct_brought(B::Type{<:Blueprint}, b::Blueprint) =
     throw("Bringing '$B' from '$(typeof(b))' is unimplemented.")
 
 #-------------------------------------------------------------------------------------------
 # Conflicts.
 
-# TODO: it appears that these global dicts (+ the one for PROPERTIES)
-#       are maybe not actually required, since the mapping Component ↦ information
-#       could very well be implemented with traditional julia dispatched methods.
-#       Check this out and remove them.
 # Components that contradict each other can be grouped into mutually exclusive clusters.
 # The clusters need to be defined *after* the components themselves,
 # so they can all refer to each other
 # as a clique of incompatible nodes in the component graph.
-# {component => {conflicting_component => reason}}
-const Reason = Union{Nothing,String}
-global CONFLICTS = Dict{Type,OrderedDict{Component,Reason}}()
-# Consistency of the above value is ensured by the exposed @conflicts macro.
+conflicts(::Component) = CompsReasons()
 
 #-------------------------------------------------------------------------------------------
 # Add component to the system.
 
-# Assuming that all component addition conditions are met
+# Assuming that all component addition / blueprint expansion conditions are met
 # verify that the internal system value can still receive it.
-# Typically: the blueprint value must match the current value structure.
+# Framework users will use this method to verify
+# that the blueprint received matches the current system state
+# and that it makes sense to expand within in.
 # The objective is to avoid failure during expansion,
-# as these would result in inconsistent system state.
+# as it could result in inconsistent system state.
 # Raise a blueprint error if not the case.
-check(_, ::Blueprint) = nothing # No particular constraint by default.
+late_check(_, ::Blueprint) = nothing # No particular constraint to enforce by default.
 
-# Quick hook patch: run checks before implied/brought components are addressed
-# and the corresponding blueprints possibly constructed.
+# Same, but *before* implied/brought blueprints are addressed.
 # When this runs, it is guaranteed
 # that there is no conflicting component in the system
 # and that all 'required' components are met,
 # but nothing is yet known about 'implied/brought' components.
 # TODO: add formal test for this.
-early_check(_, ::Blueprint) = nothing
+early_check(_, ::Blueprint) = nothing # No particular
 
-# The expansion step is when a particular blueprint value is read
-# and the wrapped system value finally modified to feature the associated component.
+# The expansion step is when and the wrapped system value
+# is finally modified, based on the information contained in the blueprint,
+# to feature the associated component.
 # This is only called if all component addition conditions are met
 # and the above check passed.
 # This function must not fail,
 # otherwise the system ends up in a bad state.
 # TODO: must it also be deterministic?
-# Or can a random component expansion happen
-# if based on consistent blueprint input and infallible.
-# Note that random expansion would result in:
-# (System{Value}() + blueprint).property != (System{Value}() + blueprint).property
-# which may be confusing.
+#       Or can a random component expansion happen
+#       if based on consistent blueprint input and infallible.
+#       Note that random expansion would result in:
+#       (System{Value}() + blueprint).property != (System{Value}() + blueprint).property
+#       which may be confusing.
 expand!(_, ::Blueprint) = nothing # Expanding does nothing by default.
 
 # NOTE: the above signatures for default functions could be more strict
