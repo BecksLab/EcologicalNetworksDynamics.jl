@@ -146,7 +146,7 @@ function simulate(
     dt::Float64 = 1.0,
     extinction_threshold::Union{Number,AbstractVector} = 1e-5,
     corrmat::Union{Matrix{Float64},Nothing} = nothing,
-    verbose = true,
+    verbose = false,
     callback = CallbackSet(
         TerminateSteadyState(1e-6, 1e-4),
         ExtinctionCallback(extinction_threshold, verbose),

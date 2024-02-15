@@ -42,6 +42,17 @@ end
 # This is about to change in upcoming refactorization of the boost option.
 
 
+function allee_death_loss(i, B, params::ModelParameters)
+    β = params.allee_effect.β
+    μ = params.allee_effect.μ
+    Mᵢ = params.network.M[i]
+    expo = params.allee_effect.exponent
+    Bᵢ = B[i]
+    Nᵢ = Bᵢ / (Mᵢ ^ expo)
+
+    Bᵢ * ((μ * β) / (β + Nᵢ))
+end
+
 function stoch_metabolic_loss(i, B, params::ModelParameters)
     S = richness(params.network)
     if i ∈ params.stochasticity.stochconsumers

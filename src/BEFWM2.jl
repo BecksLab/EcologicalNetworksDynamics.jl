@@ -26,6 +26,7 @@ include(joinpath(".", "inputs/functional_response.jl"))
 include(joinpath(".", "inputs/biological_rates.jl"))
 include(joinpath(".", "inputs/stochasticity.jl"))
 include(joinpath(".", "inputs/stressor.jl"))
+include(joinpath(".", "inputs/allee_effect.jl"))
 include(joinpath(".", "inputs/environment.jl"))
 include(joinpath(".", "inputs/producer_competition.jl"))
 include(joinpath(".", "model/model_parameters.jl"))
@@ -55,6 +56,7 @@ export A_facilitation_full
 export A_interference_full
 export A_refuge_full
 export AddStochasticity
+export AlleeEffect
 export allometric_rate
 export AllometricParams
 export attack_rate

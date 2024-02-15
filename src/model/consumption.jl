@@ -1,6 +1,20 @@
 #=
 Consumption
 =#
+"""
+Allee effect modifier for assimilation efficiency
+"""
+function allee_efficiency(B::Vector{Float64}, β::Real)
+
+    # Extinct species give a modifier of NaN which is crashing, this changes it to a real number :)  
+    temp_B = deepcopy(B) # But we don't want to change the actual biomass values
+    temp_B[temp_B .== 0] .= 1 # Set it from 0 to 1 
+
+    modifier = temp_B ./ (β .+ temp_B)
+    modifier[modifier .== 0] .= 1
+
+    return modifier
+end
 
 """
 Compute consumption terms of ODEs.
@@ -17,7 +31,7 @@ function consumption(::BioenergeticResponse, i, B, params::ModelParameters, fᵣ
     pred = predators_of(i, net)
     x = params.biorates.x # metabolic rate
     y = params.biorates.y # max. consumption
-    e = params.biorates.e # assimilation efficiency
+    e = params.allee_effect.addallee && params.allee_effect.target == :e ? params.biorates.e .* allee_efficiency((B[1:S] ./ (M .^ params.allee_effect.exponent)), params.allee_effect.β) : params.biorates.e # assimilation efficiency
 
     # Compute consumption terms
     eating = x[i] * y[i] * B[i] * sum(fᵣmatrix[i, prey])
@@ -232,7 +246,7 @@ function stoch_consumption(::BioenergeticResponse, i, B, params::ModelParameters
     end
 
     y = params.biorates.y # max. consumption
-    e = params.biorates.e # assimilation efficiency
+    e = params.allee_effect.addallee && params.allee_effect.target == :e ? params.biorates.e .* allee_efficiency(B[1:S], params.allee_effect.β) : params.biorates.e # assimilation efficiency
 
     # Compute consumption terms
     eating = x[i] * y[i] * B[i] * sum(fᵣmatrix[i, prey])
@@ -248,3 +262,4 @@ function stoch_consumption(::BioenergeticResponse, i, B, params::ModelParameters
 
     eating, being_eaten
 end
+

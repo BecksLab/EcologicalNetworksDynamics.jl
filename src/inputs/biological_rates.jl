@@ -194,7 +194,7 @@ BioRates:
 """
 function BioRates(
     network::EcologicalNetwork;
-    d::Union{Vector{<:Real},<:Real} = allometric_rate(network, DefaultMortalityParams()),
+    d::Union{Vector{<:Real},<:Real} = zeros(richness(network)),
     r::Union{Vector{<:Real},<:Real} = allometric_rate(network, DefaultGrowthParams()),
     x::Union{Vector{<:Real},<:Real} = allometric_rate(network, DefaultMetabolismParams()),
     y::Union{Vector{<:Real},<:Real} = allometric_rate(
