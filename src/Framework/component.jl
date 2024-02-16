@@ -1,4 +1,4 @@
-# Components are not values, but they are reified here as julia *types*
+# Components are not values, but they are reified here as julia *singletons*
 # whose corresponding blueprint types are statically associated to.
 #
 # No concrete component type can be added twice to the system.
@@ -153,6 +153,20 @@ Base.copy(b::Blueprint) = deepcopy(b)
 const Reason = Union{Nothing,String}
 const CompsReasons = OrderedDict{Component,Reason}
 
+struct S
+    a::Any
+    b::Any
+end
+s = S(5, 8)
+
+function f!(x::Ref{S})
+    other = S(50, 80)
+    x[] = other
+end
+
+r = Ref(s)
+f!(r)
+
 # Specify which components are needed for the focal one to make sense.
 # (these may or may not be implied/brought by the corresponding blueprints)
 requires(::Component) = CompsReasons()
@@ -172,9 +186,9 @@ construct_implied(B::Type{<:Blueprint}, b::Blueprint) =
 
 # Same, but the listed blueprints are always created and expanded,
 # resulting in an error if their components are already present.
-brings(::Blueprint) = Type{<:Blueprint}[]
-construct_brought(B::Type{<:Blueprint}, b::Blueprint) =
-    throw("Bringing '$B' from '$(typeof(b))' is unimplemented.")
+embed(::Blueprint) = Type{<:Blueprint}[]
+construct_embedded(B::Type{<:Blueprint}, b::Blueprint) =
+    throw("Embedding '$B' within '$(typeof(b))' is unimplemented.")
 
 #-------------------------------------------------------------------------------------------
 # Conflicts.
@@ -188,7 +202,8 @@ conflicts(::Component) = CompsReasons()
 #-------------------------------------------------------------------------------------------
 # Add component to the system.
 
-# Assuming that all component addition / blueprint expansion conditions are met
+# Assuming that all component addition / blueprint expansion conditions are met,
+# and that brought blueprints have already been expanded,
 # verify that the internal system value can still receive it.
 # Framework users will use this method to verify
 # that the blueprint received matches the current system state
@@ -196,15 +211,21 @@ conflicts(::Component) = CompsReasons()
 # The objective is to avoid failure during expansion,
 # as it could result in inconsistent system state.
 # Raise a blueprint error if not the case.
+# NOTE: a failure during late check does not compromise the system state consistency,
+#       but it does result in that not all blueprints brought by the focal blueprint
+#       be added as expected.
+#       This is to avoid the need for making the system mutable and systematically fork it
+#       to possibly revert to original state in case of failure.
 late_check(_, ::Blueprint) = nothing # No particular constraint to enforce by default.
 
-# Same, but *before* implied/brought blueprints are addressed.
+# Same, but *before* brought blueprints are expanded.
 # When this runs, it is guaranteed
 # that there is no conflicting component in the system
-# and that all 'required' components are met,
-# but nothing is yet known about 'implied/brought' components.
+# and that all required components are met,
+# but, as it cannot be assumed that required components have already been expanded,
+# the check should not depend on the system value.
 # TODO: add formal test for this.
-early_check(_, ::Blueprint) = nothing # No particular
+early_check(::Blueprint) = nothing # No particular
 
 # The expansion step is when and the wrapped system value
 # is finally modified, based on the information contained in the blueprint,
@@ -221,7 +242,7 @@ early_check(_, ::Blueprint) = nothing # No particular
 #       which may be confusing.
 expand!(_, ::Blueprint) = nothing # Expanding does nothing by default.
 
-# NOTE: the above signatures for default functions could be more strict
+# NOTE: the above signatures for default functions *could* be more strict
 # like eg. `check(::V, ::Blueprint{V}) where {V}`,
 # but this would force framework users to always specify the first argument type
 # or concrete calls to `check(system, myblueprint)` would be ambiguous.
@@ -234,15 +255,15 @@ expand!(_, ::Blueprint) = nothing # Expanding does nothing by default.
 # and can be queried for eg. `has_component(system, component)`.
 # This third argument is ignored by default,
 # unless in overriden methods.
-check(v, b::Blueprint, _) = check(v, b)
-early_check(v, b::Blueprint, _) = early_check(v, b)
-expand!(v, b::Blueprint, _) = expand!(v, b)
+late_check(v, b::Blueprint, ::System) = late_check(v, b)
+expand!(v, b::Blueprint, ::System) = expand!(v, b)
 
 #-------------------------------------------------------------------------------------------
 # Raise error based on "vertical" subtyping relations.
 # (factorizing out a common check pattern)
 
-are_subtypes(a::Component, b::Component) = (a <: b) ? (a, b) : (b <: a) ? (b, a) : nothing
+are_subtypes(a::A, b::B) where {A<:Component,B<:Component} =
+    (A <: B) ? (a, b) : (B <: A) ? (b, a) : nothing
 
 function vertical_guard(a::Component, b::Component, diverging_err::Function)
     vert = are_subtypes(a, b)
@@ -260,8 +281,8 @@ function vertical_guard(a::Component, b::Component, err_same::Function, err_diff
 end
 
 #-------------------------------------------------------------------------------------------
-# The CONFLICT global dict either contains abstract or concrete type as entries,
-# which makes checking information for one particular type not as simple as haskey(C, k).
+# The 'conflicts' mapping entries are either abstract or concrete component,
+# which makes checking information for one particular component not exactly straighforward.
 
 # (for some reason this is absent from Base)
 function supertypes(T::Type)
@@ -269,18 +290,18 @@ function supertypes(T::Type)
     S === T ? (T,) : (T, supertypes(S)...)
 end
 
-# Iterate over all keys in CONFLICTS with the given type or a supertype of it.
-super_conflict_keys(c::Component) =
-    Iterators.filter(supertypes(c)) do sup
-        haskey(CONFLICTS, sup)
+# Iterate over all conflicting entries with the given component or a supercomponent of it.
+super_conflict_keys(::C) where {C<:Component} =
+    Iterators.filter(supertypes(C)) do sup
+        conflicts(sup)
     end
 
-# Iterate over all conflicts for one particular component type.
+# Iterate over all conflicts for one particular component.
 # yields (conflict_key, conflicting_component, reason)
-# The yielded conflict key may be a supertype of the given component.
-function conflicts(c::Component)
+# The yielded conflict key may be a supercomponent of the focal one.
+function conflicts(c::C) where {C<:Component}
     Iterators.flatten(Iterators.map(super_conflict_keys(c)) do key
-        Iterators.map(CONFLICTS[key]) do (conflicting, reason)
+        Iterators.map(conflicts(key)) do (conflicting, reason)
             (key, conflicting, reason)
         end
     end)
@@ -289,18 +310,17 @@ end
 # Guard against declaring conflicts between sub/super components.
 function vertical_conflict(err)
     (sub, sup) -> begin
-        it = sub === sup ? "itself" : "its own supertype '$sup'"
+        it = sub === sup ? "itself" : "its own super-component '$sup'"
         err("Component '$sub' cannot conflict with $it.")
     end
 end
 
 # Declare one particular conflict with a reason.
 # Guard against redundant reasons specifications.
-function declare_conflict(a::Component, b::Component, reason, err)
+# Called from @conflict macro expanded code.
+function declare_conflict(a::Component, b::Component, reason::Reason, err)
     vertical_guard(a, b, vertical_conflict(err))
-    needs_new_entry = true
     for (k, c, reason) in conflicts(a)
-        k === a && (needs_new_entry = false)
         isnothing(reason) && continue
         if b <: c
             as_K = k === a ? "" : " (as '$k')"
@@ -309,22 +329,27 @@ function declare_conflict(a::Component, b::Component, reason, err)
                  for the following reason:\n  $(reason)")
         end
     end
-    sub = needs_new_entry ? (CONFLICTS[a] = OrderedDict{Component,Reason}()) : CONFLICTS[a]
-    sub[b] = reason
+    # Append new method or override by updating value.
+    A = typeof(a)
+    current = conflicts(a) # Creates a new empty value if falling back on default impl.
+    current[b] = reason
+    eval(quote
+        conflicts(::$A) = $current
+    end)
 end
 
 # Fill up a clique, not overriding any existing reason.
-# (called from @conflict macro)
+# Called from @conflict macro expanded code.
 function declare_conflicts_clique(err, components::Component...)
 
     function process_pair(a, b)
         vertical_guard(a, b, vertical_conflict(err))
-        if haskey(CONFLICTS, a)
-            sub = CONFLICTS[a]
-            haskey(sub, b) || (sub[b] = nothing)
-        else
-            CONFLICTS[a] = OrderedDict{Component,Reason}(b => nothing)
-        end
+        A = typeof(a)
+        current = conflicts(a)
+        haskey(current, b) || (current[b] = nothing)
+        eval(quote
+            conflicts(::$A) = $current
+        end)
     end
 
     # Triangular-iterate to guard against redundant items.
