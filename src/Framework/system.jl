@@ -18,12 +18,12 @@ struct System{V}
 
     _value::V
 
-    # Keep track of the blueprints used (some may have been 'implied' or 'brought'),
-    # effectively indexing all added components by their *concrete* types.
-    _blueprints::OrderedDict{Component{V},Blueprint{V}} # (ordered to be used as a history)
+    # Keep track of all the concrete components added:
+    # type and associated singleton instance.
+    _concrete::OrderedSet{CompType{V},Component{V}} # (ordered to be used as a history)
 
-    # Components added are also indexed by their possible abstract supertypes.
-    _abstracts::Dict{Component{V},Set{Component{V}}} # {Abstract -> {Concrete}}
+    # Components are also indexed by their possible abstract supertypes.
+    _abstracts::Dict{CompType{V},Set{CompType{V}}} # {Abstract -> {Concrete}}
 
     # Construct the initial value in-place
     # so that its state cannot be corrupted if outer aliased refs
@@ -31,10 +31,8 @@ struct System{V}
     System{V}(args...; kwargs...) where {V} =
         new{V}(V(args...; kwargs...), OrderedDict(), Dict())
 
-    # Construct value with no arguments.
-    System{V}() where {V} = new{V}(V(), OrderedDict(), Dict())
-
-    # Or with a starting list of components.
+    # Or with a starting list of components,
+    # assuming the value can be constructed with no arguments.
     function System{V}(blueprints::Blueprint{V}...) where {V}
         system = System{V}()
         for bp in blueprints
@@ -55,9 +53,9 @@ valuetype(::System{V}) where {V} = V
 # Fork the system, recursively copying the wrapped value and every component.
 function Base.copy(s::System{V}) where {V}
     value = copy(s._value)
-    blueprints = OrderedDict(C => copy(b) for (C, b) in s._blueprints)
+    concrete = OrderedSet(C for C in s._concrete)
     abstracts = Dict(A => Set(concretes) for (A, concretes) in s._abstracts)
-    System{V}(RawConstruct, value, blueprints, abstracts)
+    System{V}(RawConstruct, value, concrete, abstracts)
 end
 
 #-------------------------------------------------------------------------------------------
@@ -65,13 +63,11 @@ end
 # but they can be accessed via a set of properties enabled by the components/methods.
 
 function Base.getproperty(system::System{V}, p::Symbol) where {V}
-    nameerr() = syserr(V, "Invalid property name: '$p'.")
     # Authorize direct accesses to private fields.
     p in fieldnames(System) && return getfield(system, p)
     # Search property method.
-    haskey(PROPERTIES, V) || nameerr()
-    props = PROPERTIES[V]
-    haskey(props, p) || nameerr()
+    props = properties(V)
+    haskey(props, p) || syserr(V, "Invalid property name: '$p'.")
     fn = props[p].read
     # Check for required components availability.
     miss = missing_dependency_for(V, fn, system)
@@ -84,13 +80,11 @@ function Base.getproperty(system::System{V}, p::Symbol) where {V}
 end
 
 function Base.setproperty!(system::System{V}, p::Symbol, rhs) where {V}
-    nameerr() = syserr(V, "Invalid property name: '$p'.")
     # Authorize direct accesses to private fields.
-    p in fieldnames(System) && return setfield(system, p, rhs)
+    p in fieldnames(System) && return setfield!(system, p, rhs)
     # Search property method.
-    haskey(PROPERTIES, V) || nameerr()
-    props = PROPERTIES[V]
-    haskey(props, p) || nameerr()
+    props = properties(V)
+    haskey(props, p) || syserr(V, "Invalid property name: '$p'.")
     fn = props[p].write
     isnothing(fn) && properr(V, p, "This property is read-only.")
     # Check for required components availability.
@@ -110,8 +104,7 @@ end
 function unchecked_getproperty(value::V, p::Symbol) where {V}
     perr(mess) = properr(V, p, mess)
     p in fieldnames(V) && return getfield(value, p)
-    haskey(PROPERTIES, V) || perr("Neither a field of '$V' nor a property.")
-    props = PROPERTIES[V]
+    props = properties(V)
     haskey(props, p) || perr("Neither a field of '$V' nor a property.")
     props[p].read(value)
 end
@@ -119,8 +112,7 @@ end
 function unchecked_setproperty!(value::V, p::Symbol, rhs) where {V}
     perr(mess) = properr(V, p, mess)
     p in fieldnames(V) && return setfield!(value, p, rhs)
-    haskey(PROPERTIES, V) || perr("Neither a field or a property.")
-    props = PROPERTIES[V]
+    props = properties(V)
     haskey(props, p) || perr("Neither a field or a property.")
     fn = props[p].write
     isnothing(fn) && properr(V, p, "Property is not writable.")
@@ -130,37 +122,37 @@ end
 #-------------------------------------------------------------------------------------------
 # Query components.
 
-# Iterate over all blueprints with the given component type.
-inner_blueprints(system::System, c::Component) =
-    if isabstracttype(c)
-        d = system._abstracts
-        haskey(d, c) ? Iterators.map(T -> system._blueprints[T], d[c]) : ()
-    else
-        d = system._blueprints
-        haskey(d, c) ? (d[c],) : ()
-    end
-
 # Iterate over all concrete components.
-components(s::System) = keys(s._blueprints)
+components(s::System) = values(s._concrete)
+component_types(s::System) = keys(s._concrete)
 # Restrict to the given component (super)type.
-components(s::System, c::Component) = (typeof(bp) for bp in inner_blueprints(s, c))
-export components
+components(system::System{V}, C::CompType{V}) where {V} =
+    if isabstracttype(C)
+        d = system._abstracts
+        haskey(d, C) ? Iterators.map(T -> system._concrete[T], d[C]) : ()
+    else
+        d = system._concrete
+        haskey(d, C) ? (d[C],) : ()
+    end
+components_types(system::System{V}, C::CompType{V}) where {V} =
+    if isabstracttype(C)
+        d = system._abstracts
+        haskey(d, C) ? d[C] : ()
+    else
+        d = system._concrete
+        haskey(d, C) ? (d[C],) : ()
+    end
+export components, component_types
 
 # Basic check.
-has_component(s::System, c::Component) = !isempty(inner_blueprints(s, c))
+has_component(s::System{V}, c::Component{V}) where {V} = !isempty(components(s, typeof(c)))
 export has_component
-
-# List all blueprint used to expand this instance.
-# (don't leak aliased refs)
-blueprints(s::System) = Set(copy(bp) for bp in values(s._blueprints))
-export blueprints
 
 # List properties available for this instance.
 # Returns {:propname => is_writeable}
 function properties(s::System{V}) where {V}
     res = Dict{Symbol,Bool}()
-    haskey(PROPERTIES, V) || return res
-    for (name, prop) in PROPERTIES[V]
+    for (name, prop) in properties(V)
         readable = isnothing(missing_dependency_for(V, prop.read, s))
         if isnothing(prop.write)
             writeable = false

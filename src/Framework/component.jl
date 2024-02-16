@@ -1,4 +1,4 @@
-# Components are not values, but they are reified here as julia *singletons*
+# Components are not values, but they are reified here as julia *singletons types*
 # whose corresponding blueprint types are statically associated to.
 #
 # No concrete component type can be added twice to the system.
@@ -135,6 +135,11 @@ export Blueprint, Component
 ##        state_control! = Function{new_brought/implied_blueprint ↦ edit_state},
 ##    )
 
+# Most framework internals work with component types
+# because they can be abstract,
+# most exposed methods work with concrete singleton instance.
+const CompType{V} = Type{<:Component{V}}
+
 # Every blueprint is supposed to bring exactly one major component.
 # This method implements the mapping,
 # and must be explicited by components devs.
@@ -151,25 +156,11 @@ Base.copy(b::Blueprint) = deepcopy(b)
 # (when specifying a 'component' requirement,
 # optionally use a 'component => "reason"' instead)
 const Reason = Union{Nothing,String}
-const CompsReasons = OrderedDict{Component,Reason}
-
-struct S
-    a::Any
-    b::Any
-end
-s = S(5, 8)
-
-function f!(x::Ref{S})
-    other = S(50, 80)
-    x[] = other
-end
-
-r = Ref(s)
-f!(r)
+const CompsReasons = OrderedDict{CompType,Reason}
 
 # Specify which components are needed for the focal one to make sense.
 # (these may or may not be implied/brought by the corresponding blueprints)
-requires(::Component) = CompsReasons()
+requires(::CompType) = CompsReasons()
 
 # Return non-empty list if components are required
 # for this blueprint to expand,
@@ -197,7 +188,7 @@ construct_embedded(B::Type{<:Blueprint}, b::Blueprint) =
 # The clusters need to be defined *after* the components themselves,
 # so they can all refer to each other
 # as a clique of incompatible nodes in the component graph.
-conflicts(::Component) = CompsReasons()
+conflicts(::CompType) = CompsReasons()
 
 #-------------------------------------------------------------------------------------------
 # Add component to the system.
@@ -262,18 +253,17 @@ expand!(v, b::Blueprint, ::System) = expand!(v, b)
 # Raise error based on "vertical" subtyping relations.
 # (factorizing out a common check pattern)
 
-are_subtypes(a::A, b::B) where {A<:Component,B<:Component} =
-    (A <: B) ? (a, b) : (B <: A) ? (b, a) : nothing
+are_subtypes(A::CompType, B::CompType) = (A <: B) ? (A, B) : (B <: A) ? (B, A) : nothing
 
-function vertical_guard(a::Component, b::Component, diverging_err::Function)
-    vert = are_subtypes(a, b)
+function vertical_guard(A::CompType, B::CompType, diverging_err::Function)
+    vert = are_subtypes(A, B)
     isnothing(vert) && return
     sub, sup = vert
     diverging_err(sub, sup)
 end
 
-function vertical_guard(a::Component, b::Component, err_same::Function, err_diff::Function)
-    vert = are_subtypes(a, b)
+function vertical_guard(A::CompType, B::CompType, err_same::Function, err_diff::Function)
+    vert = are_subtypes(A, B)
     isnothing(vert) && return
     sub, sup = vert
     sub === sup && err_same()
@@ -291,7 +281,7 @@ function supertypes(T::Type)
 end
 
 # Iterate over all conflicting entries with the given component or a supercomponent of it.
-super_conflict_keys(::C) where {C<:Component} =
+super_conflict_keys(C::CompType) =
     Iterators.filter(supertypes(C)) do sup
         conflicts(sup)
     end
@@ -299,8 +289,8 @@ super_conflict_keys(::C) where {C<:Component} =
 # Iterate over all conflicts for one particular component.
 # yields (conflict_key, conflicting_component, reason)
 # The yielded conflict key may be a supercomponent of the focal one.
-function conflicts(c::C) where {C<:Component}
-    Iterators.flatten(Iterators.map(super_conflict_keys(c)) do key
+function conflicts(C::CompType)
+    Iterators.flatten(Iterators.map(super_conflict_keys(C)) do key
         Iterators.map(conflicts(key)) do (conflicting, reason)
             (key, conflicting, reason)
         end
@@ -318,29 +308,28 @@ end
 # Declare one particular conflict with a reason.
 # Guard against redundant reasons specifications.
 # (this dynamically overrides the 'conflicts' method)
-function declare_conflict(a::Component, b::Component, reason::Reason, err)
-    vertical_guard(a, b, vertical_conflict(err))
-    for (k, c, reason) in conflicts(a)
+function declare_conflict(A::CompType, B::CompType, reason::Reason, err)
+    vertical_guard(A, B, vertical_conflict(err))
+    for (k, c, reason) in conflicts(A)
         isnothing(reason) && continue
-        if b <: c
-            as_K = k === a ? "" : " (as '$k')"
-            as_C = b === c ? "" : " (as '$c')"
-            err("Component '$a'$as_K already declared to conflict with '$b'$as_C \
+        if B <: c
+            as_K = k === A ? "" : " (as '$k')"
+            as_C = B === c ? "" : " (as '$c')"
+            err("Component '$A'$as_K already declared to conflict with '$B'$as_C \
                  for the following reason:\n  $(reason)")
         end
     end
     # Append new method or override by updating value.
-    A = typeof(a)
-    current = conflicts(a) # Creates a new empty value if falling back on default impl.
-    current[b] = reason
+    current = conflicts(A) # Creates a new empty value if falling back on default impl.
+    current[B] = reason
     eval(quote
-        conflicts(::$A) = $current
+        conflicts(::Type{$A}) = $current
     end)
 end
 
 # Fill up a clique, not overriding any existing reason.
 # (this dynamically overrides the 'conflicts' method)
-function declare_conflicts_clique(err, components::Component...)
+function declare_conflicts_clique(err, components::CompType...)
 
     function process_pair(a, b)
         vertical_guard(a, b, vertical_conflict(err))
@@ -348,7 +337,7 @@ function declare_conflicts_clique(err, components::Component...)
         current = conflicts(a)
         haskey(current, b) || (current[b] = nothing)
         eval(quote
-            conflicts(::$A) = $current
+            conflicts(::Type{$A}) = $current
         end)
     end
 
@@ -364,4 +353,4 @@ end
 
 # ==========================================================================================
 # Specialize to refine system display component per component.
-display(::V, C::Component{V}) where {V} = "$C"
+display(::V, C::CompType{V}) where {V} = "$C"
