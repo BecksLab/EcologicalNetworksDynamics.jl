@@ -317,7 +317,7 @@ end
 
 # Declare one particular conflict with a reason.
 # Guard against redundant reasons specifications.
-# Called from @conflict macro expanded code.
+# (this dynamically overrides the 'conflicts' method)
 function declare_conflict(a::Component, b::Component, reason::Reason, err)
     vertical_guard(a, b, vertical_conflict(err))
     for (k, c, reason) in conflicts(a)
@@ -339,7 +339,7 @@ function declare_conflict(a::Component, b::Component, reason::Reason, err)
 end
 
 # Fill up a clique, not overriding any existing reason.
-# Called from @conflict macro expanded code.
+# (this dynamically overrides the 'conflicts' method)
 function declare_conflicts_clique(err, components::Component...)
 
     function process_pair(a, b)

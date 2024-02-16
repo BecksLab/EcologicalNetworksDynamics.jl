@@ -45,24 +45,30 @@ mutable struct Property
 end
 
 # {SystemWrappedValueType => {:propname => property_functions}}
-global PROPERTIES = Dict{Type,Dict{Symbol,Property}}()
+const PropDict = Dict{Symbol,Property}
+properties(::Type) = PropDict()
 
 # Hack flag to avoid that the checks below interrupt the `Revise` process.
 # Raise when done defining properties in the package.
 global REVISING = false
 
 # Set read property first..
+# (this dynamically overrides the 'properties' method.)
 function set_read_property!(V::Type, name::Symbol, mth::Function)
-    haskey(PROPERTIES, V) || (PROPERTIES[V] = Dict())
-    sub = PROPERTIES[V]
-    (haskey(sub, name) && !REVISING) &&
+    current = properties(V)
+    (haskey(current, name) && !REVISING) &&
         properr(V, name, "Readable property already exists.")
-    sub[name] = Property(mth)
+    current[name] = Property(mth)
+    eval(quote
+        properties(::Type{$V}) = $current
+    end)
 end
 
 # .. and only after, and optionally, the corresponding write property.
+# (this dynamically overrides the 'properties' method.)
 function set_write_property!(V::Type, name::Symbol, mth::Function)
-    if !haskey(PROPERTIES, V) || !haskey(PROPERTIES[V], name)
+    current = properties(V)
+    if !haskey(current, name)
         properr(
             V,
             name,
@@ -70,7 +76,7 @@ function set_write_property!(V::Type, name::Symbol, mth::Function)
              without having been set readable first.",
         )
     end
-    prop = PROPERTIES[V][name]
+    prop = current[name]
     (isnothing(prop.write) || REVISING) ||
         properr(V, name, "Writable property already exists.")
     prop.write = mth
