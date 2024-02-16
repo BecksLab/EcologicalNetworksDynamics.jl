@@ -111,17 +111,18 @@ const Option{T} = Union{T,Nothing}
 
 # Base structure.
 include("./component.jl")
+include("./blueprints.jl")
 include("./methods.jl")
 include("./system.jl")
 include("./add.jl")
 include("./plus_operator.jl")
 
-include("./exceptions.jl")
+#  include("./exceptions.jl")
 
-# Exposed macros.
-include("./macro_helpers.jl")
-include("./component_macro.jl")
-include("./conflicts_macro.jl")
-include("./method_macro.jl")
+#  # Exposed macros.
+#  include("./macro_helpers.jl")
+#  include("./component_macro.jl")
+#  include("./conflicts_macro.jl")
+#  include("./method_macro.jl")
 
 end

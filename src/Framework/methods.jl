@@ -81,3 +81,32 @@ function set_write_property!(V::Type, name::Symbol, mth::Function)
         properr(V, name, "Writable property already exists.")
     prop.write = mth
 end
+
+# ==========================================================================================
+# Dedicated exceptions.
+
+struct PhantomData{T} end
+
+# About method use.
+struct MethodError{V} <: Exception
+    name::Union{Symbol,Expr} # Name or Path.To.Name.
+    message::String
+    _::PhantomData{V}
+    MethodError(::Type{V}, n, m) where {V} = new{V}(n, m, PhantomData{V}())
+end
+function Base.showerror(io::IO, e::MethodError{V}) where {V}
+    println(io, "In method '$(e.name)' for '$V': $(e.message)")
+end
+metherr(V, n, m) = throw(MethodError(V, n, m))
+
+# About properties use.
+struct PropertyError{V} <: Exception
+    name::Symbol
+    message::String
+    _::PhantomData{V}
+    PropertyError(::Type{V}, s, m) where {V} = new{V}(s, m, PhantomData{V}())
+end
+function Base.showerror(io::IO, e::PropertyError{V}) where {V}
+    println(io, "In property '$(e.name)' of '$V': $(e.message)")
+end
+properr(V, n, m) = throw(PropertyError(V, n, m))

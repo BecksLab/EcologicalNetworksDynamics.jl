@@ -199,3 +199,18 @@ function Base.show(io::IO, ::MIME"text/plain", sys::System)
 end
 s(n) = (n > 1) ? "s" : ""
 eol(n) = s(n) * (n == 0 ? "." : ":")
+
+# ==========================================================================================
+# Dedicated exceptions.
+
+struct SystemError{V} <: Exception
+    message::String
+    _::PhantomData{V}
+    SystemError(::Type{V}, m) where {V} = new{V}(m, PhantomData{V}())
+end
+
+function Base.showerror(io::IO, e::SystemError{V}) where {V}
+    println(io, "In system for '$V': $(e.message)")
+end
+
+syserr(V, m) = throw(SystemError(V, m))

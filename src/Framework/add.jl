@@ -10,45 +10,6 @@ struct Node
     children::Vector{Node}
 end
 
-# Bundle information necessary for abortion on failure
-# and displaying of a useful message,
-# provided the tree will still be consistenly readable.
-struct EmbeddedAlreadyInValue
-    node::Node
-end
-struct InconsistentForSameComponent
-    focal::Node
-    other::Node
-end
-struct MissingRequiredComponent
-    node::Node
-    reason::Reason
-    for_expansion::Bool # Raise if the blueprint requires, lower if the component requires.
-end
-struct ConflictWithSystemComponent
-    node::Node
-    other::CompType
-    reason::Reason
-end
-struct ConflictWithBroughtComponent
-    node::Node
-    other::Node
-    reason::Reason
-end
-struct HookCheckFailure
-    node::Node
-    message::String
-end
-struct UnexpectedHookFailure
-    node::Node
-    exception::Any
-    late::Bool
-end
-struct ExpansionAborted
-    node::Node
-    exception::Any
-end
-
 # Keep track of all blueprints about broughts,
 # indexed by their concrete component instance.
 const Brought = Dict{Component,Vector{Node}}
@@ -272,4 +233,53 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
 
     system
 
+end
+
+# ==========================================================================================
+# Dedicated exceptions.
+# Bundle information necessary for abortion on failure
+# and displaying of a useful message,
+# provided the tree will still be consistenly readable.
+
+struct EmbeddedAlreadyInValue
+    node::Node
+end
+
+struct InconsistentForSameComponent
+    focal::Node
+    other::Node
+end
+
+struct MissingRequiredComponent
+    node::Node
+    reason::Reason
+    for_expansion::Bool # Raise if the blueprint requires, lower if the component requires.
+end
+
+struct ConflictWithSystemComponent
+    node::Node
+    other::CompType
+    reason::Reason
+end
+
+struct ConflictWithBroughtComponent
+    node::Node
+    other::Node
+    reason::Reason
+end
+
+struct HookCheckFailure
+    node::Node
+    message::String
+end
+
+struct UnexpectedHookFailure
+    node::Node
+    exception::Any
+    late::Bool
+end
+
+struct ExpansionAborted
+    node::Node
+    exception::Any
 end
