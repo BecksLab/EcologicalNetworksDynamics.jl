@@ -146,7 +146,9 @@ export components, component_types
 
 # Basic check.
 has_component(s::System{V}, c::Component{V}) where {V} = !isempty(components(s, typeof(c)))
-export has_component
+has_concrete_component(s::System{V}, c::Component{V}) where {V} =
+    haskey(s._concrete, typeof(c))
+export has_component, has_concrete_component
 
 # List properties available for this instance.
 # Returns {:propname => is_writeable}

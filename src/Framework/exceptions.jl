@@ -79,39 +79,11 @@ syserr(V, m) = throw(SystemError(V, m))
 # In particular, this is the exception expected to be thrown from the `check` method.
 # Not parametrized over blueprint type because the exception is only thrown and caught
 # within a controlled context where this type is known.
-# When failure happens during expansion of implied/brought blueprints,
-# a stack of failed expansions forms.
-mutable struct BlueprintCheckFailure <: SystemException
-    stack::Vector{Blueprint}
+struct BlueprintCheckFailure <: SystemException
     message::String
-    V::Union{Nothing,Type} # Setup during capture/rethrow.
-    BlueprintCheckFailure(message) = new([], message, nothing)
 end
 checkfails(m) = throw(BlueprintCheckFailure(m))
 export BlueprintCheckFailure, checkfails
-
-function Base.showerror(io::IO, e::BlueprintCheckFailure)
-    first = Ref(true)
-    for blueprint in reverse(e.stack)
-        if first[]
-            blueprint = pop!(e.stack)
-            component = componentof(blueprint)
-            println(
-                io,
-                "\nCould not expand blueprint for '$component' \
-                 to system for '$(e.V)':",
-            )
-        else
-            blueprint = pop!(e.stack)
-            component = componentof(blueprint)
-            B = typeof(blueprint)
-            component = component === B ? "$component" : "$component ($B)"
-            println(io, "      because sub-expansion of '$component' failed:")
-        end
-        first[] = false
-    end
-    println(io, "  " * e.message)
-end
 
 # About method use.
 struct MethodError{V} <: SystemException

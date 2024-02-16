@@ -155,12 +155,13 @@ Base.copy(b::Blueprint) = deepcopy(b)
 
 # (when specifying a 'component' requirement,
 # optionally use a 'component => "reason"' instead)
-const Reason = Union{Nothing,String}
+const Reason = Option{String}
 const CompsReasons = OrderedDict{CompType,Reason}
 
 # Specify which components are needed for the focal one to make sense.
 # (these may or may not be implied/brought by the corresponding blueprints)
 requires(::CompType) = CompsReasons()
+requires(c::Component) = requires(typeof(c))
 
 # Return non-empty list if components are required
 # for this blueprint to expand,
@@ -177,7 +178,7 @@ construct_implied(B::Type{<:Blueprint}, b::Blueprint) =
 
 # Same, but the listed blueprints are always created and expanded,
 # resulting in an error if their components are already present.
-embed(::Blueprint) = Type{<:Blueprint}[]
+embeds(::Blueprint) = Type{<:Blueprint}[]
 construct_embedded(B::Type{<:Blueprint}, b::Blueprint) =
     throw("Embedding '$B' within '$(typeof(b))' is unimplemented.")
 
@@ -189,6 +190,7 @@ construct_embedded(B::Type{<:Blueprint}, b::Blueprint) =
 # so they can all refer to each other
 # as a clique of incompatible nodes in the component graph.
 conflicts(::CompType) = CompsReasons()
+conflicts(c::Component) = conflicts(typeof(c))
 
 #-------------------------------------------------------------------------------------------
 # Add component to the system.

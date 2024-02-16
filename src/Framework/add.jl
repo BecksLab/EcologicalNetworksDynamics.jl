@@ -1,168 +1,273 @@
 # Add components to the system: check and expand.
 
-function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
-    for bp in blueprints
-        # Get our owned local copy so it cannot be changed afterwards.
-        bp = copy(bp)
-        _add!(system, bp)
-    end
-    system
+# Prepare thorough analysis of recursive sub-blueprints possibly brought
+# by the blueprints given.
+# Reify the underlying 'forest' structure.
+struct Node
+    blueprint::Blueprint
+    parent::Option{Node} # None if root.
+    implied::Bool # Raise if 'implied' by the parent and not 'embedded'.
+    children::Vector{Node}
 end
-export add!
+
+# Bundle information necessary for abortion on failure
+# and displaying of a useful message,
+# provided the tree will still be consistenly readable.
+struct EmbeddedAlreadyInValue
+    node::Node
+end
+struct InconsistentForSameComponent
+    focal::Node
+    other::Node
+end
+struct MissingRequiredComponent
+    node::Node
+    reason::Reason
+    for_expansion::Bool # Raise if the blueprint requires, lower if the component requires.
+end
+struct ConflictWithSystemComponent
+    node::Node
+    other::CompType
+    reason::Reason
+end
+struct ConflictWithBroughtComponent
+    node::Node
+    other::Node
+    reason::Reason
+end
+struct HookCheckFailure
+    node::Node
+    message::String
+end
+struct UnexpectedHookFailure
+    node::Node
+    exception::Any
+    late::Bool
+end
+struct ExpansionAborted
+    node::Node
+    exception::Any
+end
+
+# Keep track of all blueprints about broughts,
+# indexed by their concrete component instance.
+const Brought = Dict{Component,Vector{Node}}
 
 #-------------------------------------------------------------------------------------------
-# Internals: assume the blueprint we retrieve here is already owned by the system.
+# Recursively create during first pass, pre-order,
+# possibly checking the indexed list of nodes already brought.
+function Node(
+    bp::Blueprint,
+    parent::Option{Node},
+    implied::Bool,
+    system::System,
+    brought::Brought,
+)
 
-function _add!(system::System{V}, blueprint::Blueprint{V}) where {V}
+    # Get our owned local copy so it cannot be changed afterwards.
+    blueprint = copy(bp)
+    component = componentof(blueprint)
 
-    component = typeof(blueprint)
+    # Create node and connect to parent, without its children yet.
+    node = Node(blueprint, parent, implied, [])
 
-    # Collect base patches while checking their compatibility with current system state.
+    # Check for duplication if embedded.
+    !implied && has_component(system, component) && throw(EmbeddedAlreadyInValue(node))
+
+    # Check for consistency with other possible blueprints bringing the same component.
+    if haskey(brought, component)
+        others = brought[component]
+        for other in others
+            blueprint == other.blueprint || throw(InconsistentForSameComponent(node, other))
+        end
+        push!(others, node)
+    else
+        brought[component] = [node]
+    end
+
+    # Recursively construct children.
+    for I in implies(blueprint)
+        implied_component = componentof(I)
+        has_concrete_component(system, implied_component) && continue
+        implied_bp = construct_implied(I, blueprint)
+        child = Node(implied_bp, node, true, system, brought)
+        push!(node.children, child)
+    end
+    for E in embeds(blueprint)
+        embedded_bp = construct_embedded(E, blueprint)
+        child = Node(embedded_bp, node, false, system, brought)
+        push!(node.children, child)
+    end
+
+    node
+end
+
+#-------------------------------------------------------------------------------------------
+# Recursively check during second pass, post-order,
+# assuming the whole tree is set up.
+function check(node::Node, system::System, brought::Brought, checked::OrderedSet{Component})
+
+    # Recursively check children first.
+    for child in node.children
+        check(child, brought, checked)
+    end
+
+    # Check requirements.
+    blueprint = node.blueprint
+    component = componentof(blueprint)
+    for (reqs, for_expansion) in
+        [(requires(component), false), (expands_from(blueprint), true)]
+        for (R, reason) in reqs
+            # Check against the current system value.
+            has_component(system, R) && continue
+            # Check against other components about to be brought.
+            any(checked) do c
+                R <: typeof(c)
+            end || throw(MissingRequiredComponent(node, reason, for_expansion))
+        end
+    end
+
+    # Guard against conflicts.
+    for (C, reason) in conflicts(component)
+        has_component(system, C) && throw(ConflictWithSystemComponent(node, C, reason))
+        for c in checked
+            C <: typeof(c)
+            throw(ConflictWithBroughtComponent(node, brought[c], reason))
+        end
+    end
+
+    # Run exposed hook for further checking.
     try
-        # Check compatibility with current system state.
-        implied = implies(blueprint)
-        brought = brings(blueprint)
-        # (*) Quick patch 1-step deeper before this all gets refactored
-        # with proper reification of blueprints tree structure.
-        implied2 = OrderedDict()
-        for B in reverse(brought) # First implied gets precedence.
-            sub_bp = construct_brought(B, blueprint)
-            for I in implies(sub_bp)
-                implied2[I] = sub_bp
-            end
-        end
-
-        # Cannot add components twice.
-        has_component(system, component) && checkfails("cannot add components twice.")
-
-        # Cannot add against conflicting components.
-        for (abstract, would_conflict, reason) in conflicts(component)
-            for conflict in components(system, would_conflict)
-                reason = isnothing(reason) ? "." : ": $reason"
-                as_a = component === abstract ? "" : " (as '$abstract')"
-                as_w = conflict === would_conflict ? "" : " (as '$would_conflict')"
-                checkfails("conflicts$(as_a) with component '$conflict'$(as_w)$(reason)")
-            end
-        end
-
-        # Check that all required components are met.
-        for (fn, needed) in
-            [(requires, requires(component)), (buildsfrom, buildsfrom(blueprint))]
-            for need in needed
-                need, reason = need isa Pair ? need : (need, nothing)
-                if !has_component(system, need)
-                    # Missing, but this is okay if
-                    # the component is about to be implied or brought.
-                    any(I <: need for I in implied) && continue
-                    any(B <: need for B in brought) && continue
-                    # TODO: (*) the above check is not sufficient,
-                    # as it should recursively check into every implied/brought blueprint's
-                    # *own* implied/brought blueprints.
-                    # This is rather non-trivial because blueprints need to be built
-                    # before it can be determine which other sub-blueprints they bring.
-                    # Better not tackle this before the framework gets refactored
-                    # with a better distinction between 'blueprint' and 'component',
-                    # and a unification of the 'implied' and 'brought' sub-blueprints.
-                    # As a quick patch, dig at least one step further down into brought->implied.
-                    any(I2 <: need for I2 in keys(implied2)) && continue
-                    reason = isnothing(reason) ? "." : ": $reason"
-                    a = isabstracttype(need) ? " a" : ""
-                    if fn == requires
-                        checkfails("missing$a required component '$need'$(reason)")
-                    else
-                        checkfails(
-                            "blueprint cannot expand without$a component '$need'$(reason)",
-                        )
-                    end
-                end
-            end
-        end
-
-        # Pre-implied check hook.
-        early_check(system._value, blueprint, system)
-
-        # Automatically construct and add any missing implied/brought components.
-        miss = OrderedDict() # Indexed by component type.
-
-        # (*) Quick-patch 1-step deeper anticipation of blueprints implied
-        # by brought blueprints.
-        for (I2, sub_bp) in implied2
-            if !has_component(system, I2)
-                miss[componentof(I2)] = construct_implied(I2, sub_bp)
-            end
-        end
-        for I in implied
-            cI = componentof(I)
-            if !has_component(system, I) && !haskey(miss, cI)
-                # Failure here are not expected 'checkfails',
-                # but framework usage failures.
-                miss[cI] = construct_implied(I, blueprint)
-            end
-        end
-        for B in brings(blueprint)
-            if has_component(system, B)
-                checkfails("blueprint also brings '$B', \
-                            which is already in the system.")
-            end
-            cB = componentof(B)
-            miss[cB] = construct_brought(B, blueprint)
-        end
-
-        # Recurse into adding all implied/brought components.
-        for (_, m) in miss
-            # TODO: this should *not* be a full addition, but only checking,
-            # otherwise check failure in the next line
-            # would result in the implied/brought components being added
-            # but not this one.
-            # Consequence: two components cannot be both implied/brought
-            # if they need to be checked against each other,
-            # unless the whole system be internally copied for checking on every addition.
-            _add!(system, m)
-        end
-
-        # Verify actual value consistency.
-        check(system._value, blueprint, system)
-
-        # Record.
-        bps, abs = system._blueprints, system._abstracts
-        bps[component] = blueprint
-        for sup in supertypes(component)
-            sup === component && continue
-            sup === Blueprint{V} && break
-            sub = haskey(abs, sup) ? abs[sup] : (abs[sup] = Set{Component{V}}())
-            push!(sub, component)
-        end
-
+        early_check(blueprint)
     catch e
         if e isa BlueprintCheckFailure
-            e.V = V
-            push!(e.stack, blueprint)
+            throw(HookCheckFailure(node, e.message))
         else
+            throw(UnexpectedHookFailure(node, e, false))
+        end
+    end
+
+end
+
+# ==========================================================================================
+# The actual implementation.
+function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
+
+    if length(blueprints) == 0
+        argerr("No blueprint given to expand into the system.")
+    end
+
+    forest = []
+    brought = Dict() # Populated during pre-order traversal.
+    checked = OrderedSet() # Populated during first post-order traversal.
+
+    try
+        #---------------------------------------------------------------------------------------
+        # Read-only preliminary checking.
+
+        try
+
+            # Preorder visit: construct the trees.
+            for bp in blueprints
+                root = Node(bp, nothing, false, system, brought)
+                push!(forest, root)
+            end
+
+            # Post-order visit, check requirements.
+            for node in forest
+                check(node, system, brought, checked)
+            end
+
+        catch e
+            # The system value has not been modified during if the error is caught now.
+            if e isa EmbeddedAlreadyInValue
+                throw("Unimplemented: construct error message from $e.")
+            elseif e isa InconsistentForSameComponent
+                throw("Unimplemented: construct error message from $e.")
+            elseif e isa MissingRequiredComponent
+                throw("Unimplemented: construct error message from $e.")
+            elseif e isa ConflictWithSystemComponent
+                throw("Unimplemented: construct error message from $e.")
+            elseif e isa ConflictWithBroughtComponent
+                throw("Unimplemented: construct error message from $e.")
+            elseif e isa HookCheckFailure
+                # This originated from hook in early_check.
+                throw("Unimplemented: construct error message from $e.")
+            else
+                rethrow(e)
+            end
+        end
+
+        #---------------------------------------------------------------------------------------
+        # Secondary checking, occuring while the system is being modified.
+
+        try
+
+            # Second post-order visit: expand the blueprints.
+            for c in checked
+                node = first(brought[c])
+                blueprint = node.blueprint
+                # Last check hook against current system value.
+                try
+                    late_check(system._value, blueprint)
+                catch e
+                    if e isa BlueprintCheckFailure
+                        throw(HookCheckFailure(node, e.message, true))
+                    else
+                        throw(UnexpectedHookFailure(node, e, true))
+                    end
+                end
+                try
+                    expand!(system._value, blueprint, system)
+                catch e
+                    throw(ExpansionAborted(node, e))
+                end
+            end
+
+        catch e
+            # At this point, the system *has been modified*
+            # but we cannot guarantee that all desired blueprints
+            # have been expanded as expected.
+            if e isa HookCheckFailure
+                # This originated from hook in late check:
+                # not all blueprints have been expanded,
+                # but the underlying system state consistency is safe.
+                throw("Unimplemented: construct error message from $e.")
+            elseif e isa ExpansionAborted
+                # This is unexpected and it may have occured during expansion.
+                # The underlying system state consistency is no longuer guaranteed.
+                this =
+                    length(blueprints) > 1 ?
+                    "blueprints $(join(map(typeof, blueprints), ", ", " and "))" :
+                    "blueprint $(blueprints[1])"
+                syserr(
+                    V,
+                    "\n$(crayon"red")\
+                     ⚠ ⚠ ⚠ Failure during expansion of $this. ⚠ ⚠ ⚠\
+                     $(crayon"reset")\n\
+                     This system state consistency is no longer guaranteed by the program. \
+                     This should not happen and must be considered a bug \
+                     within the components library. \
+                     Consider reporting if you can reproduce with a minimal working example. \
+                     In any case, please drop the current system value and create a new one.",
+                )
+            else
+                rethrow(e)
+            end
+        end
+    catch e
+        if e isa UnexpectedHookFailure
+            # If 'late' is raised,
+            # warn that some blueprints may have been expanded but not the others.
+            throw("Unimplemented: construct error message from $e.")
             @error "\n$(crayon"red")\
-                    ⚠ Unexpected failure when expanding blueprint for '$component' \
-                    to system for '$V'. ⚠\
+                    ⚠ Unexpected failure while checking $this \
+                    for expansion into system for '$V'. ⚠\
                     $(crayon"reset")\n\
                     This is either a bug in the framework or in the components library. \
                     Consider reporting if you can reproduce with a minimal working example."
+        else
         end
-        rethrow(e)
-    end
-
-    # Now that all guards have worked, alter the actual value.
-    try
-        expand!(system._value, blueprint, system)
-    catch
-        syserr(
-            V,
-            "\n$(crayon"red")\
-             ⚠ ⚠ ⚠ Failure during expansion of component '$component' for '$V'. ⚠ ⚠ ⚠\
-             $(crayon"reset")\n\
-             This system state consistency is no longer guaranteed by the program. \
-             This should not happen and must be considered a bug \
-             within the components library. \
-             Consider reporting if you can reproduce with a minimal working example. \
-             In any case, please drop the current system value and create a new one.",
-        )
     end
 
     system
