@@ -139,6 +139,10 @@ export Component
 # most exposed methods work with concrete singleton instance.
 const CompType{V} = Type{<:Component{V}}
 
+# Extract underlying system wrapped value type from a component.
+system_value_type(::CompType{V}) where {V} = V
+system_value_type(::Component{V}) where {V} = V
+
 #-------------------------------------------------------------------------------------------
 # Requirements.
 

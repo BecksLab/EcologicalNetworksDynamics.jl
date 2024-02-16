@@ -1,5 +1,5 @@
 # The macros exposed in this module
-# generate code to define new types and methods,
+# generate code to define new components, blueprints and methods,
 # and do their best to check that their input make sense,
 # or emit useful error messages both during expansion and execution of the generated code.
 #
@@ -71,16 +71,29 @@ function to_value(mod, expression, context, error_out, type = nothing)
 end
 
 # Special-case of the above when the expression is expected to evaluate
-# into a component (blueprint type) for the given expected value type.
-function to_component_type(mod, xp, value_type_var, ctx, xerr)
+# into a component for the given expected value type.
+function to_component(mod, xp, value_type_var, ctx, xerr)
     quote
-        C = $(to_value(mod, xp, ctx, xerr, DataType))
-        Sup = Blueprint{$value_type_var}
+        C = $(to_value(mod, xp, ctx, xerr, Component))
+        Sup = Component{$value_type_var}
         if !(C <: Sup)
-            but = C <: Blueprint ? ", but '$(Blueprint{system_value_type(C)})'" : ""
+            but = C <: Component ? ", but '$(Component{system_value_type(C)})'" : ""
             $xerr("$($ctx): '$C' does not subtype '$Sup'$but.")
         end
         C
+    end
+end
+
+# Same for a blueprint type.
+function to_blueprint_type(mod, xp, value_type_var, ctx, xerr)
+    quote
+        B = $(to_value(mod, xp, ctx, xerr, Blueprint))
+        Sup = Blueprint{$value_type_var}
+        if !(B <: Sup)
+            but = B <: Blueprint ? ", but '$(Blueprint{system_value_type(B)})'" : ""
+            $xerr("$($ctx): '$B' does not subtype '$Sup'$but.")
+        end
+        B
     end
 end
 
@@ -99,5 +112,61 @@ function is_identifier_path(xp)
     end
 end
 
-# Extract underlying system wrapped value type from a component.
-system_value_type(::Component{V}) where {V} = V
+# ==========================================================================================
+# Dedicated exceptions.
+
+# User provides invalid macro arguments.
+struct ItemMacroParseError <: Exception
+    category::Symbol # (:component, :blueprint or :method)
+    src::LineNumberNode # Locate macro invocation in source code.
+    message::String
+end
+
+function Base.showerror(io::IO, e::ItemMacroParseError)
+    print(io, "In @$(e.category) macro expansion: ")
+    println(io, crayon"blue", "$(e.src.file):$(e.src.line)", crayon"reset")
+    println(io, e.message)
+end
+
+# The macro expands without error,
+# but during execution of the generated code,
+# we figure that it had been given invalid arguments.
+struct ItemMacroExecError <: Exception
+    category::Symbol # (:component, :blueprint or :method)
+    item::Union{Nothing,Type,Function} # Nothing if not yet determined.
+    src::LineNumberNode
+    message::String
+end
+
+function Base.showerror(io::IO, e::ItemMacroExecError)
+    if isnothing(e.item)
+        print(io, "In expanded @$(e.category) definition: ")
+    else
+        print(io, "In expanded @$(e.category) definition for '$(e.item)': ")
+    end
+    println(io, crayon"blue", "$(e.src.file):$(e.src.line)", crayon"reset")
+    println(io, e.message)
+end
+
+#-------------------------------------------------------------------------------------------
+# Same duo for @conflicts macro
+struct ConflictMacroParseError <: Exception
+    src::LineNumberNode
+    message::String
+end
+
+function Base.showerror(io::IO, e::ConflictMacroParseError)
+    print(io, "In @conflicts macro expansion: ")
+    println(io, crayon"blue", "$(e.src.file):$(e.src.line)", crayon"reset")
+    println(io, e.message)
+end
+
+struct ConflictMacroExecError <: Exception
+    src::LineNumberNode
+    message::String
+end
+function Base.showerror(io::IO, e::ConflictMacroExecError)
+    print(io, "In @conflicts definition: ")
+    println(io, crayon"blue", "$(e.src.file):$(e.src.line)", crayon"reset")
+    println(io, e.message)
+end

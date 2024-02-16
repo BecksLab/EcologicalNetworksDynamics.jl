@@ -93,9 +93,9 @@ module Framework
 #   - [x] Encourage moving sophisticated function definitions outside macro calls
 #     to ease burden on `Revise`.
 #   - [x] blueprints *optionnaly* bring other blueprints.
-#   - [ ] "*blueprints* imply/bring *blueprints*", not "components imply/bring components"
+#   - [.] "*blueprints* imply/bring *blueprints*", not "components imply/bring components"
 #   - [ ] `depends(other_method_name)` to inherit all dependent components.
-#   - [ ] Recurring pattern: various blueprints types provide 'the same component': reify.
+#   - [.] Recurring pattern: various blueprints types provide 'the same component': reify.
 #   - [ ] Namespace properties into like system.namespace.namespace.property.
 #   - [ ] Hooks need to trigger when special components combination become available.
 #         See for instance the expansion of `Nutrients.Nodes`
@@ -117,11 +117,10 @@ include("./system.jl")
 include("./add.jl")
 include("./plus_operator.jl")
 
-#  include("./exceptions.jl")
-
 #  # Exposed macros.
-#  include("./macro_helpers.jl")
-#  include("./component_macro.jl")
+include("./macro_helpers.jl")
+include("./component_macro.jl")
+include("./blueprint_macro.jl")
 #  include("./conflicts_macro.jl")
 #  include("./method_macro.jl")
 

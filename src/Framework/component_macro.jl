@@ -1,10 +1,13 @@
 # Convenience macro for defining components.
+# TODO: rewrite to remove all blueprint-related aspects.
 #
-# Invoker defines the blueprint struct
-# and associated check/expand! methods the way they wish,
+# Invoker defines the component blueprints,
+# and possible abstract component supertypes,
 # and then calls:
 #
-#   @component Blueprint requires(components...) implies(blueprints...)
+#   @component Name requires(components...) blueprints(names...)
+#
+# HERE: now that the @blueprint macro has been extracted.
 #
 # Or alternately:
 #
@@ -27,22 +30,13 @@
 #
 #   Implied(::Blueprint) = ...
 #
-# If useful, invoker can also define:
-#
-#   can_imply(::Blueprint, ::Type{Implied}) = ...
-#
-# this defaults to `true`
-# unless the blueprint data can possibly be not sufficient
-# to calculate the implied component.
-# This is referred to as *optional* implication.
-#
-# Regarding the blueprints 'brought': make an ergonomic BET:
-# any blueprint field subtyping 'Blueprint' is considered brought,
+# Regarding the blueprints 'embedded': make an ergonomic BET:
+# any blueprint field subtyping 'Blueprint' is considered embedded,
 # so it feels like "subblueprints" or "subcomponents".
 # Also, any field subtyping 'Union{Nothing,<:Blueprint}'
-# is considered *optionally* brought depending on the blueprint value.
+# is considered *optionally* embedded depending on the blueprint value.
 #
-# The components corresponding to both blueprints 'implied' and 'brought',
+# The components corresponding to brought blueprints
 # are automatically be recorded as 'required',
 # even if unspecified in the 'required' section.
 #
@@ -389,7 +383,5 @@ macro component(input...)
 end
 export @component
 
-# Implied component are assumed to be always computable by default.
-can_imply(::Blueprint, ::Type{<:Blueprint}) = true
 const COMPONENTS_SPECIFIED = Set{Component}()
 specified_as_component(c::Component) = c in COMPONENTS_SPECIFIED

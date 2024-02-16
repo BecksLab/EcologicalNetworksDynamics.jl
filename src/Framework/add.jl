@@ -48,12 +48,14 @@ function Node(
 
     # Recursively construct children.
     for I in implies(blueprint)
+        can_imply(blueprint, I) || continue
         implied_component = componentof(I)
         has_concrete_component(system, implied_component) && continue
         implied_bp = construct_implied(I, blueprint)
         child = Node(implied_bp, node, true, system, brought)
         push!(node.children, child)
     end
+
     for E in embeds(blueprint)
         embedded_bp = construct_embedded(E, blueprint)
         child = Node(embedded_bp, node, false, system, brought)
@@ -234,6 +236,7 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
     system
 
 end
+export add!
 
 # ==========================================================================================
 # Dedicated exceptions.

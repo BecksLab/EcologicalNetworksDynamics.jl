@@ -25,13 +25,19 @@ expands_from(::Blueprint) = CompsReasons()
 # Specify blueprints to be automatically created and expanded
 # before the focal blueprint expansion their component if not present.
 # Every blueprint type listed here needs to be constructible from the focal blueprint.
-implies(::Blueprint) = Type{<:Blueprint}[]
+# If the data within the blueprint is not sufficient to imply another one,
+# opt-out from this default 'true' value: implication is therefore "optional".
+implies(b::Blueprint) = Iterators.filter(B -> can_imply(b, B), max_implies(b))
+can_imply(::Blueprint, ::Type{<:Blueprint}) = true
+max_implies(::Blueprint) = Type{<:Blueprint}[]
 construct_implied(B::Type{<:Blueprint}, b::Blueprint) =
     throw("Implying '$B' from '$(typeof(b))' is unimplemented.")
 
 # Same, but the listed blueprints are always created and expanded,
 # resulting in an error if their components are already present.
 embeds(::Blueprint) = Type{<:Blueprint}[]
+can_embed(::Blueprint, ::Type{<:Blueprint}) = true
+max_embeds(::Blueprint) = Type{<:Blueprint}[]
 construct_embedded(B::Type{<:Blueprint}, b::Blueprint) =
     throw("Embedding '$B' within '$(typeof(b))' is unimplemented.")
 
@@ -99,7 +105,7 @@ expand!(v, b::Blueprint, _) = expand!(v, b)
 # In particular, this is the exception expected to be thrown from the `check` method.
 # Not parametrized over blueprint type because the exception is only thrown and caught
 # within a controlled context where this type is known.
-struct BlueprintCheckFailure <: SystemException
+struct BlueprintCheckFailure <: Exception
     message::String
 end
 checkfails(m) = throw(BlueprintCheckFailure(m))
