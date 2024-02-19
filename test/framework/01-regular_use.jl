@@ -100,7 +100,7 @@ get_a(v) = v._dict[:a]
     # Cannot add component twice.
     @sysfails(
         add!(s, NLines(5)),
-        Add,
+        Add, # HERE: ease check with Add(BroughtNotInValue, [Size]).
         "Blueprint expands into component '$_Size($NLines)', \
          which is already in the system:\n$NLines(5)"
     )
@@ -108,6 +108,9 @@ get_a(v) = v._dict[:a]
     # Add component requiring previous one from a blueprint.
     t = s + A.Uniform(8)
     @test t.a == [8, 8, 8, 8, 8]
+
+    # Would fail if custom blueprint constraints are not enforced.
+    t = s + A.Raw([8, 8, 8]) # HERE: check failure.
 
     #---------------------------------------------------------------------------------------
     # Specify components.

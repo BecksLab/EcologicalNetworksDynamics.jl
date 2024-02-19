@@ -1,13 +1,15 @@
 # Check failures in components framework.
 
 import EcologicalNetworksDynamics.Framework:
-    Framework,
-    ItemMacroParseError,
-    ItemMacroExecError,
-    SystemException,
-    ConflictMacroParseError,
+    AddError,
+    BlueprintCheckFailure,
     ConflictMacroExecError,
-    BlueprintCheckFailure
+    ConflictMacroParseError,
+    Framework,
+    ItemMacroExecError,
+    ItemMacroParseError,
+    BroughtAlreadyInValue,
+    SystemException
 
 #-------------------------------------------------------------------------------------------
 # Check failures in macro expansion.
@@ -109,7 +111,7 @@ export @pconffails, @xconffails
 # or they also have a `name::Symbol` member.
 
 # Simple version for exceptions with no type parameter.
-# TODO: this matches no exception now?
+# TODO: does this match any exception now?
 function TestFailures.check_exception(e::SystemException, mod, E, name, message_pattern)
     typeof(e) === E || error("Expected system exception type:\n  $E\ngot instead:\n  $e")
     isnothing(name) ||
@@ -117,13 +119,6 @@ function TestFailures.check_exception(e::SystemException, mod, E, name, message_
         error("Expected error name :$name, got $(repr(e.name)) for $E.")
     # Evaluate message pattern late because it needs to expand with component type.
     message_pattern = Core.eval(mod, message_pattern)
-    TestFailures.check_message(message_pattern, e.message)
-end
-
-# Special-case the check exceptions with the blueprints stack.
-function TestFailures.check_exception(e::BlueprintCheckFailure, stack, message_pattern)
-    stack == typeof.(e.stack) || error("Expected error stack: $stack\n\
-                                        Received instead    : $(e.stack).")
     TestFailures.check_message(message_pattern, e.message)
 end
 
@@ -146,8 +141,11 @@ end
 # Otherwise `ErrName` will just do.
 # Implicit value type parameter for error type in this context is always `Value`,
 # assuming such a type exists in the macro invocation context eg. in the test suite.
-# Special-case `BlueprintCheckFailure` as it doesn't have a type parameter.
-macro sysfails(xp, input, mess)
+# Special-case `AddError` as it requires more (arbitrary) information checking.
+macro sysfails(xp, input, mess = nothing)
+    println("xp: $xp ::$(typeof(xp))")
+    println("input: $input ::$(typeof(input))")
+    println("mess: $mess ::$(typeof(mess))")
     assert_symbol(x) =
         x isa Symbol ||
         throw("Incorrect use of @sysfails test macro: not a symbol: $(repr(x)).")
@@ -157,12 +155,12 @@ macro sysfails(xp, input, mess)
     #! format: off
     @capture(
         input,
-        Check(stack__) |
+        Add(AddName_, fields__) |
         errunion_(name_) |
         errunion_
     )
     #! format: on
-    if isnothing(stack)
+    if isnothing(fields)
         assert_symbol(errunion)
         isnothing(name) || assert_symbol(name)
         name = Meta.quot(name)
@@ -173,12 +171,50 @@ macro sysfails(xp, input, mess)
         E = SystemException
         args = :($__module__, $errunion, $errparms, $name, $mess)
     else
-        assert_path.(stack)
-        name = nothing
-        stack = Expr(:vect, reverse(stack)...)
-        E = BlueprintCheckFailure
-        args = :($stack, $mess)
+        name = AddName
+        E = AddError
+        fields = Expr(:vect, fields...)
+        args = :($name, $fields)
     end
     TestFailures.failswith(__source__, __module__, xp, :($E => $args), false)
 end
 export @sysfails
+
+#-------------------------------------------------------------------------------------------
+# Sophisticated version for AddError, because all fields are checked
+# according to framework dedicated logic.
+function TestFailures.check_exception(e::SystemException, _, ::Type{AddError}, name, fields)
+    # HERE: adjust so @sysfails((), Add(BroughtAlreadyInValue, ...)) brings here.
+    # Extract underlying error.
+    e = e.e
+    # Check type.
+    E = typeof(e)
+    E == name || error("Expected '$name' error, got '$E' instead.")
+    # Check field values.
+    names = fieldnames(E)
+    actual = [getfield(e, name) for name in names]
+    la, le = length.((actual, expected))
+    la == le || error("Exception '$E' contains $le fields, but only $le were expected.")
+    for (name, a, e) in zip(names, actual, expected)
+        if a isa Framework.Node
+            e isa Framework.BpPath ||
+                error("Cannot compare node field $E.$name to $(repr(e))::$(typeof(e)).")
+            check_path(a, e)
+        elseif a isa String
+            message = a
+            pattern = e
+            TestFailures.check_message(pattern, message)
+        else
+            ta, te = typeof.((a, e))
+            ta === te || error("Expected type for $E.$name:\n  $ta\nfound instead:\n  $te")
+            a == e || error("Expected value for $E.$name:\n  $e\nfound instead:\n  $a")
+        end
+    end
+end
+
+function check_path(node::Framework.Node, expected::Framework.BpPath)
+    actual = Framework.path(node)
+    actual == path || error("Node does not match the expected path:\
+                             \n  $expected\nactual path:\n  $actual")
+end
+

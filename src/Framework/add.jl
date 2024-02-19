@@ -33,7 +33,7 @@ function Node(
     node = Node(blueprint, parent, implied, [])
 
     # Check for duplication if embedded.
-    !implied && has_component(system, component) && throw(EmbeddedAlreadyInValue(node))
+    !implied && has_component(system, component) && throw(BroughtAlreadyInValue(node))
 
     # Check for consistency with other possible blueprints bringing the same component.
     if haskey(brought, component)
@@ -104,9 +104,9 @@ function check(node::Node, system::System, brought::Brought, checked::OrderedSet
         early_check(blueprint)
     catch e
         if e isa BlueprintCheckFailure
-            throw(HookCheckFailure(node, e.message))
+            throw(HookCheckFailure(node, e.message, false))
         else
-            throw(UnexpectedHookFailure(node, e, false))
+            throw(UnexpectedHookFailure(node, false))
         end
     end
 
@@ -145,19 +145,16 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
 
         catch e
             # The system value has not been modified during if the error is caught now.
-            if e isa EmbeddedAlreadyInValue
-                adderr(V, "$e")
-            elseif e isa InconsistentForSameComponent
-                throw("Unimplemented: construct error message from $e.")
-            elseif e isa MissingRequiredComponent
-                throw("Unimplemented: construct error message from $e.")
-            elseif e isa ConflictWithSystemComponent
-                throw("Unimplemented: construct error message from $e.")
-            elseif e isa ConflictWithBroughtComponent
-                throw("Unimplemented: construct error message from $e.")
-            elseif e isa HookCheckFailure
-                # This originated from hook in early_check.
-                throw("Unimplemented: construct error message from $e.")
+            E = typeof(e)
+            if E in (
+                BroughtAlreadyInValue,
+                InconsistentForSameComponent,
+                MissingRequiredComponent,
+                ConflictWithSystemComponent,
+                ConflictWithBroughtComponent,
+                HookCheckFailure,
+            )
+                throw(AddError(V, e))
             else
                 rethrow(e)
             end
@@ -173,6 +170,12 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
                 node = first(brought[c])
                 blueprint = node.blueprint
 
+                # Temporary patch after renaming check -> late_check
+                # to forbid silent no-checks.
+                applicable(check, system_value_type, blueprint) &&
+                    throw("The `check` method seems defined for $blueprint, \
+                           but it wouldn't be run as the new name is `late_check`.")
+
                 # Last check hook against current system value.
                 try
                     late_check(system._value, blueprint)
@@ -180,7 +183,7 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
                     if e isa BlueprintCheckFailure
                         throw(HookCheckFailure(node, e.message, true))
                     else
-                        throw(UnexpectedHookFailure(node, e, true))
+                        throw(UnexpectedHookFailure(node, true))
                     end
                 end
 
@@ -199,8 +202,8 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
                 # Expand.
                 try
                     expand!(system._value, blueprint, system)
-                catch e
-                    throw(ExpansionAborted(node, e))
+                catch _
+                    throw(ExpansionAborted(node))
                 end
 
             end
@@ -209,39 +212,37 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
             # At this point, the system *has been modified*
             # but we cannot guarantee that all desired blueprints
             # have been expanded as expected.
-            if e isa HookCheckFailure
+            E = typeof(e)
+            if E in (HookCheckFailure, UnexpectedHookFailure)
                 # This originated from hook in late check:
                 # not all blueprints have been expanded,
                 # but the underlying system state consistency is safe.
-                throw("Unimplemented: construct error message from $e.")
+                throw(AddError(V, e))
             else
                 # This is unexpected and it may have occured during expansion.
                 # The underlying system state consistency is no longuer guaranteed.
-                this =
-                    length(blueprints) > 1 ?
-                    "blueprints $(join(map(typeof, blueprints), ", ", " and "))" :
-                    "blueprint $(blueprints[1])"
-                warn = "This system state consistency \
-                        is no longer guaranteed by the program. \
-                        This should not happen and must be considered a bug \
-                        within the components library. \
-                        Consider reporting if you can reproduce \
-                        with a minimal working example. \
-                        In any case, please drop the current system value \
-                        and create a new one."
                 if e isa ExpansionAborted
-                    syserr(
-                        V,
-                        "\n$(crayon"red")\
-                         ⚠ ⚠ ⚠ Failure during expansion of $this. ⚠ ⚠ ⚠\
-                         $(crayon"reset")\n$warn",
-                    )
+                    title = "Failure during blueprint expansion."
+                    subtitle = "This is a bug in the components library."
+                    epilog = render_path(e.node)
                 else
-                    throw(ErrorException("\n$(crayon"red")\
-                           ⚠ ⚠ ⚠ Failure during addition of $this. ⚠ ⚠ ⚠\
-                           $(crayon"reset")\n\
-                           This is a bug in the Framework library.\n$warn"))
+                    title = "Failure during blueprint addition."
+                    subtitle = "This is a bug in the internal addition procedure.\n"
+                    epilog = ""
                 end
+                throw(ErrorException("\n$(crayon"red")\
+                       ⚠ ⚠ ⚠ $title ⚠ ⚠ ⚠\
+                       $(crayon"reset")\n\
+                       $subtitle\
+                       This system state consistency \
+                       is no longer guaranteed by the program. \
+                       This should not happen and must be considered a bug \
+                       within the components library. \
+                       Consider reporting if you can reproduce \
+                       with a minimal working example. \
+                       In any case, please drop the current system value \
+                       and create a new one.\n\
+                       $epilog"))
             end
         end
     catch e
@@ -271,76 +272,101 @@ export add!
 # and displaying of a useful message,
 # provided the tree will still be consistenly readable.
 
-struct EmbeddedAlreadyInValue
+abstract type AddException <: SystemException end
+
+struct BroughtAlreadyInValue <: AddException
     node::Node
 end
 
-struct InconsistentForSameComponent
+struct InconsistentForSameComponent <: AddException
     focal::Node
     other::Node
 end
 
-struct MissingRequiredComponent
+struct MissingRequiredComponent <: AddException
     node::Node
     reason::Reason
     for_expansion::Bool # Raise if the blueprint requires, lower if the component requires.
 end
 
-struct ConflictWithSystemComponent
+struct ConflictWithSystemComponent <: AddException
     node::Node
     other::CompType
     reason::Reason
 end
 
-struct ConflictWithBroughtComponent
+struct ConflictWithBroughtComponent <: AddException
     node::Node
     other::Node
     reason::Reason
 end
 
-struct HookCheckFailure
+struct HookCheckFailure <: AddException
     node::Node
     message::String
-end
-
-struct UnexpectedHookFailure
-    node::Node
-    exception::Any
     late::Bool
 end
 
-struct ExpansionAborted
+struct UnexpectedHookFailure <: AddException
     node::Node
-    exception::Any
+    late::Bool
+end
+
+struct ExpansionAborted <: AddException
+    node::Node
 end
 
 # Once the above have been processed,
 # convert into this dedicated user-facing one:
 struct AddError{V} <: SystemException
-    message::String
+    e::AddException
     _::PhantomData{V}
-    AddError(::Type{V}, m) where {V} = new{V}(m, PhantomData{V}())
+    AddError(::Type{V}, e) where {V} = new{V}(e, PhantomData{V}())
 end
-function Base.showerror(io::IO, e::AddError{V}) where {V}
-    println(io, "While adding components to '$V': $(e.message)")
+Base.showerror(io::IO, e::AddError{V}) where {V} = showerror(io, e.e)
+
+# ==========================================================================================
+# Ease exception testing by comparing blueprint paths along tree to simple vectors.
+# The vector starts from current node,
+# and expands up to a sequence of blueprint types and flags:
+#   true: implied
+#   false: embedded
+const BpPath = Vector{Union{Bool,Type{<:Blueprint}}}
+
+# Extract path from Node.
+function path(node::Node)::BpPath
+    res = [typeof(node.blueprint)]
+    while !isnothing(node.parent)
+        push!(res, node.implied)
+        node = node.parent
+        push!(typeof(node.blueprint))
+    end
+    res
 end
-adderr(V, m) = throw(AddError(V, m))
 
 # ==========================================================================================
 # Render errors into proper error messages.
 
-function Base.show(io::IO, e::EmbeddedAlreadyInValue)
-    (; node) = e
-    if isnothing(node.parent)
-        bp = node.blueprint
-        comp = componentof(bp)
-        print(
-            io,
-            "Blueprint expands into component '$comp', \
-             which is already in the system:\n$bp",
-        )
-        return
+function render_path(path::BpPath)
+    res = "in $(path[1])\n"
+    i = 2
+    while i <= length(path)
+        broughtby = path[i] ? "implied by" : "embedded within"
+        parent = path[i+1]
+        res *= "$broughtby $parent\n"
+        i += 2
     end
-    # Extract bring path up to add!-caller blueprint.
-    throw("Unimplemented error display: $e.")
+    res
 end
+render_path(node::Node) = render_path(path(node))
+
+function Base.showerror(io::IO, e::BroughtAlreadyInValue)
+    (; node) = e
+    comp = componentof(node.blueprint)
+    print(
+        io,
+        "Blueprint expands into component '$comp', \
+         which is already in the system.\n$(render_path(node))",
+    )
+end
+
