@@ -170,6 +170,7 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
             for c in checked
                 node = first(brought[c])
                 blueprint = node.blueprint
+
                 # Last check hook against current system value.
                 try
                     late_check(system._value, blueprint)
@@ -180,11 +181,26 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
                         throw(UnexpectedHookFailure(node, e, true))
                     end
                 end
+
+                # Record.
+                component = componentof(blueprint)
+                C = typeof(component)
+                crt, abs = system._concrete, system._abstract
+                crt[C] = blueprint
+                for sup in supertypes(component)
+                    sup === component && continue
+                    sup === Component{V} && break
+                    sub = haskey(abs, sup) ? abs[sup] : (abs[sup] = Set{CompType{V}}())
+                    push!(sub, C)
+                end
+
+                # Expand.
                 try
                     expand!(system._value, blueprint, system)
                 catch e
                     throw(ExpansionAborted(node, e))
                 end
+
             end
 
         catch e

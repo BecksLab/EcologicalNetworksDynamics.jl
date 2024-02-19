@@ -23,7 +23,7 @@ struct System{V}
     _concrete::OrderedSet{CompType{V},Component{V}} # (ordered to be used as a history)
 
     # Components are also indexed by their possible abstract supertypes.
-    _abstracts::Dict{CompType{V},Set{CompType{V}}} # {Abstract -> {Concrete}}
+    _abstract::Dict{CompType{V},Set{CompType{V}}} # {Abstract -> {Concrete}}
 
     # Construct the initial value in-place
     # so that its state cannot be corrupted if outer aliased refs
@@ -54,7 +54,7 @@ valuetype(::System{V}) where {V} = V
 function Base.copy(s::System{V}) where {V}
     value = copy(s._value)
     concrete = OrderedSet(C for C in s._concrete)
-    abstracts = Dict(A => Set(concretes) for (A, concretes) in s._abstracts)
+    abstracts = Dict(A => Set(concretes) for (A, concretes) in s._abstract)
     System{V}(RawConstruct, value, concrete, abstracts)
 end
 
@@ -128,7 +128,7 @@ component_types(s::System) = keys(s._concrete)
 # Restrict to the given component (super)type.
 components(system::System{V}, C::CompType{V}) where {V} =
     if isabstracttype(C)
-        d = system._abstracts
+        d = system._abstract
         haskey(d, C) ? Iterators.map(T -> system._concrete[T], d[C]) : ()
     else
         d = system._concrete
@@ -136,7 +136,7 @@ components(system::System{V}, C::CompType{V}) where {V} =
     end
 components_types(system::System{V}, C::CompType{V}) where {V} =
     if isabstracttype(C)
-        d = system._abstracts
+        d = system._abstract
         haskey(d, C) ? d[C] : ()
     else
         d = system._concrete

@@ -156,6 +156,10 @@ const CompsReasons = OrderedDict{CompType,Reason}
 requires(::CompType) = CompsReasons()
 requires(c::Component) = requires(typeof(c))
 
+# List all possible blueprints for the component.
+blueprints(C::CompType{V}) where V = throw("No blueprint specified for $C.")
+blueprints(c::Component{V}) where V = throw("No blueprint specified for $c.")
+
 #-------------------------------------------------------------------------------------------
 # Conflicts.
 

@@ -74,20 +74,20 @@ end
 # into a component for the given expected value type.
 function to_component(mod, xp, value_type_var, ctx, xerr)
     quote
-        C = $(to_value(mod, xp, ctx, xerr, Component))
+        comp = $(to_value(mod, xp, ctx, xerr, Component))
         Sup = Component{$value_type_var}
-        if !(C <: Sup)
-            but = C <: Component ? ", but '$(Component{system_value_type(C)})'" : ""
-            $xerr("$($ctx): '$C' does not subtype '$Sup'$but.")
+        if !(comp isa Sup)
+            but = comp isa Component ? ", but '$(Component{system_value_type(comp)})'" : ""
+            $xerr("$($ctx): '$comp' is not of type '$Sup'$but.")
         end
-        C
+        comp
     end
 end
 
 # Same for a blueprint type.
 function to_blueprint_type(mod, xp, value_type_var, ctx, xerr)
     quote
-        B = $(to_value(mod, xp, ctx, xerr, Blueprint))
+        B = $(to_value(mod, xp, ctx, xerr, DataType))
         Sup = Blueprint{$value_type_var}
         if !(B <: Sup)
             but = B <: Blueprint ? ", but '$(Blueprint{system_value_type(B)})'" : ""
