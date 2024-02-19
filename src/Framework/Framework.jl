@@ -109,6 +109,10 @@ using OrderedCollections
 argerr(m) = throw(ArgumentError(m))
 const Option{T} = Union{T,Nothing}
 
+# Abstract over various exception thrown during inconsistent use of the system.
+struct PhantomData{T} end
+abstract type SystemException <: Exception end
+
 # Base structure.
 include("./component.jl")
 include("./blueprints.jl")

@@ -1,10 +1,5 @@
-# Dedicate to exceptions emitted by various parts of the project.
-# Export test macros to the various test submodules.
-# TODO: ease boilerplate here.
+# Check failures in components framework.
 
-using MacroTools
-using .TestFailures
-import EcologicalNetworksDynamics.AliasingDicts: AliasingError
 import EcologicalNetworksDynamics.Framework:
     Framework,
     ItemMacroParseError,
@@ -13,40 +8,6 @@ import EcologicalNetworksDynamics.Framework:
     ConflictMacroParseError,
     ConflictMacroExecError,
     BlueprintCheckFailure
-
-# ==========================================================================================
-# Check failures in aliasing systems.
-
-function TestFailures.check_exception(e::AliasingError, name, message_pattern)
-    e.name == name ||
-        error("Expected error for '$name' aliasing system, got '$(e.name)' instead.")
-    TestFailures.check_message(message_pattern, eval(e.message))
-end
-
-macro xaliasfails(xp, name, mess)
-    TestFailures.failswith(
-        __source__,
-        __module__,
-        xp,
-        :($(AliasingError) => ($name, $mess)),
-        true,
-    )
-end
-
-export @aliasfails
-macro aliasfails(xp, name, mess)
-    TestFailures.failswith(
-        __source__,
-        __module__,
-        xp,
-        :($(AliasingError) => ($name, $mess)),
-        false,
-    )
-end
-export @aliasfails
-
-# ==========================================================================================
-# Framework.
 
 #-------------------------------------------------------------------------------------------
 # Check failures in macro expansion.
@@ -221,25 +182,3 @@ macro sysfails(xp, input, mess)
     TestFailures.failswith(__source__, __module__, xp, :($E => $args), false)
 end
 export @sysfails
-
-# ==========================================================================================
-# Graph Views.
-
-import EcologicalNetworksDynamics.GraphViews
-
-function TestFailures.check_exception(e::GraphViews.ViewError, type, message_pattern)
-    e.type == type ||
-        error("Expected error for view type '$type', got '$(e.type)' instead.")
-    TestFailures.check_message(message_pattern, eval(e.message))
-end
-
-macro viewfails(xp, type, mess)
-    TestFailures.failswith(
-        __source__,
-        __module__,
-        xp,
-        :($(GraphViews.ViewError) => ($type, $mess)),
-        false,
-    )
-end
-export @viewfails

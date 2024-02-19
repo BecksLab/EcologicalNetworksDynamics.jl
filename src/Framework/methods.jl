@@ -46,28 +46,32 @@ end
 
 # {SystemWrappedValueType => {:propname => property_functions}}
 const PropDict = Dict{Symbol,Property}
-properties(::Type) = PropDict()
+properties_(::Type) = PropDict()
+# When specialized, the above method yields a reference to underlying value,
+# updated according to this module's own logic. Don't expose.
 
 # Hack flag to avoid that the checks below interrupt the `Revise` process.
 # Raise when done defining properties in the package.
 global REVISING = false
 
 # Set read property first..
-# (this dynamically overrides the 'properties' method.)
 function set_read_property!(V::Type, name::Symbol, mth::Function)
-    current = properties(V)
+    current = properties_(V)
     (haskey(current, name) && !REVISING) &&
         properr(V, name, "Readable property already exists.")
+    if isempty(current)
+        # Dynamically add method to lend reference to the value lended by `properties_`.
+        eval(quote
+            properties_(::Type{$V}) = $current
+        end)
+    end
+    # Or just mutating this value is enough.
     current[name] = Property(mth)
-    eval(quote
-        properties(::Type{$V}) = $current
-    end)
 end
 
 # .. and only after, and optionally, the corresponding write property.
-# (this dynamically overrides the 'properties' method.)
 function set_write_property!(V::Type, name::Symbol, mth::Function)
-    current = properties(V)
+    current = properties_(V)
     if !haskey(current, name)
         properr(
             V,
@@ -85,10 +89,8 @@ end
 # ==========================================================================================
 # Dedicated exceptions.
 
-struct PhantomData{T} end
-
 # About method use.
-struct MethodError{V} <: Exception
+struct MethodError{V} <: SystemException
     name::Union{Symbol,Expr} # Name or Path.To.Name.
     message::String
     _::PhantomData{V}
@@ -100,7 +102,7 @@ end
 metherr(V, n, m) = throw(MethodError(V, n, m))
 
 # About properties use.
-struct PropertyError{V} <: Exception
+struct PropertyError{V} <: SystemException
     name::Symbol
     message::String
     _::PhantomData{V}

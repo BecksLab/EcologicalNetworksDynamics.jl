@@ -187,7 +187,7 @@ macro component(input...)
                             xerr("Requirement '$sub' is also specified as '$sup'."),
                     )
                 end
-                reqs[req] = reason
+                reqs[typeof(req)] = reason
             end
 
             # Possible blueprints.

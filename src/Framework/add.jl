@@ -146,7 +146,7 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
         catch e
             # The system value has not been modified during if the error is caught now.
             if e isa EmbeddedAlreadyInValue
-                rethrow(e)
+                adderr(V, "$e")
             elseif e isa InconsistentForSameComponent
                 throw("Unimplemented: construct error message from $e.")
             elseif e isa MissingRequiredComponent
@@ -314,9 +314,22 @@ struct ExpansionAborted
     exception::Any
 end
 
-# ==========================================================================================
+# Once the above have been processed,
+# convert into this dedicated user-facing one:
+struct AddError{V} <: SystemException
+    message::String
+    _::PhantomData{V}
+    AddError(::Type{V}, m) where {V} = new{V}(m, PhantomData{V}())
+end
+function Base.showerror(io::IO, e::AddError{V}) where {V}
+    println(io, "While adding components to '$V': $(e.message)")
+end
+adderr(V, m) = throw(AddError(V, m))
 
-function Base.showerror(io::IO, e::EmbeddedAlreadyInValue)
+# ==========================================================================================
+# Render errors into proper error messages.
+
+function Base.show(io::IO, e::EmbeddedAlreadyInValue)
     (; node) = e
     if isnothing(node.parent)
         bp = node.blueprint

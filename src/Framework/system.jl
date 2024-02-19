@@ -56,7 +56,7 @@ valuetype(::System{V}) where {V} = V
 # Fork the system, recursively copying the wrapped value and every component.
 function Base.copy(s::System{V}) where {V}
     value = copy(s._value)
-    concrete = OrderedSet(C for C in s._concrete)
+    concrete = OrderedDict(C => comp for (C, comp) in s._concrete)
     abstracts = Dict(A => Set(concretes) for (A, concretes) in s._abstract)
     System{V}(RawConstruct, value, concrete, abstracts)
 end
@@ -69,7 +69,7 @@ function Base.getproperty(system::System{V}, p::Symbol) where {V}
     # Authorize direct accesses to private fields.
     p in fieldnames(System) && return getfield(system, p)
     # Search property method.
-    props = properties(V)
+    props = properties_(V)
     haskey(props, p) || syserr(V, "Invalid property name: '$p'.")
     fn = props[p].read
     # Check for required components availability.
@@ -86,7 +86,7 @@ function Base.setproperty!(system::System{V}, p::Symbol, rhs) where {V}
     # Authorize direct accesses to private fields.
     p in fieldnames(System) && return setfield!(system, p, rhs)
     # Search property method.
-    props = properties(V)
+    props = properties_(V)
     haskey(props, p) || syserr(V, "Invalid property name: '$p'.")
     fn = props[p].write
     isnothing(fn) && properr(V, p, "This property is read-only.")
@@ -107,7 +107,7 @@ end
 function unchecked_getproperty(value::V, p::Symbol) where {V}
     perr(mess) = properr(V, p, mess)
     p in fieldnames(V) && return getfield(value, p)
-    props = properties(V)
+    props = properties_(V)
     haskey(props, p) || perr("Neither a field of '$V' nor a property.")
     props[p].read(value)
 end
@@ -115,7 +115,7 @@ end
 function unchecked_setproperty!(value::V, p::Symbol, rhs) where {V}
     perr(mess) = properr(V, p, mess)
     p in fieldnames(V) && return setfield!(value, p, rhs)
-    props = properties(V)
+    props = properties_(V)
     haskey(props, p) || perr("Neither a field or a property.")
     fn = props[p].write
     isnothing(fn) && properr(V, p, "Property is not writable.")
@@ -157,7 +157,7 @@ export has_component, has_concrete_component
 # Returns {:propname => is_writeable}
 function properties(s::System{V}) where {V}
     res = Dict{Symbol,Bool}()
-    for (name, prop) in properties(V)
+    for (name, prop) in properties_(V)
         readable = isnothing(missing_dependency_for(V, prop.read, s))
         if isnothing(prop.write)
             writeable = false
@@ -206,7 +206,7 @@ eol(n) = s(n) * (n == 0 ? "." : ":")
 # ==========================================================================================
 # Dedicated exceptions.
 
-struct SystemError{V} <: Exception
+struct SystemError{V} <: SystemException
     message::String
     _::PhantomData{V}
     SystemError(::Type{V}, m) where {V} = new{V}(m, PhantomData{V}())
