@@ -210,7 +210,7 @@ super_conflict_keys(C::CompType) =
 # Iterate over all conflicts for one particular component.
 # yields (conflict_key, conflicting_component, reason)
 # The yielded conflict key may be a supercomponent of the focal one.
-function conflicts(C::CompType)
+function all_conflicts(C::CompType)
     Iterators.flatten(Iterators.map(super_conflict_keys(C)) do key
         Iterators.map(conflicts(key)) do (conflicting, reason)
             (key, conflicting, reason)
@@ -231,7 +231,7 @@ end
 # (this dynamically overrides the 'conflicts' method)
 function declare_conflict(A::CompType, B::CompType, reason::Reason, err)
     vertical_guard(A, B, vertical_conflict(err))
-    for (k, c, reason) in conflicts(A)
+    for (k, c, reason) in all_conflicts(A)
         isnothing(reason) && continue
         if B <: c
             as_K = k === A ? "" : " (as '$k')"

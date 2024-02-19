@@ -245,8 +245,7 @@ macro blueprint(input...)
             for (B, (name, is_optional)) in zip(embedded, embedded_parms)
                 Framework.eval(
                     quote
-                        can_embed(b::$NewBlueprint, ::Type{$B}) =
-                            !isnothing(b.$name)
+                        can_embed(b::$NewBlueprint, ::Type{$B}) = !isnothing(b.$name)
                     end,
                 )
             end
@@ -263,20 +262,26 @@ macro blueprint(input...)
 
             for (I, trivial) in zip(impls, trivials)
                 if trivial
-                    Framework.eval(quote
-                        construct_implied(::Type{$I}, ::$NewBlueprint) = $I()
-                    end)
+                    Framework.eval(
+                        quote
+                            construct_implied(::Type{$I}, ::$NewBlueprint) = $I()
+                        end,
+                    )
                 else
-                    Framework.eval(quote
-                        construct_implied(::Type{$I}, bp::$NewBlueprint) = $I(bp)
-                    end)
+                    Framework.eval(
+                        quote
+                            construct_implied(::Type{$I}, bp::$NewBlueprint) = $I(bp)
+                        end,
+                    )
                 end
             end
 
             for (bring, (name, _)) in zip(embedded, embedded_parms)
-                Framework.eval(quote
-                    construct_brought(::Type{$bring}, bp::$NewBlueprint) = bp.$name
-                end)
+                Framework.eval(
+                    quote
+                        construct_brought(::Type{$bring}, bp::$NewBlueprint) = bp.$name
+                    end,
+                )
             end
 
         end,
@@ -285,6 +290,11 @@ macro blueprint(input...)
     # Legacy record.
     push_res!(quote
         push!(BLUEPRINTS_SPECIFIED, NewBlueprint)
+    end)
+
+    # Avoid confusing/leaky return type from macro invocation.
+    push_res!(quote
+        nothing
     end)
 
     res

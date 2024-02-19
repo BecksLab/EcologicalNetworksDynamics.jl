@@ -30,7 +30,7 @@ macro method(input...)
 
     # Convenience wrap.
     tovalue(xp, ctx, type) = to_value(__module__, xp, ctx, :xerr, type)
-    tocomptype(xp, ctx) = to_component_type(__module__, xp, :ValueType, ctx, :xerr)
+    tocomp(xp, ctx) = to_component(__module__, xp, :ValueType, ctx, :xerr)
 
     #---------------------------------------------------------------------------------------
     # Parse macro input,
@@ -104,6 +104,7 @@ macro method(input...)
     for i in input[2:end]
 
         # Dependencies section: specify the components required to use the method.
+        list = nothing # (help JuliaLS)
         @capture(i, depends(list__))
         if !isnothing(list)
             isnothing(deps_xp) || perr("The `depends` section is specified twice.")
@@ -113,28 +114,24 @@ macro method(input...)
                 if first
                     # Infer the value type from the first dep if possible.
                     xp = quote
-                        dep = $(tovalue(dep, "First dependency", Type))
-                        dep <: Blueprint || xerr(
-                            "First dependency: expression does not evaluate \
-                             to a blueprint type, but to '$dep' ($($(repr(dep)))).",
-                        )
+                        dep = $(tovalue(dep, "First dependency", Component))
                         if isnothing(ValueType)
                             ValueType = system_value_type(dep)
                         else
-                            if !(dep <: Blueprint{ValueType})
+                            if !(dep <: Component{ValueType})
                                 actual_V = system_value_type(dep)
                                 xerr("Depends section: system value type \
                                       has been inferred to be '$ValueType' \
                                       based on the first parameter type(s) of '$fn', \
-                                      but '$dep' subtypes '$(Blueprint{actual_V})' \
-                                      and not '$(Blueprint{ValueType})'.")
+                                      but '$dep' subtypes '$(Component{actual_V})' \
+                                      and not '$(Component{ValueType})'.")
                             end
                         end
                         dep
                     end
                     first = false
                 else
-                    xp = tocomptype(dep, "Depends section")
+                    xp = tocomp(dep, "Depends section")
                 end
                 push!(deps_xp.args, xp)
             end
@@ -142,6 +139,7 @@ macro method(input...)
         end
 
         # Property section: specify whether the code can be accessed as a property.
+        kw, propnames = nothing, nothing # (help JuliaLS)
         @capture(i, kw_(propnames__))
         if !isnothing(kw)
             if Base.isidentifier(kw)
@@ -199,8 +197,8 @@ macro method(input...)
             for dep in raw
                 for already in deps
                     vertical_guard(
-                        dep,
-                        already,
+                        typeof(dep),
+                        typeof(already),
                         () -> xerr("Dependency '$dep' is specified twice."),
                         (sub, sup) ->
                             xerr("Dependency '$sub' is also specified as '$sup'."),
@@ -316,6 +314,11 @@ macro method(input...)
             end
         end)
     end
+
+    # Avoid confusing/leaky return type from macro invocation.
+    push_res!(quote
+        nothing
+    end)
 
     res
 end

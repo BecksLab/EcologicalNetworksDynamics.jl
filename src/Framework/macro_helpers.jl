@@ -133,7 +133,7 @@ end
 # we figure that it had been given invalid arguments.
 struct ItemMacroExecError <: Exception
     category::Symbol # (:component, :blueprint or :method)
-    item::Union{Nothing,Type,Function} # Nothing if not yet determined.
+    item::Union{Nothing,Type,Function,Symbol} # Nothing if not yet determined.
     src::LineNumberNode
     message::String
 end

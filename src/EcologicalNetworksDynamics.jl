@@ -1,10 +1,10 @@
 module EcologicalNetworksDynamics
 
-using Crayons
-using MacroTools
-using OrderedCollections
-using SparseArrays
-using Graphs
+#  using Crayons
+#  using MacroTools
+#  using OrderedCollections
+#  using SparseArrays
+#  using Graphs
 
 #-------------------------------------------------------------------------------------------
 # Shared API internals.

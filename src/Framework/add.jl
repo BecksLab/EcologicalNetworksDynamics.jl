@@ -110,6 +110,8 @@ function check(node::Node, system::System, brought::Brought, checked::OrderedSet
         end
     end
 
+    push!(checked, component)
+
 end
 
 # ==========================================================================================
@@ -120,9 +122,9 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
         argerr("No blueprint given to expand into the system.")
     end
 
-    forest = []
-    brought = Dict() # Populated during pre-order traversal.
-    checked = OrderedSet() # Populated during first post-order traversal.
+    forest = Node[]
+    brought = Brought() # Populated during pre-order traversal.
+    checked = OrderedSet{Component}() # Populated during first post-order traversal.
 
     try
         #---------------------------------------------------------------------------------------
@@ -144,7 +146,7 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
         catch e
             # The system value has not been modified during if the error is caught now.
             if e isa EmbeddedAlreadyInValue
-                throw("Unimplemented: construct error message from $e.")
+                rethrow(e)
             elseif e isa InconsistentForSameComponent
                 throw("Unimplemented: construct error message from $e.")
             elseif e isa MissingRequiredComponent
@@ -186,9 +188,9 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
                 component = componentof(blueprint)
                 C = typeof(component)
                 crt, abs = system._concrete, system._abstract
-                crt[C] = blueprint
-                for sup in supertypes(component)
-                    sup === component && continue
+                crt[C] = component
+                for sup in supertypes(C)
+                    sup === C && continue
                     sup === Component{V} && break
                     sub = haskey(abs, sup) ? abs[sup] : (abs[sup] = Set{CompType{V}}())
                     push!(sub, C)
@@ -212,26 +214,34 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
                 # not all blueprints have been expanded,
                 # but the underlying system state consistency is safe.
                 throw("Unimplemented: construct error message from $e.")
-            elseif e isa ExpansionAborted
+            else
                 # This is unexpected and it may have occured during expansion.
                 # The underlying system state consistency is no longuer guaranteed.
                 this =
                     length(blueprints) > 1 ?
                     "blueprints $(join(map(typeof, blueprints), ", ", " and "))" :
                     "blueprint $(blueprints[1])"
-                syserr(
-                    V,
-                    "\n$(crayon"red")\
-                     ⚠ ⚠ ⚠ Failure during expansion of $this. ⚠ ⚠ ⚠\
-                     $(crayon"reset")\n\
-                     This system state consistency is no longer guaranteed by the program. \
-                     This should not happen and must be considered a bug \
-                     within the components library. \
-                     Consider reporting if you can reproduce with a minimal working example. \
-                     In any case, please drop the current system value and create a new one.",
-                )
-            else
-                rethrow(e)
+                warn = "This system state consistency \
+                        is no longer guaranteed by the program. \
+                        This should not happen and must be considered a bug \
+                        within the components library. \
+                        Consider reporting if you can reproduce \
+                        with a minimal working example. \
+                        In any case, please drop the current system value \
+                        and create a new one."
+                if e isa ExpansionAborted
+                    syserr(
+                        V,
+                        "\n$(crayon"red")\
+                         ⚠ ⚠ ⚠ Failure during expansion of $this. ⚠ ⚠ ⚠\
+                         $(crayon"reset")\n$warn",
+                    )
+                else
+                    throw(ErrorException("\n$(crayon"red")\
+                           ⚠ ⚠ ⚠ Failure during addition of $this. ⚠ ⚠ ⚠\
+                           $(crayon"reset")\n\
+                           This is a bug in the Framework library.\n$warn"))
+                end
             end
         end
     catch e
@@ -246,6 +256,7 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
                     This is either a bug in the framework or in the components library. \
                     Consider reporting if you can reproduce with a minimal working example."
         else
+            rethrow(e)
         end
     end
 
@@ -301,4 +312,22 @@ end
 struct ExpansionAborted
     node::Node
     exception::Any
+end
+
+# ==========================================================================================
+
+function Base.showerror(io::IO, e::EmbeddedAlreadyInValue)
+    (; node) = e
+    if isnothing(node.parent)
+        bp = node.blueprint
+        comp = componentof(bp)
+        print(
+            io,
+            "Blueprint expands into component '$comp', \
+             which is already in the system:\n$bp",
+        )
+        return
+    end
+    # Extract bring path up to add!-caller blueprint.
+    throw("Unimplemented error display: $e.")
 end

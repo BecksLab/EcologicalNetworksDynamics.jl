@@ -20,7 +20,7 @@ struct System{V}
 
     # Keep track of all the concrete components added:
     # type and associated singleton instance.
-    _concrete::OrderedSet{CompType{V},Component{V}} # (ordered to be used as a history)
+    _concrete::OrderedDict{CompType{V},Component{V}} # (ordered to be used as a history)
 
     # Components are also indexed by their possible abstract supertypes.
     _abstract::Dict{CompType{V},Set{CompType{V}}} # {Abstract -> {Concrete}}
@@ -40,6 +40,9 @@ struct System{V}
         end
         system
     end
+
+    # Specialize the empty case to avoid infinite recursion.
+    System{V}() where {V} = new{V}(V(), OrderedDict(), Dict())
 
     # Useful when copying.
     System{V}(::Type{RawConstruct}, args...) where {V} = new{V}(args...)
@@ -184,16 +187,16 @@ Base.:(==)(a::Blueprint{U}, b::Blueprint{V}) where {U,V} =
 #-------------------------------------------------------------------------------------------
 # Display.
 function Base.show(io::IO, sys::System)
-    n = length(sys._blueprints)
+    n = length(sys._concrete)
     print(io, "$(typeof(sys)) with $n component$(s(n)).")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", sys::System)
-    n = length(sys._blueprints)
+    n = length(sys._concrete)
     S = typeof(sys)
     rs = repr(MIME("text/plain"), S)
     print(io, "$rs with $n component$(eol(n))")
-    for component in keys(sys._blueprints)
+    for component in keys(sys._concrete)
         print(io, "\n  - $(display(sys._value, component))")
     end
 end

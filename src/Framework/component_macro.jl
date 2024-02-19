@@ -4,7 +4,7 @@
 # and possible abstract component supertypes,
 # and then calls:
 #
-#   @component Name::ValueType requires(components...) blueprints(name::Type, ...)
+#   @component Name{ValueType} requires(components...) blueprints(name::Type, ...)
 #
 # Or:
 #
@@ -13,7 +13,7 @@
 # Or alternately:
 #
 #   @component begin
-#       Name::ValueType
+#       Name{ValueType}
 #  (or) Name <: SuperComponentType
 #       requires(components...)
 #       blueprints(name::Type, ...)
@@ -76,8 +76,12 @@ macro component(input...)
 
     # Extract component name, value type and supercomponent from the first section.
     component_xp = input[1]
-    @capture(component_xp, (name_::value_type_) | name_ <: super_)
-    if isnothing(valuetype)
+    name, value_type, super = nothing, nothing, nothing # (help JuliaLS)
+    @capture(component_xp, name_{value_type_} | (name_ <: super_))
+    isnothing(name) &&
+        perr("Expected component `Name{ValueType}` or `Name <: SuperComponent`, \
+              got instead: $(repr(component_xp)).")
+    if !isnothing(super)
         # Infer value type from the abstract supercomponent.
         # Same, for abstract component types.
         super isa Symbol || perr("Expected supercomponent symbol, got: $(repr(super)).")
@@ -91,24 +95,23 @@ macro component(input...)
                 ValueType = system_value_type(SuperComponent)
             end,
         )
-    else
+    elseif !isnothing(value_type)
         push_res!(
             quote
                 ValueType =
-                    $(tovalue(super, "Evaluating given system value type", DataType))
+                    $(tovalue(value_type, "Evaluating given system value type", DataType))
                 SuperComponent = Component{ValueType}
             end,
         )
     end
-
     component_name = name
     component_sym = Meta.quot(name)
     component_type = Symbol(:_, name)
-
     push_res!(
         quote
             isdefined($__module__, $component_sym) &&
-                xerr("Cannot define component $($component_sym): name already defined.")
+                xerr("Cannot define component '$($component_sym)': name already defined.")
+            NewComponent = $component_sym
         end,
     )
 
@@ -119,12 +122,14 @@ macro component(input...)
     for i in input[2:end]
 
         # Require section: specify necessary components.
+        reqs = nothing # (help JuliaLS)
         @capture(i, requires(reqs__))
         if !isnothing(reqs)
             isnothing(requires_xp) || perr("The `requires` section is specified twice.")
             requires_xp = :([])
             for req in reqs
                 # Set requirement reason to 'nothing' if unspecified.
+                comp, reason = nothing, nothing # (help JuliaLS)
                 @capture(req, comp_ => reason_)
                 if isnothing(reason)
                     comp = req
@@ -139,18 +144,20 @@ macro component(input...)
         end
 
         # Implies section: specify automatically expanded blueprints.
+        bps = nothing # (help JuliaLS)
         @capture(i, blueprints(bps__))
         if !isnothing(bps)
             isnothing(blueprints_xp) || perr("The `blueprints` section is specified twice.")
             blueprints_xp = :([])
             for bp in bps
+                bpname, B = nothing, nothing # (help JuliaLS)
                 @capture(bp, bpname_::B_)
                 isnothing(bpname) &&
                     perr("Expected `name::Type` to specify blueprint, found $(repr(bp)).")
                 is_identifier_path(B) ||
                     perr("Not a blueprint identifier path: $(repr(B)).")
                 xp = tobptype(B, "Implied blueprint")
-                push!(blueprints_xp.args, :(Meta.quot(bpname), xp))
+                push!(blueprints_xp.args, :($(Meta.quot(bpname)), $xp))
             end
             continue
         end
@@ -188,6 +195,13 @@ macro component(input...)
             bps = []
             auto_req = CompsReasons()
             for (i, (bpname, B)) in enumerate($blueprints_xp)
+                # Check that this blueprint is not already bound to another component.
+                try
+                    C = componentof(B)
+                    xerr("Blueprint $(repr(B)) already bound to component $(repr(C)).")
+                catch e
+                    e isa UnspecifiedComponent{B} || rethrow(e)
+                end
                 # Triangular-check against redundancies.
                 for (already_name, already_B) in bps
                     already_name === bpname &&
@@ -214,6 +228,8 @@ macro component(input...)
                 end
                 push!(bps, (bpname, B))
             end
+            isempty(bps) &&
+                xerr("No blueprint to be expanded into component $(repr(NewComponent)).")
 
             # Automatically require components brought/implied by all blueprints.
             for (C, reason) in auto_req
@@ -230,13 +246,14 @@ macro component(input...)
 
     # Construct the component type, with blueprints as fields.
     ena = esc(component_name)
-    ety = esc(component_type)
+    enas = Meta.quot(component_name)
+    etys = Meta.quot(component_type)
     push_res!(quote
         str = quote
-            struct $ety <: SuperComponent end
+            struct $($etys) <: $SuperComponent end
         end
         for (bpname, B) in bps
-            push!(str.args[3].args, quote
+            push!(str.args[2].args[3].args, quote
                 $bpname::Type{$B}
             end)
         end
@@ -245,22 +262,38 @@ macro component(input...)
 
     # Construct the singleton instance.
     push_res!(quote
-        cstr = :($component_type())
+        cstr = :($($etys)())
         for (_, B) in bps
-            push!(cstr.args, $B)
+            push!(cstr.args, B)
         end
-        $__module__.eval(quote
-            const $ena = $cstr
-        end)
+        cstr = quote
+            const $($enas) = $cstr
+        end
+        $__module__.eval(cstr)
     end)
+
+    # Connect to blueprint types.
+    push_res!(
+        quote
+            for (_, B) in bps
+                $__module__.eval(quote
+                    $($Framework).componentof(::Type{$B}) = $($enas)
+                end)
+            end
+        end,
+    )
 
     # Setup the components required.
     push_res!(
         quote
-            Framework.requires(::Type{NewComponent}) =
-                CompsReasons(k => v for (k, v) in reqs)
+            Framework.requires(::Type{$etys}) = CompsReasons(k => v for (k, v) in reqs)
         end,
     )
+
+    # Avoid confusing/leaky return type from macro invocation.
+    push_res!(quote
+        nothing
+    end)
 
     res
 end

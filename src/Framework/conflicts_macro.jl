@@ -117,6 +117,11 @@ macro conflicts(input...)
         end,
     )
 
+    # Avoid confusing/leaky return type from macro invocation.
+    push_res!(quote
+        nothing
+    end)
+
     res
 
 end

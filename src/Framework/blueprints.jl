@@ -6,8 +6,12 @@ export Blueprint
 # Every blueprint is supposed to bring exactly one major component.
 # This method implements the mapping,
 # and must be explicited by components devs.
-componentof(::Type{B}) where {B<:Blueprint} = throw("Unspecified component for $(repr(B)).")
+struct UnspecifiedComponent{B<:Blueprint} end
+componentof(::Type{B}) where {B<:Blueprint} = throw(UnspecifiedComponent{B}())
 componentof(::B) where {B<:Blueprint} = componentof(B)
+
+system_value_type(::Type{<:Blueprint{V}}) where {V} = V
+system_value_type(::Blueprint{V}) where {V} = V
 
 # Blueprints must be copyable, but be careful that the default (deepcopy)
 # is not necessarily what component devs are after.
@@ -110,3 +114,8 @@ struct BlueprintCheckFailure <: Exception
 end
 checkfails(m) = throw(BlueprintCheckFailure(m))
 export BlueprintCheckFailure, checkfails
+
+# ==========================================================================================
+function Base.showerror(io::IO, ::UnspecifiedComponent{B}) where {B}
+    print(io, "Unspecified component for '$(repr(B))'.")
+end

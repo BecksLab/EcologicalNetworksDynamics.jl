@@ -117,11 +117,11 @@ include("./system.jl")
 include("./add.jl")
 include("./plus_operator.jl")
 
-#  # Exposed macros.
+# Exposed macros.
 include("./macro_helpers.jl")
 include("./component_macro.jl")
 include("./blueprint_macro.jl")
-#  include("./conflicts_macro.jl")
-#  include("./method_macro.jl")
+include("./conflicts_macro.jl")
+include("./method_macro.jl")
 
 end

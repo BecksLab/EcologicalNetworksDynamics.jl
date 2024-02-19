@@ -25,6 +25,7 @@ using Test
 
 const F = Framework
 
+# HERE: rewrite regular use tests.
 @testset "Basic components/methods." begin
 
     #---------------------------------------------------------------------------------------
