@@ -47,7 +47,7 @@ FR = Nutrients.SupplyFromRawValues
     @sysfails(
         Model(Nutrients.Supply(5)),
         Check(FR),
-        "missing required component '$(Nutrients.Nodes)': implied."
+        "missing a required component '$(Nutrients.Nodes)': implied."
     )
 
 end

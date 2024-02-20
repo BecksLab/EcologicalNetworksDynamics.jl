@@ -4,14 +4,17 @@
 
     base = Model(Foodweb(:niche; S = 5, C = 0.2), MetabolicClass(:all_invertebrates))
 
-    # Code component blueprint brings all required data components with it.
+    # Code component blueprint brings all required data components with it..
     clr = ClassicResponse()
-    @test clr.M.Z == 1
+    @test isnothing(clr.M) # .. except for the body mass.
     @test clr.w == ConsumersPreferences(:homogeneous)
     @test clr.h == HillExponent(2)
     @test clr.handling_time.h_t == :Miele2019
 
-    m = base + clr
+    # The body mass is typically brought another way.
+    bm = BodyMass(1) # (use constant mass to ease later tests)
+
+    m = base + bm + clr
     @test m.h == 2
     @test m.M == ones(5)
     @test m.intraspecific_interference == zeros(5)

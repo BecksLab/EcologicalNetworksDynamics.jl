@@ -39,7 +39,7 @@ FR = EN.Nutrients.HalfSaturationFromRawValues
     @sysfails(
         base + Nutrients.HalfSaturation(5),
         Check(FR),
-        "missing required component '$(Nutrients.Nodes)': implied."
+        "missing a required component '$(Nutrients.Nodes)': implied."
     )
 
 end

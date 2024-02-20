@@ -10,8 +10,9 @@ Random.seed!(12)
     fw = Foodweb([0 1 0; 0 0 1; 0 0 0])  # (inline matrix input)
     m = default_model(fw)
     B0 = [0.5, 0.5, 0.5]
-    sol = simulate(m, B0)
-    @test sol.u[end] ≈ [0.04885048633720308, 0.1890242584230083, 0.22059687801237501]
+    tmax = 500
+    sol = simulate(m, B0, tmax)
+    @test sol.u[end] ≈ [0.6505703879774151, 0.1889414733543331, 0.4164973283173464]
 
 end
 
@@ -23,7 +24,7 @@ end
 
     # Add components one by one.
     add!(m, Foodweb([:a => :b, :b => :c])) # (named adjacency input)
-    add!(m, BodyMass(1))
+    add!(m, BodyMass(; Z = 10))
     add!(m, MetabolicClass(:all_invertebrates))
     add!(m, BioenergeticResponse(; w = :homogeneous, half_saturation_density = 0.5))
     add!(m, LogisticGrowth(; r = 1, K = 1))
@@ -31,8 +32,8 @@ end
     add!(m, Mortality(0))
 
     # Simulate.
-    sol = simulate(m, 0.5) # (all initial values to 0.5)
-    @test sol.u[end] ≈ [0.04885048633720308, 0.1890242584230083, 0.22059687801237501]
+    sol = simulate(m, 0.5, 500) # (all initial values to 0.5, simulate up to t=500)
+    @test sol.u[end] ≈ [0.6505703879774151, 0.1889414733543331, 0.4164973283173464]
 
 end
 
@@ -41,7 +42,7 @@ end
 
     m = Model(
         Foodweb([:a => :b, :b => :c]),
-        BodyMass(1),
+        BodyMass(; Z = 10),
         MetabolicClass(:all_invertebrates),
         BioenergeticResponse(),
         LogisticGrowth(),
@@ -49,8 +50,8 @@ end
         Mortality(0),
     )
 
-    sol = simulate(m, [0.5, 0.5, 0.5])
-    @test sol.u[end] ≈ [0.04885048633720308, 0.1890242584230083, 0.22059687801237501]
+    sol = simulate(m, [0.5, 0.5, 0.5], 500)
+    @test sol.u[end] ≈ [0.6505703879774151, 0.1889414733543331, 0.4164973283173464]
 
 end
 
@@ -59,7 +60,7 @@ end
 
     # Construct blueprints independently from each other.
     fw = Foodweb([:a => :b, :b => :c])
-    bm = BodyMass(1)
+    bm = BodyMass(; Z = 10)
     mc = MetabolicClass(:all_invertebrates)
     be = BioenergeticResponse()
     lg = LogisticGrowth()
@@ -70,8 +71,8 @@ end
     m = Model() + fw + bm + mc + be + lg + mb + mt
     # (this produces a system copy on every '+')
 
-    sol = simulate(m, 0.5)
-    @test sol.u[end] ≈ [0.04885048633720308, 0.1890242584230083, 0.22059687801237501]
+    sol = simulate(m, 0.5, 500)
+    @test sol.u[end] ≈ [0.6505703879774151, 0.1889414733543331, 0.4164973283173464]
 
 end
 
@@ -87,8 +88,8 @@ end
     # If provided, the default will not be used.
     m = default_model(fw, ClassicResponse())
 
-    sol = simulate(m, 0.5)
-    @test sol.u[end] ≈ [0.2246409590398916, 0.09112832180307448, 0.5444058436109662]
+    sol = simulate(m, 0.5, 500)
+    @test sol.u[end] ≈ [0.30245442377904147, 0.1507782858041653, 0.8351420883977096]
 
 end
 
@@ -101,8 +102,8 @@ end
         FacilitationLayer(; A = (L = 1,)),
     )
 
-    sol = simulate(m, 0.5)
-    @test sol.u[end] ≈ [0.24726844778226592, 0.09114742274197872, 0.6904984843155931]
+    sol = simulate(m, 0.5, 500)
+    @test sol.u[end] ≈ [0.3073034568564342, 0.15077826302332667, 0.8791058938977693]
 
 end
 
@@ -119,13 +120,13 @@ end
         ),
     )
 
-    sol = simulate(m, 0.5)
+    sol = simulate(m, 0.5, 500)
     @test sol.u[end] ≈ [
-        0.29247159105315307
-        0.14537825150324735
-        0.12875174646007237
-        0.0
-        4.8215132134864145e-5
+        0.6871892011471322,
+        0.24497058086035212,
+        0.2034744714268744,
+        0.0,
+        0.00012545266696651692,
     ]
 
 end
@@ -148,13 +149,13 @@ end
     # Access them with convenience aliases.
     m += layers[:facilitation] + layers[:c] + layers["ref"] + layers['i']
 
-    sol = simulate(m, 0.5)
+    sol = simulate(m, 0.5, 500)
     @test sol.u[end] ≈ [
-        0.29247159105315307
-        0.14537825150324735
-        0.12875174646007237
-        0.0
-        4.8215132134864145e-5
+        0.6871892011471322,
+        0.24497058086035212,
+        0.2034744714268744,
+        0.0,
+        0.00012545266696651692,
     ]
 
 end
@@ -163,16 +164,15 @@ end
 @testset "Nutrient Intake." begin
 
     # With nutrients (instead of logistic growth).
-    m = default_model(Foodweb([2 => 1, 3 => 2]), NutrientIntake(; concentration = [1 0.5]))
+    m = default_model(Foodweb([2 => 1, 3 => 2]), NutrientIntake(2; concentration = [1 0.5]))
     B0, N0 = rand(3), rand(2)
-    sol = simulate(m, B0; N0)
-    m._value.producer_growth.concentration
+    sol = simulate(m, B0, 500; N0)
     @test sol.u[end] ≈ [
-        0.28423925333678635,
-        0.18879238451408806,
-        0.1534109945177679,
-        9.707009178714864,
-        9.853504589357435,
+        1.7872795749078765,
+        0.18898223629746858,
+        1.8337090324346232,
+        0.06670978415974765,
+        2.0333548914773587,
     ]
 
 end

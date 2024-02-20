@@ -50,20 +50,28 @@ mutable struct NutrientIntake <: ProducerGrowth
     supply::Option{Nutrients.Supply}
     concentration::Option{Nutrients.Concentration}
     half_saturation::Option{Nutrients.HalfSaturation}
-    function NutrientIntake(nodes = nothing; kwargs...)
-        (!isnothing(nodes) && haskey(kwargs, :nodes)) &&
-            argerr("Nodes specified once as plain argument ($(repr(nodes))) \
-                    and once as keyword argument (nodes = $(kwargs[:nodes])).")
+    function NutrientIntake(nodes = missing; kwargs...)
+        nodes = if haskey(kwargs, :nodes)
+            ismissing(nodes) ||
+                argerr("Nodes specified once as plain argument ($(repr(nodes))) \
+                        and once as keyword argument (nodes = $(kwargs[:nodes])).")
+            kwargs[:nodes]
+        elseif ismissing(nodes)
+            :one_per_producer
+        else
+            nodes
+        end
         fields = fields_from_kwargs(
             NutrientIntake,
             kwargs;
+            # Values from Brose2008.
             default = (;
                 r = :Miele2019,
                 nodes,
                 turnover = 0.25,
-                supply = 10,
-                concentration = 1,
-                half_saturation = 1,
+                supply = 4,
+                concentration = 0.5,
+                half_saturation = 0.15,
             ),
         )
         new(fields...)

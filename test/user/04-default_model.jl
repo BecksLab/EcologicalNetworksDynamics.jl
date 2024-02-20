@@ -35,7 +35,7 @@
     # Pick another functional response.
     m = default_model(fw, ClassicResponse())
     @test has_component(m, ClassicResponse)
-    @test maximum(m.attack_rate) == 50
+    @test maximum(m.attack_rate) ≈ 334.1719587843073
 
     # Pick yet another functional response.
     m = default_model(fw, LinearResponse())
@@ -71,7 +71,7 @@
     @test has_component(m, NutrientIntake)
     @test m.n_nutrients == 3
     @test m.nutrients_turnover == [1 / 4, 1 / 4, 1 / 4]
-    @test m.nutrients_concentration == ones(2, 3)
+    @test m.nutrients_concentration == 0.5 .* ones(2, 3)
     @sysfails(
         m.K,
         Property(K),
@@ -84,12 +84,12 @@
     @test m.K == [0, 0, 1, 1]
 
     # Any nutrient component triggers this default.
-    m = default_model(fw, Nutrients.Turnover([1, 2, 3, 4]))
+    m = default_model(fw, Nutrients.Turnover(0.8))
     @test !has_component(m, LogisticGrowth)
     @test has_component(m, NutrientIntake)
-    @test m.n_nutrients == 4
-    @test m.nutrients_turnover == [1, 2, 3, 4]
-    @test m.nutrients_concentration == ones(2, 4)
+    @test m.n_nutrients == m.n_producers == 2
+    @test m.nutrients_turnover == [0.8, 0.8]
+    @test m.nutrients_concentration == 0.5 .* ones(2, 2)
     @sysfails(
         m.K,
         Property(K),
@@ -97,12 +97,12 @@
     )
 
     # Tweak directly from inside the aggregated blueprint.
-    m = default_model(fw, NutrientIntake(; turnover = [1, 2]))
+    m = default_model(fw, NutrientIntake(; turnover = 0.8))
     @test !has_component(m, LogisticGrowth)
     @test has_component(m, NutrientIntake)
-    @test m.n_nutrients == 2
-    @test m.nutrients_turnover == [1, 2]
-    @test m.nutrients_concentration == ones(2, 2)
+    @test m.n_nutrients == m.n_producers == 2
+    @test m.nutrients_turnover == [0.8, 0.8]
+    @test m.nutrients_concentration == 0.5 .* ones(2, 2)
     @sysfails(
         m.K,
         Property(K),
@@ -111,8 +111,8 @@
 
     # Combine if meaningful.
     m = default_model(fw, Temperature(), NutrientIntake(; turnover = [1, 2]))
-    @test m.nutrients_supply == [10, 10]
-    @test m.attack_rate[1, 2] == 2.0452306245234897e-6
+    @test m.nutrients_supply == [4, 4]
+    @test m.attack_rate[1, 2] == 7.686741690921419e-7
 
     # Add multiplex layers.
     m = default_model(fw, CompetitionLayer(; A = (C = 0.2, sym = true), I = 2))

@@ -43,7 +43,7 @@ FR = EN.Nutrients.ConcentrationFromRawValues
     @sysfails(
         base + Nutrients.Concentration(5),
         Check(FR),
-        "missing required component '$(Nutrients.Nodes)': implied."
+        "missing a required component '$(Nutrients.Nodes)': implied."
     )
 
 end

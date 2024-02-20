@@ -57,7 +57,10 @@ mutable struct ClassicResponse <: FunctionalResponse
             ClassicResponse,
             kwargs;
             default = (
-                M = (Z = 1,),
+                # Don't bring BodyMass by default,
+                # because it has typically already been added before
+                # as it is useful to calculate numerous other parameters.
+                M = nothing,
                 e = :Miele2019,
                 h = 2,
                 w = :homogeneous,

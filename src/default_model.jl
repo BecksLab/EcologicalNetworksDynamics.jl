@@ -104,25 +104,6 @@ function default_model(
                     # println("    collect from caller")
                     # Pick from caller input.
                     collect!(take_from_caller!(need))
-                elseif need <: BodyMass &&
-                       !collected(need) &&
-                       !excluded(need) &&
-                       given(ClassicResponse) &&
-                       any(B <: BodyMass for B in F.brings(input[ClassicResponse]))
-                    # println("    special bodymass case")
-                    # Very special hack-patch to pick body mass
-                    # from a given classic response if given.
-                    # TODO: The proper fix is to reify the tree structure
-                    # of brought sub-blueprints, use dedicated data structures to query it,
-                    # and allow general editions of the blueprints given here
-                    # within the default model.
-                    # This will be better done after the framework has been refactored.
-                    remove_hook!(BodyMass)
-                    bp = deepcopy(input[ClassicResponse])
-                    bm = bp.M
-                    bp.M = nothing
-                    input[ClassicResponse] = bp
-                    collect!(bm)
                 elseif !collected(need) && !excluded(need) && haskey(hooks, need)
                     # println("    collect from hooks")
                     collect!(pop!(hooks, need))
@@ -210,7 +191,7 @@ function default_model(
     #---------------------------------------------------------------------------------------
     # Not always required but often missing.
 
-    hooks[BodyMass] = BodyMass(; Z = 1)
+    hooks[BodyMass] = BodyMass(; Z = 10)
     hooks[MetabolicClass] = MetabolicClass(:all_invertebrates)
 
     #---------------------------------------------------------------------------------------
@@ -223,10 +204,12 @@ function default_model(
         () -> if nutrients_given
             NutrientIntake(;
                 r = tb!(GrowthRate, temperature_given ? :Binzer2016 : :Miele2019),
+                # Pick defaults from Brose2008.
+                nodes = tb!(N.Nodes, :one_per_producer),
                 turnover = tb!(N.Turnover, 0.25),
-                supply = tb!(N.Supply, 10),
-                concentration = tb!(N.Concentration, 1),
-                half_saturation = tb!(N.HalfSaturation, 1),
+                supply = tb!(N.Supply, 4),
+                concentration = tb!(N.Concentration, 0.5),
+                half_saturation = tb!(N.HalfSaturation, 0.15),
             )
         elseif temperature_given
             LogisticGrowth(;
@@ -250,7 +233,7 @@ function default_model(
         FunctionalResponse,
         () -> if temperature_given
             ClassicResponse(;
-                M = tb!(BodyMass, (; Z = 1)),
+                M = nothing,
                 e = tb!(Efficiency, :Miele2019),
                 h = tb!(HillExponent, 2),
                 w = tb!(ConsumersPreferences, :homogeneous),
@@ -260,7 +243,7 @@ function default_model(
             )
         elseif nti_given
             ClassicResponse(;
-                M = tb!(BodyMass, (; Z = 1)),
+                M = nothing,
                 e = tb!(Efficiency, :Miele2019),
                 h = tb!(HillExponent, 2),
                 w = tb!(ConsumersPreferences, :homogeneous),
