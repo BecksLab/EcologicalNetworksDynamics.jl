@@ -3,12 +3,13 @@
 import EcologicalNetworksDynamics.Framework:
     AddError,
     BlueprintCheckFailure,
+    BroughtAlreadyInValue,
     ConflictMacroExecError,
     ConflictMacroParseError,
     Framework,
+    HookCheckFailure,
     ItemMacroExecError,
     ItemMacroParseError,
-    BroughtAlreadyInValue,
     SystemException
 
 #-------------------------------------------------------------------------------------------
@@ -143,9 +144,6 @@ end
 # assuming such a type exists in the macro invocation context eg. in the test suite.
 # Special-case `AddError` as it requires more (arbitrary) information checking.
 macro sysfails(xp, input, mess = nothing)
-    println("xp: $xp ::$(typeof(xp))")
-    println("input: $input ::$(typeof(input))")
-    println("mess: $mess ::$(typeof(mess))")
     assert_symbol(x) =
         x isa Symbol ||
         throw("Incorrect use of @sysfails test macro: not a symbol: $(repr(x)).")
@@ -171,10 +169,12 @@ macro sysfails(xp, input, mess = nothing)
         E = SystemException
         args = :($__module__, $errunion, $errparms, $name, $mess)
     else
-        name = AddName
-        E = AddError
+        # Evaluate expected error in macro definition context.
+        AddName = eval(AddName)
+        E = :($AddError{Value})
+        # Evaluate expected fields within macro invocation context.
         fields = Expr(:vect, fields...)
-        args = :($name, $fields)
+        args = :($AddName, $fields)
     end
     TestFailures.failswith(__source__, __module__, xp, :($E => $args), false)
 end
@@ -183,9 +183,7 @@ export @sysfails
 #-------------------------------------------------------------------------------------------
 # Sophisticated version for AddError, because all fields are checked
 # according to framework dedicated logic.
-function TestFailures.check_exception(e::SystemException, _, ::Type{AddError}, name, fields)
-    # HERE: adjust so @sysfails((), Add(BroughtAlreadyInValue, ...)) brings here.
-    # Extract underlying error.
+function TestFailures.check_exception(e::AddError, name, fields)
     e = e.e
     # Check type.
     E = typeof(e)
@@ -193,11 +191,14 @@ function TestFailures.check_exception(e::SystemException, _, ::Type{AddError}, n
     # Check field values.
     names = fieldnames(E)
     actual = [getfield(e, name) for name in names]
+    expected = fields
     la, le = length.((actual, expected))
-    la == le || error("Exception '$E' contains $le fields, but only $le were expected.")
+    s(n) = n > 1 ? "s" : ""
+    la == le || error("Exception '$E' contains $la field$(s(la)), \
+                       but $le field$(s(le)) were expected.")
     for (name, a, e) in zip(names, actual, expected)
         if a isa Framework.Node
-            e isa Framework.BpPath ||
+            e isa Vector ||
                 error("Cannot compare node field $E.$name to $(repr(e))::$(typeof(e)).")
             check_path(a, e)
         elseif a isa String
@@ -212,9 +213,8 @@ function TestFailures.check_exception(e::SystemException, _, ::Type{AddError}, n
     end
 end
 
-function check_path(node::Framework.Node, expected::Framework.BpPath)
+function check_path(node::Framework.Node, expected)
     actual = Framework.path(node)
-    actual == path || error("Node does not match the expected path:\
-                             \n  $expected\nactual path:\n  $actual")
+    actual == expected || error("Node does not match the expected path:\
+                                 \n  $expected\nactual path:\n  $actual")
 end
-

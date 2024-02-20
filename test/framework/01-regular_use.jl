@@ -58,7 +58,7 @@ F.expand!(v, u::Uniform) = (v._dict[:a] = [u.value for _ in 1:v.n])
 struct Raw <: Blueprint{Value}
     a::Vector{Float64}
 end
-function F.check(v, raw::Raw)
+function F.late_check(v, raw::Raw)
     na = length(raw.a)
     nv = v.n
     na == nv || checkfails("Cannot expand $na 'a' values into $nv lines.")
@@ -98,19 +98,17 @@ get_a(v) = v._dict[:a]
     @sysfails((s.n = 8), Property(n), "This property is read-only.")
 
     # Cannot add component twice.
-    @sysfails(
-        add!(s, NLines(5)),
-        Add, # HERE: ease check with Add(BroughtNotInValue, [Size]).
-        "Blueprint expands into component '$_Size($NLines)', \
-         which is already in the system:\n$NLines(5)"
-    )
+    @sysfails(add!(s, NLines(5)), Add(BroughtAlreadyInValue, [NLines]),)
 
     # Add component requiring previous one from a blueprint.
     t = s + A.Uniform(8)
     @test t.a == [8, 8, 8, 8, 8]
 
     # Would fail if custom blueprint constraints are not enforced.
-    t = s + A.Raw([8, 8, 8]) # HERE: check failure.
+    @sysfails(
+        s + A.Raw([8, 8, 8]),
+        Add(HookCheckFailure, [A.Raw], "Cannot expand 3 'a' values into 5 lines.", true),
+    )
 
     #---------------------------------------------------------------------------------------
     # Specify components.
