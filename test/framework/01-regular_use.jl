@@ -33,9 +33,12 @@ export F, Value
 struct NLines <: Blueprint{Value}
     n::Int64
 end
+F.early_check(nl::NLines) =
+    nl.n > 0 || checkfails("Not a positive number of lines: $(nl.n).")
 F.expand!(v, nl::NLines) = (v._n = nl.n)
 @blueprint NLines
 @component Size{Value} blueprints(N::NLines)
+export NLines
 
 get_n(v) = v._n
 @method get_n depends(Size) read_as(n)
@@ -64,7 +67,8 @@ function F.late_check(v, raw::Raw)
     na == nv || checkfails("Cannot expand $na 'a' values into $nv lines.")
 end
 F.expand!(v, r::Raw) = (v._dict[:a] = deepcopy(r.a))
-@blueprint Raw implies()
+Basics.NLines(r::Raw) = NLines(length(r.a))
+@blueprint Raw implies(NLines)
 
 end # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -78,7 +82,7 @@ get_a(v) = v._dict[:a]
 @method get_a depends(A) read_as(a)
 
 # ==========================================================================================
-# Test actually use of the system.
+# Test actual use of the system.
 
 @testset "Basic components/methods." begin
 
@@ -109,6 +113,24 @@ get_a(v) = v._dict[:a]
         s + A.Raw([8, 8, 8]),
         Add(HookCheckFailure, [A.Raw], "Cannot expand 3 'a' values into 5 lines.", true),
     )
+
+    # Blueprints can imply others.
+    e = System{Value}() # Empty.
+    s = e + A.Raw([8, 8, 8]) # Automatically bring NLines.
+    @test has_component(s, Size)
+    @test has_component(s, A)
+
+    # Display path to failing brought sub-blueprint in case of failure.
+    @sysfails(
+        e + A.Raw([]),
+        Add(
+            HookCheckFailure,
+            [NLines, true, A.Raw],
+            "Not a positive number of lines: 0.",
+            false,
+        )
+    )
+    # HERE: keep testing!
 
     #---------------------------------------------------------------------------------------
     # Specify components.
