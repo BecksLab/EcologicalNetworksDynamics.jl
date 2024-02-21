@@ -70,7 +70,7 @@ function failswith(src, mod, xp, exception_pattern, expect_expansion_failure)
                Was expecting: $exception_pattern.")
     end
     # Test actual generated code.
-    @gensym e
+    @gensym e # Otherwise unhygienic.
     esc(quote
         try
             $code

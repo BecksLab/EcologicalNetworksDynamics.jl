@@ -4,12 +4,14 @@ import EcologicalNetworksDynamics.Framework:
     AddError,
     BlueprintCheckFailure,
     BroughtAlreadyInValue,
+    CompType,
     ConflictMacroExecError,
     ConflictMacroParseError,
     Framework,
     HookCheckFailure,
     ItemMacroExecError,
     ItemMacroParseError,
+    MissingRequiredComponent,
     SystemException
 
 #-------------------------------------------------------------------------------------------
@@ -170,11 +172,11 @@ macro sysfails(xp, input, mess = nothing)
         args = :($__module__, $errunion, $errparms, $name, $mess)
     else
         # Evaluate expected error in macro definition context.
-        AddName = eval(AddName)
+        ExceptionType = eval(AddName)
         E = :($AddError{Value})
         # Evaluate expected fields within macro invocation context.
         fields = Expr(:vect, fields...)
-        args = :($AddName, $fields)
+        args = :($ExceptionType, $fields)
     end
     TestFailures.failswith(__source__, __module__, xp, :($E => $args), false)
 end
@@ -183,32 +185,37 @@ export @sysfails
 #-------------------------------------------------------------------------------------------
 # Sophisticated version for AddError, because all fields are checked
 # according to framework dedicated logic.
-function TestFailures.check_exception(e::AddError, name, fields)
+function TestFailures.check_exception(e::AddError, expected_type, fields)
     e = e.e
     # Check type.
     E = typeof(e)
-    E == name || error("Expected '$name' error, got '$E' instead.")
+    nE = nameof(E)
+    E == expected_type || error("Expected '$expected_type' error, got '$E' instead.")
     # Check field values.
     names = fieldnames(E)
     actual = [getfield(e, name) for name in names]
     expected = fields
     la, le = length.((actual, expected))
     s(n) = n > 1 ? "s" : ""
-    la == le || error("Exception '$E' contains $la field$(s(la)), \
+    la == le || error("Exception '$nE' contains $la field$(s(la)), \
                        but $le field$(s(le)) were expected.")
     for (name, a, e) in zip(names, actual, expected)
         if a isa Framework.Node
             e isa Vector ||
-                error("Cannot compare node field $E.$name to $(repr(e))::$(typeof(e)).")
+                error("Cannot compare node field $nE.$name to $(repr(e))::$(typeof(e)).")
             check_path(a, e)
         elseif a isa String
             message = a
             pattern = e
             TestFailures.check_message(pattern, message)
+        elseif a isa CompType
+            te = typeof(e)
+            a === te ||
+                error("Expected component for $nE.$name:\n  $te\nfound instead:\n  $a")
         else
             ta, te = typeof.((a, e))
-            ta === te || error("Expected type for $E.$name:\n  $ta\nfound instead:\n  $te")
-            a == e || error("Expected value for $E.$name:\n  $e\nfound instead:\n  $a")
+            ta === te || error("Expected type for $nE.$name:\n  $te\nfound instead:\n  $ta")
+            a == e || error("Expected value for $nE.$name:\n  $e\nfound instead:\n  $a")
         end
     end
 end

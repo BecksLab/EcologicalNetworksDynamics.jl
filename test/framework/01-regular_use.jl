@@ -81,6 +81,47 @@ end
 get_a(v) = v._dict[:a]
 @method get_a depends(A) read_as(a)
 
+#-------------------------------------------------------------------------------------------
+# One component to bring 'b' data,
+# depending on the 'a' data in that all values must be greater than 'a', say.
+
+module BBlueprints # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+using ..Basics
+using EcologicalNetworksDynamics.Framework
+
+struct Uniform <: Blueprint{Value}
+    value::Float64
+end
+F.late_check(v, u::Uniform) =
+    maximum(v.a) <= u.value || checkfails("Values 'b' not larger than maximum 'a' values.")
+F.expand!(v, u::Uniform) = (v._dict[:b] = [u.value for _ in 1:v.n])
+@blueprint Uniform
+
+struct Raw <: Blueprint{Value}
+    b::Vector{Float64}
+end
+function F.late_check(v, raw::Raw)
+    nb = length(raw.b)
+    nv = v.n
+    nb == nv || checkfails("Cannot expand $nb 'a' values into $nv lines.")
+    maximum(v.a) <= minimum(raw.b) || checkfails("Values 'b' too small wrt 'a'.")
+end
+F.expand!(v, r::Raw) = (v._dict[:b] = deepcopy(r.b))
+Basics.NLines(r::Raw) = NLines(length(r.b))
+@blueprint Raw implies(NLines)
+
+end # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+# The component gathers all blueprints from the above module.
+@component begin
+    B{Value}
+    requires(Size, A)
+    blueprints(Uniform::BBlueprints.Uniform, Raw::BBlueprints.Raw)
+end
+get_b(v) = v._dict[:b]
+@method get_b depends(B) read_as(b)
+
 # ==========================================================================================
 # Test actual use of the system.
 
@@ -89,36 +130,37 @@ get_a(v) = v._dict[:a]
     # Build empty system.
     s = System{Value}()
 
-    # Add basic component.
-    add!(s, NLines(5))
+    # Add component.
+    add!(s, NLines(3))
 
-    # Call basic method.
-    @test get_n(s) == 5
+    # Call method.
+    @test get_n(s) == 3
 
-    # Read basic property (equivalent).
-    @test s.n == 5
+    # Read property (equivalent to the above).
+    @test s.n == 3
 
     # Forbid write.
-    @sysfails((s.n = 8), Property(n), "This property is read-only.")
+    @sysfails((s.n = 4), Property(n), "This property is read-only.")
 
     # Cannot add component twice.
     @sysfails(add!(s, NLines(5)), Add(BroughtAlreadyInValue, [NLines]),)
 
     # Add component requiring previous one from a blueprint.
-    t = s + A.Uniform(8)
-    @test t.a == [8, 8, 8, 8, 8]
+    t = s + A.Uniform(5)
+    @test t.a == [5, 5, 5]
 
     # Would fail if custom blueprint constraints are not enforced.
     @sysfails(
-        s + A.Raw([8, 8, 8]),
-        Add(HookCheckFailure, [A.Raw], "Cannot expand 3 'a' values into 5 lines.", true),
+        s + A.Raw([5, 5]),
+        Add(HookCheckFailure, [A.Raw], "Cannot expand 2 'a' values into 3 lines.", true),
     )
 
-    # Blueprints can imply others.
+    # Blueprints can imply other blueprints.
     e = System{Value}() # Empty.
-    s = e + A.Raw([8, 8, 8]) # Automatically bring NLines.
+    s = e + A.Raw([5, 5]) # Automatically bring NLines.
     @test has_component(s, Size)
     @test has_component(s, A)
+    @test s.n == 2
 
     # Display path to failing brought sub-blueprint in case of failure.
     @sysfails(
@@ -130,7 +172,12 @@ get_a(v) = v._dict[:a]
             false,
         )
     )
-    # HERE: keep testing!
+
+    # Cannot add component if requirement is missing.
+    @sysfails(
+        e + B.Raw([8, 8, 8]),
+        Add(MissingRequiredComponent, [B.Raw], A, nothing, false)
+    )
 
     #---------------------------------------------------------------------------------------
     # Specify components.

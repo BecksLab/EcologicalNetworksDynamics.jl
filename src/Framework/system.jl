@@ -148,7 +148,8 @@ components_types(system::System{V}, C::CompType{V}) where {V} =
 export components, component_types
 
 # Basic check.
-has_component(s::System{V}, c::Component{V}) where {V} = !isempty(components(s, typeof(c)))
+has_component(s::System{V}, C::Type{<:Component{V}}) where {V} = !isempty(components(s, C))
+has_component(s::System{V}, c::Component{V}) where {V} = has_component(s, typeof(c))
 has_concrete_component(s::System{V}, c::Component{V}) where {V} =
     haskey(s._concrete, typeof(c))
 export has_component, has_concrete_component

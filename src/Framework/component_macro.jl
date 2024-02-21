@@ -181,7 +181,7 @@ macro component(input...)
                 for (already, _) in reqs
                     vertical_guard(
                         typeof(req),
-                        typeof(already),
+                        already,
                         () -> xerr("Requirement '$req' is specified twice."),
                         (sub, sup) ->
                             xerr("Requirement '$sub' is also specified as '$sup'."),
@@ -246,6 +246,7 @@ macro component(input...)
 
     # Construct the component type, with blueprints as fields.
     ena = esc(component_name)
+    ety = esc(component_type)
     enas = Meta.quot(component_name)
     etys = Meta.quot(component_type)
     push_res!(quote
@@ -286,7 +287,7 @@ macro component(input...)
     # Setup the components required.
     push_res!(
         quote
-            Framework.requires(::Type{$etys}) = CompsReasons(k => v for (k, v) in reqs)
+            Framework.requires(::Type{$ety}) = CompsReasons(k => v for (k, v) in reqs)
         end,
     )
 

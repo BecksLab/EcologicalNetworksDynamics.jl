@@ -86,7 +86,7 @@ function check(node::Node, system::System, brought::Brought, checked::OrderedSet
             # Check against other components about to be brought.
             any(checked) do c
                 R <: typeof(c)
-            end || throw(MissingRequiredComponent(node, reason, for_expansion))
+            end || throw(MissingRequiredComponent(node, R, reason, for_expansion))
         end
     end
 
@@ -106,7 +106,7 @@ function check(node::Node, system::System, brought::Brought, checked::OrderedSet
         if e isa BlueprintCheckFailure
             rethrow(HookCheckFailure(node, e.message, false))
         else
-            rethrow(UnexpectedHookFailure(node, false))
+            throw(UnexpectedHookFailure(node, false))
         end
     end
 
@@ -182,7 +182,7 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
                 if e isa BlueprintCheckFailure
                     rethrow(HookCheckFailure(node, e.message, true))
                 else
-                    rethrow(UnexpectedHookFailure(node, true))
+                    throw(UnexpectedHookFailure(node, true))
                 end
             end
 
@@ -269,6 +269,7 @@ end
 
 struct MissingRequiredComponent <: AddException
     node::Node
+    miss::CompType
     reason::Reason
     for_expansion::Bool # Raise if the blueprint requires, lower if the component requires.
 end
@@ -349,7 +350,7 @@ end
 render_path(node::Node) = render_path(path(node))
 
 function Base.showerror(io::IO, e::BroughtAlreadyInValue)
-    (; node) = e
+    (; node, reason, for_expansion) = e
     path = render_path(node)
     comp = componentof(node.blueprint)
     print(
@@ -359,11 +360,28 @@ function Base.showerror(io::IO, e::BroughtAlreadyInValue)
     )
 end
 
+function Base.showerror(io::IO, e::MissingRequiredComponent)
+    (; node, miss, reason, for_expansion) = e
+    path = render_path(node)
+    comp = componentof(node.blueprint)
+    if for_expansion
+        header = "Blueprint cannot expand without component $miss"
+    else
+        header = "Component $comp requires $miss, not found in the system"
+    end
+    if isnothing(reason)
+        body = "."
+    else
+        body = ":\n  $reason"
+    end
+    print(io, "$header$body\n$path")
+end
+
 late_fail_warn(path) = "$(crayon"red")\
                         Not all blueprints have been expanded.\
-                        $(crayon"reset")\n
+                        $(crayon"reset")\n\
                         The system consistency is still guaranteed, \
-                        but some components have not been added into it.\n\
+                        but some components have not been added to it.\n\
                         $path"
 
 function Base.showerror(io::IO, e::HookCheckFailure)
