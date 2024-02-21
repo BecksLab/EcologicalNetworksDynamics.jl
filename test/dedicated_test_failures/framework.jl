@@ -7,6 +7,7 @@ import EcologicalNetworksDynamics.Framework:
     CompType,
     ConflictMacroExecError,
     ConflictMacroParseError,
+    ConflictWithSystemComponent,
     Framework,
     HookCheckFailure,
     ItemMacroExecError,

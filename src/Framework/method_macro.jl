@@ -185,7 +185,7 @@ macro method(input...)
     # Check that consistent 'depends' component types have been specified.
     push_res!(
         quote
-            deps = Set()
+            deps = OrderedSet()
             raw = $deps_xp
 
             # Now that we have a guarantee that 'ValueType' has been completely inferred,

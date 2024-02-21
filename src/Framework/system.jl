@@ -197,8 +197,8 @@ function Base.show(io::IO, ::MIME"text/plain", sys::System)
     S = typeof(sys)
     rs = repr(MIME("text/plain"), S)
     print(io, "$rs with $n component$(eol(n))")
-    for component in keys(sys._concrete)
-        print(io, "\n  - $(display(sys._value, component))")
+    for component in values(sys._concrete)
+        print(io, "\n  - $component")
     end
 end
 s(n) = (n > 1) ? "s" : ""

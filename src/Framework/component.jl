@@ -167,8 +167,10 @@ blueprints(c::Component{V}) where {V} = throw("No blueprint specified for $c.")
 # The clusters need to be defined *after* the components themselves,
 # so they can all refer to each other
 # as a clique of incompatible nodes in the component graph.
-conflicts(::CompType) = CompsReasons()
-conflicts(c::Component) = conflicts(typeof(c))
+conflicts_(::CompType) = CompsReasons()
+conflicts_(c::Component) = conflicts_(typeof(c))
+# When specialized, the above method yields a reference to underlying value,
+# updated according to this module's own logic. Don't expose.
 
 #-------------------------------------------------------------------------------------------
 # Raise error based on "vertical" subtyping relations.
@@ -204,7 +206,7 @@ end
 # Iterate over all conflicting entries with the given component or a supercomponent of it.
 super_conflict_keys(C::CompType) =
     Iterators.filter(supertypes(C)) do sup
-        conflicts(sup)
+        conflicts_(sup)
     end
 
 # Iterate over all conflicts for one particular component.
@@ -212,7 +214,7 @@ super_conflict_keys(C::CompType) =
 # The yielded conflict key may be a supercomponent of the focal one.
 function all_conflicts(C::CompType)
     Iterators.flatten(Iterators.map(super_conflict_keys(C)) do key
-        Iterators.map(conflicts(key)) do (conflicting, reason)
+        Iterators.map(conflicts_(key)) do (conflicting, reason)
             (key, conflicting, reason)
         end
     end)
@@ -228,7 +230,6 @@ end
 
 # Declare one particular conflict with a reason.
 # Guard against redundant reasons specifications.
-# (this dynamically overrides the 'conflicts' method)
 function declare_conflict(A::CompType, B::CompType, reason::Reason, err)
     vertical_guard(A, B, vertical_conflict(err))
     for (k, c, reason) in all_conflicts(A)
@@ -241,25 +242,29 @@ function declare_conflict(A::CompType, B::CompType, reason::Reason, err)
         end
     end
     # Append new method or override by updating value.
-    current = conflicts(A) # Creates a new empty value if falling back on default impl.
+    current = conflicts_(A) # Creates a new empty value if falling back on default impl.
+    if isempty(current)
+        # Dynamically add method to lend reference to the value lended by `conflicts_`.
+        eval(quote
+            conflicts_(::Type{$A}) = $current
+        end)
+    end
     current[B] = reason
-    eval(quote
-        conflicts(::Type{$A}) = $current
-    end)
 end
 
 # Fill up a clique, not overriding any existing reason.
-# (this dynamically overrides the 'conflicts' method)
-function declare_conflicts_clique(err, components::CompType...)
+function declare_conflicts_clique(err, components::Vector{<:CompType{V}}) where {V}
 
-    function process_pair(a, b)
-        vertical_guard(a, b, vertical_conflict(err))
-        A = typeof(a)
-        current = conflicts(a)
-        haskey(current, b) || (current[b] = nothing)
-        eval(quote
-            conflicts(::Type{$A}) = $current
-        end)
+    function process_pair(A::CompType{V}, B::CompType{V})
+        vertical_guard(A, B, vertical_conflict(err))
+        # Same logic as above.
+        current = conflicts_(A)
+        if isempty(current)
+            eval(quote
+                conflicts_(::Type{$A}) = $current
+            end)
+        end
+        haskey(current, B) || (current[B] = nothing)
     end
 
     # Triangular-iterate to guard against redundant items.

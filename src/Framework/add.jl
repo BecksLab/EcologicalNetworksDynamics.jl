@@ -91,7 +91,7 @@ function check(node::Node, system::System, brought::Brought, checked::OrderedSet
     end
 
     # Guard against conflicts.
-    for (C, reason) in conflicts(component)
+    for (C, reason) in conflicts_(component)
         has_component(system, C) && throw(ConflictWithSystemComponent(node, C, reason))
         for c in checked
             C <: typeof(c)
@@ -350,7 +350,7 @@ end
 render_path(node::Node) = render_path(path(node))
 
 function Base.showerror(io::IO, e::BroughtAlreadyInValue)
-    (; node, reason, for_expansion) = e
+    (; node) = e
     path = render_path(node)
     comp = componentof(node.blueprint)
     print(
@@ -367,7 +367,8 @@ function Base.showerror(io::IO, e::MissingRequiredComponent)
     if for_expansion
         header = "Blueprint cannot expand without component $miss"
     else
-        header = "Component $comp requires $miss, not found in the system"
+        header = "Component $comp requires $miss, neither found in the system \
+                  nor brought by the blueprints."
     end
     if isnothing(reason)
         body = "."
@@ -416,3 +417,16 @@ function Base.showerror(io::IO, e::UnexpectedHookFailure)
     )
 end
 
+function Base.showerror(io::IO, e::ConflictWithSystemComponent)
+    (; node, other, reason) = e
+    path = render_path(node)
+    comp = componentof(node.blueprint)
+    header = "Blueprint would expand into $(typeof(comp)), \
+         which conflicts with $other already in the system"
+    if isnothing(reason)
+        body = "."
+    else
+        body = ":\n  $reason"
+    end
+    print(io, "$header$body\n$path")
+end

@@ -35,7 +35,7 @@ macro conflicts(input...)
 
     # Convenience wrap.
     tovalue(xp, ctx, type) = to_value(__module__, xp, ctx, :xerr, type)
-    tocomptype(xp, ctx) = to_component_type(__module__, xp, :ValueType, ctx, :xerr)
+    tocomp(xp, ctx) = to_component(__module__, xp, :ValueType, ctx, :xerr)
 
     #---------------------------------------------------------------------------------------
     # Parse macro input,
@@ -69,16 +69,14 @@ macro conflicts(input...)
             ctx = "First conflicting entry"
             push_res!(
                 quote
-                    First = $(tovalue(comp, ctx, DataType))
-                    First <: Blueprint ||
-                        xerr("$($ctx): not a subtype of '$Blueprint': '$First'.")
+                    First = $(tovalue(comp, ctx, Component))
                     ValueType = system_value_type(First)
                 end,
             )
             first_entry = comp
             comp = :First
         else
-            comp = tocomptype(comp, "Conflicting entry")
+            comp = tocomp(comp, "Conflicting entry")
         end
 
         reasons_xp = :([])
@@ -86,7 +84,7 @@ macro conflicts(input...)
             @capture(reason, (conf_ => mess_))
             isnothing(conf) &&
                 perr("Not a `Component => \"reason\"` pair: $(repr(reason)).")
-            conf = tocomptype(conf, "Reason reference")
+            conf = tocomp(conf, "Reason reference")
             mess = tovalue(mess, "Reason message", String)
             push!(reasons_xp.args, :($conf, $mess))
         end
@@ -103,8 +101,8 @@ macro conflicts(input...)
     push_res!(
         quote
             entries = $entries
-            comps = first.(entries)
-            keys = Set(comps)
+            comps = CompType{ValueType}[typeof(first(e)) for e in entries]
+            keys = OrderedSet{CompType{ValueType}}(comps)
             for (a, reasons) in entries
                 for (b, message) in reasons
                     b in keys ||
@@ -113,7 +111,7 @@ macro conflicts(input...)
                     declare_conflict(a, b, message, xerr)
                 end
             end
-            declare_conflicts_clique(xerr, comps...)
+            declare_conflicts_clique(xerr, comps)
         end,
     )
 

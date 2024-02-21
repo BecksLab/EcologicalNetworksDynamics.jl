@@ -113,7 +113,6 @@ Basics.NLines(r::Raw) = NLines(length(r.b))
 
 end # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-# The component gathers all blueprints from the above module.
 @component begin
     B{Value}
     requires(Size, A)
@@ -121,6 +120,18 @@ end # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 end
 get_b(v) = v._dict[:b]
 @method get_b depends(B) read_as(b)
+
+# One method that uses both components.
+get_sum(v) = v.a .+ v.b
+@method get_sum depends(A, B) read_as(sum)
+
+#-------------------------------------------------------------------------------------------
+# One 'marker' component incompatible with others.
+
+struct SparseMark <: Blueprint{Value} end
+@blueprint SparseMark
+@component Sparse{Value} blueprints(Mark::SparseMark)
+@conflicts(Sparse, Size)
 
 # ==========================================================================================
 # Test actual use of the system.
@@ -178,6 +189,23 @@ get_b(v) = v._dict[:b]
         e + B.Raw([8, 8, 8]),
         Add(MissingRequiredComponent, [B.Raw], A, nothing, false)
     )
+
+    # Cannot use method without the requirements.
+    @sysfails(e.sum, Property(sum), "Component 'A' is required to read this property.")
+
+    # Chain summations.
+    s = e + NLines(3) + A.Uniform(5) + B.Uniform(8)
+
+    # Use method that requires several components.
+    @test s.sum == [13, 13, 13]
+
+    # Cannot add incompatible component.
+
+    @sysfails(
+        s + SparseMark(),
+        Add(ConflictWithSystemComponent, [SparseMark], Size, nothing),
+    )
+
 
     #---------------------------------------------------------------------------------------
     # Specify components.
