@@ -161,7 +161,7 @@ Need the equations, and the biomass
 BEFW_equations rephrases dBdt! such that it only takes B(iomass) as an argument.
 To ensure the correct biomass at equilibrium is matched with the correct equations, dominant_eigenvalue takes a simulate output as an argument
 """
-function BEFW_equations(B)
+function BEFW_equations(params, B)
 
     # Set up - Unpack parameters
     S = richness(params.network)
@@ -176,9 +176,10 @@ function BEFW_equations(B)
         growth = logisticgrowth(i, B, r[i], K[i], network)
         eating, being_eaten = consumption(i, B, params, response_matrix)
         metabolism_loss = metabolic_loss(i, B, params)
+        natural_death = params.allee_effect.addallee && params.allee_effect.target == :x ? allee_death_loss(i, B, params) : natural_death_loss(i, B, params)
         net_growth_rate = growth + eating - metabolism_loss
         net_growth_rate = effect_competition(net_growth_rate, i, B, network)
-        dB[i] = net_growth_rate - being_eaten
+        dB[i] = net_growth_rate - being_eaten - natural_death
     end
     return dB
 end

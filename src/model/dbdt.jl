@@ -13,6 +13,7 @@ function dBdt!(dB, B, p, t)
     K = params.environment.K # vector of carrying capacities
     α = params.producer_competition.α # matrix of producer competition
     network = params.network
+    stressor = params.stressor
 
     # Compute ODE terms for each species
     for i in 1:S
@@ -28,8 +29,12 @@ function dBdt!(dB, B, p, t)
 
     if stressor.addstressor == true
         if t >= stressor.start
-            for i in 1:S 
-                params.biorates.r[i] = 1 + (stressor.slope * (t-stressor.start))
+            for (idx, val) in enumerate(producers(params.network))
+                params.biorates.r[val] = 1 + (stressor.slope[idx] * (t-stressor.start))
+            end
+        else
+            for (idx, val) in enumerate(producers(params.network))
+                params.biorates.r[val] = 1
             end
         end
     end
@@ -87,7 +92,7 @@ function stoch_dBdt!(dB, B, p, t)
                     idx = first(findall(x -> x == i, stochasticity.stochspecies))
                     dB[S+idx] = stochasticity.θ[idx] * ((1 + (stressor.slope[idx] * (t-stressor.start))) - B[S+idx])
                 elseif i ∈ producers(params.network)
-                    params.biorates.r[i] = 1 + (stressor.slope * (t-stressor.start))
+                    params.biorates.r[i] = 1 + (stressor.slope[i] * (t-stressor.start))
                 end
             end
         end
