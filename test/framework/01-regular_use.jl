@@ -38,7 +38,7 @@ F.early_check(nl::NLines) =
 F.expand!(v, nl::NLines) = (v._n = nl.n)
 @blueprint NLines
 @component Size{Value} blueprints(N::NLines)
-export NLines
+export NLines, Size
 
 get_n(v) = v._n
 @method get_n depends(Size) read_as(n)
@@ -60,15 +60,18 @@ F.expand!(v, u::Uniform) = (v._dict[:a] = [u.value for _ in 1:v.n])
 
 struct Raw <: Blueprint{Value}
     a::Vector{Float64}
+    size::Brought(Size)
+    Raw(a) = new(a, implied) # Default to implying brought blueprint.
 end
+# HERE: could we avoid needing to acces the component *type* this way?
+F.construct_implied(r::Raw, ::typeof(Size)) = NLines(length(r.a))
 function F.late_check(v, raw::Raw)
     na = length(raw.a)
     nv = v.n
     na == nv || checkfails("Cannot expand $na 'a' values into $nv lines.")
 end
 F.expand!(v, r::Raw) = (v._dict[:a] = deepcopy(r.a))
-Basics.NLines(r::Raw) = NLines(length(r.a))
-@blueprint Raw implies(NLines)
+@blueprint Raw
 
 end # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -100,6 +103,8 @@ F.expand!(v, u::Uniform) = (v._dict[:b] = [u.value for _ in 1:v.n])
 
 struct Raw <: Blueprint{Value}
     b::Vector{Float64}
+    size::Brought(Size)
+    Raw(b) = new(b, implied)
 end
 function F.late_check(v, raw::Raw)
     nb = length(raw.b)
@@ -109,7 +114,7 @@ function F.late_check(v, raw::Raw)
 end
 F.expand!(v, r::Raw) = (v._dict[:b] = deepcopy(r.b))
 Basics.NLines(r::Raw) = NLines(length(r.b))
-@blueprint Raw implies(NLines)
+@blueprint Raw
 
 end # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

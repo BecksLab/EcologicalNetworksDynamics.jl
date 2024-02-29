@@ -8,9 +8,9 @@
 #   @blueprint Name
 #
 # Regarding the blueprint 'brought': make an ergonomic BET.
-# Any blueprint field typed with Union{Nothing,Blueprint,_Component}
+# Any blueprint field typed with Union{Nothing,Blueprint,_Component,Implied}
 # is automatically considered 'potential brought'.
-# In this case, enforce that if a Blueprint, the value would expand to the given component.
+# In this case, enforce that, if a blueprint, the value would expand to the given component.
 #
 #   brought(::Name) = iterator over the fields, skipping 'nothing' values (not brought).
 #   construct_implied(::Name, ::Component) = <assumed to be implemented by macro invoker>
@@ -21,7 +21,7 @@
 #
 # When given `nothing` as a value, void the field.
 # When given a blueprint, check that its component for consistency then make it embedded.
-# When given a component or `default`, make it implied.
+# When given a component or `implied`, make it implied.
 # When given anything else, query the following for a callable blueprint constructor:
 #
 #   assignment_to_embedded(::Name, field) = Component
@@ -30,11 +30,21 @@
 # then pass whatever value to this constructor to get this sugar:
 #
 #   blueprint.field = value  --->  blueprint.field = EmbeddedBlueprintConstructor(value)
-#
+
 # Default value to automatically pick the right implied component.
-struct Default end
-const default = Default()
-export default
+# Note: the meaning of a brought field value being 'implied' or a component is the *same*.
+# Having both enables that the types carries information about the brought component,
+# and also that blueprint writers can use convenience `implied` values within `new` calls.
+struct Implied end
+const implied = Implied()
+export implied
+
+# Construct field type to be automatically detected as brought blueprints.
+function Brought(c::Component)
+    V = system_value_type(c)
+    Union{Nothing,Blueprint{V},typeof(c),Implied}
+end
+export Brought
 
 # The code checking macro invocation consistency requires
 # that pre-requisites (methods implementations) be specified *prior* to invocation.
@@ -106,14 +116,15 @@ macro blueprint(input...)
             # Brought blueprints/components
             # are automatically inferred from the struct fields.
             broughts = OrderedDict{Symbol,Component}()
-            for (fieldtype, name) in zip(fieldnames(NewBlueprint), NewBlueprint.types)
+            for (name, fieldtype) in zip(fieldnames(NewBlueprint), NewBlueprint.types)
 
                 fieldtype <:
-                Union{Nothing,<:Blueprint{ValueType},<:_Component{ValueType}} || continue
+                Union{Nothing,<:Blueprint{ValueType},<:Component{ValueType},Implied} ||
+                    continue
                 f = fieldtype
-                (a, b, c) = (f.a, f.b.a, f.b.b.a)
-                throw("not sure about the order yet: $(a, b, c)")
-                C = a
+                (a, b, c, d) = (f.a, f.b.a, f.b.b.a, f.b.b.b)
+                d <: Component{ValueType} || throw("Unstable Union ordering?")
+                C = d
                 component = singleton_instance(C)
 
                 try
@@ -153,6 +164,8 @@ macro blueprint(input...)
                 f -> getfield(b, f),
                 Iterators.filter(f -> !isnothing(getfield(b, f)), keys(broughts)),
             )
+            # DEBUG leak ref.
+            Framework.brought(b::NewBlueprint, ::Nothing) = broughts
         end,
     )
 
@@ -186,7 +199,7 @@ macro blueprint(input...)
                                 is supposed to bring $expected_component. \
                                 As such, it cannot imply $rhs instead.")
                     rhs
-                elseif rhs isa Default
+                elseif rhs isa Implied
                     expected_component
                 elseif isnothing(rhs)
                     nothing

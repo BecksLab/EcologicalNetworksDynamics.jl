@@ -12,7 +12,7 @@ end
 
 # Keep track of all blueprints about broughts,
 # indexed by their concrete component instance.
-const Brought = Dict{Component,Vector{Node}}
+const BroughtList = Dict{Component,Vector{Node}}
 
 #-------------------------------------------------------------------------------------------
 # Recursively create during first pass, pre-order,
@@ -22,7 +22,7 @@ function Node(
     parent::Option{Node},
     implied::Bool,
     system::System,
-    brought::Brought,
+    brought::BroughtList,
 )
 
     component = componentof(blueprint)
@@ -45,7 +45,7 @@ function Node(
     end
 
     # Recursively construct children.
-    for br in brought(blueprint)
+    for br in Framework.brought(blueprint)
         if br isa Component
             # An 'implied' brought blueprint possibly needs to be constructed.
             implied_component = br
@@ -67,7 +67,7 @@ end
 #-------------------------------------------------------------------------------------------
 # Recursively check during second pass, post-order,
 # assuming the whole tree is set up.
-function check(node::Node, system::System, brought::Brought, checked::OrderedSet{Component})
+function check(node::Node, system::System, brought::BroughtList, checked::OrderedSet{Component})
 
     # Recursively check children first.
     for child in node.children
@@ -122,7 +122,7 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
     end
 
     forest = Node[]
-    brought = Brought() # Populated during pre-order traversal.
+    brought = BroughtList() # Populated during pre-order traversal.
     checked = OrderedSet{Component}() # Populated during first post-order traversal.
 
     #---------------------------------------------------------------------------------------
