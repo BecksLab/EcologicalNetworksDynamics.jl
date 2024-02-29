@@ -18,45 +18,22 @@
 # Components may 'require' other components,
 # because the data they bring are meaningless without them.
 #
-# Blueprint may 'bring' other components than their own,
-# because they contain enough data to construct more than one component.
-# There are two ways for blueprints to do so:
-#
-#   - Either they 'embed' other blueprints as sub-blueprints,
-#     which expand as part of their own expansion process.
-#     It is an error to embed a blueprint for a component already in the system.
-#
-#   - Or they 'imply' other blueprints,
-#     which could be calculated from the data they contain if needed.
-#     This does not need to happen if the implied blueprints components
-#     are already in the system.
-#
-# Blueprint may also require that other components be present
-# for their expansion process to happen correctly,
-# even though the component they bring does not.
-# This blueprint requirement is specified by the 'buildsfrom' function.
-#
 # Components also 'conflict' with each other:
-#
-#   - It is a failure to add a component if it conflicts
-#     with another component already added.
-#
-#   - An abstract component cannot conflict with a component subtyping itself.
+# It is a failure to add a component if it conflicts
+# with another component already added.
 #
 # Component types can be structured with a julia abstract type hierarchy:
-#
-#   - Requiring/Building-from an abstract component A
-#     is requiring/building-from any component subtyping A.
 #
 #   - Conflicting with an abstract component A
 #     is conflicting with any component subtyping A.
 #
-# It is not currently possible for an abstract component
-# to 'require', 'check' or 'expand!'.
+#   - An abstract component cannot conflict with a component subtyping itself.
+#
+# It is not currently possible for an abstract component to 'require',
 # But this might be implemented for a convincingly motivated need,
-# at the cost of extending @component macro to accept abstract types.
+# at the cost of extending @component macro to produce abstract types.
 
-# The parametric type 'V' for the component/blueprint
+# The parametric type 'V' for the component
 # is the type of the value wrapped by the system.
 abstract type Component{V} end
 export Component
@@ -138,6 +115,12 @@ export Component
 # because they can be abstract,
 # most exposed methods work with concrete singleton instance.
 const CompType{V} = Type{<:Component{V}}
+
+# Component types being singleton, we *can* infer the value from the type.
+singleton_instance(C::CompType) = throw("No concrete singleton instance of '$C'.")
+# Constructors only yields singleton instances.
+(C::CompType{V})() where {V} = singleton_instance(C)
+(C::CompType)() = singleton_instance(C)
 
 # Extract underlying system wrapped value type from a component.
 system_value_type(::CompType{V}) where {V} = V

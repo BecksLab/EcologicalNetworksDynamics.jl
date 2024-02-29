@@ -5,36 +5,39 @@
 # and associated late_check/expand!/etc. methods the way they wish,
 # and then calls:
 #
-#   @blueprint Name implies(blueprints...)
+#   @blueprint Name
 #
-# Or alternately:
+# Regarding the blueprint 'brought': make an ergonomic BET.
+# Any blueprint field typed with Union{Nothing,Blueprint,_Component}
+# is automatically considered 'potential brought'.
+# In this case, enforce that if a Blueprint, the value would expand to the given component.
 #
-#   @blueprint begin
-#       Name
-#       implies(blueprints...)
-#   end
+#   brought(::Name) = iterator over the fields, skipping 'nothing' values (not brought).
+#   construct_implied(::Name, ::Component) = <assumed to be implemented by macro invoker>
 #
-# The blueprint 'implied' are either trivial and specified as `Implied()`
-# in which case the following method is generated:
+# And for blueprint user convenience, override:
 #
-#   construct_implied(::Typeof{Implied}, ::Blueprint) = Implied()
+#   setproperty!(::Name, field, value)
 #
-# Or they are nontrivial and specified as `Implied`:
+# When given `nothing` as a value, void the field.
+# When given a blueprint, check that its component for consistency then make it embedded.
+# When given a component or `default`, make it implied.
+# When given anything else, query the following for a callable blueprint constructor:
 #
-#   construct_implied(::Typeof{Implied}, b::Blueprint) = Implied(b)
+#   assignment_to_embedded(::Name, field) = Component
+#   # (default, not reified/overrideable yet)
 #
-# and then invoker is responsible for having defined:
+# then pass whatever value to this constructor to get this sugar:
 #
-#   Implied(::Blueprint) = ...
+#   blueprint.field = value  --->  blueprint.field = EmbeddedBlueprintConstructor(value)
 #
-# Regarding the blueprints 'embedded': make an ergonomic BET:
-# any blueprint field subtyping 'Blueprint' is considered embedded,
-# so it feels like "sub-blueprints".
-# Also, any field subtyping 'Union{Nothing,<:Blueprint}'
-# is considered *optionally* embedded depending on the blueprint value.
-#
+# Default value to automatically pick the right implied component.
+struct Default end
+const default = Default()
+export default
+
 # The code checking macro invocation consistency requires
-# that these pre-requisites be specified *prior* to invocation.
+# that pre-requisites (methods implementations) be specified *prior* to invocation.
 macro blueprint(input...)
 
     # Push resulting generated code to this variable.
@@ -57,11 +60,11 @@ macro blueprint(input...)
 
     # Convenience wrap.
     tovalue(xp, ctx, type) = to_value(__module__, xp, ctx, :xerr, type)
-    tobptype(xp, ctx) = to_blueprint_type(__module__, xp, :ValueType, ctx, :xerr)
 
     #---------------------------------------------------------------------------------------
-    # Parse macro input,
-    # while also generating code checking invoker input within invocation context.
+    # Macro input has become very simple now,
+    # although it used to be more complicated with several unordered sections to parse.
+    # Keep it flexible for now in case it becomes complicated again.
 
     # Unwrap input if given in a block.
     if length(input) == 1 && input[1] isa Expr && input[1].head == :block
@@ -69,13 +72,10 @@ macro blueprint(input...)
     end
 
     li = length(input)
-    if li == 0 || li > 2
+    if li == 0 || li > 1
         perr(
             "$(li == 0 ? "Not enough" : "Too much") macro input provided. Example usage:\n\
-             | @blueprint begin\n\
-             |      Name\n\
-             |      implies(...)\n\
-             | end\n",
+             | @blueprint Name\n",
         )
     end
 
@@ -97,193 +97,125 @@ macro blueprint(input...)
         end,
     )
 
-    # Next come other optional sections in any order.
-    # (only one, but there used to be more, so keep room for extending again)
-    implies_xp = nothing # Evaluates to [(blueprint_type, is_trivial), ...]
-
-    for i in input[2:end]
-
-        # Implies section: specify automatically expanded blueprints.
-        @capture(i, implies(impls__))
-        if !isnothing(impls)
-            isnothing(implies_xp) || perr("The `implies` section is specified twice.")
-            implies_xp = :([])
-            for impl in impls
-                @capture(impl, trivial_())
-                (xp, flag) = if isnothing(trivial)
-                    (tobptype(impl, "Implied blueprint"), false)
-                else
-                    (tobptype(trivial, "Trivial implied blueprint"), true)
-                end
-                push!(implies_xp.args, :($xp, $flag))
-            end
-            continue
-        end
-
-        perr("Invalid @blueprint section. \
-              Expected `implies(..)`, \
-              got: $(repr(i)).")
-
-    end
-    isnothing(implies_xp) && (implies_xp = :([]))
+    # No more optional sections then.
+    # Should they be needed once again, inspire from @component macro to restore them.
 
     # Check that consistent brought blueprints types have been specified.
     push_res!(
         quote
+            # Brought blueprints/components
+            # are automatically inferred from the struct fields.
+            broughts = OrderedDict{Symbol,Component}()
+            for (fieldtype, name) in zip(fieldnames(NewBlueprint), NewBlueprint.types)
 
-            # Implied blueprints.
-            implies = $implies_xp
-            impls = OrderedSet{Type{<:Blueprint}}()
-            trivials = Vector{Bool}()
-            for (impl, trivial) in implies
+                fieldtype <:
+                Union{Nothing,<:Blueprint{ValueType},<:_Component{ValueType}} || continue
+                f = fieldtype
+                (a, b, c) = (f.a, f.b.a, f.b.b.a)
+                throw("not sure about the order yet: $(a, b, c)")
+                C = a
+                component = singleton_instance(C)
 
-                # Triangular-check against redundancies.
-                for already in impls
-                    vertical_guard(
-                        impl,
-                        already,
-                        () -> xerr("Implied blueprint '$impl' is specified twice."),
-                        (sub, sup) ->
-                            xerr("Implied blueprint '$sub' is also specified as '$sup'."),
-                    )
-                end
-
-                push!(impls, impl)
-                push!(trivials, trivial)
-            end
-
-            # Check that the required constructors have been setup.
-            for (impl, trivial) in implies
-                if trivial
-                    try
-                        which(impl, ())
-                    catch
-                        xerr("No trivial blueprint default constructor has been defined \
-                              to implicitly add '$impl' \
-                              when adding '$NewBlueprint' to a system.")
-                    end
-                else
-                    try
-                        which(impl, (NewBlueprint,))
-                    catch
-                        xerr("No blueprint constructor has been defined \
-                              to implicitly add '$impl' \
-                              when adding '$NewBlueprint' to a system.")
-                    end
-                end
-            end
-
-            # Embedding: automatically inferred from the fields.
-            embedded = OrderedSet{Type{<:Blueprint}}()
-            embedded_parms = Vector{Tuple{Symbol,Bool}}() # (name, is_optional)
-            for (fieldtype, name) in zip(NewBlueprint.types, fieldnames(NewBlueprint))
-
-                # Optional if unioned with nothing.
-                (embed, is_optional) = if fieldtype isa Union
-                    if fieldtype.a === Nothing && fieldtype.b <: Blueprint{ValueType}
-                        (fieldtype.b, true)
-                    elseif fieldtype.b === Nothing && fieldtype.a <: Blueprint{ValueType}
-                        (fieldtype.a, true)
-                    else
-                        continue
-                    end
-                elseif fieldtype <: Blueprint{ValueType}
-                    (fieldtype, false)
-                else
-                    continue
+                try
+                    which(construct_implied, (NewBlueprint, C))
+                catch
+                    xerr("Method $construct_implied($NewBlueprint, $C) unspecified.")
                 end
 
                 # Triangular-check against redundancies.
-                for (already, (a, _)) in zip(embedded, embedded_parms)
+                for (a, already) in broughts
                     vertical_guard(
-                        embed,
-                        already,
+                        C,
+                        typeof(already),
                         () -> xerr("Both fields $(repr(a)) and $(repr(name)) \
-                                    bring blueprint '$embed'."),
+                                    potentially bring $C."),
                         (sub, sup) -> xerr("Fields $(repr(name)) and $(repr(a)): \
-                                            embedded blueprint '$sub' \
+                                            brought blueprint '$sub' \
                                             is also specified as '$sup'."),
                     )
                 end
 
-                # Check against cross-"sections" specifications.
-                for (impl, _) in implies
-                    vertical_guard(
-                        impl,
-                        embed,
-                        (sub, sup) -> begin
-                            as_i = sub === sup ? "" : " (as '$impl')"
-                            xerr("Blueprint is both implied$(as_i) \
-                                  and embedded: '$embed'.")
-                        end,
-                    )
-                end
-
-                push!(embedded, embed)
-                push!(embedded_parms, (name, is_optional))
-
+                broughts[name] = component
             end
-            embedded = [e for e in embedded]
         end,
     )
 
     #---------------------------------------------------------------------------------------
     # At this point, all necessary information should have been parsed and checked,
     # both at expansion time and generated code execution time.
-    # The only remaining code to generate work is just the code required
+    # The only remaining task is to generate the code required
     # for the system to work correctly.
 
-    # Setup the blueprints implied.
-    push_res!(quote
-        # Iterate on hygienic variable not to leak a reference to it.
-        Framework.max_implies(bp::NewBlueprint) = Iterators.map(identity, impls)
-    end)
-
-    # Setup the blueprints embedded.
+    # Setup the blueprints brought.
     push_res!(
         quote
-            for (B, (name, is_optional)) in zip(embedded, embedded_parms)
-                Framework.eval(
-                    quote
-                        can_embed(b::$NewBlueprint, ::Type{$B}) = !isnothing(b.$name)
-                    end,
-                )
-            end
-            Framework.max_embeds(bp::NewBlueprint) = Iterators.map(identity, embedded)
+            Framework.brought(b::NewBlueprint) = Iterators.map(
+                f -> getfield(b, f),
+                Iterators.filter(f -> !isnothing(getfield(b, f)), keys(broughts)),
+            )
         end,
     )
 
-    # Generate trivial implied blueprint constructors for auto-loading.
-    # This requires one additional nested level of code generation
-    # because the exact list of implied and embedded blueprints
-    # are only known after macro expansion.
+    # Protect/enhance field assignement for brought blueprints.
     push_res!(
         quote
-
-            for (I, trivial) in zip(impls, trivials)
-                if trivial
-                    Framework.eval(
-                        quote
-                            construct_implied(::Type{$I}, ::$NewBlueprint) = $I()
-                        end,
+            function Base.setproperty!(b::NewBlueprint, prop::Symbol, rhs)
+                prop in keys(broughts) || setfield!(b, prop, rhs)
+                expected_component = broughts[prop]
+                val = if rhs isa Blueprint
+                    V = system_value_type(rhs)
+                    V == ValueType || syserr(
+                        "Blueprint for a System{$V} \
+                         cannot be embedded by a blueprint for System{$ValueType}: $rhs.",
                     )
+                    C = componentof(rhs)
+                    C == expected_component ||
+                        syserr("Blueprint would expand into $C, \
+                                but the field :$prop of $(typeof(b)) \
+                                is supposed to bring $expected_component:\n\
+                                $rhs")
+                    rhs
+                elseif rhs isa Component
+                    V = system_value_type(rhs)
+                    V == ValueType || syserr(
+                        "Component for a System{$V} \
+                         cannot be implied by a blueprint for System{$ValueType}: $rhs.",
+                    )
+                    rhs <: typeof(expected_component) ||
+                        syserr("The field :$prop of $(typeof(b)) \
+                                is supposed to bring $expected_component. \
+                                As such, it cannot imply $rhs instead.")
+                    rhs
+                elseif rhs isa Default
+                    expected_component
+                elseif isnothing(rhs)
+                    nothing
                 else
-                    Framework.eval(
-                        quote
-                            construct_implied(::Type{$I}, bp::$NewBlueprint) = $I(bp)
-                        end,
+                    # In any other case, forward to an underlying blueprint constructor.
+                    # TODO: make this constructor customizeable depending on the value.
+                    cstr = expected_component #  (assuming the constructor is callable)
+                    args, kwargs = if rhs isa Tuple{<:Tuple,<:NamedTuple}
+                        rhs
+                    elseif rhs isa Tuple
+                        (rhs, (;))
+                    elseif rhs isa NamedTuple
+                        ((), rhs)
+                    else
+                        ((rhs,), (;))
+                    end
+                    bp = cstr(args...; kwargs...)
+                    bp <: Blueprint{ValueType} &&
+                        componentof(bp) == expected_component || throw(
+                        "Automatic blueprint constructor for brought blueprint assignment \
+                         yielded an invalid blueprint. \
+                         This is a bug in the components library. \
+                         Expected blueprint for $expected_component, \
+                         got instead:\n$bp",
                     )
+                    bp
                 end
+                setfield!(b, prop, val)
             end
-
-            for (bring, (name, _)) in zip(embedded, embedded_parms)
-                Framework.eval(
-                    quote
-                        construct_brought(::Type{$bring}, bp::$NewBlueprint) = bp.$name
-                    end,
-                )
-            end
-
         end,
     )
 

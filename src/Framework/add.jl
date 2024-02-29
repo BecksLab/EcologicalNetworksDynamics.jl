@@ -4,7 +4,7 @@
 # by the blueprints given.
 # Reify the underlying 'forest' structure.
 struct Node
-    blueprint::Blueprint
+    blueprint::Blueprint # Owned copy, so it cannot be changed by add! caller afterwards.
     parent::Option{Node}
     implied::Bool # Raise if 'implied' by the parent and not 'embedded'.
     children::Vector{Node}
@@ -18,15 +18,13 @@ const Brought = Dict{Component,Vector{Node}}
 # Recursively create during first pass, pre-order,
 # possibly checking the indexed list of nodes already brought.
 function Node(
-    bp::Blueprint,
+    blueprint::Blueprint,
     parent::Option{Node},
     implied::Bool,
     system::System,
     brought::Brought,
 )
 
-    # Get our owned local copy so it cannot be changed afterwards.
-    blueprint = copy(bp)
     component = componentof(blueprint)
 
     # Create node and connect to parent, without its children yet.
@@ -47,19 +45,20 @@ function Node(
     end
 
     # Recursively construct children.
-    for I in implies(blueprint)
-        can_imply(blueprint, I) || continue
-        implied_component = componentof(I)
-        has_concrete_component(system, implied_component) && continue
-        implied_bp = construct_implied(I, blueprint)
-        child = Node(implied_bp, node, true, system, brought)
-        push!(node.children, child)
-    end
-
-    for E in embeds(blueprint)
-        embedded_bp = construct_embedded(E, blueprint)
-        child = Node(embedded_bp, node, false, system, brought)
-        push!(node.children, child)
+    for br in brought(blueprint)
+        if br isa Component
+            # An 'implied' brought blueprint possibly needs to be constructed.
+            implied_component = br
+            has_concrete_component(system, implied_component) && continue
+            implied_bp = checked_construct_implied(blueprint, implied_component)
+            child = Node(implied_bp, node, true, system, brought)
+            push!(node.children, child)
+        elseif br isa Blueprint
+            # An 'embedded' blueprint is brought.
+            embedded_bp = br
+            child = Node(embedded_bp, node, false, system, brought)
+            push!(node.children, child)
+        end
     end
 
     node
@@ -115,7 +114,7 @@ function check(node::Node, system::System, brought::Brought, checked::OrderedSet
 end
 
 # ==========================================================================================
-# The actual implementation.
+# Entry point into adding components from a forest of blueprints.
 function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
 
     if length(blueprints) == 0
@@ -133,6 +132,8 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
 
         # Preorder visit: construct the trees.
         for bp in blueprints
+            # Get our owned local copy so it cannot be changed afterwards by the caller.
+            bp = copy(bp)
             root = Node(bp, nothing, false, system, brought)
             push!(forest, root)
         end

@@ -200,7 +200,6 @@ struct SparseMark <: Blueprint{Value} end
     @test s.sum == [13, 13, 13]
 
     # Cannot add incompatible component.
-
     @sysfails(
         s + SparseMark(),
         Add(ConflictWithSystemComponent, [SparseMark], Size, nothing),

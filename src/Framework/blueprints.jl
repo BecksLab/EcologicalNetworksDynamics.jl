@@ -1,4 +1,33 @@
 # Blueprint expand into components within a system.
+#
+# Blueprint may 'bring' other blueprints than themselves,
+# so other components than their own,
+# because they contain enough data to construct more than one component.
+# This loosely feels like "sub-components", although it is more subtle.
+# There are two ways for blueprints bring each other:
+#
+#   - Either they 'embed' other blueprints as sub-blueprints,
+#     which expand as part of their own expansion process.
+#     It is an error to embed a blueprint for a component already in the system.
+#
+#   - Or they 'imply' other blueprints for designated components,
+#     which could be calculated from the data they contain if needed.
+#     This does not need to happen if the implied blueprints components
+#     are already in the system.
+#
+# Whether a brought blueprint is embedded or implied
+# depends on the bringer value.
+# For instance, it typically is implied if user has not specified brought-blueprint data,
+# and embedded if user has explicitly asked that it be.
+#
+# Implying blueprints for an abstract component is not currently supported,
+# but will possibly be if it makes sense to do so.
+#
+# Blueprint may also require that other components be present
+# for their expansion process to happen correctly,
+# even though the component they bring does not.
+# This blueprint requirement is specified by the 'expands_from' function.
+# Expanding-from an abstract component A is expanding from any component subtyping A.
 
 abstract type Blueprint{V} end
 export Blueprint
@@ -26,24 +55,21 @@ Base.copy(b::Blueprint) = deepcopy(b)
 expands_from(::Blueprint) = CompsReasons()
 # TODO: not formally tested yet.. but maybe wait on the framework to be refactored first?
 
-# Specify blueprints to be automatically created and expanded
-# before the focal blueprint expansion their component if not present.
-# Every blueprint type listed here needs to be constructible from the focal blueprint.
-# If the data within the blueprint is not sufficient to imply another one,
-# opt-out from this default 'true' value: implication is therefore "optional".
-implies(b::Blueprint) = Iterators.filter(B -> can_imply(b, B), max_implies(b))
-can_imply(::Blueprint, ::Type{<:Blueprint}) = true
-max_implies(::Blueprint) = Type{<:Blueprint}[]
-construct_implied(B::Type{<:Blueprint}, b::Blueprint) =
-    throw("Implying '$B' from '$(typeof(b))' is unimplemented.")
-
-# Same, but the listed blueprints are always created and expanded,
-# resulting in an error if their components are already present.
-embeds(::Blueprint) = Type{<:Blueprint}[]
-can_embed(::Blueprint, ::Type{<:Blueprint}) = true
-max_embeds(::Blueprint) = Type{<:Blueprint}[]
-construct_embedded(B::Type{<:Blueprint}, b::Blueprint) =
-    throw("Embedding '$B' within '$(typeof(b))' is unimplemented.")
+# List brought blueprints.
+# Yield blueprint value for embedded blueprints.
+# Yield component value for implied blueprints.
+brought(b::Blueprint) = throw("Bringing from $(typeof(b)) is unimplemented.")
+# Implied blueprints, need to be constructed from the value on-demand.
+# No method, so it can be checked whether it has been set from within @blueprint macro.
+function construct_implied end # (blueprint, component) -> blueprint for this component.
+function checked_construct_implied(b::Blueprint, c::Component)
+    bp = construct_implied(b, c)
+    componentof(bp) == c ||
+        throw("Blueprint $(typeof(b)) is supposed to imply a blueprint for $c,
+               but it implied a blueprint for $(componentof(bp)) instead:\n
+               $b\n --- implied --->\n$bp")
+    bp
+end
 
 #-------------------------------------------------------------------------------------------
 # Conflicts.

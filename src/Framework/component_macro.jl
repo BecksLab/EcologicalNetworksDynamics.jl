@@ -262,23 +262,30 @@ macro component(input...)
     end)
 
     # Construct the singleton instance.
-    push_res!(quote
-        cstr = :($($etys)())
-        for (_, B) in bps
-            push!(cstr.args, B)
-        end
-        cstr = quote
-            const $($enas) = $cstr
-        end
-        $__module__.eval(cstr)
-    end)
+    push_res!(
+        quote
+            cstr = :($($etys)())
+            for (_, B) in bps
+                push!(cstr.args, B)
+            end
+            cstr = quote
+                const $($enas) = $cstr
+            end
+            $__module__.eval(cstr)
+            # Connect instance to type.
+            Framework.singleton_instance(::Type{$ety}) = $ena
+            # Ensure singleton unicity.
+            (C::Type{$ety})(args...; kwargs...) =
+                throw("Cannot construct other instances of $C.")
+        end,
+    )
 
     # Connect to blueprint types.
     push_res!(
         quote
             for (_, B) in bps
                 $__module__.eval(quote
-                    $($Framework).componentof(::Type{$B}) = $($enas)
+                    $Framework.componentof(::Type{$B}) = $($enas)
                 end)
             end
         end,
