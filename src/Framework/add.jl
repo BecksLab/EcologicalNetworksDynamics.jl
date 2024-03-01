@@ -72,7 +72,12 @@ end
 #-------------------------------------------------------------------------------------------
 # Recursively check during second pass, post-order,
 # assuming the whole tree is set up.
-function check(node::Node, system::System, brought::BroughtList, checked::OrderedSet{Component})
+function check(
+    node::Node,
+    system::System,
+    brought::BroughtList,
+    checked::OrderedSet{Component},
+)
 
     # Recursively check children first.
     for child in node.children
@@ -183,7 +188,7 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
 
             # Last check hook against current system value.
             try
-                late_check(system._value, blueprint)
+                late_check(system._value, blueprint, system)
             catch e
                 if e isa BlueprintCheckFailure
                     rethrow(HookCheckFailure(node, e.message, true))
@@ -379,16 +384,17 @@ function Base.showerror(io::IO, e::MissingRequiredComponent)
     if isnothing(reason)
         body = "."
     else
-        body = ":\n  $reason"
+        it = crayon"italics"
+        rs = crayon"reset"
+        body = ":\n  $it$reason$rs"
     end
     print(io, "$header$body\n$path")
 end
 
-late_fail_warn(path) = "$(crayon"red")\
-                        Not all blueprints have been expanded.\
-                        $(crayon"reset")\n\
+late_fail_warn(path) = "Not all blueprints have been expanded.\n\
                         The system consistency is still guaranteed, \
-                        but some components have not been added to it.\n\
+                        but some components asked for \
+                        have not been added to it.\n\
                         $path"
 
 function Base.showerror(io::IO, e::HookCheckFailure)
@@ -401,7 +407,9 @@ function Base.showerror(io::IO, e::HookCheckFailure)
         header = "Blueprint value cannot be expanded"
         footer = path
     end
-    print(io, "$header:\n  $message\n$footer")
+    it = crayon"italics"
+    rs = crayon"reset"
+    print(io, "$header:\n  $it$message$rs\n$footer")
 end
 
 function Base.showerror(io::IO, e::UnexpectedHookFailure)
@@ -428,7 +436,7 @@ function Base.showerror(io::IO, e::ConflictWithSystemComponent)
     path = render_path(node)
     comp = componentof(node.blueprint)
     header = "Blueprint would expand into $(typeof(comp)), \
-         which conflicts with $other already in the system"
+              which conflicts with $other already in the system"
     if isnothing(reason)
         body = "."
     else

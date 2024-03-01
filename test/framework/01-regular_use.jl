@@ -138,6 +138,32 @@ struct SparseMark <: Blueprint{Value} end
 @component Sparse{Value} blueprints(Mark::SparseMark)
 @conflicts(Sparse, Size)
 
+#-------------------------------------------------------------------------------------------
+# One component whose expansion / checking depends on other components within the system.
+
+struct ReflectionMark <: Blueprint{Value} end
+function F.late_check(_, ::ReflectionMark, system)
+    if !has_component(system, A) && !has_component(system, B)
+        checkfails("Cannot reflect from no data.")
+    end
+end
+function F.expand!(v, ::ReflectionMark, system)
+    rf = Char[]
+    if has_component(system, A)
+        push!(rf, 'A')
+    end
+    if has_component(system, B)
+        push!(rf, 'B')
+    end
+    rf = collect(Iterators.take(Iterators.cycle(rf), v.n))
+    v._dict[:reflection] = rf
+end
+@blueprint ReflectionMark
+@component Reflection{Value} blueprints(Mark::ReflectionMark) requires(Size)
+
+get_reflection(v) = v._dict[:reflection]
+@method get_reflection depends(Reflection) read_as(reflection)
+
 # ==========================================================================================
 # Test actual use of the system.
 
@@ -173,7 +199,7 @@ struct SparseMark <: Blueprint{Value} end
     t = s + A.Uniform(5)
     @test t.a == [5, 5, 5]
 
-    # Would fail if custom blueprint constraints are not enforced.
+    # Fail if custom blueprint constraints are not enforced.
     @sysfails(
         s + A.Raw([5, 5]),
         Add(HookCheckFailure, [A.Raw], "Cannot expand 2 'a' values into 3 lines.", true),
@@ -197,6 +223,24 @@ struct SparseMark <: Blueprint{Value} end
         s + SparseMark(),
         Add(ConflictWithSystemComponent, [SparseMark], Size, nothing),
     )
+
+
+    # Blueprint checking may depend on other components.
+    r = ReflectionMark()
+    s = e + NLines(5)
+    @sysfails(
+        s + r,
+        Add(HookCheckFailure, [ReflectionMark], "Cannot reflect from no data.", true),
+    )
+
+    # Blueprint expansion may depend on other components.
+    sa = s + A.Uniform(5)
+    sb = sa + B.Uniform(8)
+    sa += r # Same blueprint..
+    sb += r # .. different expansion.
+    @test sa.reflection == collect("AAAAA")
+    @test sb.reflection == collect("ABABA")
+
 end
 
 # ==========================================================================================
@@ -274,84 +318,6 @@ end
 
     # The component is not brought then.
     @sysfails(e + a, Add(MissingRequiredComponent, [A.Raw], Size, nothing, false))
-
-    #---------------------------------------------------------------------------------------
-    # Specify components.
-
-    #  # Setup data.
-    #  struct AOne <: Blueprint{Value} end
-    #  F.expand!(v, ::AOne) = (v._dict[:a] = 1)
-    #  @component AOne
-
-    #  struct BAlgebraic <: Blueprint{Value}
-    #  positive::Bool
-    #  magnitude::Float64
-    #  end
-    #  F.expand!(v, b::BAlgebraic) = (v._dict[:b] = b.positive ? b.magnitude : -b.magnitude)
-    #  @component BAlgebraic
-
-    #  # Contradictory component.
-    #  struct Cannot <: Blueprint{Value} end
-    #  @component Cannot
-    #  @conflicts(Cannot, AOne)
-
-    #  # Component checking that no value named :a already exists.
-    #  struct NoA <: Blueprint{Value} end
-    #  function F.check(v, ::NoA)
-    #  haskey(v._dict, :a) && checkfails("Cannot add NoA with :a property set.")
-    #  end
-    #  @component NoA
-
-    #  # Components that require others to work.
-    #  struct Summary <: Blueprint{Value}
-    #  prefix::String
-    #  end
-    #  F.expand!(v, s::Summary) = (v._dict[:summary] = s.prefix * ": {a: $(v.a), b: $(v.b)}")
-    #  @component begin
-    #  Summary
-    #  requires(
-    #  AOne => "Needs field `.a` to be not nothing.",
-    #  BAlgebraic => "Needs field `.b` to be not nothing.",
-    #  )
-    #  end
-
-    #  # Components that optionally depend on others
-    #  # use an additional 'system' argument to query them.
-    #  struct Digest <: Blueprint{Value} end
-    #  function F.expand!(v, d::Digest, system)
-    #  res = ""
-    #  if has_component(system, AOne)
-    #  res *= "Has A."
-    #  end
-    #  if has_component(system, BAlgebraic)
-    #  res *= "Has B."
-    #  end
-    #  v._dict[:digest] = res
-    #  end
-    #  @component Digest
-
-    #  # Component that auto-loads other needed components.
-    #  struct TotalPositive <: Blueprint{Value}
-    #  magnitude::Float64
-    #  end
-    #  BAlgebraic(self::TotalPositive) = BAlgebraic(true, self.magnitude)
-    #  Summary(::TotalPositive) = Summary("Total positive summary")
-    #  @component begin
-    #  TotalPositive
-    #  # Implication order corresponds to addition order.
-    #  implies(AOne(), BAlgebraic, Summary)
-    #  end
-
-    #  # Component that brings order "embedded" component.
-    #  mutable struct ABPowerSum <: Blueprint{Value}
-    #  a::AOne # Always bring.
-    #  b::Union{BAlgebraic,Nothing} # Optionally bring.
-    #  pow::Int64
-    #  # Don't bring b if zero.
-    #  ABPowerSum(b, pow) = new(AOne(), b != 0 ? BAlgebraic(true, b) : nothing, pow)
-    #  end
-    #  F.expand!(v, ps::ABPowerSum) = (v._dict[:ps] = (v.a + v.b)^ps.pow)
-    #  @component ABPowerSum
 
     #  #---------------------------------------------------------------------------------------
     #  # Specify methods.
