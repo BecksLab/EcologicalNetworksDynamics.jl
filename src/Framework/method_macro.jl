@@ -118,12 +118,13 @@ macro method(input...)
                         if isnothing(ValueType)
                             ValueType = system_value_type(dep)
                         else
-                            if !(dep <: Component{ValueType})
-                                actual_V = system_value_type(dep)
+                            C = typeof(dep)
+                            if !(C <: Component{ValueType})
+                                actual_V = system_value_type(C)
                                 xerr("Depends section: system value type \
                                       has been inferred to be '$ValueType' \
                                       based on the first parameter type(s) of '$fn', \
-                                      but '$dep' subtypes '$(Component{actual_V})' \
+                                      but '$C' subtypes '$(Component{actual_V})' \
                                       and not '$(Component{ValueType})'.")
                             end
                         end
@@ -279,7 +280,8 @@ macro method(input...)
         quote
             # TODO: generating it this way results in users encountering
             # ambiguities when calling `fn(system, other_arg)`,
-            # and the only way out is to have them explicitly type the first argument.
+            # and the only way out is to have them explicitly type the first argument
+            # with the ::<ValueType>.
             # This is unfortunate, but I've found no way of disambiguating this
             # from the macro alone..
             # unless there is a proper way to create `Method`s dynamically?

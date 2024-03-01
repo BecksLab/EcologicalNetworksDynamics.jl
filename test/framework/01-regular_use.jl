@@ -66,7 +66,7 @@ end
 F.implied_blueprint_for(r::Raw, ::_Size) = NLines(length(r.a))
 function F.late_check(v, raw::Raw)
     na = length(raw.a)
-    nv = v.n
+    nv = v.n # <- Use properties there thanks to unchecked_[gs]etproperty(!).
     na == nv || checkfails("Cannot expand $na 'a' values into $nv lines.")
 end
 F.expand!(v, r::Raw) = (v._dict[:a] = deepcopy(r.a))
@@ -161,13 +161,20 @@ end
 @blueprint ReflectionMark
 @component Reflection{Value} blueprints(Mark::ReflectionMark) requires(Size)
 
+# Read property with aliases.
 get_reflection(v) = v._dict[:reflection]
-@method get_reflection depends(Reflection) read_as(reflection)
+@method get_reflection depends(Reflection) read_as(reflection, ref)
+
+# One writeable property.
+function set_reflection!(v::Value, rhs::String)
+    v._dict[:reflection] = collect(Iterators.take(Iterators.cycle(rhs), v.n))
+end
+@method set_reflection! depends(Reflection) write_as(reflection, ref)
 
 # ==========================================================================================
 # Test actual use of the system.
 
-@testset "Basic components/methods." begin
+@testset "Basic components/methods/properties." begin
 
     # Build empty system.
     s = System{Value}()
@@ -240,6 +247,13 @@ get_reflection(v) = v._dict[:reflection]
     sb += r # .. different expansion.
     @test sa.reflection == collect("AAAAA")
     @test sb.reflection == collect("ABABA")
+
+    # Read from aliased properties.
+    @test sa.ref == sa.reflection
+
+    # Modify from aliased properties.
+    sa.ref = "UVW" # (cycling semantics)
+    @test sa.ref == collect("UVWUV")
 
 end
 
@@ -319,179 +333,47 @@ end
     # The component is not brought then.
     @sysfails(e + a, Add(MissingRequiredComponent, [A.Raw], Size, nothing, false))
 
-    #  #---------------------------------------------------------------------------------------
-    #  # Specify methods.
+end
 
-    #  # Basic read/write accesses.
-    #  get_a(v) = v._dict[:a]
-    #  get_b(v) = v._dict[:b]
-    #  get_digest(v) = v._dict[:digest]
-    #  get_power_sum(v) = v._dict[:ps]
-    #  set_b!(v, b) = (v._dict[:b] = b)
-    #  get_sign(v) = (v.b >= 0 ? +1 : -1)
-    #  get_magnitude(v) = abs(v.b)
-    #  @method get_a depends(AOne) read_as(a)
-    #  @method get_b depends(BAlgebraic) read_as(b)
-    #  @method set_b! depends(BAlgebraic) write_as(b)
-    #  @method get_sign depends(BAlgebraic) read_as(sign)
-    #  @method get_magnitude depends(BAlgebraic) read_as(mag)
-    #  @method get_digest depends(Digest) read_as(digest)
-    #  @method get_power_sum depends(ABPowerSum) read_as(ps)
+# ==========================================================================================
+@testset "Clone/fork the system by copying it any time." begin
 
-    #  set_sign!(v::Value, b::Bool) =
-    #  if b
-    #  v.b = v.mag # <- Use properties there thanks to unchecked_[gs]etproperty(!).
-    #  else
-    #  v.b = -v.mag
-    #  end
-    #  @method begin
-    #  set_sign!
-    #  write_as(sign)
-    #  depends(BAlgebraic) # (order of sections is flexible)
-    #  end
+    init = System{Value}()
+    s = copy(init)
+    @test collect(components(s)) == []
+    @test collect(properties(s)) == []
 
-    #  get_summary(v) = v._dict[:summary]
-    #  @method get_summary depends(Summary) read_as(summary, sm)
+    # Check that the original system is always empty.
+    function test_empty(i)
+        @test isempty(collect(components(i)))
+        @sysfails(get_a(i), Method(get_a), "Requires component '$A'.")
+        @sysfails(i.a, Property(a), "Component '$A' is required to read this property.")
+    end
+    test_empty(init)
 
-    #  #---------------------------------------------------------------------------------------
-    #  # Use the system.
+    add!(s, NLines(3), A.Uniform(5))
+    @test s.a == [5, 5, 5]
+    test_empty(init)
 
-    #  s = System{Value}()
+    add!(s, B.Uniform(8), ReflectionMark())
+    @test s.b == [8, 8, 8]
+    @test s.ref == collect("ABA")
+    test_empty(init)
 
-    #  # Miss components to use method and properties.
-    #  @test blueprints(s) == Set()
-    #  @test components(s) == Set()
-    #  @test properties(s) == Dict()
-    #  @sysfails(get_a(s), Method(get_a), "Requires component '$AOne'.")
-    #  @sysfails(s.a, Property(a), "Component '$AOne' is required to read this property.")
+    # Use the + operator to add components without altering the original system.
+    a = A.Raw([5, 8, 9])
+    s = init + a
+    @test s.a == [5, 8, 9]
+    test_empty(init)
 
-    #  # Add component.
-    #  add!(s, AOne())
-
-    #  # Now the properties can be used.
-    #  @test get_a(s) == 1
-    #  @test s.a == 1 # Convenience property access.
-
-    #  @test blueprints(s) == Set([AOne()])
-    #  @test components(s) == Set([AOne])
-    #  @test properties(s) == Dict(:a => false)
-
-    #  @sysfails((s.a = 2), Property(a), "This property is read-only.")
-
-    #  # Cannot add component if some required components are missing.
-    #  @sysfails(
-    #  add!(s, Summary("first summary attempt")),
-    #  Check(Summary),
-    #  "missing required component '$BAlgebraic': \
-    #  Needs field `.b` to be not nothing.",
-    #  )
-    #  # Or if the check does not pass.
-    #  @sysfails(add!(s, NoA()), Check(NoA), "Cannot add NoA with :a property set.",)
-
-    #  # One more component unlocks other methods and properties.
-    #  add!(s, BAlgebraic(false, 5))
-    #  @test (get_b(s), get_sign(s), get_magnitude(s)) == (-5, -1, 5)
-    #  @test (s.b, s.sign, s.mag) == (-5, -1, 5) #  Convenience property accesses.
-    #  set_sign!(s, true)
-    #  @test s.b == 5
-    #  s.sign = false # Writable property.
-    #  @test s.b == -5
-    #  @failswith((s.sign = "not a boolean"), MethodError)
-
-    #  @test blueprints(s) == Set([AOne(), BAlgebraic(false, 5)])
-    #  @test components(s) == Set([AOne, BAlgebraic])
-    #  @test properties(s) == Dict(:a => false, :b => true, :sign => true, :mag => false)
-
-    #  # Now the higher-level component can be added.
-    #  add!(s, Summary("second summary attempt"))
-    #  @test s._value._dict[:summary] ==
-    #  s.summary ==
-    #  s.sm == # Aliases.
-    #  "second summary attempt: {a: 1, b: -5.0}"
-
-    #  # Cannot add conflicting components.
-    #  @sysfails(add!(s, Cannot()), Check(Cannot), "conflicts with component '$AOne'.",)
-
-    #  # Clone/fork the system by copying it any time.
-    #  init = System{Value}()
-    #  s = copy(init)
-    #  @test blueprints(s) == Set()
-    #  @test components(s) == Set()
-    #  @test properties(s) == Dict()
-
-    #  # Check that the original system is always empty.
-    #  function test_empty(i)
-    #  @test isempty(blueprints(i))
-    #  @sysfails(get_a(init), Method(get_a), "Requires component '$AOne'.")
-    #  @sysfails(
-    #  init.a,
-    #  Property(a),
-    #  "Component '$AOne' is required to read this property."
-    #  )
-    #  end
-    #  test_empty(init)
-
-    #  # Optional dependency arguments.
-    #  s = copy(init)
-    #  add!(s, Digest())
-    #  @test s.digest == ""
-    #  test_empty(init)
-
-    #  s = copy(init) + AOne() + Digest()
-    #  @test s.digest == "Has A."
-    #  test_empty(init)
-
-    #  s = copy(init) + AOne() + BAlgebraic(true, 5) + Digest()
-    #  @test s.digest == "Has A.Has B."
-    #  test_empty(init)
-
-    #  # "Implied" components are automatically added.
-    #  s = copy(init)
-    #  add!(s, TotalPositive(9))
-    #  @test (s.a, s.b, s.sm) == (1, 9, "Total positive summary: {a: 1, b: 9.0}")
-    #  # Only if needed.
-    #  s = copy(init)
-    #  s += BAlgebraic(true, 33) # Already there.
-    #  add!(s, TotalPositive(9)) # Still okay, but value given is ignored in favour of the existing one.
-    #  @test (s.a, s.b, s.sm) == (1, 33, "Total positive summary: {a: 1, b: 33.0}")
-    #  test_empty(init)
-
-    #  # "Brought" components are also automatically added, but they need to be *not* there.
-    #  s = copy(init)
-    #  pw = ABPowerSum(77, 2)
-    #  add!(s, pw)
-    #  @test (s.a, s.b, s.ps) == (1, 77, (1 + 77)^2)
-    #  s = copy(init)
-    #  s += AOne() # Already there.
-    #  @sysfails(
-    #  add!(s, pw), # Not okay.
-    #  Check(ABPowerSum),
-    #  "blueprint also brings '$AOne', which is already in the system."
-    #  )
-    #  test_empty(init)
-    #  # In this case, it is okay to just not bring it.
-    #  s = copy(init) + BAlgebraic(true, 88)
-    #  pw.b = nothing # Opt-out from bringing it.
-    #  add!(s, pw)
-    #  @test (s.a, s.b, s.ps) == (1, 88, (1 + 88)^2)
-
-    #  # Use the + operator to add components without altering the original system.
-    #  s = init + AOne()
-    #  @test s.a == 1
-    #  test_empty(init)
-
-    #  # Implied components already there are not added once more.
-    #  s += TotalPositive(44)
-    #  @test s.b == 44
-    #  test_empty(init)
-
-    #  # Sum components together to chain operators.
-    #  s = init + AOne()
-    #  s += BAlgebraic(false, 5) + Summary("summed") # <- (here)
-    #  @test blueprints(s) == Set([AOne(), BAlgebraic(false, 5), Summary("summed")])
-    #  @test components(s) == Set([AOne, BAlgebraic, Summary])
-    #  test_empty(init)
+    # Blueprints must never leak references into the inner system.
+    a.a[1] *= 10
+    t = init + a
+    @test t.a == [50, 8, 9] # Different expansion result in new system.
+    @test s.a == [5, 8, 9] # Original system unchanged.
+    test_empty(init)
 
 end
+
 end
 end
