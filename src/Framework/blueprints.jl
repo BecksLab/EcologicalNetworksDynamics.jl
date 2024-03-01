@@ -34,7 +34,7 @@
 abstract type Blueprint{V} end
 export Blueprint
 
-# Every blueprint is supposed to bring exactly one major component.
+# Every blueprint is supposed to bring exactly one major, concrete component.
 # This method implements the mapping,
 # and must be explicited by components devs.
 struct UnspecifiedComponent{B<:Blueprint} end
@@ -54,21 +54,22 @@ Base.copy(b::Blueprint) = deepcopy(b)
 # Return non-empty list if components are required
 # for this blueprint to expand,
 # even though the corresponding component itself would make sense without these.
-expands_from(::Blueprint) = CompsReasons()
+expands_from(::Blueprint{V}) where {V} = CompsReasons{V}()
 # TODO: not formally tested yet.. but maybe wait on the framework to be refactored first?
 
 # List brought blueprints.
 # Yield blueprint values for embedded blueprints.
-# Yield component values for implied blueprints.
+# Yield component types for implied blueprints (possibly abstract).
 brought(b::Blueprint) = throw("Bringing from $(typeof(b)) is unimplemented.")
 # Implied blueprints need to be constructed from the value on-demand,
 # for a target component.
-# No method, so it can be checked whether it has been set from within @blueprint macro.
-function implied_blueprint_for end # (blueprint, component) -> blueprint for this component.
-function checked_implied_blueprint_for(b::Blueprint, c::Component)
-    bp = implied_blueprint_for(b, c)
-    componentof(bp) == c ||
-        throw("Blueprint $(typeof(b)) is supposed to imply a blueprint for $c,
+# No default method, so it can be checked
+# whether it has been set from within @blueprint macro.
+function implied_blueprint_for end # (blueprint, comptype) -> blueprint for this component.
+function checked_implied_blueprint_for(b::Blueprint, C::CompType)
+    bp = implied_blueprint_for(b, C)
+    componentof(bp) == C ||
+        throw("Blueprint $(typeof(b)) is supposed to imply a blueprint for $C,
                but it implied a blueprint for $(componentof(bp)) instead:\n
                $b\n --- implied --->\n$bp")
     bp

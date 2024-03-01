@@ -31,15 +31,16 @@ macro method(input...)
     # Convenience wrap.
     tovalue(xp, ctx, type) = to_value(__module__, xp, ctx, :xerr, type)
     tocomp(xp, ctx) = to_component(__module__, xp, :ValueType, ctx, :xerr)
+    todep(xp, ctx) = to_dependency(__module__, xp, ctx, :xerr)
 
     #---------------------------------------------------------------------------------------
     # Parse macro input,
     # while also generating code checking invoker input within invocation context.
 
     # Unwrap input if given in a block.
-    if length(input) == 1 && input[1] isa Expr && input[1].head == :block
-        input = rmlines(input[1]).args
-    end
+        if length(input) == 1 && input[1] isa Expr && input[1].head == :block
+            input = rmlines(input[1]).args
+        end
 
     li = length(input)
     if li == 0 || li > 3
@@ -114,11 +115,10 @@ macro method(input...)
                 if first
                     # Infer the value type from the first dep if possible.
                     xp = quote
-                        dep = $(tovalue(dep, "First dependency", Component))
+                        C = $(todep(dep, "First dependency"))
                         if isnothing(ValueType)
-                            ValueType = system_value_type(dep)
+                            ValueType = system_value_type(C)
                         else
-                            C = typeof(dep)
                             if !(C <: Component{ValueType})
                                 actual_V = system_value_type(C)
                                 xerr("Depends section: system value type \
@@ -128,11 +128,11 @@ macro method(input...)
                                       and not '$(Component{ValueType})'.")
                             end
                         end
-                        dep
+                        C
                     end
                     first = false
                 else
-                    xp = tocomp(dep, "Depends section")
+                    xp = todep(dep, "Depends section")
                 end
                 push!(deps_xp.args, xp)
             end
@@ -186,8 +186,8 @@ macro method(input...)
     # Check that consistent 'depends' component types have been specified.
     push_res!(
         quote
-            deps = OrderedSet()
             raw = $deps_xp
+            deps = OrderedSet{CompType{ValueType}}()
 
             # Now that we have a guarantee that 'ValueType' has been completely inferred,
             # use it to guard against redundant method specifications.
@@ -195,17 +195,17 @@ macro method(input...)
                 xerr("Function '$fn' already marked as a method \
                       for '$(System{ValueType})'.")
 
-            for dep in raw
-                for already in deps
+            for Dep in raw
+                for Already in deps
                     vertical_guard(
-                        typeof(dep),
-                        typeof(already),
-                        () -> xerr("Dependency '$dep' is specified twice."),
-                        (sub, sup) ->
-                            xerr("Dependency '$sub' is also specified as '$sup'."),
+                        Dep,
+                        Already,
+                        () -> xerr("Dependency '$Dep' is specified twice."),
+                        (Sub, Sup) ->
+                            xerr("Dependency $Sub is also specified as $Sup."),
                     )
                 end
-                push!(deps, dep)
+                push!(deps, Dep)
             end
         end,
     )
@@ -289,7 +289,7 @@ macro method(input...)
                 dep = missing_dependency_for(ValueType, fn, s)
                 if !isnothing(dep)
                     a = isabstracttype(dep) ? " a" : ""
-                    throw(MethodError(ValueType, $fn_path, "Requires$a component '$dep'."))
+                    throw(MethodError(ValueType, $fn_path, "Requires$a component $dep."))
                 end
                 fn(s._value, args...; kwargs...)
             end

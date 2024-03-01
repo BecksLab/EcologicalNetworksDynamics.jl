@@ -115,6 +115,7 @@ export Component
 # because they can be abstract,
 # most exposed methods work with concrete singleton instance.
 const CompType{V} = Type{<:Component{V}}
+Base.convert(::CompType{V}, c::Component{V}) where V = typeof(c) # Singleton ergonomy.
 
 # Component types being singleton, we *can* infer the value from the type.
 singleton_instance(C::CompType) = throw("No concrete singleton instance of '$C'.")
@@ -128,14 +129,16 @@ system_value_type(::Component{V}) where {V} = V
 #-------------------------------------------------------------------------------------------
 # Requirements.
 
-# (when specifying a 'component' requirement,
-# optionally use a 'component => "reason"' instead)
+# When specifying a 'component' requirement,
+# possibly invoke a 'reason' for it.
+# Requirements need to be specified in terms of component types
+# because it is possible to require *abstract* components.
 const Reason = Option{String}
-const CompsReasons = OrderedDict{CompType,Reason}
+const CompsReasons{V} = OrderedDict{CompType{V},Reason}
 
 # Specify which components are needed for the focal one to make sense.
 # (these may or may not be implied/brought by the corresponding blueprints)
-requires(::CompType) = CompsReasons()
+requires(::CompType{V}) where {V} = CompsReasons{V}()
 requires(c::Component) = requires(typeof(c))
 
 # List all possible blueprints for the component.
@@ -149,7 +152,7 @@ blueprints(c::Component{V}) where {V} = throw("No blueprint specified for $c.")
 # The clusters need to be defined *after* the components themselves,
 # so they can all refer to each other
 # as a clique of incompatible nodes in the component graph.
-conflicts_(::CompType) = CompsReasons()
+conflicts_(::CompType{V}) where {V} = CompsReasons{V}()
 conflicts_(c::Component) = conflicts_(typeof(c))
 # When specialized, the above method yields a reference to underlying value,
 # updated according to this module's own logic. Don't expose.
@@ -262,13 +265,20 @@ end
 # ==========================================================================================
 # By default, strip the standard leading '_' in component type, wrap in angle brackets <>,
 # and don't display blueprint details within component values.
+# NOTE: this enhances ergonomics
+# but it makes unexpected framework errors rather confusing.
+# Deactivate when debugging.
+strip_compname(::Type{V}, C::Type{Component{V}}) where {V} =
+    "$(lstrip(String(nameof(C)), '_')){$V}"
 strip_compname(::Type{V}, C::CompType{V}) where {V} = lstrip(String(nameof(C)), '_')
+Base.show(io::IO, ::Type{CompType}) = print(io, "unionall CompType..?")
 Base.show(io::IO, C::CompType{V}) where {V} = print(io, "<$(strip_compname(V, C))>")
 Base.show(io::IO, c::Component{V}) where {V} = print(io, strip_compname(V, typeof(c)))
 
 # More explicit terminal display.
 function Base.show(io::IO, ::MIME"text/plain", C::CompType{V}) where {V}
-    print(io, "$C $(crayon"black")(component type ")
+    abs = isabstracttype(C) ? "abstract " : ""
+    print(io, "$C $(crayon"black")($(abs)component type ")
     @invoke show(io::IO, C::DataType)
     print(io, ")$(crayon"reset")")
 end

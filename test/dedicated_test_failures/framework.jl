@@ -25,6 +25,15 @@ function TestFailures.check_exception(e::ItemMacroParseError, category, message_
 end
 
 # Convenience macros for the test suite.
+macro pbluefails(xp, mess)
+    TestFailures.failswith(
+        __source__,
+        __module__,
+        xp,
+        :($ItemMacroParseError => (:blueprint, $mess)),
+        true,
+    )
+end
 macro pcompfails(xp, mess)
     TestFailures.failswith(
         __source__,
@@ -43,7 +52,7 @@ macro pmethfails(xp, mess)
         true,
     )
 end
-export @pcompfails, @pmethfails
+export @pbluefails, @pcompfails, @pmethfails
 
 #-------------------------------------------------------------------------------------------
 # Check failures in macro execution.
@@ -62,6 +71,15 @@ function TestFailures.check_exception(
 end
 
 # Convenience macros for the tests suite.
+macro xbluefails(xp, item, mess)
+    TestFailures.failswith(
+        __source__,
+        __module__,
+        xp,
+        :($ItemMacroExecError => (:blueprint, $item, $mess)),
+        false,
+    )
+end
 macro xcompfails(xp, item, mess)
     TestFailures.failswith(
         __source__,
@@ -80,7 +98,7 @@ macro xmethfails(xp, item, mess)
         false,
     )
 end
-export @xcompfails, @xmethfails
+export @xbluefails, @xcompfails, @xmethfails
 
 # Same duo for @conflicts macro.
 TestFailures.check_exception(e::ConflictMacroParseError, mp) =

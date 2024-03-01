@@ -21,7 +21,7 @@ export Value
 # ==========================================================================================
 # Define basic blueprints/components to work with the above value.
 
-module Basics # Use submodules to not clash component names.
+module Basics # Use submodules to not clash blueprints/components names.
 using ..RegularUse
 using .F
 using Test
@@ -61,9 +61,9 @@ F.expand!(v, u::Uniform) = (v._dict[:a] = [u.value for _ in 1:v.n])
 mutable struct Raw <: Blueprint{Value}
     a::Vector{Float64}
     size::Brought(Size)
-    Raw(a) = new(a, Size) # Default to implying brought blueprint.
+    Raw(a) = new(a, _Size) # Default to implying brought blueprint.
 end
-F.implied_blueprint_for(r::Raw, ::_Size) = NLines(length(r.a))
+F.implied_blueprint_for(r::Raw, ::Type{_Size}) = NLines(length(r.a))
 function F.late_check(v, raw::Raw)
     na = length(raw.a)
     nv = v.n # <- Use properties there thanks to unchecked_[gs]etproperty(!).
@@ -103,7 +103,7 @@ F.expand!(v, u::Uniform) = (v._dict[:b] = [u.value for _ in 1:v.n])
 mutable struct Raw <: Blueprint{Value}
     b::Vector{Float64}
     size::Brought(Size)
-    Raw(b) = new(b, Size)
+    Raw(b) = new(b, _Size)
 end
 function F.late_check(v, raw::Raw)
     nb = length(raw.b)
@@ -113,7 +113,7 @@ function F.late_check(v, raw::Raw)
 end
 F.expand!(v, r::Raw) = (v._dict[:b] = deepcopy(r.b))
 Basics.NLines(r::Raw) = NLines(length(r.b))
-F.implied_blueprint_for(r::Raw, ::_Size) = NLines(length(r.b))
+F.implied_blueprint_for(r::Raw, ::Type{_Size}) = NLines(length(r.b))
 @blueprint Raw
 
 end # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -191,10 +191,10 @@ end
     # Forbid unexistent properties.
     @sysfails(s.x, System, "Invalid property name: 'x'.")
     # Forbid existent properties without appropriate component.
-    @sysfails(s.b, Property(b), "Component '$B' is required to read this property.")
+    @sysfails(s.b, Property(b), "Component $_B is required to read this property.")
     # Same with methods.
     @test_throws UndefVarError get_x(s)
-    @sysfails(get_b(s), Method(get_b), "Requires component '$B'.")
+    @sysfails(get_b(s), Method(get_b), "Requires component $_B.")
 
     # Forbid write.
     @sysfails((s.n = 4), Property(n), "This property is read-only.")
@@ -215,8 +215,8 @@ end
     # Cannot add component if requirement is missing.
     e = System{Value}() # Empty.
     @sysfails(
-        e + B.Raw([8, 8, 8]),
-        Add(MissingRequiredComponent, [B.Raw], A, nothing, false)
+        e + B.Raw([8, 8, 8]), # Size is brought, but not A.
+        Add(MissingRequiredComponent, A, [B.Raw], nothing, false)
     )
 
     # Chain summations.
@@ -331,7 +331,7 @@ end
     a.size = nothing
 
     # The component is not brought then.
-    @sysfails(e + a, Add(MissingRequiredComponent, [A.Raw], Size, nothing, false))
+    @sysfails(e + a, Add(MissingRequiredComponent, Size, [A.Raw], nothing, false))
 
 end
 
@@ -346,8 +346,8 @@ end
     # Check that the original system is always empty.
     function test_empty(i)
         @test isempty(collect(components(i)))
-        @sysfails(get_a(i), Method(get_a), "Requires component '$A'.")
-        @sysfails(i.a, Property(a), "Component '$A' is required to read this property.")
+        @sysfails(get_a(i), Method(get_a), "Requires component $_A.")
+        @sysfails(i.a, Property(a), "Component $_A is required to read this property.")
     end
     test_empty(init)
 

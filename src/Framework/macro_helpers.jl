@@ -84,6 +84,17 @@ function to_component(mod, xp, value_type_var, ctx, xerr)
     end
 end
 
+# Component dependencies are either specified
+# as singleton instances (because it is convenient),
+# or as component type (because they may be abstract).
+# Yet only use extract corresponding types.
+function to_dependency(mod, xp, ctx, xerr)
+    quote
+        dep = $(to_value(mod, xp, ctx, xerr, Union{Component,<:CompType}))
+        dep isa Type ? dep : typeof(dep)
+    end
+end
+
 # Same for a blueprint type.
 function to_blueprint_type(mod, xp, value_type_var, ctx, xerr)
     quote

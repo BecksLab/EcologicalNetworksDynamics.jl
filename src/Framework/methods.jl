@@ -31,7 +31,7 @@
 # The wrapped system value type must always be specified.
 
 # Methods depend on nothing by default.
-depends(::Type, ::Type{<:Function}) = []
+depends(V::Type, ::Type{<:Function}) = CompType{V}[]
 missing_dependency_for(::Type, ::Type{<:Function}, _) = nothing
 
 # Direct call with the functions themselves.

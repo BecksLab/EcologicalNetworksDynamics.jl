@@ -90,7 +90,9 @@ macro component(input...)
                 SuperComponent =
                     $(tovalue(super, "Evaluating given supercomponent", DataType))
                 if !(SuperComponent <: Component)
-                    $xerr("$($ctx): '$SuperComponent' does not subtype '$Component'.")
+                    xerr(
+                        "Supercomponent: '$SuperComponent' does not subtype '$Component'.",
+                    )
                 end
                 ValueType = system_value_type(SuperComponent)
             end,
@@ -175,9 +177,10 @@ macro component(input...)
         quote
 
             # Required components.
-            reqs = CompsReasons()
+            reqs = CompsReasons{ValueType}()
             for (req, reason) in $requires_xp
-                # Triangular-check against redundancies.
+                # Triangular-check against redundancies,
+                # checking through abstract types.
                 for (already, _) in reqs
                     vertical_guard(
                         typeof(req),
@@ -193,7 +196,7 @@ macro component(input...)
             # Possible blueprints.
             # Take this opportunity to collect automatically required components.
             bps = []
-            auto_req = CompsReasons()
+            auto_req = CompsReasons{ValueType}()
             for (i, (bpname, B)) in enumerate($blueprints_xp)
                 # Check that this blueprint is not already bound to another component.
                 try
@@ -284,7 +287,7 @@ macro component(input...)
     push_res!(quote
         for (_, B) in bps
             $__module__.eval(quote
-                $Framework.componentof(::Type{$B}) = $($enas)
+                $Framework.componentof(::Type{$B}) = $($etys)
             end)
         end
     end)
@@ -292,7 +295,8 @@ macro component(input...)
     # Setup the components required.
     push_res!(
         quote
-            Framework.requires(::Type{$ety}) = CompsReasons(k => v for (k, v) in reqs)
+            Framework.requires(::Type{$ety}) =
+                CompsReasons{ValueType}(k => v for (k, v) in reqs)
         end,
     )
 
@@ -301,10 +305,7 @@ macro component(input...)
     push_res!(
         quote
             function Base.show(io::IO, ::MIME"text/plain", c::$ety)
-                print(
-                    io,
-                    "$c $(crayon"black")(component for $ValueType, expandable from:",
-                )
+                print(io, "$c $(crayon"black")(component for $ValueType, expandable from:")
                 for name in fieldnames(typeof(c))
                     bp = getfield(c, name)
                     print(io, "\n  $name: $bp,")

@@ -18,9 +18,8 @@ struct System{V}
 
     _value::V
 
-    # Keep track of all the concrete components added:
-    # type and associated singleton instance.
-    _concrete::OrderedDict{CompType{V},Component{V}} # (ordered to be used as a history)
+    # Keep track of all the concrete components added.
+    _concrete::OrderedSet{CompType{V}} # (ordered to be used as a history)
 
     # Components are also indexed by their possible abstract supertypes.
     _abstract::Dict{CompType{V},Set{CompType{V}}} # {Abstract -> {Concrete}}
@@ -29,7 +28,7 @@ struct System{V}
     # so that its state cannot be corrupted if outer aliased refs
     # are still lingering on within the caller scope.
     System{V}(args...; kwargs...) where {V} =
-        new{V}(V(args...; kwargs...), OrderedDict(), Dict())
+        new{V}(V(args...; kwargs...), OrderedSet(), Dict())
 
     # Or with a starting list of components,
     # assuming the value can be constructed with no arguments.
@@ -42,7 +41,7 @@ struct System{V}
     end
 
     # Specialize the empty case to avoid infinite recursion.
-    System{V}() where {V} = new{V}(V(), OrderedDict(), Dict())
+    System{V}() where {V} = new{V}(V(), OrderedSet(), Dict())
 
     # Useful when copying.
     System{V}(::Type{RawConstruct}, args...) where {V} = new{V}(args...)
@@ -56,7 +55,7 @@ valuetype(::System{V}) where {V} = V
 # Fork the system, recursively copying the wrapped value and every component.
 function Base.copy(s::System{V}) where {V}
     value = copy(s._value)
-    concrete = OrderedDict(C => comp for (C, comp) in s._concrete)
+    concrete = copy(s._concrete)
     abstracts = Dict(A => Set(concretes) for (A, concretes) in s._abstract)
     System{V}(RawConstruct, value, concrete, abstracts)
 end
@@ -73,9 +72,9 @@ function Base.getproperty(system::System{V}, p::Symbol) where {V}
     haskey(props, p) || syserr(V, "Invalid property name: '$p'.")
     fn = props[p].read
     # Check for required components availability.
-    miss = missing_dependency_for(V, fn, system)
-    if !isnothing(miss)
-        comp = isabstracttype(miss) ? "A component '$miss'" : "Component '$miss'"
+    Miss = missing_dependency_for(V, fn, system)
+    if !isnothing(Miss)
+        comp = isabstracttype(Miss) ? "A component $Miss" : "Component $Miss"
         properr(V, p, "$comp is required to read this property.")
     end
     # Forward to method.
@@ -91,9 +90,9 @@ function Base.setproperty!(system::System{V}, p::Symbol, rhs) where {V}
     fn = props[p].write
     isnothing(fn) && properr(V, p, "This property is read-only.")
     # Check for required components availability.
-    miss = missing_dependency_for(V, fn, system)
-    if !isnothing(miss)
-        comp = isabstracttype(miss) ? "A component '$miss'" : "Component '$miss'"
+    Miss = missing_dependency_for(V, fn, system)
+    if !isnothing(Miss)
+        comp = isabstracttype(Miss) ? "A component $Miss" : "Component $Miss"
         properr(V, p, "$comp is required to write to this property.")
     end
     # Invoke property method, checking for available components.
@@ -126,32 +125,25 @@ end
 # Query components.
 
 # Iterate over all concrete components.
-components(s::System) = values(s._concrete)
-component_types(s::System) = keys(s._concrete)
+component_types(s::System) = Iterators.map(identity, s._concrete)
+components(s::System) = Iterators.map(singleton_instance, component_types(s))
 # Restrict to the given component (super)type.
-components(system::System{V}, C::CompType{V}) where {V} =
-    if isabstracttype(C)
-        d = system._abstract
-        haskey(d, C) ? Iterators.map(T -> system._concrete[T], d[C]) : ()
-    else
-        d = system._concrete
-        haskey(d, C) ? (d[C],) : ()
-    end
 components_types(system::System{V}, C::CompType{V}) where {V} =
     if isabstracttype(C)
         d = system._abstract
         haskey(d, C) ? d[C] : ()
     else
         d = system._concrete
-        haskey(d, C) ? (d[C],) : ()
+        C in d ? (C,) : ()
     end
+components(s::System, C::CompType{V}) where {V} =
+    Iterators.map(singleton_instance, components_types(s, C))
 export components, component_types
 
 # Basic check.
 has_component(s::System{V}, C::Type{<:Component{V}}) where {V} = !isempty(components(s, C))
 has_component(s::System{V}, c::Component{V}) where {V} = has_component(s, typeof(c))
-has_concrete_component(s::System{V}, c::Component{V}) where {V} =
-    haskey(s._concrete, typeof(c))
+has_concrete_component(s::System{V}, c::Component{V}) where {V} = typeof(c) in s._concrete
 export has_component, has_concrete_component
 
 # List properties available for this instance.
@@ -197,8 +189,8 @@ function Base.show(io::IO, ::MIME"text/plain", sys::System)
     S = typeof(sys)
     rs = repr(MIME("text/plain"), S)
     print(io, "$rs with $n component$(eol(n))")
-    for component in values(sys._concrete)
-        print(io, "\n  - $component")
+    for C in sys._concrete
+        print(io, "\n  - $C")
     end
 end
 s(n) = (n > 1) ? "s" : ""

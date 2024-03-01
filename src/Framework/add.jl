@@ -12,7 +12,7 @@ end
 
 # Keep track of all blueprints about broughts,
 # indexed by their concrete component instance.
-const BroughtList = Dict{Component,Vector{Node}}
+const BroughtList{V} = Dict{CompType{V},Vector{Node}}
 
 #-------------------------------------------------------------------------------------------
 # Recursively create during first pass, pre-order,
@@ -25,32 +25,34 @@ function Node(
     brought::BroughtList,
 )
 
-    component = componentof(blueprint)
+    C = componentof(blueprint)
+    isabstracttype(C) && throw("No blueprint expands into an abstract component. \
+                                This is a bug in the framework.")
 
     # Create node and connect to parent, without its children yet.
     node = Node(blueprint, parent, implied, [])
 
     # Check for duplication if embedded.
-    !implied && has_component(system, component) && throw(BroughtAlreadyInValue(node))
+    !implied && has_component(system, C) && throw(BroughtAlreadyInValue(node))
 
     # Check for consistency with other possible blueprints bringing the same component.
-    if haskey(brought, component)
-        others = brought[component]
+    if haskey(brought, C)
+        others = brought[C]
         for other in others
             blueprint == other.blueprint || throw(InconsistentForSameComponent(node, other))
         end
         push!(others, node)
     else
-        brought[component] = [node]
+        brought[C] = [node]
     end
 
     # Recursively construct children.
     for br in Framework.brought(blueprint)
-        if br isa Component
+        if br isa CompType
             # An 'implied' brought blueprint possibly needs to be constructed.
-            implied_component = br
-            has_concrete_component(system, implied_component) && continue
-            implied_bp = checked_implied_blueprint_for(blueprint, implied_component)
+            implied_C = br
+            has_component(system, implied_C) && continue
+            implied_bp = checked_implied_blueprint_for(blueprint, implied_C)
             child = Node(implied_bp, node, true, system, brought)
             push!(node.children, child)
         elseif br isa Blueprint
@@ -76,7 +78,7 @@ function check(
     node::Node,
     system::System,
     brought::BroughtList,
-    checked::OrderedSet{Component},
+    checked::OrderedSet{<:CompType},
 )
 
     # Recursively check children first.
@@ -93,18 +95,17 @@ function check(
             # Check against the current system value.
             has_component(system, R) && continue
             # Check against other components about to be brought.
-            any(checked) do c
-                R <: typeof(c)
-            end || throw(MissingRequiredComponent(node, R, reason, for_expansion))
+            any(C -> R <: C, checked) ||
+                throw(MissingRequiredComponent(R, node, reason, for_expansion))
         end
     end
 
     # Guard against conflicts.
     for (C, reason) in conflicts_(component)
         has_component(system, C) && throw(ConflictWithSystemComponent(node, C, reason))
-        for c in checked
-            C <: typeof(c)
-            throw(ConflictWithBroughtComponent(node, brought[c], reason))
+        for Chk in checked
+            C <: typeof(Chk) &&
+                throw(ConflictWithBroughtComponent(node, brought[C], reason))
         end
     end
 
@@ -132,8 +133,8 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
     end
 
     forest = Node[]
-    brought = BroughtList() # Populated during pre-order traversal.
-    checked = OrderedSet{Component}() # Populated during first post-order traversal.
+    brought = BroughtList{V}() # Populated during pre-order traversal.
+    checked = OrderedSet{CompType{V}}() # Populated during first post-order traversal.
 
     #---------------------------------------------------------------------------------------
     # Read-only preliminary checking.
@@ -176,8 +177,8 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
     try
 
         # Second post-order visit: expand the blueprints.
-        for c in checked
-            node = first(brought[c])
+        for Chk in checked
+            node = first(brought[Chk])
             blueprint = node.blueprint
 
             # Temporary patch after renaming check -> late_check
@@ -198,10 +199,9 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
             end
 
             # Record.
-            component = componentof(blueprint)
-            C = typeof(component)
+            C = componentof(blueprint)
             crt, abs = system._concrete, system._abstract
-            crt[C] = component
+            push!(crt, C)
             for sup in supertypes(C)
                 sup === C && continue
                 sup === Component{V} && break
@@ -279,8 +279,8 @@ struct InconsistentForSameComponent <: AddException
 end
 
 struct MissingRequiredComponent <: AddException
-    node::Node
     miss::CompType
+    node::Node
     reason::Reason
     for_expansion::Bool # Raise if the blueprint requires, lower if the component requires.
 end
@@ -372,7 +372,7 @@ function Base.showerror(io::IO, e::BroughtAlreadyInValue)
 end
 
 function Base.showerror(io::IO, e::MissingRequiredComponent)
-    (; node, miss, reason, for_expansion) = e
+    (; miss, node, reason, for_expansion) = e
     path = render_path(node)
     comp = componentof(node.blueprint)
     if for_expansion
