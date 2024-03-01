@@ -50,7 +50,7 @@ function Node(
             # An 'implied' brought blueprint possibly needs to be constructed.
             implied_component = br
             has_concrete_component(system, implied_component) && continue
-            implied_bp = checked_construct_implied(blueprint, implied_component)
+            implied_bp = checked_implied_blueprint_for(blueprint, implied_component)
             child = Node(implied_bp, node, true, system, brought)
             push!(node.children, child)
         elseif br isa Blueprint
@@ -58,6 +58,11 @@ function Node(
             embedded_bp = br
             child = Node(embedded_bp, node, false, system, brought)
             push!(node.children, child)
+        else
+            throw("⚠ Invalid brought value. ⚠ \
+                   This is either a bug in the framework or in the components library. \
+                   Please report if you can reproduce with a minimal example. \
+                   Received brought value: $br ::$(typeof(br)).")
         end
     end
 

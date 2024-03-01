@@ -260,9 +260,15 @@ function declare_conflicts_clique(err, components::Vector{<:CompType{V}}) where 
 end
 
 # ==========================================================================================
-# Specialize to refine system display component per component.
 # By default, strip the standard leading '_' in component type, wrap in angle brackets <>,
 # and don't display blueprint details within component values.
 strip_compname(::Type{V}, C::CompType{V}) where {V} = lstrip(String(nameof(C)), '_')
 Base.show(io::IO, C::CompType{V}) where {V} = print(io, "<$(strip_compname(V, C))>")
 Base.show(io::IO, c::Component{V}) where {V} = print(io, strip_compname(V, typeof(c)))
+
+# More explicit terminal display.
+function Base.show(io::IO, ::MIME"text/plain", C::CompType{V}) where {V}
+    print(io, "$C $(crayon"black")(component type ")
+    @invoke show(io::IO, C::DataType)
+    print(io, ")$(crayon"reset")")
+end

@@ -8,12 +8,12 @@
 #   @blueprint Name
 #
 # Regarding the blueprint 'brought': make an ergonomic BET.
-# Any blueprint field typed with Union{Nothing,Blueprint,_Component,Implied}
+# Any blueprint field typed with Union{Nothing,Blueprint,_Component}
 # is automatically considered 'potential brought'.
 # In this case, enforce that, if a blueprint, the value would expand to the given component.
 #
 #   brought(::Name) = iterator over the fields, skipping 'nothing' values (not brought).
-#   construct_implied(::Name, ::Component) = <assumed to be implemented by macro invoker>
+#   implied_blueprint_for(::Name, ::Component) = <assumed implemented by macro invoker>
 #
 # And for blueprint user convenience, override:
 #
@@ -21,7 +21,7 @@
 #
 # When given `nothing` as a value, void the field.
 # When given a blueprint, check that its component for consistency then make it embedded.
-# When given a component or `implied`, make it implied.
+# When given a component, make it implied.
 # When given anything else, query the following for a callable blueprint constructor:
 #
 #   assignment_to_embedded(::Name, field) = Component
@@ -31,18 +31,10 @@
 #
 #   blueprint.field = value  --->  blueprint.field = EmbeddedBlueprintConstructor(value)
 
-# Default value to automatically pick the right implied component.
-# Note: the meaning of a brought field value being 'implied' or a component is the *same*.
-# Having both enables that the types carries information about the brought component,
-# and also that blueprint writers can use convenience `implied` values within `new` calls.
-struct Implied end
-const implied = Implied()
-export implied
-
 # Construct field type to be automatically detected as brought blueprints.
 function Brought(c::Component)
     V = system_value_type(c)
-    Union{Nothing,Blueprint{V},typeof(c),Implied}
+    Union{Nothing,Blueprint{V},typeof(c)}
 end
 export Brought
 
@@ -104,6 +96,7 @@ macro blueprint(input...)
             specified_as_blueprint(NewBlueprint) &&
                 xerr("Type '$NewBlueprint' already marked \
                       as a blueprint for '$(System{ValueType})'.")
+            serr(mess) = syserr(ValueType, mess)
         end,
     )
 
@@ -118,19 +111,19 @@ macro blueprint(input...)
             broughts = OrderedDict{Symbol,Component}()
             for (name, fieldtype) in zip(fieldnames(NewBlueprint), NewBlueprint.types)
 
-                fieldtype <:
-                Union{Nothing,<:Blueprint{ValueType},<:Component{ValueType},Implied} ||
+                fieldtype <: Union{Nothing,<:Blueprint{ValueType},<:Component{ValueType}} ||
                     continue
                 f = fieldtype
-                (a, b, c, d) = (f.a, f.b.a, f.b.b.a, f.b.b.b)
-                d <: Component{ValueType} || throw("Unstable Union ordering?")
-                C = d
+                # Not sure how union members are supposed to be ordered,
+                # or whether the ordering is guaranteed at all.
+                # Just extract them all and search the component within them.
+                (a, b, c) = (f.a, f.b.a, f.b.b)
+                C, _ = iterate(Iterators.filter(i -> i <: Component{ValueType}, [a, b, c]))
                 component = singleton_instance(C)
-
                 try
-                    which(construct_implied, (NewBlueprint, C))
+                    which(implied_blueprint_for, (NewBlueprint, C))
                 catch
-                    xerr("Method $construct_implied($NewBlueprint, $C) unspecified.")
+                    xerr("Method $implied_blueprint_for($NewBlueprint, $C) unspecified.")
                 end
 
                 # Triangular-check against redundancies.
@@ -177,36 +170,35 @@ macro blueprint(input...)
                 expected_component = broughts[prop]
                 val = if rhs isa Blueprint
                     V = system_value_type(rhs)
-                    V == ValueType || syserr(
-                        "Blueprint for a System{$V} \
-                         cannot be embedded by a blueprint for System{$ValueType}: $rhs.",
-                    )
+                    V == ValueType ||
+                        serr("Blueprint cannot be embedded by a blueprint \
+                              for System{$ValueType}: $rhs.")
                     C = componentof(rhs)
-                    C == expected_component ||
-                        syserr("Blueprint would expand into $C, \
-                                but the field :$prop of $(typeof(b)) \
-                                is supposed to bring $expected_component:\n\
-                                $rhs")
+                    C == expected_component || serr("Blueprint would expand into $C, \
+                                                     but the field :$prop of $(typeof(b)) \
+                                                     is supposed to bring \
+                                                     $expected_component:\n  $rhs")
                     rhs
                 elseif rhs isa Component
                     V = system_value_type(rhs)
-                    V == ValueType || syserr(
-                        "Component for a System{$V} \
-                         cannot be implied by a blueprint for System{$ValueType}: $rhs.",
-                    )
+                    V == ValueType || serr("Component cannot be implied \
+                                            by a blueprint for System{$ValueType}: $rhs.")
                     rhs <: typeof(expected_component) ||
-                        syserr("The field :$prop of $(typeof(b)) \
-                                is supposed to bring $expected_component. \
-                                As such, it cannot imply $rhs instead.")
+                        serr("The field :$prop of $(typeof(b)) \
+                              is supposed to bring $expected_component. \
+                              As such, it cannot imply $rhs instead.")
                     rhs
-                elseif rhs isa Implied
-                    expected_component
                 elseif isnothing(rhs)
                     nothing
                 else
                     # In any other case, forward to an underlying blueprint constructor.
                     # TODO: make this constructor customizeable depending on the value.
                     cstr = expected_component #  (assuming the constructor is callable)
+                    isempty(methods(cstr)) && serr(
+                        "Cannot set brought field from arguments values \
+                         because $cstr is not (yet?) callable. \
+                         Consider providing a blueprint value instead of $(repr(rhs)).",
+                    )
                     args, kwargs = if rhs isa Tuple{<:Tuple,<:NamedTuple}
                         rhs
                     elseif rhs isa Tuple
@@ -232,6 +224,83 @@ macro blueprint(input...)
         end,
     )
 
+    # Enhance display, special-casing brought fields.
+    push_res!(
+        quote
+            Base.show(io::IO, b::NewBlueprint) = display_short(io, b)
+            Base.show(io::IO, ::MIME"text/plain", b::NewBlueprint) = display_long(io, b)
+
+            function Framework.display_short(io::IO, bp::NewBlueprint)
+                grey = crayon"black"
+                reset = crayon"reset"
+                c = componentof(bp)
+                print(io, "$c:$(nameof(NewBlueprint))(")
+                for (i, name) in enumerate(fieldnames(NewBlueprint))
+                    i > 1 && print(io, ", ")
+                    print(io, "$name: ")
+                    field = getfield(bp, name)
+                    # Special-case brought fields.
+                    if name in keys(broughts)
+                        if isnothing(field)
+                            print(io, "$grey<$nothing>$reset")
+                        elseif field isa Component
+                            print(io, "<$field>")
+                        elseif field isa Blueprint
+                            print(io, "<")
+                            display_short(field)
+                            print(io, ">")
+                        else
+                            throw("unreachable: invalid brought blueprint value")
+                        end
+                    else
+                        display_blueprint_field_short(io, field)
+                    end
+                end
+                print(io, ")")
+            end
+
+            function Framework.display_long(io::IO, bp::NewBlueprint; level = 0)
+                grey = crayon"black"
+                reset = crayon"reset"
+                c = componentof(bp)
+                print(io, "blueprint for $c: $(nameof(NewBlueprint)) {")
+                preindent = repeat("  ", level)
+                level += 1
+                indent = repeat("  ", level)
+                names = fieldnames(NewBlueprint)
+                for name in names
+                    field = getfield(bp, name)
+                    print(io, "\n$indent$name: ")
+                    # Special-case brought fields.
+                    if name in keys(broughts)
+                        if isnothing(field)
+                            print(io, "$grey<no blueprint brought>$reset")
+                        elseif field isa Component
+                            print(
+                                io,
+                                "$grey<implied blueprint for $reset$field$grey>$reset",
+                            )
+                        elseif field isa Blueprint
+                            print(io, "$grey<brought $reset")
+                            display_long(io, field; level)
+                            print(io, "$grey>$reset")
+                        else
+                            throw("unreachable: invalid brought blueprint value")
+                        end
+                    else
+                        display_blueprint_field_long(io, field; level)
+                    end
+                    print(io, ",")
+                end
+                if !isempty(names)
+                    print(io, "\n$preindent")
+                end
+                print(io, "}")
+            end
+
+        end,
+    )
+
     # Legacy record.
     push_res!(quote
         push!(BLUEPRINTS_SPECIFIED, NewBlueprint)
@@ -248,3 +317,11 @@ export @blueprint
 
 const BLUEPRINTS_SPECIFIED = Set{Type{<:Blueprint}}()
 specified_as_blueprint(B::Type{<:Blueprint}) = B in BLUEPRINTS_SPECIFIED
+
+# Stubs for display methods.
+function display_short end
+function display_long end
+
+# Escape hatch to override in case blueprint field values need special display.
+display_blueprint_field_short(io::IO, val) = print(io, val)
+display_blueprint_field_long(io::IO, val; level = 0) = print(io, val)

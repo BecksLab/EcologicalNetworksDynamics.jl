@@ -30,7 +30,7 @@ export F, Value
 
 #-------------------------------------------------------------------------------------------
 # One component/blueprint for the number of lines.
-struct NLines <: Blueprint{Value}
+mutable struct NLines <: Blueprint{Value}
     n::Int64
 end
 F.early_check(nl::NLines) =
@@ -38,7 +38,7 @@ F.early_check(nl::NLines) =
 F.expand!(v, nl::NLines) = (v._n = nl.n)
 @blueprint NLines
 @component Size{Value} blueprints(N::NLines)
-export NLines, Size
+export NLines, Size, _Size
 
 get_n(v) = v._n
 @method get_n depends(Size) read_as(n)
@@ -52,19 +52,18 @@ module ABlueprints # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 using ..Basics
 using EcologicalNetworksDynamics.Framework
 
-struct Uniform <: Blueprint{Value}
+mutable struct Uniform <: Blueprint{Value}
     value::Float64
 end
 F.expand!(v, u::Uniform) = (v._dict[:a] = [u.value for _ in 1:v.n])
 @blueprint Uniform
 
-struct Raw <: Blueprint{Value}
+mutable struct Raw <: Blueprint{Value}
     a::Vector{Float64}
     size::Brought(Size)
-    Raw(a) = new(a, implied) # Default to implying brought blueprint.
+    Raw(a) = new(a, Size) # Default to implying brought blueprint.
 end
-# HERE: could we avoid needing to acces the component *type* this way?
-F.construct_implied(r::Raw, ::typeof(Size)) = NLines(length(r.a))
+F.implied_blueprint_for(r::Raw, ::_Size) = NLines(length(r.a))
 function F.late_check(v, raw::Raw)
     na = length(raw.a)
     nv = v.n
@@ -93,7 +92,7 @@ module BBlueprints # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 using ..Basics
 using EcologicalNetworksDynamics.Framework
 
-struct Uniform <: Blueprint{Value}
+mutable struct Uniform <: Blueprint{Value}
     value::Float64
 end
 F.late_check(v, u::Uniform) =
@@ -101,10 +100,10 @@ F.late_check(v, u::Uniform) =
 F.expand!(v, u::Uniform) = (v._dict[:b] = [u.value for _ in 1:v.n])
 @blueprint Uniform
 
-struct Raw <: Blueprint{Value}
+mutable struct Raw <: Blueprint{Value}
     b::Vector{Float64}
     size::Brought(Size)
-    Raw(b) = new(b, implied)
+    Raw(b) = new(b, Size)
 end
 function F.late_check(v, raw::Raw)
     nb = length(raw.b)
@@ -114,6 +113,7 @@ function F.late_check(v, raw::Raw)
 end
 F.expand!(v, r::Raw) = (v._dict[:b] = deepcopy(r.b))
 Basics.NLines(r::Raw) = NLines(length(r.b))
+F.implied_blueprint_for(r::Raw, ::_Size) = NLines(length(r.b))
 @blueprint Raw
 
 end # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -155,11 +155,19 @@ struct SparseMark <: Blueprint{Value} end
     # Read property (equivalent to the above).
     @test s.n == 3
 
+    # Forbid unexistent properties.
+    @sysfails(s.x, System, "Invalid property name: 'x'.")
+    # Forbid existent properties without appropriate component.
+    @sysfails(s.b, Property(b), "Component '$B' is required to read this property.")
+    # Same with methods.
+    @test_throws UndefVarError get_x(s)
+    @sysfails(get_b(s), Method(get_b), "Requires component '$B'.")
+
     # Forbid write.
     @sysfails((s.n = 4), Property(n), "This property is read-only.")
 
     # Cannot add component twice.
-    @sysfails(add!(s, NLines(5)), Add(BroughtAlreadyInValue, [NLines]),)
+    @sysfails(add!(s, NLines(5)), Add(BroughtAlreadyInValue, [NLines]))
 
     # Add component requiring previous one from a blueprint.
     t = s + A.Uniform(5)
@@ -171,9 +179,37 @@ struct SparseMark <: Blueprint{Value} end
         Add(HookCheckFailure, [A.Raw], "Cannot expand 2 'a' values into 3 lines.", true),
     )
 
-    # Blueprints can imply other blueprints.
+    # Cannot add component if requirement is missing.
     e = System{Value}() # Empty.
-    s = e + A.Raw([5, 5]) # Automatically bring NLines.
+    @sysfails(
+        e + B.Raw([8, 8, 8]),
+        Add(MissingRequiredComponent, [B.Raw], A, nothing, false)
+    )
+
+    # Chain summations.
+    s = e + NLines(3) + A.Uniform(5) + B.Uniform(8)
+
+    # Use method/property that requires several components.
+    @test s.sum == [13, 13, 13]
+
+    # Cannot add incompatible component.
+    @sysfails(
+        s + SparseMark(),
+        Add(ConflictWithSystemComponent, [SparseMark], Size, nothing),
+    )
+end
+
+# ==========================================================================================
+@testset "Blueprints bring each other: imply/embed." begin
+
+    e = System{Value}() # Empty.
+
+    #---------------------------------------------------------------------------------------
+    # Implied blueprints.
+
+    # Implying NLines from A.Raw for Size..
+    a = A.Raw([5, 5])
+    s = e + a
     @test has_component(s, Size)
     @test has_component(s, A)
     @test s.n == 2
@@ -189,27 +225,55 @@ struct SparseMark <: Blueprint{Value} end
         )
     )
 
-    # Cannot add component if requirement is missing.
+    # Implied blueprint are not expanded if their component is already there.
+    s = e + NLines(2)
+    s += a # No error.
+    @test s.a == [5, 5]
+
+    # But a failure to match is still a failure.
+    s = e + NLines(3)
     @sysfails(
-        e + B.Raw([8, 8, 8]),
-        Add(MissingRequiredComponent, [B.Raw], A, nothing, false)
+        s += a,
+        Add(HookCheckFailure, [A.Raw], "Cannot expand 2 'a' values into 3 lines.", true)
     )
 
-    # Cannot use method without the requirements.
-    @sysfails(e.sum, Property(sum), "Component 'A' is required to read this property.")
+    #---------------------------------------------------------------------------------------
+    # Embedded blueprints.
 
-    # Chain summations.
-    s = e + NLines(3) + A.Uniform(5) + B.Uniform(8)
+    # Explicitly bring it instead of implying.
+    a.size = NLines(2)
 
-    # Use method that requires several components.
-    @test s.sum == [13, 13, 13]
+    # The component is also brought.
+    s = e + a
+    @test has_component(s, Size)
+    @test has_component(s, A)
+    @test s.n == 2
 
-    # Cannot add incompatible component.
+    # But the path connection differs in case of failure.
+    z = A.Raw([])
+    z.size = NLines(0)
     @sysfails(
-        s + SparseMark(),
-        Add(ConflictWithSystemComponent, [SparseMark], Size, nothing),
+        e + z,
+        Add(
+            HookCheckFailure,
+            [NLines, false, A.Raw],
+            "Not a positive number of lines: 0.",
+            false,
+        )
     )
 
+    # And it is an error to bring it if the component is already there.
+    s = e + NLines(2) # (*even* if the data are consistent)
+    @sysfails(s += a, Add(BroughtAlreadyInValue, [NLines, false, A.Raw]))
+
+    #---------------------------------------------------------------------------------------
+    # Unbrought blueprints.
+
+    # Alternately: don't bring the blueprint at all.
+    a.size = nothing
+
+    # The component is not brought then.
+    @sysfails(e + a, Add(MissingRequiredComponent, [A.Raw], Size, nothing, false))
 
     #---------------------------------------------------------------------------------------
     # Specify components.

@@ -281,20 +281,36 @@ macro component(input...)
     )
 
     # Connect to blueprint types.
-    push_res!(
-        quote
-            for (_, B) in bps
-                $__module__.eval(quote
-                    $Framework.componentof(::Type{$B}) = $($enas)
-                end)
-            end
-        end,
-    )
+    push_res!(quote
+        for (_, B) in bps
+            $__module__.eval(quote
+                $Framework.componentof(::Type{$B}) = $($enas)
+            end)
+        end
+    end)
 
     # Setup the components required.
     push_res!(
         quote
             Framework.requires(::Type{$ety}) = CompsReasons(k => v for (k, v) in reqs)
+        end,
+    )
+
+
+    # Helpful display resuming bundled blueprint types for this component.
+    push_res!(
+        quote
+            function Base.show(io::IO, ::MIME"text/plain", c::$ety)
+                print(
+                    io,
+                    "$c $(crayon"black")(component for $ValueType, expandable from:",
+                )
+                for name in fieldnames(typeof(c))
+                    bp = getfield(c, name)
+                    print(io, "\n  $name: $bp,")
+                end
+                print(io, "\n)$(crayon"reset")")
+            end
         end,
     )
 

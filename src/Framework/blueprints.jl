@@ -14,14 +14,16 @@
 #     which could be calculated from the data they contain if needed.
 #     This does not need to happen if the implied blueprints components
 #     are already in the system.
+#     A blueprint does not 'imply' another specific blueprint,
+#     but it 'implies' *some* blueprint bringing another specific component.
 #
 # Whether a brought blueprint is embedded or implied
 # depends on the bringer value.
-# For instance, it typically is implied if user has not specified brought-blueprint data,
+# For instance, it could be implied if user has not specified brought-blueprint data,
 # and embedded if user has explicitly asked that it be.
 #
 # Implying blueprints for an abstract component is not currently supported,
-# but will possibly be if it makes sense to do so.
+# but could possibly be if it makes sense to do so.
 #
 # Blueprint may also require that other components be present
 # for their expansion process to happen correctly,
@@ -56,14 +58,15 @@ expands_from(::Blueprint) = CompsReasons()
 # TODO: not formally tested yet.. but maybe wait on the framework to be refactored first?
 
 # List brought blueprints.
-# Yield blueprint value for embedded blueprints.
-# Yield component value for implied blueprints.
+# Yield blueprint values for embedded blueprints.
+# Yield component values for implied blueprints.
 brought(b::Blueprint) = throw("Bringing from $(typeof(b)) is unimplemented.")
-# Implied blueprints, need to be constructed from the value on-demand.
+# Implied blueprints need to be constructed from the value on-demand,
+# for a target component.
 # No method, so it can be checked whether it has been set from within @blueprint macro.
-function construct_implied end # (blueprint, component) -> blueprint for this component.
-function checked_construct_implied(b::Blueprint, c::Component)
-    bp = construct_implied(b, c)
+function implied_blueprint_for end # (blueprint, component) -> blueprint for this component.
+function checked_implied_blueprint_for(b::Blueprint, c::Component)
+    bp = implied_blueprint_for(b, c)
     componentof(bp) == c ||
         throw("Blueprint $(typeof(b)) is supposed to imply a blueprint for $c,
                but it implied a blueprint for $(componentof(bp)) instead:\n
@@ -142,6 +145,17 @@ checkfails(m) = throw(BlueprintCheckFailure(m))
 export BlueprintCheckFailure, checkfails
 
 # ==========================================================================================
+# Explicit terminal display.
+function Base.show(io::IO, ::MIME"text/plain", B::Type{<:Blueprint})
+    print(
+        io,
+        "$B \
+         $(crayon"black")\
+         (blueprint type for component '$(componentof(B))')\
+         $(crayon"reset")",
+    )
+end
+
 function Base.showerror(io::IO, ::UnspecifiedComponent{B}) where {B}
     print(io, "Unspecified component for '$(repr(B))'.")
 end
