@@ -185,7 +185,7 @@ function simulate(
         problem,
         alg;
         callback = callback,
-        isoutofdomain = (u, p, t) -> any(x -> x < 0, u[species_indices(params)]),
+        isoutofdomain = (u, p, t) -> any(x -> x < 0, u),
         kwargs...,
     )
     sol
