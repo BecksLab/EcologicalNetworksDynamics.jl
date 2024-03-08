@@ -33,8 +33,12 @@
 #   blueprint.field = value  --->  blueprint.field = EmbeddedBlueprintConstructor(value)
 #
 # Construct field type to be automatically detected as brought blueprints.
-Brought(C::CompType{V}) where {V} = Union{Nothing,Blueprint{V},Type{C}}
+struct BroughtField{C,V} # where C<:CompType{V} (enforce)
+    value::Union{Nothing,Blueprint{V},Type{C}}
+end
+Brought(C::CompType{V}) where {V} = BroughtField{C,V}
 Brought(c::Component) = Brought(typeof(c))
+componentof(::Type{BroughtField{C,V}}) where {C,V} = C
 export Brought
 
 # The code checking macro invocation consistency requires
@@ -110,18 +114,9 @@ macro blueprint(input...)
             broughts = OrderedDict{Symbol,CompType{ValueType}}()
             for (name, fieldtype) in zip(fieldnames(NewBlueprint), NewBlueprint.types)
 
-                fieldtype <:
-                Union{Nothing,Type{<:Component{ValueType}},<:Blueprint{ValueType}} ||
-                    continue
-                f = fieldtype
-                # Not sure how union members are supposed to be ordered,
-                # or whether the ordering is guaranteed at all.
-                # Just extract them all and search the component within them.
-                (a, b, c) = (f.a, f.b.a, f.b.b)
-                TC, _ = iterate(
-                    Iterators.filter(i -> i <: Type{<:Component{ValueType}}, [a, b, c]),
-                )
-                C, = TC.parameters
+                fieldtype <: BroughtField || continue
+                C = componentof(fieldtype)
+                TC = Type{C}
                 try
                     which(implied_blueprint_for, (NewBlueprint, TC))
                 catch
@@ -237,8 +232,6 @@ macro blueprint(input...)
             Base.show(io::IO, ::MIME"text/plain", b::NewBlueprint) = display_long(io, b)
 
             function Framework.display_short(io::IO, bp::NewBlueprint)
-                grey = crayon"black"
-                reset = crayon"reset"
                 C = componentof(bp)
                 print(io, "$C:$(nameof(NewBlueprint))(")
                 for (i, name) in enumerate(fieldnames(NewBlueprint))
@@ -246,29 +239,12 @@ macro blueprint(input...)
                     print(io, "$name: ")
                     field = getfield(bp, name)
                     # Special-case brought fields.
-                    if name in keys(broughts)
-                        if isnothing(field)
-                            print(io, "$grey<$nothing>$reset")
-                        elseif field isa CompType{ValueType}
-                            print(io, field)
-                        elseif field isa Blueprint
-                            print(io, "<")
-                            display_short(field)
-                            print(io, ">")
-                        else
-                            throw("Unreachable: invalid brought blueprint value. \
-                                   This is a bug in the framework.")
-                        end
-                    else
-                        display_blueprint_field_short(io, field)
-                    end
+                    display_blueprint_field_short(io, field)
                 end
                 print(io, ")")
             end
 
             function Framework.display_long(io::IO, bp::NewBlueprint; level = 0)
-                grey = crayon"black"
-                reset = crayon"reset"
                 C = componentof(bp)
                 print(io, "blueprint for $C: $(nameof(NewBlueprint)) {")
                 preindent = repeat("  ", level)
@@ -279,24 +255,7 @@ macro blueprint(input...)
                     field = getfield(bp, name)
                     print(io, "\n$indent$name: ")
                     # Special-case brought fields.
-                    if name in keys(broughts)
-                        if isnothing(field)
-                            print(io, "$grey<no blueprint brought>$reset")
-                        elseif field isa CompType{ValueType}
-                            print(
-                                io,
-                                "$grey<implied blueprint for $reset$field$grey>$reset",
-                            )
-                        elseif field isa Blueprint
-                            print(io, "$grey<brought $reset")
-                            display_long(io, field; level)
-                            print(io, "$grey>$reset")
-                        else
-                            throw("unreachable: invalid brought blueprint value")
-                        end
-                    else
-                        display_blueprint_field_long(io, field; level)
-                    end
+                    display_blueprint_field_long(io, field; level)
                     print(io, ",")
                 end
                 if !isempty(names)
@@ -332,3 +291,91 @@ function display_long end
 # Escape hatch to override in case blueprint field values need special display.
 display_blueprint_field_short(io::IO, val) = print(io, val)
 display_blueprint_field_long(io::IO, val; level = 0) = print(io, val)
+
+#-------------------------------------------------------------------------------------------
+# Protect against constructing invalid brought fields.
+
+# From nothing to not bring anything.
+Base.convert(::Type{BroughtField{C,V}}, ::Nothing) where {C,V} = BroughtField{C,V}(nothing)
+
+# From a component type to imply it.
+function Base.convert(::Type{BroughtField{C,V}}, ::Type{T}) where {V,C,T}
+    T <: C || throw(InvalidImpliedComponent{V}(T, C))
+    BroughtField{C,V}(T)
+end
+# From a component value for convenience.
+Base.convert(::Type{BroughtField{C,V}}, c::Component) where {V,C} =
+    Base.convert(BroughtField{C,V}, typeof(c))
+
+# From a blueprint to embed it.
+function Base.convert(::Type{BroughtField{C,V}}, bp::Blueprint{V}) where {C,V}
+    componentof(bp) <: C || throw(InvalidBroughtBlueprint{V}(bp, C))
+    BroughtField{C,V}(bp)
+end
+
+struct InvalidImpliedComponent{V}
+    T::Type
+    C::CompType{V}
+end
+
+struct InvalidBroughtBlueprint{V}
+    b::Blueprint{V}
+    C::CompType{V}
+end
+
+#-------------------------------------------------------------------------------------------
+
+function display_blueprint_field_short(io::IO, bf::BroughtField)
+    grey = crayon"black"
+    reset = crayon"reset"
+    (; value) = bf
+    if isnothing(value)
+        print(io, "$grey<$nothing>$reset")
+    elseif value isa CompType
+        print(io, value)
+    elseif value isa Blueprint
+        print(io, "<")
+        display_short(io, value)
+        print(io, ">")
+    else
+        throw("unreachable: invalid brought blueprint field value: \
+               $(repr(value)) ::$(typeof(value))")
+    end
+end
+
+function display_blueprint_field_long(io::IO, bf::BroughtField; level = 0)
+    grey = crayon"black"
+    reset = crayon"reset"
+    (; value) = bf
+    if isnothing(value)
+        print(io, "$grey<no blueprint brought>$reset")
+    elseif value isa CompType
+        print(io, "$grey<implied blueprint for $reset$value$grey>$reset")
+    elseif value isa Blueprint
+        print(io, "$grey<brought $reset")
+        display_long(io, value; level)
+        print(io, "$grey>$reset")
+    else
+        throw("unreachable: invalid brought blueprint field value: \
+               $(repr(value)) ::$(typeof(value))")
+    end
+end
+
+function Base.showerror(io::IO, e::InvalidImpliedComponent{V}) where {V}
+    (; T, C) = e
+    print(
+        io,
+        "The field should bring $C, \
+         but this component would imply $T instead.",
+    )
+end
+
+function Base.showerror(io::IO, e::InvalidBroughtBlueprint{V}) where {V}
+    (; b, C) = e
+    print(
+        io,
+        "The field should bring $C, \
+         but this blueprint would expand into $(componentof(b)) instead: $b.",
+    )
+end
+

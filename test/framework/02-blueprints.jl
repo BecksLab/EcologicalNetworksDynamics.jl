@@ -226,9 +226,8 @@ comps(s) = sort(collect(components(s)); by=repr)
     struct Xb <: Blueprint{Value} end
     @blueprint Xb
     @component X{Value} blueprints(b::Xb)
-    # HERE: that should not work!
-    # I guess there is no option but to generate the base constructor
-    # from the @blueprint macro?
+    # HERE: the following is now guarded against with the BroughtField newtype.
+    # Make add! work with again with this newtype then resume.
     w = Wmu_b(Xb())
 
     @xcompfails(
