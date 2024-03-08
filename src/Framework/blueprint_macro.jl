@@ -11,10 +11,10 @@
 # Any blueprint field typed with Union{Nothing,Blueprint,CompType}
 # is automatically considered 'potential brought'.
 # In this case, enforce that, if a blueprint, the value would expand to the given component.
+# The following methods are relevant then:
 #
-#   brought(::Name) = iterator over the fields, skipping 'nothing' values (not brought).
+#   brought(::Name) = generated iterator over the fields, skipping 'nothing' values.
 #   implied_blueprint_for(::Name, ::Type{CompType}) = <assumed implemented by macro invoker>
-#   # TODO: the above signature is a pain: ease it or generate from the macro?
 #
 # And for blueprint user convenience, override:
 #
@@ -133,7 +133,7 @@ macro blueprint(input...)
                     vertical_guard(
                         C,
                         Already,
-                        () -> xerr("Both fields $(repr(a)) and $(repr(name)) \
+                        () -> xerr("Both fields '$a' and '$name' \
                                     potentially bring $C."),
                         (Sub, Sup) -> xerr("Fields '$name' and '$a': \
                                             brought blueprint $Sub \

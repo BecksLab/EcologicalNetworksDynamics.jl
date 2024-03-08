@@ -159,7 +159,22 @@ function F.expand!(v, ::ReflectionMark, system)
     v._dict[:reflection] = rf
 end
 @blueprint ReflectionMark
-@component Reflection{Value} blueprints(Mark::ReflectionMark) requires(Size)
+
+# This alternate blueprint
+# does not bring data that *don't make sense* without A,
+# so it does not *require* A,
+# but it needs A to expand.
+struct ReflectFromB <: Blueprint{Value} end
+F.expands_from(::ReflectFromB) = A
+function F.expand!(v, ::ReflectFromB)
+    v._dict[:reflection] = collect(first.(repr.(Iterators.take(Iterators.cycle(v.a), v.n))))
+end
+@blueprint ReflectFromB
+@component begin
+    Reflection{Value}
+    requires(Size)
+    blueprints(Mark::ReflectionMark, B::ReflectFromB)
+end
 
 # Read property with aliases.
 get_reflection(v) = v._dict[:reflection]
@@ -216,7 +231,7 @@ end
     e = System{Value}() # Empty.
     @sysfails(
         e + B.Raw([8, 8, 8]), # Size is brought, but not A.
-        Add(MissingRequiredComponent, A, [B.Raw], nothing, false)
+        Add(MissingRequiredComponent, A, [B.Raw], nothing, false),
     )
 
     # Chain summations.
@@ -230,7 +245,6 @@ end
         s + SparseMark(),
         Add(ConflictWithSystemComponent, [SparseMark], Size, nothing),
     )
-
 
     # Blueprint checking may depend on other components.
     r = ReflectionMark()
@@ -254,6 +268,16 @@ end
     # Modify from aliased properties.
     sa.ref = "UVW" # (cycling semantics)
     @test sa.ref == collect("UVWUV")
+
+    # Blueprint expansion may require other components
+    # without its component itself requiring them.
+    @sysfails(
+        s + ReflectFromB(), # .. although reflection does not require B in general.
+        Add(MissingRequiredComponent, A, [ReflectFromB], nothing, true),
+    )
+    sa = s + A.Raw([1, 2, 3, 2, 1])
+    sr = sa + ReflectFromB()
+    @test sr.reflection == collect("12321")
 
 end
 

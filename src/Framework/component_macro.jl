@@ -50,8 +50,8 @@ macro component(input...)
 
     # Convenience wrap.
     tovalue(xp, ctx, type) = to_value(__module__, xp, ctx, :xerr, type)
-    tocomp(xp, ctx) = to_component(__module__, xp, :ValueType, ctx, :xerr)
     tobptype(xp, ctx) = to_blueprint_type(__module__, xp, :ValueType, ctx, :xerr)
+    todep(xp, ctx) = to_dependency(__module__, xp, ctx, :xerr)
 
     #---------------------------------------------------------------------------------------
     # Parse macro input,
@@ -138,7 +138,7 @@ macro component(input...)
                 else
                     reason = tovalue(reason, "Requirement reason", String)
                 end
-                comp = tocomp(comp, "Required component")
+                comp = todep(comp, "Required component")
                 req = :($comp => $reason)
                 push!(requires_xp.args, req)
             end
@@ -178,19 +178,19 @@ macro component(input...)
 
             # Required components.
             reqs = CompsReasons{ValueType}()
-            for (req, reason) in $requires_xp
+            for (Req, reason) in $requires_xp
                 # Triangular-check against redundancies,
                 # checking through abstract types.
-                for (already, _) in reqs
+                for (Already, _) in reqs
                     vertical_guard(
-                        typeof(req),
-                        already,
-                        () -> xerr("Requirement '$req' is specified twice."),
-                        (sub, sup) ->
-                            xerr("Requirement '$sub' is also specified as '$sup'."),
+                        Req,
+                        Already,
+                        () -> xerr("Requirement $Req is specified twice."),
+                        (Sub, Sup) ->
+                            xerr("Requirement $Sub is also specified as $Sup."),
                     )
                 end
-                reqs[typeof(req)] = reason
+                reqs[Req] = reason
             end
 
             # Possible blueprints.

@@ -30,7 +30,6 @@ macro method(input...)
 
     # Convenience wrap.
     tovalue(xp, ctx, type) = to_value(__module__, xp, ctx, :xerr, type)
-    tocomp(xp, ctx) = to_component(__module__, xp, :ValueType, ctx, :xerr)
     todep(xp, ctx) = to_dependency(__module__, xp, ctx, :xerr)
 
     #---------------------------------------------------------------------------------------

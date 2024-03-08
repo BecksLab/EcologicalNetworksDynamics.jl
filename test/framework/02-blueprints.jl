@@ -123,7 +123,7 @@ const F = Framework
     @xbluefails(
         (@blueprint Qev),
         Qev,
-        "Both fields :data and :other potentially bring <Data>.",
+        "Both fields 'data' and 'other' potentially bring <Data>.",
     )
 
     # Redundancy *can* be detected through abstract component hierarchy.
@@ -149,210 +149,249 @@ const F = Framework
 end
 end
 
-#  # ==========================================================================================
-#  module Abstracts
-#  using ..BlueprintMacro
-#  using EcologicalNetworksDynamics.Framework
-#  using Main: @sysfails, @pcompfails, @xcompfails
-#  using Test
+# ==========================================================================================
+module Abstracts
+using ..Blueprints
+using EcologicalNetworksDynamics.Framework
+using Main: @sysfails, @pcompfails, @xcompfails
+using Test
 
-#  const S = System{Value}
-#  comps(s) = sort(collect(components(s)); by = repr)
+const S = System{Value}
+comps(s) = sort(collect(components(s)); by=repr)
 
-#  @testset "Abstract component types requirements." begin
+@testset "Abstract component types requirements." begin
 
-#  # Component type hierachy.
-#  #
-#  #      A
-#  #    ┌─┼─┐
-#  #    B C D
-#  #
-#  abstract type A <: Blueprint{Value} end
-#  struct B <: A end
-#  struct C <: A end
-#  struct D <: A end
-#  @component B
-#  @component C
-#  @component D
+    # Component type hierachy.
+    #
+    #      A
+    #    ┌─┼─┐
+    #    B C D
+    #
+    abstract type A <: Component{Value} end
 
-#  #---------------------------------------------------------------------------------------
-#  # Basic semantics.
+    # Suffix associated blueprints with -b.
+    struct Bb <: Blueprint{Value} end
+    struct Cb <: Blueprint{Value} end
+    struct Db <: Blueprint{Value} end
+    @blueprint Bb
+    @blueprint Cb
+    @blueprint Db
 
-#  # Requires abstract.
-#  struct RequiresAbstractComponent <: Blueprint{Value} end
-#  @component begin
-#  RequiresAbstractComponent
-#  requires(A)
-#  end
-#  @sysfails(
-#  S(RequiresAbstractComponent()),
-#  Check(RequiresAbstractComponent),
-#  "missing a required component '$A'."
-#  )
+    @component B <: A blueprints(Bb::Bb)
+    @component C <: A blueprints(Cb::Cb)
+    @component D <: A blueprints(Db::Db)
 
-#  # Trivial implied abstract.
-#  struct ImpliesAbstractComponent <: Blueprint{Value} end
-#  @xcompfails(
-#  (@component begin
-#  ImpliesAbstractComponent
-#  implies(A())
-#  end),
-#  ImpliesAbstractComponent,
-#  "No trivial blueprint default constructor has been defined \
-#  to implicitly add '$A' when adding '$ImpliesAbstractComponent' to a system."
-#  )
-#  @test comps(S(D(), ImpliesAbstractComponent())) == [D, ImpliesAbstractComponent]
+    #---------------------------------------------------------------------------------------
+    # Basic semantics.
 
-#  A() = B() # Implicit to B(), say.
-#  @component ImpliesAbstractComponent implies(A())
-#  @test comps(S(ImpliesAbstractComponent())) == [B, ImpliesAbstractComponent] # Fixed.
-#  @test comps(S(D(), ImpliesAbstractComponent())) == [D, ImpliesAbstractComponent]
+    # Require abstract component.
+    struct Ahv_b <: Blueprint{Value} end
+    @blueprint Ahv_b
+    @component Ahv{Value} blueprints(b::Ahv_b) requires(A)
+    @sysfails(
+        S(Ahv_b()), # No A component.
+        Add(MissingRequiredComponent, A, [Ahv_b], nothing, false)
+    )
+    # But any concrete sub-component is good.
+    sb = S(Bb(), Ahv_b())
+    sc = S(Cb(), Ahv_b())
+    sd = S(Db(), Ahv_b())
+    @test all(has_component(sb, i) for i in [B, A, Ahv])
+    @test all(has_component(sc, i) for i in [C, A, Ahv])
+    @test all(has_component(sd, i) for i in [D, A, Ahv])
 
-#  # Implied abstract with explicit constructor.
-#  struct ImpliesDefaultConcreteComponent <: Blueprint{Value} end
-#  A(::ImpliesDefaultConcreteComponent) = C()
-#  @component begin
-#  ImpliesDefaultConcreteComponent
-#  implies(A)
-#  end
-#  @test comps(S(ImpliesDefaultConcreteComponent())) ==
-#  [C, ImpliesDefaultConcreteComponent]
-#  @test comps(S(D(), ImpliesAbstractComponent())) == [D, ImpliesAbstractComponent]
+    # Bring an abstract component.
+    struct Wmu_b <: Blueprint{Value}
+        a::Brought(A)
+    end
+    F.implied_blueprint_for(::Wmu_b, ::Type{A}) = Bb() # Any is ok.
+    @blueprint Wmu_b
+    @component Wmu{Value} blueprints(b::Wmu_b)
+    # Not brought.
+    s = S(Wmu_b(nothing))
+    @test !has_component(s, A)
+    # Implied.
+    s = S(Wmu_b(A))
+    @test has_component(s, A)
+    @test has_component(s, B) # (the one actually brought)
+    # Embedded.
+    s = S(Wmu_b(Bb()))
+    @test has_component(s, A)
+    @test has_component(s, B) # (the one actually brought)
+    # Embedding another is ok..
+    s = S(Wmu_b(Cb()))
+    @test has_component(s, A) # ← ..because this is enforced.
+    @test has_component(s, C)
 
-#  # Brought abstract.
-#  struct BroughtAbstractComponent <: Blueprint{Value}
-#  a::A
-#  end
-#  @component BroughtAbstractComponent
-#  @test comps(S(BroughtAbstractComponent(D()))) == [BroughtAbstractComponent, D]
+    struct Xb <: Blueprint{Value} end
+    @blueprint Xb
+    @component X{Value} blueprints(b::Xb)
+    # HERE: that should not work!
+    # I guess there is no option but to generate the base constructor
+    # from the @blueprint macro?
+    w = Wmu_b(Xb())
 
-#  #---------------------------------------------------------------------------------------
-#  # Invocation failures.
+    @xcompfails(
+        (@component begin
+            ImpliesAbstractComponent
+            implies(A())
+        end),
+        ImpliesAbstractComponent,
+        "No trivial blueprint default constructor has been defined \
+        to implicitly add '$A' when adding '$ImpliesAbstractComponent' to a system."
+    )
+    @test comps(S(D(), ImpliesAbstractComponent())) == [D, ImpliesAbstractComponent]
 
-#  # Guard against double specifications.
-#  struct Wta <: Blueprint{Value} end
-#  @component Wta # Once.
-#  @xcompfails(
-#  (@component Wta), # Not twice.
-#  Wta,
-#  "Blueprint type '$Wta' already marked as a component for '$System{$Value}'."
-#  )
+    #  A() = B() # Implicit to B(), say.
+    #  @component ImpliesAbstractComponent implies(A())
+    #  @test comps(S(ImpliesAbstractComponent())) == [B, ImpliesAbstractComponent] # Fixed.
+    #  @test comps(S(D(), ImpliesAbstractComponent())) == [D, ImpliesAbstractComponent]
 
-#  # Implicit redundant requires.
-#  struct Hxl <: Blueprint{Value} end
-#  @xcompfails(
-#  (@component Hxl requires(A, B)),
-#  Hxl,
-#  "Requirement '$B' is also specified as '$A'."
-#  )
+    #  # Implied abstract with explicit constructor.
+    #  struct ImpliesDefaultConcreteComponent <: Blueprint{Value} end
+    #  A(::ImpliesDefaultConcreteComponent) = C()
+    #  @component begin
+    #  ImpliesDefaultConcreteComponent
+    #  implies(A)
+    #  end
+    #  @test comps(S(ImpliesDefaultConcreteComponent())) ==
+    #  [C, ImpliesDefaultConcreteComponent]
+    #  @test comps(S(D(), ImpliesAbstractComponent())) == [D, ImpliesAbstractComponent]
 
-#  struct Ppo <: Blueprint{Value} end
-#  @xcompfails(
-#  (@component Ppo requires(B, A)),
-#  Ppo,
-#  "Requirement '$B' is also specified as '$A'."
-#  )
+    #  # Brought abstract.
+    #  struct BroughtAbstractComponent <: Blueprint{Value}
+    #  a::A
+    #  end
+    #  @component BroughtAbstractComponent
+    #  @test comps(S(BroughtAbstractComponent(D()))) == [BroughtAbstractComponent, D]
 
-#  # Implicit redundant implies.
-#  struct Zrm <: Blueprint{Value} end
-#  @xcompfails(
-#  (@component Zrm implies(A(), B())),
-#  Zrm,
-#  "Implied blueprint '$B' is also specified as '$A'."
-#  )
+    #  #---------------------------------------------------------------------------------------
+    #  # Invocation failures.
 
-#  struct Vxp <: Blueprint{Value} end
-#  @xcompfails(
-#  (@component Vxp implies(B(), A())),
-#  Vxp,
-#  "Implied blueprint '$B' is also specified as '$A'."
-#  )
+    #  # Guard against double specifications.
+    #  struct Wta <: Blueprint{Value} end
+    #  @component Wta # Once.
+    #  @xcompfails(
+    #  (@component Wta), # Not twice.
+    #  Wta,
+    #  "Blueprint type '$Wta' already marked as a component for '$System{$Value}'."
+    #  )
 
-#  struct Ixh <: Blueprint{Value} end
-#  B(::Ixh) = B()
-#  @xcompfails(
-#  (@component Ixh implies(A(), B)),
-#  Ixh,
-#  "Implied blueprint '$B' is also specified as '$A'."
-#  )
+    #  # Implicit redundant requires.
+    #  struct Hxl <: Blueprint{Value} end
+    #  @xcompfails(
+    #  (@component Hxl requires(A, B)),
+    #  Hxl,
+    #  "Requirement '$B' is also specified as '$A'."
+    #  )
 
-#  struct Jxi <: Blueprint{Value} end
-#  A(::Jxi) = B()
-#  @xcompfails(
-#  (@component Jxi implies(B(), A)),
-#  Jxi,
-#  "Implied blueprint '$B' is also specified as '$A'."
-#  )
+    #  struct Ppo <: Blueprint{Value} end
+    #  @xcompfails(
+    #  (@component Ppo requires(B, A)),
+    #  Ppo,
+    #  "Requirement '$B' is also specified as '$A'."
+    #  )
 
-#  # Implicit redundant brings.
-#  struct Ssn <: Blueprint{Value}
-#  b1::B
-#  b2::B
-#  end
-#  @xcompfails((@component Ssn), Ssn, "Both fields :b1 and :b2 bring component '$B'.")
+    #  # Implicit redundant implies.
+    #  struct Zrm <: Blueprint{Value} end
+    #  @xcompfails(
+    #  (@component Zrm implies(A(), B())),
+    #  Zrm,
+    #  "Implied blueprint '$B' is also specified as '$A'."
+    #  )
 
-#  struct Qhg <: Blueprint{Value}
-#  a::A
-#  b::B
-#  end
-#  @xcompfails(
-#  (@component Qhg),
-#  Qhg,
-#  "Fields :b and :a: brought component '$B' is also specified as '$A'."
-#  )
+    #  struct Vxp <: Blueprint{Value} end
+    #  @xcompfails(
+    #  (@component Vxp implies(B(), A())),
+    #  Vxp,
+    #  "Implied blueprint '$B' is also specified as '$A'."
+    #  )
 
-#  # Implicit cross-section redundancy.
-#  struct Jto <: Blueprint{Value} end
-#  @xcompfails(
-#  (@component Jto requires(A) implies(B())),
-#  Jto,
-#  "Component is both a requirement (as '$A') and implied: '$B'."
-#  )
+    #  struct Ixh <: Blueprint{Value} end
+    #  B(::Ixh) = B()
+    #  @xcompfails(
+    #  (@component Ixh implies(A(), B)),
+    #  Ixh,
+    #  "Implied blueprint '$B' is also specified as '$A'."
+    #  )
 
-#  struct Evt <: Blueprint{Value} end
-#  @xcompfails(
-#  (@component Evt requires(B) implies(A())),
-#  Evt,
-#  "Component is both a requirement (as '$B') and implied: '$A'."
-#  )
+    #  struct Jxi <: Blueprint{Value} end
+    #  A(::Jxi) = B()
+    #  @xcompfails(
+    #  (@component Jxi implies(B(), A)),
+    #  Jxi,
+    #  "Implied blueprint '$B' is also specified as '$A'."
+    #  )
 
-#  struct Qii <: Blueprint{Value} end
-#  B(::Qii) = B()
-#  @xcompfails(
-#  (@component Qii requires(A) implies(B)),
-#  Qii,
-#  "Component is both a requirement (as '$A') and implied: '$B'."
-#  )
+    #  # Implicit redundant brings.
+    #  struct Ssn <: Blueprint{Value}
+    #  b1::B
+    #  b2::B
+    #  end
+    #  @xcompfails((@component Ssn), Ssn, "Both fields :b1 and :b2 bring component '$B'.")
 
-#  struct Ymy <: Blueprint{Value} end
-#  A(::Ymy) = B()
-#  @xcompfails(
-#  (@component Ymy requires(B) implies(A)),
-#  Ymy,
-#  "Component is both a requirement (as '$B') and implied: '$A'."
-#  )
+    #  struct Qhg <: Blueprint{Value}
+    #  a::A
+    #  b::B
+    #  end
+    #  @xcompfails(
+    #  (@component Qhg),
+    #  Qhg,
+    #  "Fields :b and :a: brought component '$B' is also specified as '$A'."
+    #  )
 
-#  struct Web <: Blueprint{Value}
-#  b::B
-#  end
-#  @xcompfails(
-#  (@component Web requires(A)),
-#  Web,
-#  "Component is both a requirement (as '$A') and brought: '$B'."
-#  )
+    #  # Implicit cross-section redundancy.
+    #  struct Jto <: Blueprint{Value} end
+    #  @xcompfails(
+    #  (@component Jto requires(A) implies(B())),
+    #  Jto,
+    #  "Component is both a requirement (as '$A') and implied: '$B'."
+    #  )
 
-#  struct Spn <: Blueprint{Value}
-#  a::A
-#  end
-#  @xcompfails(
-#  (@component Spn implies(B())),
-#  Spn,
-#  "Component is both implied (as '$B') and brought: '$A'."
-#  )
+    #  struct Evt <: Blueprint{Value} end
+    #  @xcompfails(
+    #  (@component Evt requires(B) implies(A())),
+    #  Evt,
+    #  "Component is both a requirement (as '$B') and implied: '$A'."
+    #  )
 
-#  #---------------------------------------------------------------------------------------
-#  # Requiring/Implying as an abstract component is not implemented yet.
+    #  struct Qii <: Blueprint{Value} end
+    #  B(::Qii) = B()
+    #  @xcompfails(
+    #  (@component Qii requires(A) implies(B)),
+    #  Qii,
+    #  "Component is both a requirement (as '$A') and implied: '$B'."
+    #  )
 
-#  end
-#  end
+    #  struct Ymy <: Blueprint{Value} end
+    #  A(::Ymy) = B()
+    #  @xcompfails(
+    #  (@component Ymy requires(B) implies(A)),
+    #  Ymy,
+    #  "Component is both a requirement (as '$B') and implied: '$A'."
+    #  )
+
+    #  struct Web <: Blueprint{Value}
+    #  b::B
+    #  end
+    #  @xcompfails(
+    #  (@component Web requires(A)),
+    #  Web,
+    #  "Component is both a requirement (as '$A') and brought: '$B'."
+    #  )
+
+    #  struct Spn <: Blueprint{Value}
+    #  a::A
+    #  end
+    #  @xcompfails(
+    #  (@component Spn implies(B())),
+    #  Spn,
+    #  "Component is both implied (as '$B') and brought: '$A'."
+    #  )
+
+    #  #---------------------------------------------------------------------------------------
+    #  # Requiring/Implying as an abstract component is not implemented yet.
+
+end
+end
 end

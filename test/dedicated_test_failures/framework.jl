@@ -5,6 +5,7 @@ import EcologicalNetworksDynamics.Framework:
     BlueprintCheckFailure,
     BroughtAlreadyInValue,
     CompType,
+    Component,
     ConflictMacroExecError,
     ConflictMacroParseError,
     ConflictWithSystemComponent,
@@ -228,7 +229,7 @@ function TestFailures.check_exception(e::AddError, expected_type, fields)
             pattern = e
             TestFailures.check_message(pattern, message)
         elseif a isa CompType
-            te = typeof(e)
+            te = e isa Component ? typeof(e) : e
             a === te ||
                 error("Expected component for $nE.$name:\n  $te\nfound instead:\n  $a")
         else

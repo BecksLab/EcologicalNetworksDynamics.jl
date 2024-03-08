@@ -55,7 +55,39 @@ Base.copy(b::Blueprint) = deepcopy(b)
 # for this blueprint to expand,
 # even though the corresponding component itself would make sense without these.
 expands_from(::Blueprint{V}) where {V} = CompsReasons{V}()
-# TODO: not formally tested yet.. but maybe wait on the framework to be refactored first?
+# The above is specialized by hand by framework users,
+# so make its return type flexible,
+# guarded by the below.
+function checked_expands_from(bp::Blueprint{V}) where {V}
+    err(x) = "Invalid expansion requirement. \
+              Expected either a component for $V or (component, reason::String), \
+              got instead: $(repr(x)) ::$(typeof(x))."
+    to_reqreason(x) = if x isa Component{V}
+            (typeof(x), nothing)
+        elseif x isa CompType{V}
+            (x, nothing)
+        else
+            req, reason = try
+                q, r = x
+                q, String(r)
+            catch
+                err()
+            end
+            if req isa Component{V}
+                (typeof(x), reason)
+            elseif x isa CompType{V}
+                (x, reason)
+            else
+                err()
+            end
+        end
+    x = expands_from(bp)
+    try
+        [to_reqreason(x)]
+    catch
+        Iterators.map(to_reqreason, x)
+    end
+end
 
 # List brought blueprints.
 # Yield blueprint values for embedded blueprints.
@@ -68,7 +100,7 @@ brought(b::Blueprint) = throw("Bringing from $(typeof(b)) is unimplemented.")
 function implied_blueprint_for end # (blueprint, comptype) -> blueprint for this component.
 function checked_implied_blueprint_for(b::Blueprint, C::CompType)
     bp = implied_blueprint_for(b, C)
-    componentof(bp) == C ||
+    componentof(bp) <: C ||
         throw("Blueprint $(typeof(b)) is supposed to imply a blueprint for $C,
                but it implied a blueprint for $(componentof(bp)) instead:\n
                $b\n --- implied --->\n$bp")

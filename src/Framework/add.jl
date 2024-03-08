@@ -90,7 +90,7 @@ function check(
     blueprint = node.blueprint
     component = componentof(blueprint)
     for (reqs, for_expansion) in
-        [(requires(component), false), (expands_from(blueprint), true)]
+        [(requires(component), false), (checked_expands_from(blueprint), true)]
         for (R, reason) in reqs
             # Check against the current system value.
             has_component(system, R) && continue
