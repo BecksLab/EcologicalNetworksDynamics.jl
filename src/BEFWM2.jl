@@ -109,6 +109,7 @@ export potential_competition_links
 export potential_facilitation_links
 export potential_interference_links
 export potential_refuge_links
+export predators
 export predators_of
 export preys_of
 export producer_growth
