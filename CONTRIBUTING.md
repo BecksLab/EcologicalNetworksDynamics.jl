@@ -1,17 +1,18 @@
 # Contribution guidelines
 
-You are willing to contribute to EcologicalNetworksDynamics project
-and edit the source code. Thank you <3  
-This small guide is supposed to help you through the installation process
-as a developer instead of a simple user,
+You are willing to contribute to `EcologicalNetworksDynamics.jl`
+and edit the source code. Thank you ♡.
+This guide is supposed to help you
+through the installation process
+as a developer instead of a user,
 and introduce a typical developing workflow
 so you can be comfortable contributing.
 
-This guide assumes you're working on a standard linux distribution
-and makes use of basic shell commands
-and [Julia's REPL].
+This guide assumes you're working on a standard linux distribution,
+as it uses basic shell commands and [Julia's REPL].
 If you are not and you have trouble following along,
-don't hesitate to reach out at [BecksLab/EcologicalNetworksDynamics.jl]
+don't hesitate to reach out at
+[BecksLab/EcologicalNetworksDynamics.jl]
 and ask for support.
 
 [BecksLab/EcologicalNetworksDynamics.jl]: https://github.com/BecksLab/EcologicalNetworksDynamics.jl
@@ -19,17 +20,20 @@ and ask for support.
 
 ## Set up a clean working directory to host the project
 
-The package sources are essentially contained
-within one folder named `EcologicalNetworksDynamics/`,
-that you can freely __(1)__ __navigate and edit to contribute__.
-When you are done, you will likely want to
-__(2)__ __try your modifications__ out
+The package sources
+are essentially contained within one directory
+hereafter named `./EcologicalNetworksDynamics.jl/` or "source directory".
+In this directory, you can freely
+__(1)__ __navigate and edit to contribute__.
+Once you are done,
+you will likely want to
+__(2)__ __try your modifications__
 with some personal examples and toy scripts.
 This is how you can decide that you are happy with your contribution.
 
 Regarding __(2)__,
 we advise against working directly in the source directory.
-Instead, use another directory like `EcoNetD/` or `EcoNetD-dev/`.
+Instead, use another directory like `EcoNetD-sandbox/` or `EcoNetD-dev/`.
 This gives you full latitude to use custom IDE configurations there,
 generate figures *etc.* without polluting the sources.
 
@@ -65,7 +69,7 @@ EcoNetD-dev/
 ### 3. Setting up your development environment
 
 Julia works with distinct [environments].
-Any folder can become a Julia environment
+Any directory can become a Julia environment
 provided it contains correct `Project.toml` and `Manifest.toml` files.
 
 [environments]: https://pkgdocs.julialang.org/v1/environments/
@@ -74,32 +78,34 @@ Now you want to add the package to your development environment.
 Enter Julia REPL first with:
 
 ```sh
-$ julia --project=.
+$ julia --project=. # Assuming '.' refers to your development directory.
 ```
 
 Then, from the REPL:
 
 ```julia
 julia> ]                      # Just type ']' key at the prompt.
-(EcoNetD-dev) pkg> dev EcologicalNetworksDynamics/ # Add EcologicalNetworksDynamics as a dev-dependency.
+(EcoNetD-dev) pkg> dev ./EcologicalNetworksDynamics.jl # "Dev-dependency".
 (EcoNetD-dev) pkg> add Revise  # Track sources modifications.
-(EcoNetD-dev) pkg> update      # This takes a while the first time.
+(EcoNetD-dev) pkg> instantiate # This may take a while the first time.
 ```
 
-[`Revise`] is very useful to not to have to re-load `EcologicalNetworksDynamics` package manually
-after every modification and restart your development session.
+[`Revise`] is very useful to not
+to have to restart your development session
+and reload `./EcologicalNetworksDynamics.jl` code
+after every modification.
 
 [`Revise`]: https://timholy.github.io/Revise.jl/stable/
 
 At this point, you should be able to use the package from this environment.
-To verify it, create the following toy script:
+To verify, create the following toy script:
 
 ```
 EcoNetD-dev/
 ├── sandbox.jl     <- "toy script"
 ├── Project.toml   <- (automatically created during `dev` and `add` commands)
-├── Manifest.toml  <- (automatically created during `update` command)
-├── EcologicalNetworksDynamics/
+├── Manifest.toml  <- (automatically created during `instantiate` command)
+├── EcologicalNetworksDynamics.jl/
 │   ├── ...
 ```
 
@@ -109,7 +115,7 @@ using Revise
 using EcologicalNetworksDynamics
 
 # Dummy use of the package just to try it out.
-foodweb = FoodWeb([0 0; 1 0])
+foodweb = Foodweb([:a => :b])
 
 println("Good.")
 ```
@@ -122,68 +128,55 @@ $ julia --project=. sandbox.jl
 
 Then your initial setup is successful.
 
+The above line may take a long time run,
+because the first few lines are typically slow in Julia.
+In your actual workflow,
+we recommend that you keep a julia REPL open instead:
+
+```console
+$ julia --project=. # Open a repl.
+julia> using Revise
+julia> using EcologicalNetworksDynamics
+julia> # Pass your sandbox script lines here.
+julia> # Only close this REPL if necessary: it will take time to start again.
+```
 
 ### 4. Setup/Refresh EcologicalNetworksDynamics source directory
 
-At this point you can use and modify the package,
-but you cannot generate documentation, run the tests or the benchmarks yet.
+At this point,
+you can use and modify the package,
+but you cannot generate documentation,
+run the tests or the benchmarks yet.
 
-This section explains how to correctly set up the source `EcologicalNetworksDynamics/` directory.
-It is also useful if you feel like you have messed up everything
-and you wish to reset this folder to a clean state.
+This section explains
+how to correctly set up the source `./EcologicalNetworksDynamics.jl/` directory.
+It is also useful if you feel like you have messed everything up
+and you wish to reset this directory to a clean state.
 
-#### Clean up whole sources folder
+#### Clean up whole sources directory
 
-The following needs to happen at the root source folder `./EcologicalNetworksDynamics.jl`:
+The following needs to happen
+at the root source directory `./EcologicalNetworksDynamics.jl`:
 
 ```console
 $ cd path/to/EcologicalNetworksDynamics.jl/
 ```
 
-Delete every file not tracked by git, including `Manifest.toml` files.  
+Delete every file not tracked by git.
 Beware that this will permanently delete any file not yet committed.
 
 ```console
-$ git reset --hard  # Unstage all non-commited files
+$ git reset --hard  # Permanently erase all non-commited project modifications.
 $ git checkout dev  # (or any branch you are willing to work on)
-$ git clean -xdf    # Delete all non-staged files.
+$ git clean -xdf    # Delete all non-tracked files.
 ```
 
-#### Setup source projects environments.
-
-The file `EcologicalNetworksDynamics/Manifest.toml` needs to be re-generated
-with latest version of dependencies.
-
-```console
-$ julia --project=.
-julia> ]
-(EcologicalNetworksDynamics) pkg> update   # (precompilation does take a while the first time)
-```
-
-While standing in this `(EcologicalNetworksDynamics) pkg>` package mode,
-take this opportunity to set up tests, documentation and benchmark environments:
-```julia
-(EcologicalNetworksDynamics) pkg> activate test  # Switch to `EcologicalNetworksDynamics/test` environment.
-(test) pkg> update           # Re-generate `EcologicalNetworksDynamics/test/Manifest.toml`.
-
-(test) pkg> activate docs    # Switch to `EcologicalNetworksDynamics/docs` environment.
-(docs) pkg> dev .            # add `EcologicalNetworksDynamics` as a dev-dependency to `EcologicalNetworksDynamics/docs`
-(docs) pkg> update           # Re-generate `EcologicalNetworksDynamics/docs/Manifest.toml`.
-
-(docs) pkg> activate bench   # Switch to `EcologicalNetworksDynamics/bench` environment.
-(bench) pkg> dev .           # add `EcologicalNetworksDynamics` as a dev-dependency to `EcologicalNetworksDynamics/bench`
-(bench) pkg> update          # Re-generate `EcologicalNetworksDynamics/bench/Manifest.toml`.
-```
-
-The whole source project is now ready to go.
-
-
-## Run the tests and generate the package documentation
+#### Run the tests
 
 You have modified existing functions
 and you wish to ensure that you have not broken anything.
 Alternately, you have written new functions
-and added new tests to the `EcologicalNetworksDynamics/test` folder
+and added new tests to `./EcologicalNetworksDynamics.jl/test`
 or in doctests strings.
 In any case, you can run all tests with:
 
@@ -191,13 +184,14 @@ In any case, you can run all tests with:
 $ cd path/to/EcologicalNetworksDynamics.jl
 $ julia --project=.
 julia> ]
-(EcologicalNetworksDynamics) pkg> test  # Run all tests in docstrings and `test/` folder.
+(EcologicalNetworksDynamics) pkg> test  # Tests do take a while to run.
 ```
 
-### Generate and read the documentation
+#### Generate documentation
 
 You need to read the latest source documentation on current branch,
-or you have written new docstrings, documentation pages in `EcologicalNetworksDynamics/docs/src/`
+or you have written new docstrings,
+documentation pages in `./EcologicalNetworksDynamics.jl/docs/src/`
 and you would like to check what they look like.
 Generate all documentation with:
 
@@ -206,11 +200,12 @@ $ cd path/to/EcologicalNetworksDynamics.jl/docs
 $ julia --project=. make.jl   # (fails if doctests fail)
 ```
 
-Documentation is generated in `EcologicalNetworksDynamics/docs/build/` folder.
-Browse with any web browser, like for instance:
+Documentation is generated in `./EcologicalNetworksDynamics.jl/docs/build/`.
+Browse with any web browser.
+For instance:
 
 ```console
-$ firefox build/index.html
+$ firefox ./build/index.html
 ```
 
 ## Work with git
@@ -218,7 +213,8 @@ $ firefox build/index.html
 ### Basic workflow
 
 Before working on your contribution,
-make sure you do so on a dedicated branch, for instance with:
+make sure you do so on a dedicated branch,
+for instance with:
 
 ```console
 $ git checkout dev                 # Most common branch to base your work upon.
@@ -239,17 +235,17 @@ Your code will be reviewed there before it is eventually merged into `dev`.
 
 ### Keep your work downstream the `dev` branch
 
-EcologicalNetworksDynamics enforces linear git history with a rebase strategy.
+The project enforces linear git history with a *rebase* strategy.
 As a consequence, as you are working on your branch,
 it sometimes happens that `dev` moves forward in another direction.
 This is not a problem and you can keep going until your pull request is ready.
 
-However, if you need to integrate
-the latest `dev` features into your branch,
+If, however,
+you need to integrate the latest `dev` features into your branch,
 please *refrain* from introducing merge commits with commands like:
 
 ```console
-$ # git merge dev  # This complicates enforcement of git rebase strategy !
+$ # git merge dev  # This complicates enforcement of git rebase strategy!
 ```
 
 Instead, rebase your branch onto the new `dev` location with commands like:
@@ -273,14 +269,13 @@ $ git log --decorate --oneline --graph --all --color
 ```
 or your prefered git client / software / IDE extension.
 
-Once your branch has been correctly rebased,
-it is okay to submit it by force-pushing it to the main repo:
+Once it has been correctly rebased,
+it is okay to submit by force-pushing *your branch* (not `dev`)
+to the main repo:
 ```console
 $ git push --force origin my_cool_feature
 ```
 
-__Don't hesitate to reach out to [BecksLab/EcologicalNetworksDynamics.jl]
-in case you need any sort of kind help or support.__
+__In case you need any sort of kind help or support.
+Don't hesitate to reach out to [BecksLab/EcologicalNetworksDynamics.jl]__
 __Happy contributing <3__
-
-
