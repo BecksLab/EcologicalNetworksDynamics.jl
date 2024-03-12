@@ -1,6 +1,6 @@
 <p align="center" width="100%">
-    <img height="150" src="https://github.com/BecksLab/EcologicalNetworksDynamics.jl/blob/dev/docs/src/assets/ecologicalnetworksdynamics.svg#gh-light-mode-only">
-    <img height="150" src="https://github.com/BecksLab/EcologicalNetworksDynamics.jl/blob/dev/docs/src/assets/ecologicalnetworksdynamics-dark.svg#gh-dark-mode-only">
+    <img height="150" src="https://github.com/BecksLab/EcologicalNetworksDynamics.jl/blob/main/docs/src/assets/logo-and-name.svg#gh-light-mode-only">
+    <img height="150" src="https://github.com/BecksLab/EcologicalNetworksDynamics.jl/blob/main/docs/src/assets/logo-and-name-dark.svg#gh-dark-mode-only">
 </p>
 
 EcologicalNetworksDynamics is a Julia package that simulates species biomass dynamics
@@ -18,42 +18,54 @@ you can install the library by running from a Julia REPL:
 
 ```julia
 using Pkg
-Pkg.add("EcologicalNetworksDynamics")
+
+# /!\ The following will not work until the package has been
+# published to the official Julia registry.
+# Pkg.add("EcologicalNetworksDynamics")
+
+# In the meantime, use the following instead:
+Pkg.add(url="git@github.com:BecksLab/EcologicalNetworksDynamics.jl.git")
 ```
+[registry]: https://github.com/JuliaRegistries/General
 
 To check that the package installation went well,
-you can create a simple food web with:
+create a simple food web with:
 
 ```julia
 using EcologicalNetworkDynamics
-FoodWeb([1 => 2]) # Species 1 eats species 2.
+Foodweb([1 => 2]) # Species 1 eats species 2.
 ```
 
 ## Learning EcologicalNetworkDynamics
 
-The [Quick start](https://github.com/BecksLab/EcologicalNetworksDynamics.jl/XXX)
-page shows how to simulate biomass dynamics in a simple food web.
-The rest of the
-[Guide](https://github.com/BecksLab/EcologicalNetworksDynamics.jl/XXX)
-provides a step by step introduction to the package features,
-from the generation of the network structure to the simulation of the biomass dynamics.
+The [Quick start] page shows
+how to simulate biomass dynamics in a simple food web.
+The rest of the [Guide] provides a step by step introduction
+to the package features,
+from the generation of the network structure
+to the simulation of the biomass dynamics.
 At each step, we detail how the model can be customized at your will.
-Lastly, the [Tutorials](https://github.com/BecksLab/EcologicalNetworksDynamics.jl/XXX)
-section contains realistic use-cases of EcologicalNetworksDynamics.
+Lastly, the [Tutorials] section
+contains realistic use-cases of EcologicalNetworksDynamics.
+
+[Quick start]: https://github.com/BecksLab/EcologicalNetworksDynamics.jl/XXX
+[Guide]: https://github.com/BecksLab/EcologicalNetworksDynamics.jl/XXX
+[Tutorials]: https://github.com/BecksLab/EcologicalNetworksDynamics.jl/XXX
 
 ## Getting help
 
-During your journey learning EcologicalNetworksDynamics you might encounter issues.
-If so the best is to open
-[an issue](https://github.com/BecksLab/EcologicalNetworksDynamics.jl/issues).
+During your journey learning EcologicalNetworksDynamics,
+you might encounter issues.
+If so, the best is to open [an issue].
 To ensure that we can help you efficiently,
 please provide a short description of your problem
 and a minimal example to reproduce the error you encountered.
 
+[an issue]: https://github.com/BecksLab/EcologicalNetworksDynamics.jl/issues
+
 ## How can I contribute?
 
-The easiest way to contribute is to
-[open an issue](https://github.com/BecksLab/EcologicalNetworksDynamics.jl/issues)
+The easiest way to contribute is to [open an issue]
 if you spot a bug, a typo or can't manage to do something.
 Another way is to fork the repository,
 start working from the `dev` branch,
@@ -61,19 +73,22 @@ and when ready, submit a pull request.
 The contribution guidelines are detailed
 [here](https://github.com/BecksLab/EcologicalNetworksDynamics.jl/blob/dev/CONTRIBUTING.md).
 
+[open an issue]: https://github.com/BecksLab/EcologicalNetworksDynamics.jl/issues
+
 ## Citing
 
-Please mention EcologicalNetworksDynamics
+Please mention `EcologicalNetworksDynamics.jl`
 if you use it in research, teaching, or other activities.
 
 ## Acknowledgments
 
-EcologicalNetworksDynamics.jl benefited from
-the Montpellier Bioinformatics Biodiversity platform (MBB) supported by the LabEx CeMEB,
+`EcologicalNetworksDynamics.jl` benefited from
+the Montpellier Bioinformatics Biodiversity platform (MBB)
+supported by the LabEx CeMEB,
 an ANR "Investissements d'avenir" program (ANR-10-LABX-04-01).
 
 <p align="center" width="100%">
-    <img height="100" src="https://github.com/BecksLab/EcologicalNetworksDynamics.jl/blob/readme/docs/src/assets/isem.png">
-    <img height="100" src="https://github.com/BecksLab/EcologicalNetworksDynamics.jl/blob/readme/docs/src/assets/cnrs.png">
-    <img height="100" src="https://github.com/BecksLab/EcologicalNetworksDynamics.jl/blob/readme/docs/src/assets/mbb.png">
+    <img height="100" src="https://github.com/BecksLab/EcologicalNetworksDynamics.jl/blob/main/docs/src/assets/isem.png">
+    <img height="100" src="https://github.com/BecksLab/EcologicalNetworksDynamics.jl/blob/main/docs/src/assets/cnrs.png">
+    <img height="100" src="https://github.com/BecksLab/EcologicalNetworksDynamics.jl/blob/main/docs/src/assets/mbb.png">
 </p>
