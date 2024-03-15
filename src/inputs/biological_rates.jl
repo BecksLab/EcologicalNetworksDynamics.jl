@@ -2,173 +2,262 @@
 Biological rates
 =#
 
-function _idproducers(A)
-    isprod = (sum(A, dims = 2) .== 0)
-    return vec(isprod)
+#### Type definiton ####
+mutable struct BioRates
+    d::Vector{<:Real}
+    r::Vector{<:Real}
+    x::Vector{<:Real}
+    y::Vector{<:Real}
+    e::SparseMatrixCSC{Float64,Int64}
 end
+#### end ####
+
+#### Type display ####
+"""
+One line [`BioRates`](@ref) display.
+"""
+Base.show(io::IO, b::BioRates) = print(io, "BioRates(d, r, x, y, e)")
 
 """
-    allometricgrowth(FW)
-
-Calculates basal species (producers) growth rate using an allometric equation. 
+Multiline [`BioRates`](@ref) display.
 """
-function allometricgrowth(FW::FoodWeb; a::Union{Vector{T}, T} = 1, b::Union{Vector{T}, T} = -0.25) where {T<:Real}
-    return a .* (FW.M .^ b) .* vec(FW.metabolic_class .== "producer") 
+function Base.show(io::IO, ::MIME"text/plain", biorates::BioRates)
+    d = biorates.d
+    r = biorates.r
+    x = biorates.x
+    y = biorates.y
+    e = biorates.e
+    println(io, "BioRates:")
+    println(io, "  d: " * vector_to_string(d))
+    println(io, "  r: " * vector_to_string(r))
+    println(io, "  x: " * vector_to_string(x))
+    println(io, "  y: " * vector_to_string(y))
+    print(io, "  e: $(size(e)) sparse matrix")
 end
+#### end ####
+
+#### Constructors containing default parameter value for allometric scaled rates ####
+"""
+    DefaultMortalityParams()
+
+Default allometric parameters (a, b) values for mortality rate (d).
+
+See also [`AllometricParams`](@ref)
+"""
+DefaultMortalityParams() = AllometricParams(0.138, 0.314, 0.314, -0.25, -0.25, -0.25)
 
 """
-    allometricmetabolism(FW)
+    DefaultGrowthParams()
 
-Calculates species metabolic rates using an allometric equation. 
+Default allometric parameters (a, b) values for growth rate (r).
+
+See also [`AllometricParams`](@ref)
 """
-function allometricmetabolism(FW::FoodWeb; a::Union{Vector{T}, T, Nothing} = nothing, b::Union{Vector{T}, T, Nothing} = nothing, a_p::Real = 0, a_ect::Real = 0.88, a_inv::Real = 0.314, b_p::Real = 0, b_ect::Real = -0.25, b_inv::Real = -0.25) where {T<:Real}
-    S = richness(FW)
-    if isnothing(a) & isnothing(b)
-        checkclass = all([m ∈ ["producer", "invertebrate", "ectotherm vertebrate"] for m in FW.metabolic_class])
-        checkclass || throw(ArgumentError("By not providing any values, you are using the default allometric parameters, but to do that you need to have only producers, invertebrates and/or ectotherm vertebrates in your metabolic_class vector"))    
-        a, b = _defaulparameters_metabolism(FW, a_p = a_p, a_ect = a_ect, a_inv = a_inv, b_p = b_p, b_ect = b_ect, b_inv = b_inv)
-    elseif isnothing(a) & !isnothing(b)
-        a = _defaulparameters_metabolism(FW, a_p = a_p, a_ect = a_ect, a_inv = a_inv, b_p = b_p, b_ect = b_ect, b_inv = b_inv).a
-        (isequal(length(b))(S)) | (isequal(length(b))(1)) || throw(ArgumentError("b should be either a single value or a vector with as many values as there are species in the food web"))
-    elseif !isnothing(a) & isnothing(b)
-        b = _defaulparameters_metabolism(FW, a_p = a_p, a_ect = a_ect, a_inv = a_inv, b_p = b_p, b_ect = b_ect, b_inv = b_inv).b
-        (isequal(length(a))(S)) | (isequal(length(a))(1)) || throw(ArgumentError("a should be either a single value or a vector with as many values as there are species in the food web"))
-    elseif !isnothing(a) & !isnothing(b)
-        (isequal(length(a))(S)) | (isequal(length(a))(1)) || throw(ArgumentError("a should be either a single value or a vector with as many values as there are species in the food web"))
-        (isequal(length(b))(S)) | (isequal(length(b))(1)) || throw(ArgumentError("b should be either a single value or a vector with as many values as there are species in the food web"))
+DefaultGrowthParams() = AllometricParams(1.0, 0.0, 0.0, -0.25, 0.0, 0.0)
+
+"""
+    DefaultMetabolismParams()
+
+Default allometric parameters (a, b) values for metabolic rate (x).
+
+See also [`AllometricParams`](@ref)
+"""
+DefaultMetabolismParams() = AllometricParams(0, 0.88, 0.314, 0, -0.25, -0.25)
+
+"""
+    DefaultMaxConsumptionParams()
+
+Default allometric parameters (a, b) values for max consumption rate (y).
+
+See also [`AllometricParams`](@ref)
+"""
+DefaultMaxConsumptionParams() = AllometricParams(0.0, 4.0, 8.0, 0.0, 0.0, 0.0)
+
+"""
+    AllometricParams(aₚ, aₑ, aᵢ, bₚ, bₑ, bᵢ)
+
+Parameters used to compute allometric rates for different metabolic classes.
+
+The rate R is expressed as follow: ``R = aMᵇ``, where a and b can take different values
+depending on the metabolic class of the species. This struct aims at storing these values
+of a and b. Specifically:
+
+  - aₚ: a for producers
+  - aₑ: a for ectotherm vertebrates
+  - aᵢ: a for invertebrates
+  - bₚ: b for producers
+  - bₑ: b for ectotherm vertebrates
+  - bᵢ: b for invertebrates
+
+Default parameters values taken from the literature for certain rates can be accessed by
+calling the corresponding function, for:
+
+  - growth rate (r) call [`DefaultGrowthParams`](@ref)
+  - metabolic rate (x) call [`DefaultMetabolismParams`](@ref)
+  - max consumption rate (y) call [`DefaultMaxConsumptionParams`](@ref)
+
+# Example
+
+```jldoctest
+julia> params = AllometricParams(1, 2, 3, 4, 5, 6)
+AllometricParams(aₚ=1, aₑ=2, aᵢ=3, bₚ=4, aₚ=1, bₑ=5, bᵢ=6)
+
+julia> params.aₚ
+1
+
+julia> params.aₑ
+2
+```
+"""
+struct AllometricParams
+    aₚ::Real
+    aₑ::Real
+    aᵢ::Real
+    bₚ::Real
+    bₑ::Real
+    bᵢ::Real
+end
+#### end ####
+
+#### Type display ####
+function Base.show(io::IO, params::AllometricParams)
+    aₚ, aₑ, aᵢ = params.aₚ, params.aₑ, params.aᵢ
+    bₚ, bₑ, bᵢ = params.bₚ, params.bₑ, params.bᵢ
+    print(io, "AllometricParams(aₚ=$aₚ, aₑ=$aₑ, aᵢ=$aᵢ, bₚ=$bₚ, aₚ=$aₚ, bₑ=$bₑ, bᵢ=$bᵢ)")
+end
+#### end ####
+
+#### Main functions to compute biological rates ####
+"""
+    BioRates(
+        network::EcologicalNetwork;
+        d = allometric_rate(foodweb, DefaultMortalityParams()),
+        r = allometric_rate(foodweb, DefaultGrowthParams()),
+        x = allometric_rate(foodweb, DefaultMetabolismParams()),
+        y = allometric_rate(foodweb, DefaultMaxConsumptionParams()),
+        )
+
+Compute the biological rates (r, x, y and e) of each species in the system.
+
+The rates are:
+
+  - d: the natural mortality rate
+  - r: the growth rate
+  - x: the metabolic rate or metabolic demand
+  - y: the maximum consumption rate
+  - e: the assimilation efficiency
+    If no value are provided for the rates, they take default values assuming an allometric
+    scaling. Custom values can be provided for one or several rates by giving a vector of
+    length 1 or S (species richness). Moreover, if one want to use allometric scaling
+    (``R = aMᵇ``) but do not want to use default values for a and b, one can simply call
+    [`allometric_rate`](@ref) with custom [`AllometricParams`](@ref).
+
+# Examples
+
+```jldoctest
+julia> foodweb = FoodWeb([0 1; 0 0]); # sp. 1 "invertebrate", sp. 2 "producer"
+
+julia> BioRates(foodweb) # default
+BioRates:
+  d: [0.314, 0.138]
+  r: [0.0, 1.0]
+  x: [0.314, 0.0]
+  y: [8.0, 0.0]
+  e: (2, 2) sparse matrix
+
+julia> BioRates(foodweb; r = [1.0, 1.0]) # specify custom vector for growth rate
+BioRates:
+  d: [0.314, 0.138]
+  r: [1.0, 1.0]
+  x: [0.314, 0.0]
+  y: [8.0, 0.0]
+  e: (2, 2) sparse matrix
+
+julia> BioRates(foodweb; x = 2.0) # if single value, fill the rate vector with it
+BioRates:
+  d: [0.314, 0.138]
+  r: [0.0, 1.0]
+  x: [2.0, 2.0]
+  y: [8.0, 0.0]
+  e: (2, 2) sparse matrix
+
+julia> custom_params = AllometricParams(3, 0, 0, 0, 0, 0); # use custom allometric params...
+
+julia> BioRates(foodweb; y = allometric_rate(foodweb, custom_params)) # ...with allometric_rate
+BioRates:
+  d: [0.314, 0.138]
+  r: [0.0, 1.0]
+  x: [0.314, 0.0]
+  y: [0.0, 3.0]
+  e: (2, 2) sparse matrix
+```
+"""
+function BioRates(
+    network::EcologicalNetwork;
+    d::Union{Vector{<:Real},<:Real} = zeros(richness(network)),
+    r::Union{Vector{<:Real},<:Real} = allometric_rate(network, DefaultGrowthParams()),
+    x::Union{Vector{<:Real},<:Real} = allometric_rate(network, DefaultMetabolismParams()),
+    y::Union{Vector{<:Real},<:Real} = allometric_rate(
+        network,
+        DefaultMaxConsumptionParams(),
+    ),
+    e = efficiency(network),
+)
+    S = richness(network)
+    rate_list = [d, r, x, y]
+
+    # Perform sanity checks and vectorize rate if necessary
+    for (i, rate) in enumerate(rate_list)
+        isa(rate, Real) ? (rate_list[i] = fill(rate, S)) :
+        @check_equal_richness length(rate) S
     end
-    x = a .* (FW.M .^ b)
-    return x
-end
+    @check_size_is_richness² e S
 
-function _defaulparameters_metabolism(FW; a_p::Real = 0, a_ect::Real = 0.88, a_inv::Real = 0.314, b_p::Real = 0, b_ect::Real = -0.25, b_inv::Real = -0.25) 
-    a = zeros(length(FW.species))
-    a[vec(FW.metabolic_class .== "producer")] .= a_p
-    a[vec(FW.metabolic_class .== "ectotherm vertebrate")] .= a_ect
-    a[vec(FW.metabolic_class .== "invertebrate")] .= a_inv
-    b = zeros(length(FW.species))
-    b[vec(FW.metabolic_class .== "producer")] .= b_p
-    b[vec(FW.metabolic_class .== "ectotherm vertebrate")] .= b_ect
-    b[vec(FW.metabolic_class .== "invertebrate")] .= b_inv
-    return (a = a, b = b)
+    # Output
+    d, r, x, y = rate_list
+    BioRates(d, r, x, y, e)
 end
 
 """
-    allometricmaxconsumption(FW)
-
-Calculates species metabolic rates using an allometric equation. 
+Compute rate vector (one value per species) with allometric scaling.
 """
-function allometricmaxconsumption(FW::FoodWeb; a::Union{Vector{T}, T, Nothing} = nothing, b::Union{Vector{T}, T, Nothing} = nothing, a_ect::Real = 4.0, a_inv::Real = 8.0, b_ect::Real = 0, b_inv::Real = 0) where {T<:Real}
-    
-    S = richness(FW)
-    if isnothing(a) & isnothing(b)
-        checkclass = all([m ∈ ["producer", "invertebrate", "ectotherm vertebrate"] for m in FW.metabolic_class])
-        checkclass || throw(ArgumentError("By not providing any values, you are using the default allometric parameters, but to do that you need to have only producers, invertebrates and/or ectotherm vertebrates in your metabolic_class vector"))    
-        a, b = _defaulparameters_maxconsumption(FW, a_ect = a_ect, a_inv = a_inv, b_ect = b_ect, b_inv = b_inv)
-    elseif isnothing(a) & !isnothing(b)
-        a = _defaulparameters_maxconsumption(FW, a_ect = a_ect, a_inv = a_inv, b_ect = b_ect, b_inv = b_inv).a
-        (isequal(length(b))(S)) | (isequal(length(b))(1)) || throw(ArgumentError("b should be either a single value or a vector with as many values as there are species in the food web"))
-    elseif !isnothing(a) & isnothing(b)
-        b = _defaulparameters_maxconsumption(FW, a_ect = a_ect, a_inv = a_inv, b_ect = b_ect, b_inv = b_inv).b
-        (isequal(length(a))(S)) | (isequal(length(a))(1)) || throw(ArgumentError("a should be either a single value or a vector with as many values as there are species in the food web"))
-    elseif !isnothing(a) & !isnothing(b)
-        (isequal(length(a))(S)) | (isequal(length(a))(1)) || throw(ArgumentError("a should be either a single value or a vector with as many values as there are species in the food web"))
-        (isequal(length(b))(S)) | (isequal(length(b))(1)) || throw(ArgumentError("b should be either a single value or a vector with as many values as there are species in the food web"))
-    end
-    x = a .* (FW.M .^ b)
-    isp = _idproducers(FW.A)
-    x[isp] .= 0.0
-    return x
+function allometric_rate(net::EcologicalNetwork, allometricparams::AllometricParams)
+    params = allometricparams_to_vec(net, allometricparams)
+    a, b = params.a, params.b
+    allometricscale.(a, b, net.M)
 end
+#### end ####
 
-function _defaulparameters_maxconsumption(FW; a_ect::Real = 4, a_inv::Real = 8, b_ect::Real = 0, b_inv::Real = 0) 
-    a = zeros(length(FW.species))
-    a[vec(FW.metabolic_class .== "ectotherm vertebrate")] .= a_ect
-    a[vec(FW.metabolic_class .== "invertebrate")] .= a_inv
-    b = zeros(length(FW.species))
-    b[vec(FW.metabolic_class .== "ectotherm vertebrate")] .= b_ect
-    b[vec(FW.metabolic_class .== "invertebrate")] .= b_inv
-    return (a = a, b = b)
-end
+#### Helper functions to compute allometric rates ####
+"""
+Allometric scaling: parameter expressed as a power law of body-mass (M).
+"""
+allometricscale(a, b, M) = a * M^b
 
 """
-    TODO
+Create species parameter vectors for a, b of length S (species richness) given the
+allometric parameters for the different metabolic classes (aₚ,aᵢ,...).
 """
-function BioRates(FW::FoodWeb
-    ; rmodel::Union{Function, Nothing} = allometricgrowth
-    , rparameters::Union{NamedTuple, Nothing} = nothing
-    , xmodel::Union{Function, Nothing} = allometricmetabolism
-    , xparameters::Union{NamedTuple, Nothing} = nothing
-    , ymodel::Union{Function, Nothing} = allometricmaxconsumption
-    , yparameters::Union{NamedTuple, Nothing} = nothing
-    , r::Union{Vector{<:Real}, Nothing} = nothing
-    , x::Union{Vector{<:Real}, Nothing} = nothing
-    , y::Union{Vector{<:Real}, Nothing} = nothing
-    )
+function allometricparams_to_vec(net::EcologicalNetwork, params::AllometricParams)
 
-    isnothing(rparameters) || _checkparamtupleR(rparameters)
-    isnothing(xparameters) || _checkparamtupleX(xparameters)
-    isnothing(yparameters) || _checkparamtupleY(yparameters)
+    # Test
+    validclasses = ["producer", "invertebrate", "ectotherm vertebrate"]
+    isclassvalid(class) = class ∈ validclasses
+    all(isclassvalid.(net.metabolic_class)) || throw(ArgumentError("Metabolic classes
+        should be in $(validclasses)"))
 
-    S = richness(FW)
+    # Set up
+    S = richness(net)
+    a, b = zeros(S), zeros(S)
 
-    if !isnothing(r)
-        isequal(length(r))(S) || throw(ArgumentError("r should be a vector of length richness(FW)"))
-    else
-        if isnothing(rparameters)
-            r = rmodel(FW)
-        else
-            _checkparamtupleR(rparameters)
-            rp = Dict(map((i,j) -> i => j, keys(rparameters), values(rparameters)))
-            r = rmodel(FW; rp...)
-        end
-    end
+    # Fill allometric parameters (a & b) for each metabolic class
+    a[producers(net)] .= params.aₚ
+    a[invertebrates(net)] .= params.aᵢ
+    a[vertebrates(net)] .= params.aₑ
+    b[producers(net)] .= params.bₚ
+    b[invertebrates(net)] .= params.bᵢ
+    b[vertebrates(net)] .= params.bₑ
 
-    if !isnothing(x)
-        isequal(length(x))(S) || throw(ArgumentError("x should be a vector of length richness(FW)"))
-    else
-        if isnothing(xparameters)
-            x = xmodel(FW)
-        else
-            _checkparamtupleX(xparameters)
-            xp = Dict(map((i,j) -> i => j, keys(xparameters), values(xparameters)))
-            x = rmodel(FW; xp...)
-        end
-    end
-
-    if !isnothing(y)
-        isequal(length(y))(S) || throw(ArgumentError("y should be a vector of length richness(FW)"))
-    else
-        if isnothing(yparameters)
-            y = ymodel(FW)
-        else
-            _checkparamtupleY(yparameters)
-            yp = Dict(map((i,j) -> i => j, keys(yparameters), values(yparameters)))
-            y = rmodel(FW; yp...)
-        end
-    end
-
-    return BioRates(r,x,y)
-
+    (a = a, b = b)
 end
-
-function _checkparamtupleR(nt::NamedTuple)
-    expectednames = ["a", "b"]
-    ntnames = collect(string.(keys(nt)))
-    namesvalid = [n in expectednames for n in ntnames]
-    all(namesvalid) || throw(ArgumentError("The parameters for the growth rate should be specified in a NamedTuple with fields a (constants) and b (exponents). More details in the docs.")) 
-end
-
-function _checkparamtupleX(nt::NamedTuple)
-    expectednames = ["a", "b", "a_p", "b_p", "a_ect", "b_ect", "a_inv", "b_inv"]
-    ntnames = collect(string.(keys(nt)))
-    namesvalid = [n in expectednames for n in ntnames]
-    all(namesvalid) || throw(ArgumentError("The parameters for the metabolic rate should be specified in a NamedTuple with possible fields: a, b, a_p, b_p, a_inv, b_inv, a_ect, b_ect. More details in the docs.")) 
-end
-
-function _checkparamtupleY(nt::NamedTuple)
-    expectednames = ["a", "b", "a_ect", "b_ect", "a_inv", "b_inv"]
-    ntnames = collect(string.(keys(nt)))
-    namesvalid = [n in expectednames for n in ntnames]
-    all(namesvalid) || throw(ArgumentError("The parameters for the max. consumption rate should be specified in a NamedTuple with possible fields: a, b, a_inv, b_inv, a_ect, b_ect. More details in the docs.")) 
-end
+#### end ####

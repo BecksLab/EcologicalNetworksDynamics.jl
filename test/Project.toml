@@ -1,0 +1,10 @@
+[deps]
+DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+EcologicalNetworks = "f03a62fe-f8ab-5b77-a061-bb599b765229"
+JuliaFormatter = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
+Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+SyntaxTree = "a4af3ec5-f8ac-5fed-a759-c2e80b4d74cb"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

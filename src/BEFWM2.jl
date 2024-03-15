@@ -1,38 +1,127 @@
 module BEFWM2
 
-#dependencies
-using EcologicalNetworks
-using SparseArrays
+# Dependencies
+import DifferentialEquations.CorrelatedWienerProcess
+import DifferentialEquations.Rodas4
+import DifferentialEquations.SSRootfind
+import DifferentialEquations.Tsit5
+using DataFrames
 using DiffEqBase
+using DiffEqCallbacks
+using EcologicalNetworks
+using FiniteDiff
+using LinearAlgebra
+using Mangal
+using OrderedCollections
+using SparseArrays
 using Statistics
-import DifferentialEquations.Tsit5, DifferentialEquations.Rodas4
-import Mangal
+using Decimals
 
-# Types
-include(joinpath(".", "types/declaration.jl"))
-include(joinpath(".", "types/typedisplay.jl"))
 
+# Include scripts
+include(joinpath(".", "macros.jl"))
 include(joinpath(".", "inputs/foodwebs.jl"))
+include(joinpath(".", "inputs/nontrophic_interactions.jl"))
 include(joinpath(".", "inputs/functional_response.jl"))
 include(joinpath(".", "inputs/biological_rates.jl"))
+include(joinpath(".", "inputs/stochasticity.jl"))
+include(joinpath(".", "inputs/stressor.jl"))
+include(joinpath(".", "inputs/allee_effect.jl"))
 include(joinpath(".", "inputs/environment.jl"))
-
+include(joinpath(".", "inputs/producer_competition.jl"))
+include(joinpath(".", "model/model_parameters.jl"))
 include(joinpath(".", "model/productivity.jl"))
 include(joinpath(".", "model/consumption.jl"))
-include(joinpath(".", "model/metaboliclosses.jl"))
-include(joinpath(".", "model/model_parameters.jl"))
+include(joinpath(".", "model/covariance_matrix.jl"))
+include(joinpath(".", "model/metabolic_loss.jl"))
 include(joinpath(".", "model/dbdt.jl"))
+include(joinpath(".", "model/generate_dbdt.jl"))
 include(joinpath(".", "model/simulate.jl"))
-
+include(joinpath(".", "model/effect_nti.jl"))
 include(joinpath(".", "measures/structure.jl"))
 include(joinpath(".", "measures/functioning.jl"))
 include(joinpath(".", "measures/stability.jl"))
+include(joinpath(".", "measures/utils.jl"))
+include(joinpath(".", "utils.jl"))
+include(joinpath(".", "formatting.jl"))
 
+# Export public functions
+export @check_between
+export @check_greater_than
+export @check_in
+export @check_lower_than
+export @check_size
+export A_competition_full
+export A_facilitation_full
+export A_interference_full
+export A_refuge_full
+export AddStochasticity
+export AlleeEffect
+export allometric_rate
+export AllometricParams
+export attack_rate
+export BioEnergeticFunctionalResponse
+export BioenergeticResponse
+export BioRates
+export cascademodel
+export ClassicResponse
+export coefficient_of_variation
+export connectance
+export cpad
+export DefaultGrowthParams
+export DefaultMaxConsumptionParams
+export DefaultMetabolismParams
+export DefaultMortalityParams
+export draw_asymmetric_links
+export draw_symmetric_links
+export efficiency
+export Environment
+export ExtinctionCallback
+export find_steady_state
+export fitin
+export FoodWeb
+export foodweb_cv
+export foodweb_evenness
+export foodweb_richness
+export foodweb_shannon
+export foodweb_simpson
+export FunctionalResponse
+export FunctionalResponse
+export generate_dbdt
+export get_extinct_species
+export get_parameters
+export handling_time
+export homogeneous_preference
+export interaction_names
+export Layer
+export LinearResponse
+export ModelParameters
+export mpnmodel
+export multiplex_network_parameters_names
+export MultiplexNetwork
+export n_links
+export nestedhierarchymodel
+export nichemodel
+export nontrophic_adjacency_matrix
+export NonTrophicIntensity
+export population_stability
+export potential_competition_links
+export potential_facilitation_links
+export potential_interference_links
+export potential_refuge_links
+export predators
+export predators_of
+export preys_of
+export producer_growth
+export ProducerCompetition
+export producers
+export richness
+export simulate
+export species_persistence
+export species_richness
+export Stressor
+export tidy_output
+export total_biomass
+export trophic_levels
 
-
-export FoodWeb, ModelParameters, FunctionalResponse, BioRates, Environment
-export homogeneous_preference, originalFR
-export allometricgrowth, allometricmetabolism, allometricmaxconsumption
-export simulate 
-
-end 
+end

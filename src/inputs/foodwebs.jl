@@ -2,228 +2,453 @@
 Generating FoodWeb objects
 =#
 
-#=
-Misc functions for generating default values, cleaning some arguments, etc
-=#
+# Aliases for comfort
+const AdjacencyMatrix = SparseMatrixCSC{Bool,Int64}
+const Label = Union{String,Symbol}
 
-function _replacevertebrates!(metabolic_class, id_vertebrates) #User input - does user want to replace vertebrates by ectotherm vertebrates
-    print("Do you want to replace vertebrates by ectotherm vertebrates (y or n)?")       
-    n = readline()
-    if n ∈ ["y", "Y", "yes", "Yes", "YES"]
-        vertreplace = true
-    elseif n ∈ ["n", "N", "no", "No", "NO"]
-        vertreplace = false
-    else
-        ErrorException("Please answer yes (y) or no (n)")
+#### Type definition and FoodWeb functions ####
+abstract type EcologicalNetwork end
+mutable struct FoodWeb <: EcologicalNetwork
+    A::AdjacencyMatrix
+    species::Vector{String}
+    M::Vector{Real}
+    metabolic_class::Vector{String}
+    method::String
+end
+
+"""
+    FoodWeb(
+        A::AbstractMatrix;
+        species::Vector{<:Label} = default_speciesid(A),
+        Z::Real = 1,
+        M::Vector{<:Real} = compute_mass(A, Z),
+        metabolic_class::Vector{<:Label} = default_metabolic_class(A),
+        method::String = "unspecified",
+    )
+
+# Generate a `FoodWeb` from an adjacency matrix
+
+This is the most direct way to generate a `FoodWeb`.
+You only need to provide and adjacency matrix filled with 0s and 1s,
+that respectively indicate the absence (presence) of an interaction
+between the corresponding species pair.
+For instance `A = [0 0; 1 0]` corresponds to a system of 2 species
+in which species 2 eats species 1.
+
+```jldoctest
+julia> FoodWeb([0 0; 1 0])
+FoodWeb of 2 species:
+  A: sparse matrix with 1 links
+  M: [1.0, 1.0]
+  metabolic_class: 1 producers, 1 invertebrates, 0 vertebrates
+  method: unspecified
+  species: [s1, s2]
+```
+
+You can also provide optional arguments e.g. change the species names.
+
+```jldoctest
+julia> foodweb = FoodWeb([0 0; 1 0]; species = ["plant", "herbivore"]);
+
+julia> foodweb.species == ["plant", "herbivore"]
+true
+```
+
+# Generate a `FoodWeb` from an adjacency list
+
+An adjacency list is an iterable of `Pair`s
+(e.g. vector of `Pair`s) or a dictionnary.
+If the adjacency list is an iterable of `Pair`s,
+the first element of each pair is a predator
+and the second element of each pair are the preys eaten by the corresponding predator.
+If the adjacency list is a dictionnary,
+keys are predators and values the corresponding preys.
+
+Species can be identified either with `Integer`s corresponding to species indexes
+or with labels (`String`s or `Symbol`s) corresponding to the species names.
+In the latter case, species will be ordered lexically.
+Moreover, if you use labels
+the species names will be directly passed to the `FoodWeb.species` field.
+
+```jldoctest
+julia> al_names = ["snake" => ("turtle", "mouse")]; # can also be `Symbol`s
+
+julia> al_index = [2 => [1, 3]]; # ~ if sorting species lexically
+
+julia> fw_from_names = FoodWeb(al_names);
+
+julia> fw_from_index = FoodWeb(al_index);
+
+julia> fw_from_names.A == fw_from_index.A == [0 0 0; 1 0 1; 0 0 0]
+true
+
+julia> fw_from_names.species == ["mouse", "snake", "turtle"] # ordered lexically
+true
+```
+
+# Generate a `FoodWeb` from a structural model
+
+For larger communities it can be convenient to rely on a structural model.
+The structural model implemented are:
+`nichemodel(S; C)`, `cascademodel(S; C)`, nestedhierarchymodel(S; C) and
+`mpnmodel(S; C, p_forbidden)`.
+
+To generate a model with one of these model you have to follow this syntax:
+`FoodWeb(model_name, model_arguments, optional_FoodWeb_arguments)`.
+
+For instance:
+
+```jldoctest
+julia> foodweb = FoodWeb(nichemodel, 20; C = 0.1, Z = 50);
+
+julia> richness(foodweb) # the FoodWeb of 20 sp. has been well generated
+20
+
+julia> foodweb.method == "nichemodel"
+true
+```
+
+# Generate a `FoodWeb` from a `UnipartiteNetwork`
+
+Lastly, EcologicalNetworkDynamics.jl has been designed to interact nicely
+with EcologicalNetworks.jl.
+Thus you can also create a `FoodWeb` from a `UnipartiteNetwork`
+
+```jldoctest
+julia> uni_net = cascademodel(10, 0.1); # generate a UnipartiteNetwork
+
+julia> foodweb = FoodWeb(uni_net);
+
+julia> foodweb.A == uni_net.edges # same adjacency matrices
+true
+```
+
+# `FoodWeb` struct
+
+The function returns a `FoodWeb` which is a collection of the following fields:
+
+  - `A` the adjacency matrix
+  - `species` the vector of species identities
+  - `M` the vector of species body mass
+  - `metabolic_class` the vector of species metabolic classes
+  - `method` describes which model (e.g. niche model) was used to generate `A`
+    if no model has been used `method="unspecified"`
+
+See also [`MultiplexNetwork`](@ref).
+"""
+function FoodWeb(
+    A::AbstractMatrix;
+    species::Vector{<:Label} = default_speciesid(A),
+    Z::Real = 1,
+    M::Vector{<:Real} = compute_mass(A, Z),
+    metabolic_class::Vector{<:Label} = default_metabolic_class(A),
+    method::String = "unspecified",
+)
+    S = richness(A)
+    @check_size_is_richness² A S
+    metabolic_class = clean_metabolic_class(metabolic_class, A)
+    species = clean_labels(species, S)
+    FoodWeb(sparse(A), species, M, metabolic_class, method)
+end
+
+function FoodWeb(
+    uni_net::UnipartiteNetwork;
+    Z::Real = 1,
+    M::AbstractVector = compute_mass(uni_net.edges, Z),
+    metabolic_class::Vector{String} = default_metabolic_class(uni_net.edges),
+    method::String = "unspecified",
+)
+    is_from_mangal = isa(uni_net.S, Vector{Mangal.MangalNode})
+    species = is_from_mangal ? [split(string(s), ": ")[2] for s in uni_net.S] : uni_net.S
+    A = sparse(uni_net.edges)
+    FoodWeb(A, species, M, metabolic_class, method)
+end
+
+function FoodWeb(
+    model::Function,
+    S = nothing;
+    C = nothing,
+    p_forbidden = nothing,
+    Z::Real = 1,
+    M::Union{Nothing,AbstractVector} = nothing,
+)
+
+    uni_net = model_foodweb(model, S, C, p_forbidden)
+    A = uni_net.edges
+    species = uni_net.S
+    metabolic_class = default_metabolic_class(A)
+    species = default_speciesid(A)
+    if isnothing(M)
+        M = compute_mass(A, Z)
     end
-    if vertreplace
-        metabolic_class[id_vertebrates] .= "ectotherm vertebrate"
+    method = string(Symbol(model))
+    FoodWeb(A, species, M, metabolic_class, method)
+end
+#### end ####
+
+#### Type display ####
+"""
+One line FoodWeb display.
+"""
+function Base.show(io::IO, foodweb::FoodWeb)
+    S = richness(foodweb)
+    links = count(foodweb.A)
+    print(io, "FoodWeb(S=$S, L=$links)")
+end
+
+"""
+Multiline FoodWeb display.
+"""
+function Base.show(io::IO, ::MIME"text/plain", foodweb::FoodWeb)
+
+    # Specify parameters
+    S = richness(foodweb)
+    links = count(foodweb.A)
+    class = foodweb.metabolic_class
+    n_p = count(class .== "producer")
+    n_i = count(class .== "invertebrate")
+    n_v = count(class .== "ectotherm vertebrate")
+
+    # Display output
+    println(io, "FoodWeb of $S species:")
+    println(io, "  A: sparse matrix with $links links")
+    println(io, "  M: " * vector_to_string(foodweb.M))
+    println(io, "  metabolic_class: $n_p producers, $n_i invertebrates, $n_v vertebrates")
+    println(io, "  method: $(foodweb.method)")
+    print(io, "  species: " * vector_to_string(foodweb.species))
+end
+
+function vector_to_string(vector)
+    length(vector) >= 4 ? long_vector_to_string(vector) : short_vector_to_string(vector)
+end
+
+function vector_to_string(vector::T where {T<:SparseVector})
+    vector.n >= 4 ? long_vector_to_string(vector) : short_vector_to_string(vector)
+end
+
+function short_vector_to_string(short_vector)
+    out = "["
+    n = length(short_vector)
+    n <= 4 || throw(ArgumentError("Vector is too long: should be of length 4 or less."))
+
+    for i in 1:(n-1)
+        out *= "$(short_vector[i]), "
+    end
+
+    out *= "$(short_vector[end])]"
+    out
+end
+
+function short_vector_to_string(short_vector::T where {T<:SparseVector})
+    out = "["
+    n = length(short_vector)
+    n <= 4 || throw(ArgumentError("Vector is too long: should be of length 4 or less."))
+
+    for i in 1:(n-1)
+        out *= display_spvalue(short_vector[i]) * ", "
+    end
+
+    out *= display_spvalue(short_vector[end]) * "]"
+    out
+end
+
+function long_vector_to_string(long_vector)
+    n = length(long_vector)
+    n >= 4 || throw(ArgumentError("Vector is too short: should be of length 4 or more."))
+    "[$(long_vector[1]), $(long_vector[2]), ..., $(long_vector[end-1]), $(long_vector[end])]"
+end
+
+function long_vector_to_string(long_vector::T where {T<:SparseVector})
+    n = long_vector.n
+    n >= 4 || throw(ArgumentError("Vector is too short: should be of length 4 or more."))
+    out₁ = "[$(display_spvalue(long_vector[1])), $(display_spvalue(long_vector[2])), ..., "
+    out₂ = "$(display_spvalue(long_vector[end-1])), $(display_spvalue(long_vector[end]))]"
+    out₁ * out₂
+end
+
+function display_spvalue(value)
+    out = value == 0.0 ? "⋅" : "$value"
+    out
+end
+#### end ####
+
+#### Utility functions for generating default values, cleaning some arguments, etc.
+"""
+Does the user want to replace 'vertebrates' by 'ectotherm vertebrates'?
+"""
+function replace_vertebrates!(metabolic_class, vertebrates)
+    println("Do you want to replace 'vertebrate' by 'ectotherm vertebrate'? (y or n)")
+    answer = readline()
+    if answer ∈ ["y", "Y", "yes", "Yes", "YES"]
+        replace = true
+    elseif answer ∈ ["n", "N", "no", "No", "NO"]
+        replace = false
+    else
+        throw(ErrorException("Invalid answer. Please enter yes (y) or no (n)."))
+    end
+    if replace
+        metabolic_class[vertebrates] .= "ectotherm vertebrate"
     end
 end
 
-function _cleanmetabolicclass!(metabolic_class, A)
-    # Check that producers are identified as such / replace and send a warning if not
-    id_producers = vec(sum(A, dims = 2) .== 0)
-    are_producer_valid = all(metabolic_class[id_producers] .== "producer")
-    are_producer_valid || @warn "You provided a metabolic class for basal species - replaced by producer"
-    metabolic_class[id_producers] .= "producer"
-    # Warn that only ectotherm vertebrate have default methods 
-    id_vertebrates = lowercase.(metabolic_class) .== "vertebrate"
-    !any(id_vertebrates) || _replacevertebrates!(metabolic_class, id_vertebrates)
+"""
+Check that provided metabolic classes are valid.
+"""
+function clean_metabolic_class(metabolic_class, A)
+    # Check that producers are identified as such. If not correct and send a warning.
+    prod = producers(A)
+    S = richness(A)
+    metabolic_class = clean_labels(metabolic_class, S)
+    are_producer_valid = all(metabolic_class[prod] .== "producer")
+    are_producer_valid ||
+        @warn "You provided a metabolic class for basal species: replaced by 'producer'."
+    metabolic_class[prod] .= "producer"
+
+    # Replace 'vertebrate' by 'ectotherm vertebrate' if user accepts.
+    vertebrates = (1:richness(A))[lowercase.(metabolic_class).=="vertebrate"]
+    isempty(vertebrates) || replace_vertebrates!(metabolic_class, vertebrates)
+
+    # Check that metabolic class are valid.
     metabolic_class .= lowercase.(metabolic_class)
     valid_class = ["producer", "ectotherm vertebrate", "invertebrate"]
-    is_valid_class = falses(length(metabolic_class))
-    for (i,m) in enumerate(metabolic_class)
-        is_valid_class[i] = m ∈ valid_class ? true : false
-    end
-    all(is_valid_class) || @warn "No default methods for metabolic classes outside of producers, invertebrates and ectotherm vertebrates, proceed with caution"
+    are_class_valid = [class ∈ valid_class for class in metabolic_class]
+    all(are_class_valid) || throw(
+        ArgumentError(
+            "An invalid metabolic class has been given, class should be in $valid_class.",
+        ),
+    )
+    metabolic_class
 end
 
-function _masscalculation(A, M, Z)
-    if isa(M, Nothing)
-        if isa(Z, Nothing)
-            M = ones(size(A,1))
-        else
-            tl = _gettrophiclevels(A)
-            M = Z .^ (tl .- 1)
+"""
+Check that labels have the good format and convert them to `String`s if needed.
+"""
+function clean_labels(labels, S)
+    @check_equal_richness length(labels) S
+    all(typeof.(labels) .<: Label) ||
+        throw(ArgumentError("Label should be either String or Symbol."))
+    String.(labels)
+end
+
+compute_mass(A, Z) = Z .^ (trophic_levels(A) .- 1)
+
+default_speciesid(A) = ["s$i" for i in 1:richness(A)]
+
+function default_metabolic_class(A)
+    metabolic_class = repeat(["invertebrate"], richness(A))
+    metabolic_class[producers(A)] .= "producer"
+    metabolic_class
+end
+
+function model_foodweb(model, args...)
+    model_name = model |> Symbol |> string
+    implemented_models = ["nichemodel", "nestedhierarchymodel", "cascademodel", "mpnmodel"]
+    model_name ∈ implemented_models ||
+        throw(ArgumentError("Invalid 'model': should be in $implemented_models."))
+    args = filter(!isnothing, args) # only keep non-nothing arguments
+    model(args...)
+end
+#### end ####
+
+#### Create FoodWeb from an adjacency list ####
+function FoodWeb(al; kwargs...)
+    # Flags to know if species identities
+    # are refered with indexes (Integer) or label (Symbol or String)
+    index_style = true
+    label_style = true
+    if !(eltype(al) <: Pair)
+        throw(
+            ArgumentError(
+                "Invalid adjacency list type: $(typeof(al)). " *
+                "Expected a collection of pairs.",
+            ),
+        )
+    end
+    pair_vector = []
+    for pair in al
+        pred, prey, style = parse_pair(pair)
+        style == :index ? (label_style = false) : (index_style = false) # update flags
+        if sum([label_style, index_style]) != 1
+            throw(
+                ArgumentError(
+                    "Species identity style should be consistent within the pairs. " *
+                    "You used two different style: " *
+                    "1. index style, species are identified with `Integer`s " *
+                    "2. label style, species are identified with `String`s or `Symbol`s " *
+                    "(e.g. `:lion`, `:hyena`).",
+                ),
+            )
         end
-    else
-        isa(Z, Nothing) || throw(ArgumentError("You provided both a vector of body mass (M) and a predator-prey body mass ratio (Z), please only provide one or the other"))
+        push!(pair_vector, pred => prey)
     end
-    return M
-end
-
-function _makespeciesid(A, species)
-    species = isa(species, Nothing) ? "s".*string.(1:size(A, 1)) : species
-    return species
-end
-
-function _makevertebratevec(A, metabolic_class)
-    if isa(metabolic_class, Nothing)
-        metabolic_class = repeat(["invertebrate"], size(A,1))
-        isP = vec(sum(A, dims = 2) .== 0)
-        metabolic_class[isP] .= "producer"
-    elseif isa(metabolic_class, String)
-        metabolic_class = repeat([metabolic_class], size(A,1))
-        isP = vec(sum(A, dims = 2) .== 0)
-        metabolic_class[isP] .= "producer"
+    if !allunique(first.(pair_vector))
+        throw(
+            ArgumentError(
+                "Duplicated key (predator), key cannot be repeated. " *
+                "For instance, if species 1 eats species 2 and 3, " *
+                "instead of writing [1 => 2, 1 => 3] " *
+                "write [1 => [2, 3]] or [1 => (2, 3)].",
+            ),
+        )
     end
-    return metabolic_class
-end
+    pair_dict = Dict(pair_vector)
+    al_keys = keys(pair_dict)
+    al_vals = collect(values(pair_dict))
+    al_vals_flatten = collect(Iterators.flatten(al_vals)) # [[1], [2, 3]] -> [1, 2, 3]
+    sp_set = union(al_keys, al_vals_flatten)
+    sp_sorted = sort([sp for sp in sp_set])
+    sp_dict = Dict([id => new_id for (new_id, id) in enumerate(sp_sorted)])
+    mapping = name -> sp_dict[name]
+    S = length(sp_set)
+    A = spzeros(Integer, S, S)
+    for (pred, prey_vec) in pair_dict
+        for prey in prey_vec
+            A[mapping(pred), mapping(prey)] = 1
+        end
+    end
 
-function _modelfoodweb(model, S, C, forbidden, adbm_parameters)
-    smodel = string(Symbol(model))
-    if smodel ∈ ["nichemodel", "nestedhierarchymodel", "cascademodel"]
-        A = model(S, C)
-    elseif smodel == "mpnmodel"
-        A = model(S, C, forbidden)
-    elseif smodel == "adbmodel"
-        isa(adbm_parameters, Nothing) && throw(ArgumentError("If using the adbmodel you need to provide either a method to generate parameters or a NamedTuple with the parameters, see the help.")) 
-        if isa(adbm_parameters, Symbol)
-            println("Not implemented yet")
-        elseif isa(adbm_parameters, NamedTuple)
-            println("Not implemented yet")
+    # Automatically adjust species labels if needed.
+    kwargs = Dict{Symbol,Any}(kwargs)
+    if label_style
+        if :species in keys(kwargs)
+            throw(ArgumentError("Species names are automatically set from labels \
+                             in adjacency list. No need to provide `species` argument."))
         else
-            println("Not implemented yet")
-        end 
-    else
-        throw(ArgumentError("Only models implemented are nichemodel, nestedhierarchymodel, cascademodel and mpnmodel.")) 
+            kwargs[:species] = sp_sorted
+        end
     end
-    return A
-end
-
-#=
-FoodWeb functions 
-=#
-
-"""
-    FoodWeb(A; species, M, metabolic_class, method, Z)
-
-Generate a FoodWeb object using the interaction matrix A. A can be
-- an AbstractMatrix{T} where T is either Bool or Int64, with `A[i,j] = true` or `A[i,j] = 1` if i eats j and `false` or `0` otherwise. 
-- a UnipartiteNetwork (see EcologicalNetworks documentation)
-
-Note that consumers are rows and resources are columns. 
-
-Keyword arguments: 
-- `species`: a Vector{String} of species identities. If `species` is unspecified, species identity are automatically created as "si" where i is species i's number
-- `M`: a Vector of species body mass. If unspecified, mass are calculated using `Z` (the consumer-resource body size ratio) and trophic rank
-- `metabolic_class`: a vector of species metabolic classes. As of yet, only "producer", "invertebrate" and "ectotherm vertebrate" have default parameters, use another class only if you have the corresponding allometric parameters that you want to input. If you provide a metabolic class other than "producer" for basal species, it will be replaced by "producer"
-- `method`: a String specifying the method used to generate the food web, you can use that field to specify the food web source. Default is "unspecified"
-- `Z`: A number specifying the predator-prey body mass ratio. If specified, body masses are calculated as `M = Z .^ (trophic_rank .- 1)` 
-
-Note: If both `Z` and `M` are unspecified, all species will be attributed a mass of 1.0
-
-# Examples
-```julia-repl
-julia> A = [
-    false true true ; 
-    false false false ; 
-    false false false
-    ] #exploitative competition motif
-julia> FW = FoodWeb(A)
-3 species - 2 links. 
-Method: unspecified
-```
-"""
-function FoodWeb(A::AbstractMatrix{Bool}
-    ; species::Union{Nothing, Vector{String}} = nothing
-    , M::Union{Nothing, Vector{T}} = nothing
-    , metabolic_class::Union{Nothing, Vector{String}, String} = nothing
-    , method::String = "unspecified"
-    , Z::Union{Nothing,T} = nothing) where {T <: Real}
-
-    M = _masscalculation(A, M, Z)
-    species = _makespeciesid(A, species)
-    metabolic_class = _makevertebratevec(A, metabolic_class)
-
-    A = sparse(A)
-
-    return FoodWeb(A, species, M, metabolic_class, method)
-end
-
-function FoodWeb(A::AbstractMatrix{Int64}
-    ; species::Union{Nothing, Vector{String}} = nothing
-    , M::Union{Nothing, Vector{T}} = nothing
-    , metabolic_class::Union{Nothing, Vector{String}, String} = nothing
-    , method::String = "unspecified"
-    , Z::Union{Nothing,Real} = nothing) where {T <: Real}
-    
-    M = _masscalculation(A, M, Z)
-    species = _makespeciesid(A, species)
-    metabolic_class = _makevertebratevec(A, metabolic_class)
-
-    all([a ∈ [0,1] for a in A]) || throw(ArgumentError("The adjacency matrix should only contain 0 (no interaction between i and j) and 1 (i eats i)"))
-    A = sparse(Bool.(A))
-
-    return FoodWeb(A, species, M, metabolic_class, method)
-end
-
-function FoodWeb(A::UnipartiteNetwork
-    ; M::Union{Nothing, Vector{T}} = nothing
-    , metabolic_class::Union{Nothing, Vector{String}, String} = nothing
-    , method::String = "unspecified"
-    , Z::Union{Nothing,Real} = nothing) where {T <: Real}
-    
-    if isa(A.S, Vector{Mangal.MangalNode})
-        species = [split(string(s), ": ")[2] for s in A.S]
-    else
-        species = A.S
+    if index_style && :species ∉ keys(kwargs)
+        kwargs[:species] = default_speciesid(A)
     end
-    A = A.edges
-    M = _masscalculation(A, M, Z)
-    metabolic_class = _makevertebratevec(A, metabolic_class)
 
-    return FoodWeb(A, species, M, metabolic_class, method)
+    FoodWeb(A; kwargs...)
 end
 
 """
-    FoodWeb(model, S; C, forbidden, adbm_parameters, species, M, metabolic_class, method, Z)
-
-Generate a `FoodWeb` object using the model specified, with S species. Possible models are the ones implemented in EcologicalNetworks (nichemodel, etc). 
-
-Keyword arguments:
-- `C`: (Float64) connectance needs to be specified for some models
-- `forbidden`: (Float64) probability of forbidden links occurring (for the mpnmodel) 
-- `adbm_parameters`: NOT IMPLEMENTED YET!!! a NamedTuple with the parameters needed to generate a food web with the Allometric Diet Breadth Model. 
-- `species`: a Vector{String} of species identities. If `species` is unspecified, species identity are automatically created as "si" where i is species i's number
-- `M`: a Vector of species body mass. If unspecified, mass are calculated using `Z` (the consumer-resource body size ratio) and trophic rank
-- `metabolic_class`: a vector of species metabolic classes. As of yet, only "producer", "invertebrate" and "ectotherm vertebrate" have default parameters, use another class only if you have the corresponding allometric parameters that you want to input. If you provide a metabolic class other than "producer" for basal species, it will be replaced by "producer"
-- `method`: a String specifying the name of the model used
-- `Z`: A number specifying the predator-prey body mass ratio. If specified, body masses are calculated as `M = Z .^ (trophic_rank .- 1)` 
-
-Note: If both `Z` and `M` are unspecified, all species will be attributed a mass of 1.0
-
-# Examples
-```julia-repl
-julia> A = [
-    false true true ; 
-    false false false ; 
-    false false false
-    ] #exploitative competition motif
-julia> FW = FoodWeb(nichemodel, 10, C = 0.2, Z = 10)
-3 species - 2 links. 
-Method: unspecified
-```
+Parse pairs within `FoodWeb()` method working on adjacency list.
 """
-function FoodWeb(model::Function, S::Int64
-    ; C::Union{Nothing, Float64} = nothing
-    , forbidden::Union{Nothing, Float64} = nothing
-    , adbm_parameters::Union{Nothing, NamedTuple, Symbol} = nothing
-    , species::Union{Nothing, Vector{String}} = nothing
-    , M::Union{Nothing, Vector{T}} = nothing
-    , metabolic_class::Union{Nothing, Vector{String}, String} = nothing
-    , method::String = "unspecified"
-    , Z::Union{Nothing,Real} = nothing) where {T <: Real}
-        
-    N = _modelfoodweb(model, S, C, forbidden, adbm_parameters)  
-    A = N.edges
-    species = N.S  
-    metabolic_class = _makevertebratevec(A, metabolic_class)
-    species = _makespeciesid(A, species)
-    M = _masscalculation(A, M, Z)
-    method = string(Symbol(model))
-
-    return FoodWeb(A, species, M, metabolic_class, method)
+function parse_pair(pair)
+    pred, prey = pair
+    if !(typeof(pred) <: Union{Integer,String,Symbol})
+        throw(
+            ArgumentError(
+                "The first element of the pair, or the key of your dictionnary, " *
+                "should not be an interable: either a single Integer, String or Symbol.",
+            ),
+        )
+    end
+    if typeof(pred) <: Integer && all(typeof.(prey) .<: Integer)
+        return (pred, prey, :index)
+    elseif typeof(pred) <: Label && all(typeof.(prey) .<: Label)
+        parsed_prey = typeof(prey) <: Label ? [Symbol(prey)] : Symbol.(prey)
+        return (Symbol(pred), parsed_prey, :label)
+    else
+        throw(
+            ArgumentError(
+                "The elements of your pair should be either all <: Integer " *
+                "or all :<Union{String, Symbol}.",
+            ),
+        )
+    end
 end
-
+####
