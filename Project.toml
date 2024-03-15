@@ -1,6 +1,15 @@
 name = "EcologicalNetworksDynamics"
 uuid = "2fd9189a-c387-4076-88b7-22b33b5a4388"
-authors = ["Eva Delmas <eva.delmas@gmail.com>"]
+authors = [
+    "Ismaël Lajaaiti <ismael.lajaaiti@umontpellier.fr>",
+    "Iago Bonnici <iago.bonnici@umontpellier.fr>",
+    "Sonia Kéfi <sonia.kefi@umontpellier.fr>",
+    "Hana Mayall <hbmayall1@sheffield.ac.uk>",
+    "Alain Danet <a.h.danet@sheffield.ac.uk>",
+    "Andrew P Beckerman <a.beckerman@sheffield.ac.uk>",
+    "Thomas Malpas <tdmalpas1@sheffield.ac.uk>",
+    "Eva Delmas <eva.delmas@gmail.com>",
+]
 version = "0.1.0"
 
 [deps]
