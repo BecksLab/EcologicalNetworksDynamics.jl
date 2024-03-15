@@ -1,8 +1,0 @@
-[deps]
-EcologicalNetworksDynamics = "2fd9189a-c387-4076-88b7-22b33b5a4388"
-BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
-DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
-DiffEqCallbacks = "459566f4-90b8-5000-8ac3-15dfb0a30def"
-EcologicalNetworks = "f03a62fe-f8ab-5b77-a061-bb599b765229"
-Formatting = "59287772-0a20-5a39-b81b-1366585eb4c0"
