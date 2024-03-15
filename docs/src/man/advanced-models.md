@@ -3,11 +3,11 @@
 In the previous section, we showed how to create relatively simple models.
 Here, we explain how to build more sophisticated models by modifying or adding the following features:
 
-* [Functional Responses](@ref)
-* [Non-Trophic Interactions](@ref)
-* [Temperature Scaling](@ref)
-* [Explicit Nutrient Dynamics](@ref)
-* [Competition Between Producers](@ref)
+  - [Functional Responses](@ref)
+  - [Non-Trophic Interactions](@ref)
+  - [Temperature Scaling](@ref)
+  - [Explicit Nutrient Dynamics](@ref)
+  - [Competition Between Producers](@ref)
 
 ## Functional Responses
 
@@ -29,12 +29,12 @@ F_{ij} = \frac{1}{m_i} \cdot
 
 with:
 
-* ``\omega_{ij}`` preference of consumer ``i`` on resource ``j``
-* ``c_i`` the intensity of intraspecific predator interference in consumer ``i``
-* ``h`` the hill-exponent
-* ``a_{ij}`` the attack rate of consumer ``i`` on resource ``j``
-* ``h_t`` the handling time
-* ``m_i`` the body mass of consumer ``i``
+  - ``\omega_{ij}`` preference of consumer ``i`` on resource ``j``
+  - ``c_i`` the intensity of intraspecific predator interference in consumer ``i``
+  - ``h`` the hill-exponent
+  - ``a_{ij}`` the attack rate of consumer ``i`` on resource ``j``
+  - ``h_t`` the handling time
+  - ``m_i`` the body mass of consumer ``i``
 
 The parameters of the functional response can be customized.
 For example, the default hill exponent is 2 (type III functional response).
@@ -78,10 +78,10 @@ F_{ij} = \frac{\omega_{ij} B_j^h}{B_0^h + c_i B_i B_0^h
 
 with:
 
-* ``\omega_{ij}`` preference of consumer `i` on resource `j`
-* ``B_0`` the half-saturation density
-* ``c_i`` the intensity of intraspecific predator interference
-* ``h`` the hill-exponent
+  - ``\omega_{ij}`` preference of consumer `i` on resource `j`
+  - ``B_0`` the half-saturation density
+  - ``c_i`` the intensity of intraspecific predator interference
+  - ``h`` the hill-exponent
 
 To change for the bioenergetic functional response, you can do:
 
@@ -90,7 +90,7 @@ m = default_model(fw, BioenergeticResponse())
 m.half_saturation_density[2] # Consumer half-saturation density.
 ```
 
-You can also tune the bioenergetic functional response. 
+You can also tune the bioenergetic functional response.
 For instance, you can change the half-saturation density:
 
 ```@example econetd
@@ -105,10 +105,10 @@ However, the importance of other interactions (hereafter non-trophic interaction
 For this reason, we offer the possibility to include non-trophic interactions in food web models.
 Four non-trophic interactions can be considered as in [Miele et al., (2019)](https://doi.org/10.1371/journal.pcbi.1007269):
 
-* Competition for space between producers
-* Plant facilitation (e.g. because of nitrogen fixation or seed dispersal)
-* Interference between predators sharing a prey
-* Refuge provisioning for prey
+  - Competition for space between producers
+  - Plant facilitation (e.g. because of nitrogen fixation or seed dispersal)
+  - Interference between predators sharing a prey
+  - Refuge provisioning for prey
 
 For example, let's compare the dynamics of a plant growing toward its carrying capacity with and without facilitation.
 In this simplistic setting, we do not consider trophic interactions, but only the focal plant (1)
@@ -125,9 +125,16 @@ A = [0 0; 1 0]
 m_facilitation = default_model(fw, FacilitationLayer(; A))
 sol_no_facilitation = simulate(m_no_facilitation, B0, t)
 sol_facilitation = simulate(m_facilitation, [0.1], t)
-plot(sol_no_facilitation, xlabel = "Time", ylabel = "Biomass", idxs = [1], label = "without facilitation")
-plot!(sol_facilitation, idxs = [1], label = "with facilitation")
-savefig("facilitation.svg"); nothing # hide
+plot(
+    sol_no_facilitation;
+    xlabel = "Time",
+    ylabel = "Biomass",
+    idxs = [1],
+    label = "without facilitation",
+)
+plot!(sol_facilitation; idxs = [1], label = "with facilitation")
+savefig("facilitation.svg");
+nothing; # hide
 ```
 
 ![Figure illustrating facilitation effect](facilitation.svg)
@@ -154,8 +161,9 @@ for T in T_values
     local m = default_model(fw, Temperature(T))
     push!(attack_rate, m.attack_rate[2])
 end
-plot(T_values, attack_rate, xlabel = "Temperature (K)", ylabel = "Attack Rate")
-savefig("temperature-attack-rate.svg"); nothing # hide
+plot(T_values, attack_rate; xlabel = "Temperature (K)", ylabel = "Attack Rate")
+savefig("temperature-attack-rate.svg");
+nothing; # hide
 ```
 
 ![Figure of attack rate vs temperature](temperature-attack-rate.svg)
@@ -169,13 +177,13 @@ But, we can also model explicit nutrient dynamics given by:
 \frac{\mathrm{d} N_l}{\mathrm{d} t} = D_l(S_l - N_l)-\sum^n_{i=1}{c_{li}G_i(N)B_i}
 ```
 
-Where: 
+Where:
 
-* ``N_l`` is the concentration of nutrient `l`
-* ``D_l`` is the turnover rate of nutrient `l`
-* ``S_l`` is the supply rate of nutrient `l`
-* ``c_{li}`` is the nutrient concentration of producer `i` in nutrient `l`
-* ``r_i`` is the intrinsic growth rate of producer `i`
+  - ``N_l`` is the concentration of nutrient `l`
+  - ``D_l`` is the turnover rate of nutrient `l`
+  - ``S_l`` is the supply rate of nutrient `l`
+  - ``c_{li}`` is the nutrient concentration of producer `i` in nutrient `l`
+  - ``r_i`` is the intrinsic growth rate of producer `i`
 
 Moreover, the producer growth `G_i` is given by:
 
@@ -221,7 +229,6 @@ m.nutrients_concentration # Concentration of nutrients.
 Nutrient concentration is a matrix, where rows correspond to producers
 and columns to nutrients.
 
-
 ## Competition Between Producers
 
 By default, producers follow logistic growth.
@@ -242,9 +249,9 @@ Producer competition can be implemented by modifying the producer growth compone
 
 ```@example econetd
 foodweb = Foodweb(zeros(Int, 2, 2)) # 2 producers.
-g_no_competition = LogisticGrowth(producers_competition = [1 0; 0 1]) # Default.
+g_no_competition = LogisticGrowth(; producers_competition = [1 0; 0 1]) # Default.
 ```
 
 ```@example econetd
-g_competition = LogisticGrowth(producers_competition = [1 0.1; 0.9 1])
+g_competition = LogisticGrowth(; producers_competition = [1 0.1; 0.9 1])
 ```

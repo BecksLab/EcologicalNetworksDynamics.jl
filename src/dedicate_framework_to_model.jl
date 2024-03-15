@@ -64,6 +64,7 @@ properties(m) # Where m is a Model.
 Then, the value of a property can be read with
 `get_<X>` where `X` is the name of the property.
 For instance, to read mortality rates:
+
 ```julia
 get_mortality(m) # Equivalent to: m.mortality.
 ```
@@ -74,7 +75,6 @@ because some of them are derived from the others.
 For instance, many parameters are derived from species body masses,
 therefore changing body masses would make the model inconsistent.
 However, terminal properties can be re-written, as the species metabolic rate.
-
 """
 const Model = System{InnerParms}
 

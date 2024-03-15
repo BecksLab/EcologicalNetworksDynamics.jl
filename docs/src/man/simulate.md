@@ -34,7 +34,8 @@ The solution can be plotted with the `plot` function from the Plots package.
 
 ```@example econetd
 plot(sol)
-savefig("simulation.svg"); nothing # hide
+savefig("simulation.svg") # hide
+nothing # hide
 ```
 
 ![Figure of the simulation](simulation.svg)
@@ -63,7 +64,7 @@ sol[end]
 ```
 
 ```@example econetd
-callback = extinction_callback(m, 1e-6, verbose = true)
+callback = extinction_callback(m, 1e-6; verbose = true)
 sol = simulate(m, [1, 1, 1], 100_000; callback) # High extinction threshold.
 sol[end]
 ```

@@ -39,7 +39,7 @@ m2.body_masses
 You can also change the default predator-prey body mass ratio to set up species body masses:
 
 ```@example econetd
-m3 = default_model(Foodweb([3 => 2, 2 => 1]), BodyMass(Z = 5))
+m3 = default_model(Foodweb([3 => 2, 2 => 1]), BodyMass(; Z = 5))
 m3.body_masses
 ```
 
@@ -91,7 +91,7 @@ m.hill_exponent = 2.1 # (same)
 
 try # hide
 # Not OK: this would make the rest of the model data inconsistent.
-m.body_masses = [1, 2, 3] 
+m.body_masses = [1, 2, 3]
 catch err; print(stderr, "ERROR: "); showerror(stderr, err); end # hide
 ```
 

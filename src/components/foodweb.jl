@@ -13,6 +13,7 @@ This is one of the most structuring components.
 # Blueprint Creation from Raw Links.
 
 From an adjacency list:
+
 ```jldoctest
 julia> fw = Foodweb([:a => :b, :b => [:c, :d]])
 blueprint for Foodweb with 2 trophic links:
@@ -32,6 +33,7 @@ Model with 2 components:
 ```
 
 From a matrix:
+
 ```jldoctest
 julia> fw = Foodweb([0 0 1; 1 0 1; 0 0 0])
 blueprint for Foodweb with 3 trophic links:
@@ -49,10 +51,11 @@ Model with 2 components:
 # Blueprint Creation from Random Models.
 
 __Cascade__ model: specify the desired number of species `S` and connectance `C`.
+
 ```jldoctest
 julia> using Random
        Random.seed!(12)
-       fw = Foodweb(:cascade, S = 5, C = 0.2)
+       fw = Foodweb(:cascade; S = 5, C = 0.2)
 blueprint for Foodweb with 5 trophic links:
   A: 5×5 SparseArrays.SparseMatrixCSC{Bool, Int64} with 5 stored entries:
  ⋅  1  ⋅  1  1
@@ -67,8 +70,9 @@ within a tolerance level defaulted to `tol_C = 0.1 * C`,
 modifiable as a keyword argument.
 
 __Niche__ model: either specify the connectance `C` or number of links `L`.
+
 ```jldoctest
-julia> fw = Foodweb(:niche, S = 5, C = 0.2) #  From connectance.
+julia> fw = Foodweb(:niche; S = 5, C = 0.2) #  From connectance.
 blueprint for Foodweb with 5 trophic links:
   A: 5×5 SparseArrays.SparseMatrixCSC{Bool, Int64} with 5 stored entries:
  ⋅  ⋅  ⋅  ⋅  ⋅
@@ -77,7 +81,7 @@ blueprint for Foodweb with 5 trophic links:
  ⋅  ⋅  1  ⋅  ⋅
  1  1  ⋅  ⋅  ⋅
 
-julia> fw = Foodweb(:niche, S = 5, L = 4) #  From number of links.
+julia> fw = Foodweb(:niche; S = 5, L = 4) #  From number of links.
 blueprint for Foodweb with 4 trophic links:
   A: 5×5 SparseArrays.SparseMatrixCSC{Bool, Int64} with 4 stored entries:
  ⋅  ⋅  ⋅  ⋅  ⋅
@@ -92,39 +96,35 @@ are `tol_C = 0.1 * C` and `tol_L = 0.1 * L`,
 modifiable as keyword arguments.
 
 For either random model, the following keyword arguments can also be specified:
-- `reject_cycles = false` (default): raise to forbid trophic cycles.
-- `reject_if_disconnected = true` (default): lower to allow disconnected trophic networks.
-- `max_iterations = 10^5` (default): give up if no satisfying network can be found
-                                     after this number of random trials.
+
+  - `reject_cycles = false` (default): raise to forbid trophic cycles.
+  - `reject_if_disconnected = true` (default): lower to allow disconnected trophic networks.
+  - `max_iterations = 10^5` (default): give up if no satisfying network can be found
+    after this number of random trials.
 
 # Properties.
 
 A model `m` with a `Foodweb` has the following properties.
 
-- `m.A` or `m.trophic_links`: a view into the matrix of trophic links.
-- `m.n_trophic_links`: the number of trophic links in the model.
-- `m.trophic_levels`: calculate the trophic level of every species in the model.
-
-- Distinguishing between `producers` (species without outgoing trophic links)
-  and `consumers` (species with outgoing trophic links):
-  - `m.{producers,consumers}_mask`: a boolean vector to select either kind of species.
-  - `m.n_{producers,consumers}`: count number of species of either kind.
-  - `is_{producer,consumer}(m, i)`: check whether species `i` (name or index) is of either kind.
-  - `m.{producers,consumer}_indices`: iterate over either species kind indices.
-  - `m.{producers,consumer}_{sparse,dense}_index`: obtain a
-    \$species\\_name \\mapsto species\\_index\$ mapping:
-    - the `sparse` index yields indices valid within the whole collection of species.
-    - the `dense` index yields indices only valid within the restricted collection
-      of species of either kind.
-
-- Distinguishing betwen `preys` (species with incoming trophic links)
-  and `tops` predators (species without incoming trophic links) works the same way.
-
-- `m.producers_links`: boolean matrix highlighting potential links between producers.
-
-- `m.herbivorous_links`: highlight only consumer-to-producer trophic links.
-- `m.carnivorous_links`: highlight only consumer-to-consumer trophic links.
-
+  - `m.A` or `m.trophic_links`: a view into the matrix of trophic links.
+  - `m.n_trophic_links`: the number of trophic links in the model.
+  - `m.trophic_levels`: calculate the trophic level of every species in the model.
+  - Distinguishing between `producers` (species without outgoing trophic links)
+    and `consumers` (species with outgoing trophic links):
+      + `m.{producers,consumers}_mask`: a boolean vector to select either kind of species.
+      + `m.n_{producers,consumers}`: count number of species of either kind.
+      + `is_{producer,consumer}(m, i)`: check whether species `i` (name or index) is of either kind.
+      + `m.{producers,consumer}_indices`: iterate over either species kind indices.
+      + `m.{producers,consumer}_{sparse,dense}_index`: obtain a
+        \$species\\_name \\mapsto species\\_index\$ mapping:
+          * the `sparse` index yields indices valid within the whole collection of species.
+          * the `dense` index yields indices only valid within the restricted collection
+            of species of either kind.
+  - Distinguishing betwen `preys` (species with incoming trophic links)
+    and `tops` predators (species without incoming trophic links) works the same way.
+  - `m.producers_links`: boolean matrix highlighting potential links between producers.
+  - `m.herbivorous_links`: highlight only consumer-to-producer trophic links.
+  - `m.carnivorous_links`: highlight only consumer-to-consumer trophic links.
 
 ```jldoctest
 julia> m = Model(Foodweb([:a => :b, :b => [:c, :d], :d => :e]));

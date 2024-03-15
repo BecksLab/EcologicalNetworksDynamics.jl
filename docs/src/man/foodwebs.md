@@ -32,12 +32,14 @@ because adjacency lists are often more readable than adjacency matrices.
 Adjacency lists are a list of pairs, where each pair is a consumer-resource interaction.
 
 For instance, the food web presented in the previous example can be defined as:
+
 ```@example econetd
 list = [2 => 1, 3 => 2]
 foodweb = Foodweb(list)
 ```
 
 Species can also be named with strings or symbols:
+
 ```@example econetd
 list = [:eagle => :rabbit, :rabbit => :grass]
 foodweb = Foodweb(list)
@@ -66,4 +68,3 @@ The cascade model requires a number of species and a connectance:
 ```@example econetd
 fw3 = Foodweb(:cascade; S = 5, C = 0.2)
 ```
-

@@ -10,7 +10,14 @@ root = pkgdir(EcologicalNetworksDynamics)
 exclude = [
     "README.md", # Not formatted according to JuliaFormatter.
     "CONTRIBUTING.md", # Not formatted according to JuliaFormatter.
-    "docs/src/man/boost.md", # Wait on https://github.com/JuliaDocs/Documenter.jl/issues/2025 or the end of boost warnings.
+    # Wait on https://github.com/JuliaDocs/Documenter.jl/issues/2025 or the end of boost warnings.
+    "docs/src/man/boost.md",
+    # Wait on https://github.com/JuliaDocs/Documenter.jl/issues/1420.
+    "docs/src/man/components.md",
+    "docs/src/man/simple-models.md",
+    # Breaks the nested markdown list in docstring?
+    "src/components/foodweb.jl",
+    # TODO: stop excluding the above when possible.
 ]
 
 function strip_root(path::Vector{String})

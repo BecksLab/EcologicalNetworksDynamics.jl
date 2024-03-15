@@ -47,7 +47,8 @@ Lastly, we can plot the biomass trajectories using the `plot` functions of [Plot
 
 ```@example quickstart
 plot(out)
-savefig("quickstart.png"); nothing # hide
+savefig("quickstart.png") # hide
+nothing # hide
 ```
 
 ![Quickstart plot](quickstart.png)

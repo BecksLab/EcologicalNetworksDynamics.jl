@@ -183,4 +183,3 @@ function shannon_diversity(vec::AbstractVector; threshold = 0)
     p = x ./ sum(x)
     exp(-sum(p .* log.(p)))
 end
-

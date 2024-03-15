@@ -4,21 +4,21 @@ using Documenter
 # TODO: extract doctests from Internals and run them.
 
 makedocs(;
-    modules=[EcologicalNetworksDynamics],
-    authors="Eva Delmas" *
-            ", Ismaël Lajaaiti" *
-            ", Thomas Malpas" *
-            ", Hana Mayall" *
-            ", Iago Bonnici" *
-            ", Sonia Kéfi" *
-            ", Andrew Beckerman",
-    repo="https://github.com/BecksLab/EcologicalNetworksDynamics.jl/blob/{commit}{path}#{line}",
-    sitename="EcologicalNetworksDynamics.jl",
-    format=Documenter.HTML(;
-        prettyurls=get(ENV, "CI", "false") == "true",
-        assets=String[],
+    modules = [EcologicalNetworksDynamics],
+    authors = "Eva Delmas" *
+              ", Ismaël Lajaaiti" *
+              ", Thomas Malpas" *
+              ", Hana Mayall" *
+              ", Iago Bonnici" *
+              ", Sonia Kéfi" *
+              ", Andrew Beckerman",
+    repo = "https://github.com/BecksLab/EcologicalNetworksDynamics.jl/blob/{commit}{path}#{line}",
+    sitename = "EcologicalNetworksDynamics.jl",
+    format = Documenter.HTML(;
+        prettyurls = get(ENV, "CI", "false") == "true",
+        assets = String[],
     ),
-    pages=[
+    pages = [
         "Welcome" => "index.md",
         "Guide" => [
             "Quick Start" => "man/quickstart.md",
@@ -33,19 +33,16 @@ makedocs(;
         #  "Paradox of enrichment" => "example/paradox_enrichment.md",
         #  "Intraspecific competition and stability" => "example/intracomp_stability.md",
         #  ],
-        "Library" => [
-            "Public" => "lib/public.md",
-            "Internals" => "lib/internals.md",
-        ],
+        "Library" => ["Public" => "lib/public.md", "Internals" => "lib/internals.md"],
     ],
     #  TODO: restore the following limitations to:
-    doctest=false, #  true
-    checkdocs=:exports, #  :all
-    warnonly=true, #  false
-    doctestfilters=[
+    doctest = false, #  true
+    checkdocs = :exports, #  :all
+    warnonly = true, #  false
+    doctestfilters = [
         # Common source of noise in the doctests.
         r" (alias for EcologicalNetworksDynamics.Framework.System{<inner parms>})",
     ],
 )
 
-deploydocs(; repo="github.com/BecksLab/EcologicalNetworksDynamics.jl", devbranch="doc")
+deploydocs(; repo = "github.com/BecksLab/EcologicalNetworksDynamics.jl", devbranch = "doc")

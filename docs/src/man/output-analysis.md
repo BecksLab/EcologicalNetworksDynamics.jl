@@ -53,10 +53,17 @@ For example, you can plot how a few of these properties evolve through time:
 
 ```@example econetd
 time = sol.t
-plot(time, total_biomass(sol); xlabel = "Richness", ylabel = "Observable", label = "Total biomass")
+plot(
+    time,
+    total_biomass(sol);
+    xlabel = "Richness",
+    ylabel = "Observable",
+    label = "Total biomass",
+)
 plot!(time, richness(sol); label = "Richness")
 plot!(time, shannon_diversity(sol); label = "Shannon diversity")
-savefig("output-analysis.png"); nothing # hide
+savefig("output-analysis.png") # hide
+nothing # hide
 ```
 
 ![Figure of the simulation](output-analysis.png)

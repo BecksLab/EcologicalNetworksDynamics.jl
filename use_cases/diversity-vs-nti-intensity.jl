@@ -59,10 +59,8 @@ Threads.@threads for i in 1:n_foodweb # Parallelize computation if possible.
                 ClassicResponse(; c = 0.8),
                 NontrophicLayers(; interaction => (; intensity, L = L_nti)),
             )
-            callback(m) = CallbackSet(
-                extinction_callback(m, 1e-5),
-                TerminateSteadyState(1e-8, 1e-6),
-            )
+            callback(m) =
+                CallbackSet(extinction_callback(m, 1e-5), TerminateSteadyState(1e-8, 1e-6))
             solution = simulate(m, rand(S), t; callback = callback(m))
             # Save the final diversity at equilibrium.
             push!(df_thread, [i, interaction, intensity, richness(solution[end])])
