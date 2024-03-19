@@ -49,12 +49,9 @@ to the package features,
 from the generation of the network structure
 to the simulation of the biomass dynamics.
 At each step, we detail how the model can be customized at your will.
-Lastly, the [Tutorials] section
-contains realistic use-cases of EcologicalNetworksDynamics.
 
-[Quick start]: https://github.com/BecksLab/EcologicalNetworksDynamics.jl/XXX
-[Guide]: https://github.com/BecksLab/EcologicalNetworksDynamics.jl/XXX
-[Tutorials]: https://github.com/BecksLab/EcologicalNetworksDynamics.jl/XXX
+[Quick start]: https://beckslab.github.io/EcologicalNetworksDynamics.jl/man/quickstart/
+[Guide]: https://beckslab.github.io/EcologicalNetworksDynamics.jl/
 
 ## Getting help
 
