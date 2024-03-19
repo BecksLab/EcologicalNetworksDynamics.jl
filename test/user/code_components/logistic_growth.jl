@@ -16,14 +16,14 @@
     @test lg.producers_competition.off == 0
 
     m = base + lg
-    @test m.r == [1, 1, 1, 0, 0]
-    @test m.K == [1, 1, 1, 0, 0]
+    @test m.r == [0, 0, 0, 1, 1]
+    @test m.K == [0, 0, 0, 1, 1]
     @test m.producers_competition == [
-        1 0 0 0 0
-        0 1 0 0 0
-        0 0 1 0 0
         0 0 0 0 0
         0 0 0 0 0
+        0 0 0 0 0
+        0 0 0 1 0
+        0 0 0 0 1
     ]
 
     # Customize sub-blueprints:
@@ -34,14 +34,14 @@
     @test lg.producers_competition.off == 1
 
     m = base + lg
-    @test m.r == [1, 1, 1, 0, 0]
-    @test m.K == [1, 1, 1, 0, 0]
+    @test m.r == [0, 0, 0, 1, 1]
+    @test m.K == [0, 0, 0, 1, 1]
     @test m.producers_competition == [
-        2 1 1 0 0
-        1 2 1 0 0
-        1 1 2 0 0
         0 0 0 0 0
         0 0 0 0 0
+        0 0 0 0 0
+        0 0 0 2 1
+        0 0 0 1 2
     ]
 
     # Cannot bring blueprints if corresponding components are already there.
@@ -53,6 +53,6 @@
 
     # In this situation, just stop bringing.
     m = base + GrowthRate(5) + LogisticGrowth(; r = nothing)
-    @test m.r == [5, 5, 5, 0, 0]
+    @test m.r == [0, 0, 0, 5, 5]
 
 end

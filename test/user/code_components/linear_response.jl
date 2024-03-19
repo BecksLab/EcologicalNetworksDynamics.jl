@@ -10,30 +10,30 @@
     @test lr.w == ConsumersPreferences(:homogeneous)
 
     m = base + lr
-    @test m.alpha == [0, 0, 0, 1, 1]
-    q = 1 / 4
+    @test m.alpha == [1, 1, 1, 0, 0]
+    h = 0.5 # "half"
     @test m.w == [
+        0 0 0 h h
+        h h 0 0 0
+        0 0 0 0 1
         0 0 0 0 0
         0 0 0 0 0
-        0 0 0 0 0
-        1 0 0 0 0
-        0 q q q q
     ]
 
     # Customize sub-blueprints:
-    lr = LinearResponse(; alpha = [0, 0, 0, 1, 2])
-    @test lr.alpha == ConsumptionRate([0, 0, 0, 1, 2])
+    lr = LinearResponse(; alpha = [1, 2, 0, 0, 0])
+    @test lr.alpha == ConsumptionRate([1, 2, 0, 0, 0])
     @test lr.w == ConsumersPreferences(:homogeneous)
 
     m = base + lr
-    @test m.alpha == [0, 0, 0, 1, 2]
-    q = 1 / 4
+    @test m.alpha == [1, 2, 0, 0, 0]
+    q = 0.5
     @test m.w == [
+        0 0 0 q q
+        q q 0 0 0
+        0 0 0 0 1
         0 0 0 0 0
         0 0 0 0 0
-        0 0 0 0 0
-        1 0 0 0 0
-        0 q q q q
     ]
 
     # Cannot bring blueprints if corresponding components are already there.
@@ -46,11 +46,11 @@
     # In this situation, just stop bringing.
     m = base + ConsumersPreferences(5 .* m.A) + LinearResponse(; w = nothing)
     @test m.w == [
+        0 0 0 5 5
+        5 5 0 0 0
+        0 0 0 0 5
         0 0 0 0 0
         0 0 0 0 0
-        0 0 0 0 0
-        5 0 0 0 0
-        0 5 5 5 5
     ]
 
 end

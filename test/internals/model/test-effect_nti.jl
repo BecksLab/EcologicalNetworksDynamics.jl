@@ -85,7 +85,7 @@ end
 
     # 2 refuge links
     A_refuge = sparse(Bool[0 1 1 0; 1 0 1 0; 0 0 0 0; 0 0 0 0])
-    foodweb = FoodWeb(nichemodel, 4; C = 0.3)
+    foodweb = FoodWeb(niche_model, 4; C = 0.3)
     net = MultiplexNetwork(foodweb; A_refuge = A_refuge)
     B = [1, 2, 3, 4]
     for aᵣ in [0.1, 0.2, 0.3, 0.4, 0.5], r0 in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]

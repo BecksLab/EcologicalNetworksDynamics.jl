@@ -59,7 +59,7 @@ end
 @testset "FoodWebs from structural model." begin
     n_rep = 20
     SL_tuple = [(10, 20), (15, 20), (15, 30), (20, 50)]
-    for model in [nichemodel, nestedhierarchymodel, cascademodel]
+    for model in [niche_model, cascade_model]
         for (S, L) in SL_tuple
             for tL in 0:3
                 # From number of links (L)
@@ -79,17 +79,17 @@ end
     end
 
     # Cannot provide both number of links (L) and connectance.
-    @test_throws ArgumentError FoodWeb(nichemodel, 10, C = 0.1, L = 10)
+    @test_throws ArgumentError FoodWeb(niche_model, 10, C = 0.1, L = 10)
 
     # Cannot provide both tolerance on number of links (tol_L) and connectance (tol_C).
-    @test_throws ArgumentError FoodWeb(nichemodel, 10, C = 0.1, tol_L = 1, tol_C = 0.01)
-    @test_throws ArgumentError FoodWeb(nichemodel, 10, L = 10, tol_L = 1, tol_C = 0.01)
+    @test_throws ArgumentError FoodWeb(niche_model, 10, C = 0.1, tol_L = 1, tol_C = 0.01)
+    @test_throws ArgumentError FoodWeb(niche_model, 10, L = 10, tol_L = 1, tol_C = 0.01)
 
     # Cannot provide a number of links and a tolerance on the connectance.
-    @test_throws ArgumentError FoodWeb(nichemodel, 10, L = 10, tol_C = 0.01)
+    @test_throws ArgumentError FoodWeb(niche_model, 10, L = 10, tol_C = 0.01)
 
     # Cannot provide a connectance and a tolerance on the number of links.
-    @test_throws ArgumentError FoodWeb(nichemodel, 10, C = 0.1, tol_L = 1)
+    @test_throws ArgumentError FoodWeb(niche_model, 10, C = 0.1, tol_L = 1)
 end
 
 @testset "Warning if foodweb has disconnected species." begin
@@ -108,6 +108,6 @@ end
     end
 
     # Test when the FoodWeb is generated with a structural model.
-    @test_logs (:warn,) FoodWeb(nichemodel, 10; C = 0.0, check_disconnected = false)
-    @test_logs FoodWeb(nichemodel, 10; C = 0.0, check_disconnected = false, quiet = true)
+    @test_logs (:warn,) FoodWeb(niche_model, 10; C = 0.0, check_disconnected = false)
+    @test_logs FoodWeb(niche_model, 10; C = 0.0, check_disconnected = false, quiet = true)
 end

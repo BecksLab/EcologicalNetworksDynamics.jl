@@ -35,7 +35,6 @@ using DiffEqBase
 using DiffEqCallbacks
 using Distributions
 using LinearAlgebra
-using EcologicalNetworks
 using Graphs
 using Mangal
 using OrderedCollections
@@ -104,7 +103,7 @@ export BioenergeticResponse
 export biomass
 export BioRates
 export boltzmann
-export cascademodel
+export cascade_model
 export ClassicResponse
 export coefficient_of_variation
 export community_cv
@@ -156,12 +155,10 @@ export max_trophic_level
 export mean_trophic_level
 export min_max
 export ModelParameters
-export mpnmodel
 export multiplex_network_parameters_names
 export MultiplexNetwork
 export n_links
-export nestedhierarchymodel
-export nichemodel
+export niche_model
 export NIntakeParams
 export nontrophic_adjacency_matrix
 export NonTrophicIntensity

@@ -89,7 +89,6 @@ Connectance of network: number of links / (number of species)^2
 """
 connectance(A::AbstractMatrix) = sum(A) / richness(A)^2
 connectance(foodweb::FoodWeb) = connectance(foodweb.A)
-connectance(U::UnipartiteNetwork) = connectance(U.edges)
 
 """
 Filter species of the network (`net`) for which `f(species_index, net) = true`.
@@ -236,17 +235,6 @@ function number_of_resource(net::EcologicalNetwork)
     [number_of_resource(i, net) for i in 1:richness(net)]
 end
 
-function _ftl(A::AbstractMatrix)
-    if isa(A, AbstractMatrix{Int64})
-        A = Bool.(A)
-    end
-    N = UnipartiteNetwork(A)
-    dtp = EcologicalNetworks.fractional_trophic_level(N) #shortest path to producer
-    for s in dtp
-
-    end
-end
-
 """
     trophic_levels(net::EcologicalNetwork)
 
@@ -261,12 +249,15 @@ true
 See also [`top_predators`](@ref) and [`trophic_classes`](@ref).
 """
 function trophic_levels(A::AbstractMatrix)
-    A = Bool.(A)
-    trophiclvl_dict = trophic_level(UnipartiteNetwork(A))
-    trophiclvl_val = trophiclvl_dict |> values |> collect
-    trophiclvl_keys = trophiclvl_dict |> keys
-    species_idx = parse.(Int64, [split(t, "s")[2] for t in trophiclvl_keys])
-    trophiclvl_val[sortperm(species_idx)]
+    A = Matrix(A) # Ensure A is dense for inversion.
+    S = size(A, 1) # Species richness.
+    out_degree = sum(A; dims = 2)
+    D = -(A ./ out_degree) # Diet matrix.
+    D[isnan.(D)] .= 0.0
+    D[diagind(D)] .= 1.0 .- D[diagind(D)]
+    # Solve with the inverse matrix.
+    inverse = iszero(det(D)) ? pinv : inv
+    inverse(D) * ones(S)
 end
 
 trophic_levels(net::EcologicalNetwork) = trophic_levels(get_trophic_adjacency(net))

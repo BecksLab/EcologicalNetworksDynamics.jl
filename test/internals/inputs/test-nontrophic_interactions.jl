@@ -15,7 +15,7 @@
     @test multiplex_net.species == foodweb.species
 
     # Build from connectance.
-    foodweb = FoodWeb(nichemodel, 20; C = 0.1)
+    foodweb = FoodWeb(niche_model, 20; C = 0.1)
     # - Only facilitation on.
     multiplex_net = MultiplexNetwork(foodweb; C_facilitation = 0.5)
     A_competition = multiplex_net.layers[:competition].A
@@ -88,7 +88,7 @@
     end
 
     # Build with specifying specific non-trophic matrices.
-    foodweb = FoodWeb(nichemodel, 20; C = 0.1)
+    foodweb = FoodWeb(niche_model, 20; C = 0.1)
     custom_matrix = zeros(20, 20)
     custom_matrix[4, 5] = 1
     # - Only facilitation.

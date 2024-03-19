@@ -213,21 +213,6 @@ function FoodWeb(
 end
 
 function FoodWeb(
-    uni_net::UnipartiteNetwork;
-    Z::Real = 1,
-    M::AbstractVector = compute_mass(uni_net.edges, Z),
-    metabolic_class::Vector{String} = default_metabolic_class(uni_net.edges),
-    method::String = "unspecified",
-    quiet = false,
-)
-    is_from_mangal = isa(uni_net.S, Vector{Mangal.MangalNode})
-    species = is_from_mangal ? [split(string(s), ": ")[2] for s in uni_net.S] : uni_net.S
-    quiet || is_connected(SimpleDiGraph(uni_net.edges)) || @warn disconnected_warning
-    A = sparse(uni_net.edges)
-    FoodWeb(A, species, M, metabolic_class, method)
-end
-
-function FoodWeb(
     model::Function,
     S = nothing;
     C = nothing,
@@ -253,7 +238,7 @@ function FoodWeb(
         a tolerance on the connectance (`tol_C = $tol_C`). \
         Either provide a connectance (`C`) or \
         use `tol_L` to control the tolerance on the number of links."))
-        uni_net = model_foodweb_from_L(
+        A = model_foodweb_from_L(
             model,
             S,
             L,
@@ -268,7 +253,7 @@ function FoodWeb(
         a tolerance on the on the number of links (`tol_L = $tol_L`). \
         Either provide a number of links (`L`) or \
         use `tol_C` to control the tolerance on the connectance."))
-        uni_net = model_foodweb_from_C(
+        A = model_foodweb_from_C(
             model,
             S,
             C,
@@ -279,7 +264,7 @@ function FoodWeb(
             iter_max,
         )
     end
-    (A, species, M, metabolic_class, method) = structural_foodweb_data(uni_net, M, Z, model)
+    (species, M, metabolic_class, method) = structural_foodweb_data(A, M, Z, model)
     quiet || is_connected(SimpleDiGraph(A)) || @warn disconnected_warning
     FoodWeb(A, species, M, metabolic_class, method)
 end
@@ -287,16 +272,14 @@ end
 const disconnected_warning = "'A' contains disconnected species \
     w.r.t. trophic interactions."
 
-function structural_foodweb_data(uni_net, M, Z, model)
-    A = uni_net.edges
-    species = uni_net.S
+function structural_foodweb_data(A, M, Z, model)
     metabolic_class = default_metabolic_class(A)
     species = default_speciesid(A)
     if isnothing(M)
         M = compute_mass(A, Z)
     end
     method = string(Symbol(model))
-    (A, species, M, metabolic_class, method)
+    (species, M, metabolic_class, method)
 end
 #### end ####
 
@@ -528,7 +511,7 @@ end
 Check that `net` does not contain cycles and does not have disconnected nodes.
 """
 function is_model_net_valid(net, check_cycle, check_disconnected)
-    graph = SimpleDiGraph(net.edges)
+    graph = SimpleDiGraph(net)
     (!check_cycle || !is_cyclic(graph)) && (!check_disconnected || is_connected(graph))
 end
 
@@ -554,7 +537,7 @@ end
 
 function check_structural_model(model)
     model_name = model |> Symbol |> string
-    implemented_models = ["nichemodel", "nestedhierarchymodel", "cascademodel", "mpnmodel"]
+    implemented_models = ["niche_model", "cascade_model"]
     model_name ∈ implemented_models ||
         throw(ArgumentError("Invalid 'model': should be in $implemented_models."))
 end

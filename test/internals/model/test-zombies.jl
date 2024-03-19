@@ -35,7 +35,7 @@ end
 @testset "Do not print zombies." begin
     Random.seed!(12) # Set a seed for reproducibility.
     S = 30
-    fw = FoodWeb(nichemodel, S; C = 0.1)
+    fw = FoodWeb(niche_model, S; C = 0.1)
     functional_response = ClassicResponse(fw)
     params = ModelParameters(fw; functional_response)
     logger = TestLogger()

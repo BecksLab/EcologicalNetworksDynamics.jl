@@ -270,7 +270,7 @@ mutable struct Foodweb <: ModelBlueprint
 
                     #! format: off
                     Internals.model_foodweb_from_C(
-                        Internals.nichemodel,
+                        Internals.niche_model,
                         S, C, nothing, # old 'p_forbidden' ?
                         tol, rc, rd, max,
                     )
@@ -283,7 +283,7 @@ mutable struct Foodweb <: ModelBlueprint
 
                     #! format: off
                     Internals.model_foodweb_from_L(
-                        Internals.nichemodel,
+                        Internals.niche_model,
                         S, L, nothing, # old 'p_forbidden' ?
                         tol, rc, rd, max,
                     )
@@ -302,15 +302,14 @@ mutable struct Foodweb <: ModelBlueprint
 
                 #! format: off
                 Internals.model_foodweb_from_C(
-                    Internals.cascademodel,
+                    Internals.cascade_model,
                     S, C, nothing, # old 'p_forbidden' ?
                     tol, rc, rd, max,
                 )
                 #! format: on
             end
         )
-        A = model.edges
-        new(A)
+        new(sparse(model))
     end
 end
 

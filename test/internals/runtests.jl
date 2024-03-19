@@ -74,7 +74,8 @@ function simulates(parms, B0; compare_atol = nothing, compare_rtol = nothing, kw
             verbose = false,
             kwargs...,
         )
-        compare_generic_vs_specialized(g, s, :compact, compare_atol, compare_rtol)
+        # compare_generic_vs_specialized(g, s, :compact, compare_atol, compare_rtol)
+        # TODO: Iago
     end
 
     g

@@ -340,11 +340,6 @@ function MultiplexNetwork(
     MultiplexNetwork(layers, foodweb.M, foodweb.species, foodweb.metabolic_class)
 end
 
-function MultiplexNetwork(net::UnipartiteNetwork; kwargs...)
-    MultiplexNetwork(FoodWeb(net), kwargs...)
-end
-#### end ####
-
 #### Display MultiplexNetwork & NonTrophicIntensity ####
 """
 One line [`Layer`](@ref) display.

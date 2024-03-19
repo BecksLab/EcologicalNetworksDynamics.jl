@@ -144,17 +144,17 @@ end
 
     fw = Foodweb(:niche; S = 5, L = 5)
     @test fw.A == sparse([
+        0 0 0 1 1
+        1 1 0 0 0
+        0 0 0 0 1
         0 0 0 0 0
         0 0 0 0 0
-        0 0 0 0 0
-        1 0 0 0 0
-        0 1 1 1 1
     ])
 
     fw = Foodweb(:cascade; S = 5, C = 0.2)
     @test fw.A == sparse([
+        0 0 0 0 1
         0 0 0 1 1
-        0 0 0 1 0
         0 0 0 1 0
         0 0 0 0 1
         0 0 0 0 0

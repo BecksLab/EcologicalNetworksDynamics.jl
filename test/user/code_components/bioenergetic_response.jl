@@ -15,39 +15,40 @@
     @test ber.h == HillExponent(2)
 
     m = base + ber
+    cons = m.consumers_indices
     @test m.h == 2
-    @test m.y == [0, 0, 0, 8, 8]
-    @test m.half_saturation_density == [0, 0, 0, 0.5, 0.5]
+    @test m.y == [8, 8, 8, 0, 0]
+    @test m.half_saturation_density == [0.5, 0.5, 0.5, 0, 0]
     @test m.intraspecific_interference == zeros(5)
-    q = 1 / 4
+    h = 0.5 # "half"
     @test m.w == [
+        0 0 0 h h
+        h h 0 0 0
+        0 0 0 0 1
         0 0 0 0 0
         0 0 0 0 0
-        0 0 0 0 0
-        1 0 0 0 0
-        0 q q q q
     ]
     a, b = 0.45, 0.85
     @test m.e == [
+        0 0 0 a a
+        b b 0 0 0
+        0 0 0 0 a
         0 0 0 0 0
         0 0 0 0 0
-        0 0 0 0 0
-        a 0 0 0 0
-        0 a a b b
     ]
 
     # Customize sub-blueprints:
-    ber = BioenergeticResponse(; c = [0, 0, 0, 1, 2])
+    ber = BioenergeticResponse(; c = [1, 2, 0, 0, 0])
     @test ber.e.e_herbivorous == 0.45
     @test ber.y.allometry[:i][:a] == 8.0
     @test ber.h == HillExponent(2)
-    @test ber.c == IntraspecificInterference([0, 0, 0, 1, 2])
+    @test ber.c == IntraspecificInterference([1, 2, 0, 0, 0])
 
     m = base + ber
     @test m.h == 2
-    @test m.y == [0, 0, 0, 8, 8]
-    @test m.half_saturation_density == [0, 0, 0, 0.5, 0.5]
-    @test m.intraspecific_interference == [0, 0, 0, 1, 2]
+    @test m.y == [8, 8, 8, 0, 0]
+    @test m.half_saturation_density == [0.5, 0.5, 0.5, 0, 0]
+    @test m.intraspecific_interference == [1, 2, 0, 0, 0]
 
     # Cannot bring blueprints if corresponding components are already there.
     @sysfails(

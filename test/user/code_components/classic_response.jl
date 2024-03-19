@@ -20,21 +20,21 @@
     @test m.intraspecific_interference == zeros(5)
     @test m.attack_rate == 50 * m.A
     @test m.handling_time == 0.3 * m.A
-    q = 1 / 4
+    q = 0.5
     @test m.w == [
+        0 0 0 q q
+        q q 0 0 0
+        0 0 0 0 1
         0 0 0 0 0
         0 0 0 0 0
-        0 0 0 0 0
-        1 0 0 0 0
-        0 q q q q
     ]
     a, b = 0.45, 0.85
     @test m.e == [
+        0 0 0 a a
+        b b 0 0 0
+        0 0 0 0 a
         0 0 0 0 0
         0 0 0 0 0
-        0 0 0 0 0
-        a 0 0 0 0
-        0 a a b b
     ]
 
     # Customize sub-blueprints:
@@ -46,37 +46,37 @@
 
     m = base + clr
     @test m.h == 2
-    @test m.M ≈ [1, 1, 1, 1.5, 1.275424500625791]
+    @test m.M ≈ clr.M.Z .^ (get_trophic_levels(m) .- 1)
     @test m.intraspecific_interference == zeros(5)
     @test round.(m.attack_rate) ≈ [
+        0 0 0 60 60
+        56 54 0 0 0
+        0 0 0 0 60
         0 0 0 0 0
         0 0 0 0 0
-        0 0 0 0 0
-        60 0 0 0 0
-        0 56 56 59 58
     ]
     @test round.(100 * m.handling_time) ≈ [
+        0 0 0 25 25
+        22 26 0 0 0
+        0 0 0 0 25
         0 0 0 0 0
         0 0 0 0 0
-        0 0 0 0 0
-        25 0 0 0 0
-        0 27 27 20 23
     ]
-    q = 1 / 4
+    q = 0.5
     @test m.w == [
+        0 0 0 q q
+        q q 0 0 0
+        0 0 0 0 1
         0 0 0 0 0
         0 0 0 0 0
-        0 0 0 0 0
-        1 0 0 0 0
-        0 q q q q
     ]
     a, b = 0.45, 0.85
     @test m.e == [
+        0 0 0 a a
+        b b 0 0 0
+        0 0 0 0 a
         0 0 0 0 0
         0 0 0 0 0
-        0 0 0 0 0
-        a 0 0 0 0
-        0 a a b b
     ]
 
     # Cannot bring blueprints if corresponding components are already there.

@@ -8,11 +8,6 @@ The convertion consists in removing the non-trophic layers of the multiplex netw
 function Base.convert(::Type{FoodWeb}, net::MultiplexNetwork)
     FoodWeb(net.layers[:trophic].A, net.species, net.M, net.metabolic_class, "unspecified")
 end
-
-"""
-Convert a [`FoodWeb`](@ref) to its `UnipartiteNetwork` equivalent.
-"""
-Base.convert(::Type{UnipartiteNetwork}, fw::FoodWeb) = UnipartiteNetwork(fw.A, fw.species)
 ### end ####
 
 """
@@ -78,8 +73,8 @@ EcologicalNetworksDynamics.Internals.InteractionDict{Int64} with 5 entries:
 ```
 """
 n_links(A::AdjacencyMatrix) = count(A)
+n_links(A::AbstractMatrix) = count(A)
 n_links(foodweb::FoodWeb) = n_links(foodweb.A)
-n_links(U::UnipartiteNetwork) = n_links(U.edges)
 n_links(layer::Layer) = n_links(layer.A)
 function n_links(multi_net::MultiplexNetwork)
     links = InteractionDict(;
