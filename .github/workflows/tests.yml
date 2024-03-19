@@ -1,0 +1,47 @@
+name: tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+      - dev
+    types:
+      - opened
+      - edited
+      - reopened
+      - ready_for_review
+    path-ignore:
+      - 'CONTRIBUTING.md'
+      - 'LICENSE'
+      - 'README.md'
+      - 'docs/**'
+      - 'use_cases/**'
+
+# https://github.com/julia-actions/julia-runtest
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  test:
+    if: ${{ ! github.event.pull_request.draft }}
+    strategy:
+      matrix:
+        julia-version:
+          - '1.10'
+        os:
+         - ubuntu-latest
+         - windows-latest
+         - macOS-latest
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.julia-version }}
+      - uses: julia-actions/cache@v1
+      - uses: julia-actions/julia-buildpkg@v1
+      - uses: julia-actions/julia-runtest@v1
