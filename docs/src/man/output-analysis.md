@@ -56,7 +56,7 @@ time = sol.t
 plot(
     time,
     total_biomass(sol);
-    xlabel = "Richness",
+    xlabel = "Time",
     ylabel = "Observable",
     label = "Total biomass",
 )
