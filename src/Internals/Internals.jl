@@ -33,6 +33,8 @@ import DifferentialEquations.SSRootfind
 import DifferentialEquations.Tsit5
 using DiffEqBase
 using DiffEqCallbacks
+using Distributions
+using LinearAlgebra
 using EcologicalNetworks
 using Graphs
 using Mangal
@@ -66,6 +68,7 @@ include("./inputs/biological_rates.jl")
 include("./inputs/environment.jl")
 include("./inputs/temperature_dependent_rates.jl")
 include("./inputs/producer_growth.jl")
+include("./inputs/structural_models.jl")
 include("./model/model_parameters.jl")
 include("./model/producer_growth.jl")
 include("./model/set_temperature.jl")

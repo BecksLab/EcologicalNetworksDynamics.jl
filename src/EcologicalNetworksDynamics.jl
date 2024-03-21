@@ -41,6 +41,8 @@ include("./Internals/Internals.jl")
 #   make the package work again,
 #   but without re-exporting anything from Internals.
 import .Internals
+using .Internals: niche_model, cascade_model
+export niche_model, cascade_model # Or the least.
 
 #-------------------------------------------------------------------------------------------
 # "Abstract" parts: the framework for developing user API.

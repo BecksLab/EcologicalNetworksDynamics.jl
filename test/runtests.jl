@@ -4,6 +4,8 @@ blue = crayon"blue"
 reset = crayon"reset"
 sep(mess) = println("$blue$bold== $mess $(repeat("=", 80 - 4 - length(mess)))$reset")
 
+include("./structural_models.jl")
+
 # Testing utils.
 include("./test_failures.jl")
 include("./dedicate_test_failures.jl")
