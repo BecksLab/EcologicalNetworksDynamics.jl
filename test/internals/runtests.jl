@@ -74,8 +74,7 @@ function simulates(parms, B0; compare_atol = nothing, compare_rtol = nothing, kw
             verbose = false,
             kwargs...,
         )
-        # compare_generic_vs_specialized(g, s, :compact, compare_atol, compare_rtol)
-        # TODO: Iago
+        compare_generic_vs_specialized(g, s, :compact, compare_atol, compare_rtol)
     end
 
     g
@@ -92,8 +91,21 @@ function compare_generic_vs_specialized(g, s, style, atol, rtol)
         isapprox(g.t, s.t; kwargs...) &&
         isapprox(g.u, s.u; kwargs...)
     )
+        # Help debugging on failure with some info.
+        res = ""
+        res *= "g.retcode: $(g.retcode)\n"
+        res *= "s.retcode: $(s.retcode)\n"
+        res *= "size(g.t): $(size(g.t))\n"
+        res *= "size(s.t): $(size(s.t))\n"
+        res *= "size(g.u): $(size(g.u))\n"
+        res *= "size(s.u): $(size(s.u))\n"
+        diff_t = collect(g.t .- s.t)
+        diff_u = vcat(collect(g.u .- s.u)...)
+        res *= "range(diff_t): $((minimum(diff_t), maximum(diff_t)))\n"
+        res *= "range(diff_u): $((minimum(diff_u), maximum(diff_u)))\n"
         throw(AssertionError("Boosted simulation (:$style) \
-                          appears to yield different results than regular simulation."))
+                              appears to yield different results \
+                              than regular simulation:\n$res"))
     end
 end
 
