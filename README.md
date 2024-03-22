@@ -12,6 +12,7 @@ who would like to tweak the model.
 [![docs](https://github.com/BecksLab/EcologicalNetworksDynamics.jl/actions/workflows/docs.yml/badge.svg?branch=main)](https://beckslab.github.io/EcologicalNetworksDynamics.jl/)
 [![tests](https://github.com/BecksLab/EcologicalNetworksDynamics.jl/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/BecksLab/EcologicalNetworksDynamics.jl/actions/workflows/tests.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](http://www.gnu.org/licenses/gpl-3.0)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10853978.svg)](https://doi.org/10.5281/zenodo.10853978)
 
 ## Before you start
 

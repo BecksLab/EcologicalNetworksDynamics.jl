@@ -70,4 +70,5 @@ The contribution guidelines are detailed
 Please cite EcologicalNetworksDynamics
 if you use it in research, teaching, or other activities.
 
-**TODO: add DOI of package and paper**
+  - **TODO: add paper DOI**
+  - package: [DOI:10.5281/zenodo.10853977](https://zenodo.org/doi/10.5281/zenodo.10853977)
