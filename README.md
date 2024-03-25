@@ -23,15 +23,8 @@ you can install the library by running from a Julia REPL:
 
 ```julia
 using Pkg
-
-# /!\ The following will not work until the package has been
-# published to the official Julia registry.
-# Pkg.add("EcologicalNetworksDynamics")
-
-# In the meantime, use the following instead:
-Pkg.add(url="git@github.com:BecksLab/EcologicalNetworksDynamics.jl.git")
+Pkg.add("EcologicalNetworksDynamics")
 ```
-[registry]: https://github.com/JuliaRegistries/General
 
 To check that the package installation went well,
 create a simple food web with:
