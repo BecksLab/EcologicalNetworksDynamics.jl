@@ -4,6 +4,7 @@ using Crayons
 using MacroTools
 using OrderedCollections
 using SparseArrays
+using Graphs
 
 #-------------------------------------------------------------------------------------------
 # Shared API internals.
@@ -96,7 +97,7 @@ include("./nontrophic_layers.jl")
 
 #-------------------------------------------------------------------------------------------
 # Analysis tools working on the output of the simulation.
-include("output-analysis.jl")
+include("analysis/main.jl")
 
 # Avoid Revise interruptions when redefining methods and properties.
 Framework.REVISING = true

@@ -367,7 +367,7 @@ export TrophicLayer
 # ==========================================================================================
 # Foodweb queries.
 
-# Topology.
+# Topology as a matrix.
 @expose_data edges begin
     property(trophic_links, A)
     get(TrophicLinks{Bool}, sparse, "trophic link")
@@ -375,6 +375,9 @@ export TrophicLayer
     @species_index
     depends(Foodweb)
 end
+
+# Topology as a directed graph
+include("./foodweb_graph.jl")
 
 # Number of links.
 @expose_data graph begin

@@ -30,6 +30,32 @@
          Expected either :a, :b or :c, got instead: :x."
     )
 
+    # Retrieve as a directed graph.
+    g = m.trophic_graph
+    @test (n_species(g), n_trophic_links(g)) == (3, 3)
+    adjacency(g) = Set(map(species(g)) do sp
+        (sp, Set(preys(g, sp)))
+    end)
+    @test adjacency(g) == Set([(:a, Set([:b, :c])), (:b, Set([:c])), (:c, Set())])
+
+    @test Set(predators(g, :c)) == Set([:a, :b])
+    @argfails(predators(g, :x), "Not a species in the trophic graph: :x.")
+
+    # Species can be removed from this species graph
+    # to study the topological consequences of extinction.
+    remove_species!(g, :a)
+    @test adjacency(g) == Set([(:b, Set([:c])), (:c, Set())])
+    remove_species!(g, :b)
+    @test adjacency(g) == Set([(:c, Set())])
+    remove_species!(g, :c)
+    @test adjacency(g) == Set([])
+
+    @argfails(remove_species!(g, :c), "Not a species in the trophic graph: :c.")
+
+    # The original graph is unchanged.
+    @test adjacency(m.trophic_graph) ==
+          Set([(:a, Set([:b, :c])), (:b, Set([:c])), (:c, Set())])
+
     #---------------------------------------------------------------------------------------
     # Producers/consumer data is deduced from the foodweb.
 
