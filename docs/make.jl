@@ -45,4 +45,4 @@ makedocs(;
     ],
 )
 
-deploydocs(; repo = "github.com/BecksLab/EcologicalNetworksDynamics.jl", devbranch = "doc")
+deploydocs(; repo = "github.com/BecksLab/EcologicalNetworksDynamics.jl", devbranch = "dev")
