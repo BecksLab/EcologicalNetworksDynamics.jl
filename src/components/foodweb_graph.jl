@@ -1,5 +1,7 @@
 # Wrap a SimpleDiGraph into a custom type indexed by stable labels
 # to represent either a foodweb or its biomass-foodweb restriction.
+# HERE: rather a whole model graph with all nodes/edges layers,
+#       and make this only a view into it.
 
 """
 Representation of a restriction of the graph model

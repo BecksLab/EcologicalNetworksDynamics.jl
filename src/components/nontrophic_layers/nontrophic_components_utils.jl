@@ -139,10 +139,13 @@ end
 # ==========================================================================================
 # Check/expand full layer components.
 
+has_nontrophic_layers(model) = model.network isa MultiplexNetwork
+export has_nontrophic_layers
+
 # The application procedure differs
 # whether the NTI layer is the first to be set or not.
 function set_layer!(model, interaction, layer)
-    if model.network isa Internals.FoodWeb
+    if !has_nontrophic_layers(model)
         # First NTI component to be added.
         # Switch from plain foodweb to a multiplex network.
         S = model.richness

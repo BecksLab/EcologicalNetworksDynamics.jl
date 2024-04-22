@@ -1,3 +1,10 @@
+# Retrieve underlying model topology.
+@expose_data graph begin
+    property(topology, model_graph)
+    ref(m -> m.topology)
+    get(m -> deepcopy(m.topology))
+end
+
 """
     restrict_to_live!(g::TrophicGraph, biomasses; threshold = 0)
 
@@ -118,3 +125,34 @@ function starving_consumers(graph::TrophicGraph)
     consumers
 end
 export starving_consumers
+
+# ==========================================================================================
+# Expose as checked model methods.
+
+function biomass_foodweb(
+    m::InnerParms,
+    biomasses;
+    threshold = 0,
+    warn_nontrophic_links = true,
+)
+    g = m.trophic_graph
+    if warn_nontrophic_links && has_nontrophic_layers(m)
+        @warn "Restricting ecological model to only a trophic graph \
+               with extinct species nodes removed \
+               may yield inconsistent expectations regarding \
+               the meaning of remaining non-trophic interactions."
+    end
+    restrict_to_live!(g, biomasses; threshold)
+end
+@method biomass_foodweb depends(Foodweb)
+
+function disconnected_components(m::InnerParms, biomasses; threshold = 0)
+    g = biomass(m, biomasses; threshold)
+    # HERE: this raises too many complications
+    # just because non-trophic interactions
+    # are not represented by the trophic graph.
+    # Make the trophic graph a simple view into the whole model topology,
+    # reified as a true `ModelGraph` type,
+    # with proper layers for nodes and edges.
+    # Drop Graphs.jl in this respect: only locally useful for very particular algorithms.
+end

@@ -13,6 +13,7 @@ mutable struct ModelParameters
     biorates::BioRates # (this one does but all values are initially 'nothing' inside)
     functional_response::Option{FunctionalResponse}
     producer_growth::Option{ProducerGrowth}
+    topology::Topology # This will actually be part of the future refactoring.
     # Since 'foodweb' is still a mandatory input to construct interaction layers,
     # keep this artificial reference to it to make the system/components API work
     # until we refactor all the internals.
