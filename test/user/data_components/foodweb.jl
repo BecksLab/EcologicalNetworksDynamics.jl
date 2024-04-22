@@ -50,7 +50,12 @@
     remove_species!(g, :c)
     @test adjacency(g) == Set([])
 
-    @argfails(remove_species!(g, :c), "Not a species in the trophic graph: :c.")
+    # Memory remains.
+    @test collect(original_species(g)) == [:a, :b, :c]
+    @argfails(
+        remove_species!(g, :c),
+        "Species :c has been removed from this trophic graph."
+    )
 
     # The original graph is unchanged.
     @test adjacency(m.trophic_graph) ==

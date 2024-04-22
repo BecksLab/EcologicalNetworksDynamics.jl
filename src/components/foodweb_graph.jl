@@ -5,14 +5,23 @@
 Representation of a restriction of the graph model
 to only species nodes and trophic edges.
 Construct with the `.trophic_graph` property of the model.
+Once constructed, and even if some species are removed,
+the trophic graph always remembers its original species index.
+This is useful to match it against biomass vectors even after species extinctions.
 """
 struct TrophicGraph
-    graph::SimpleDiGraph
-    labels::Dict{Symbol,Int} # {label -> node index}
-    revmap::Vector{Symbol} # {node index -> label}
+    # Opaque type.
+    _topology::SimpleDiGraph
+    _labels::Dict{Symbol,Int} # {label -> node index}
+    _revmap::Vector{Symbol} # {node index -> label}
+    _original_index::OrderedSet{Symbol} # {original species index -> label}
 end
 
-notaspecies(sp) = argerr("Not a species in the trophic graph: $(repr(sp)).")
+function missing_label(g, sp)
+    sp in g._original_index &&
+        argerr("Species $(repr(sp)) has been removed from this trophic graph.")
+    argerr("Not a species in the trophic graph: $(repr(sp)).")
+end
 
 """
     remove_species!(g::TrophicGraph, sp)
@@ -22,20 +31,20 @@ along with all corresponding edges.
 """
 function remove_species!(g::TrophicGraph, sp)
     # Update labels maps on vertices removal.
-    (; graph, labels, revmap) = g
+    (; _topology, _labels, _revmap) = g
     sp = Symbol(sp)
-    sp in keys(labels) || notaspecies(sp)
+    sp in keys(_labels) || missing_label(g, sp)
     # This first swaps `i` with `n` then removes it.
-    n = length(labels)
-    i = pop!(labels, sp)
-    rem_vertex!(graph, i) ||
+    n = length(_labels)
+    i = pop!(_labels, sp)
+    rem_vertex!(_topology, i) ||
         throw("Corrupted internal graph: this is a bug in the package.")
     if i != n
-        last = revmap[n]
-        labels[last] = i
-        revmap[i] = pop!(revmap)
+        last = _revmap[n]
+        _labels[last] = i
+        _revmap[i] = pop!(_revmap)
     else
-        pop!(revmap)
+        pop!(_revmap)
     end
     nothing
 end
@@ -45,7 +54,8 @@ function trophic_graph(m::InnerParms)
     TrophicGraph(
         SimpleDiGraph(m._trophic_links),
         Dict(m._species_index),
-        deepcopy(m._species_names),
+        m.species_names, # Need a fresh copy to update on removals.
+        OrderedSet(m._species_names),
     )
 end
 
@@ -62,13 +72,13 @@ end
 """
     n_species(g::TrophicGraph)
 """
-n_species(g::TrophicGraph) = nv(g.graph)
+n_species(g::TrophicGraph) = nv(g._topology)
 export n_species
 
 """
     n_trophic_links(g::TrophicGraph)
 """
-n_trophic_links(g::TrophicGraph) = ne(g.graph)
+n_trophic_links(g::TrophicGraph) = ne(g._topology)
 export n_trophic_links
 
 """
@@ -76,8 +86,16 @@ export n_trophic_links
 
 Iterate over nodes in the trophic graph.
 """
-species(g::TrophicGraph) = Iterators.map(identity, g.revmap)
+species(g::TrophicGraph) = Iterators.map(identity, g._revmap)
 export species
+
+"""
+    original_species(g::TrophicGraph)
+
+Iterate over species originally in the trophic graph, in their original order.
+"""
+original_species(g::TrophicGraph) = Iterators.map(identity, g._original_index)
+export original_species
 
 """
     trophic_links(g::TrophicGraph)
@@ -85,9 +103,9 @@ export species
 Iterate over edges in the trophic graph.
 """
 function trophic_links(g::TrophicGraph)
-    (; revmap) = g
-    map(edges(g.graph)) do (i_source, i_target)
-        revmap[i_source] => revmap[i_target]
+    (; _revmap) = g
+    map(edges(g._topology)) do (i_source, i_target)
+        _revmap[i_source] => _revmap[i_target]
     end
 end
 export trophic_links
@@ -97,9 +115,19 @@ export trophic_links
 
 Query trophic graph for the existence of the given trophic node.
 """
-has_species(g::TrophicGraph, sp) = Symbol(sp) in g.labels
+has_species(g::TrophicGraph, sp) = Symbol(sp) in keys(g._labels)
 export has_species
 
+"""
+    is_species_removed(g::TrophicGraph, sp)
+
+Was this species originally part of this trophic graph and then later removed?
+"""
+function is_species_removed(g::TrophicGraph, sp)
+    sp = Symbol(sp)
+    sp in g._original_index && !(sp in keys(g._labels))
+end
+export is_species_removed
 
 """
     has_trophic_link(g::TrophicGraph, predator, prey)
@@ -107,13 +135,13 @@ export has_species
 Query trophic graph for the existence of the given trophic edge.
 """
 function has_trophic_link(g::TrophicGraph, predator, prey)
-    (; labels) = g
+    (; _labels) = g
     s, t = Symbol.((predator, prey))
     for k in (s, t)
-        k in keys(labels) || notaspecies(k)
+        k in keys(_labels) || missing_label(g, k)
     end
-    i_s, i_t = labels[s], labels[t]
-    has_edge(g.graph, i_s, i_t)
+    i_s, i_t = _labels[s], _labels[t]
+    has_edge(g._topology, i_s, i_t)
 end
 export has_trophic_link
 
@@ -123,12 +151,12 @@ export has_trophic_link
 Iterate over predators of the given species.
 """
 function predators(g::TrophicGraph, sp)
-    (; graph, labels, revmap) = g
+    (; _topology, _labels, _revmap) = g
     sp = Symbol(sp)
-    sp in keys(labels) || notaspecies(sp)
-    i_sp = labels[sp]
-    Iterators.map(inneighbors(graph, i_sp)) do i_source
-        revmap[i_source]
+    sp in keys(_labels) || missing_label(g, sp)
+    i_sp = _labels[sp]
+    Iterators.map(inneighbors(_topology, i_sp)) do i_source
+        _revmap[i_source]
     end
 end
 export predators
@@ -139,12 +167,12 @@ export predators
 Iterate over preys of the given species.
 """
 function preys(g::TrophicGraph, sp)
-    (; graph, labels, revmap) = g
+    (; _topology, _labels, _revmap) = g
     sp = Symbol(sp)
-    sp in keys(labels) || notaspecies(sp)
-    i_sp = labels[sp]
-    Iterators.map(outneighbors(graph, i_sp)) do i_target
-        revmap[i_target]
+    sp in keys(_labels) || missing_label(g, sp)
+    i_sp = _labels[sp]
+    Iterators.map(outneighbors(_topology, i_sp)) do i_target
+        _revmap[i_target]
     end
 end
 export preys

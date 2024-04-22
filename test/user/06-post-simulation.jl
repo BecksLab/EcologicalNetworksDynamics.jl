@@ -28,3 +28,11 @@ Random.seed!(12)
     @test get_model(sol).K[:c] == 1 # Still true.
 
 end
+
+@testset "Remove extinct species from biomass graph." begin
+    m = default_model(Foodweb([:a => :b, :d => :e]))
+
+    g = m.trophic_graph
+    a, b = disconnected_components(g)
+
+end
