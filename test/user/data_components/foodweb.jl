@@ -33,22 +33,22 @@
     # Retrieve as a directed graph.
     g = m.trophic_graph
     @test (n_species(g), n_trophic_links(g)) == (3, 3)
-    adjacency(g) = Set(map(species(g)) do sp
-        (sp, Set(preys(g, sp)))
+    adjacency(g) = sort(map(species(g)) do sp # Sort to ease testing.
+        (sp, sort(collect(preys(g, sp))))
     end)
-    @test adjacency(g) == Set([(:a, Set([:b, :c])), (:b, Set([:c])), (:c, Set())])
+    @test adjacency(g) == [(:a, [:b, :c]), (:b, [:c]), (:c, [])]
 
-    @test Set(predators(g, :c)) == Set([:a, :b])
+    @test sort(collect(predators(g, :c))) == [:a, :b]
     @argfails(predators(g, :x), "Not a species in the trophic graph: :x.")
 
     # Species can be removed from this species graph
     # to study the topological consequences of extinction.
     remove_species!(g, :a)
-    @test adjacency(g) == Set([(:b, Set([:c])), (:c, Set())])
+    @test adjacency(g) == [(:b, [:c]), (:c, [])]
     remove_species!(g, :b)
-    @test adjacency(g) == Set([(:c, Set())])
+    @test adjacency(g) == [(:c, [])]
     remove_species!(g, :c)
-    @test adjacency(g) == Set([])
+    @test adjacency(g) == []
 
     # Memory remains.
     @test collect(original_species(g)) == [:a, :b, :c]
@@ -58,8 +58,7 @@
     )
 
     # The original graph is unchanged.
-    @test adjacency(m.trophic_graph) ==
-          Set([(:a, Set([:b, :c])), (:b, Set([:c])), (:c, Set())])
+    @test adjacency(m.trophic_graph) == [(:a, [:b, :c]), (:b, [:c]), (:c, [])]
 
     #---------------------------------------------------------------------------------------
     # Producers/consumer data is deduced from the foodweb.

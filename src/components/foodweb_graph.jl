@@ -6,7 +6,8 @@ Representation of a restriction of the graph model
 to only species nodes and trophic edges.
 Construct with the `.trophic_graph` property of the model.
 Once constructed, and even if some species are removed,
-the trophic graph always remembers its original species index.
+the trophic graph always remembers its original species index,
+and their 'consumer' vs. 'producer' statuses.
 This is useful to match it against biomass vectors even after species extinctions.
 """
 struct TrophicGraph
@@ -14,11 +15,13 @@ struct TrophicGraph
     _topology::SimpleDiGraph
     _labels::Dict{Symbol,Int} # {label -> node index}
     _revmap::Vector{Symbol} # {node index -> label}
-    _original_index::OrderedSet{Symbol} # {original species index -> label}
+    # Original species information.
+    #   { original species index / label -> is_producer }
+    _original_species::OrderedDict{Symbol,Bool}
 end
 
-function missing_label(g, sp)
-    sp in g._original_index &&
+function missing_label(g::TrophicGraph, sp)
+    haskey(g._original_species, sp) &&
         argerr("Species $(repr(sp)) has been removed from this trophic graph.")
     argerr("Not a species in the trophic graph: $(repr(sp)).")
 end
@@ -33,7 +36,7 @@ function remove_species!(g::TrophicGraph, sp)
     # Update labels maps on vertices removal.
     (; _topology, _labels, _revmap) = g
     sp = Symbol(sp)
-    sp in keys(_labels) || missing_label(g, sp)
+    haskey(_labels, sp) || missing_label(g, sp)
     # This first swaps `i` with `n` then removes it.
     n = length(_labels)
     i = pop!(_labels, sp)
@@ -46,7 +49,7 @@ function remove_species!(g::TrophicGraph, sp)
     else
         pop!(_revmap)
     end
-    nothing
+    g
 end
 export remove_species!
 
@@ -55,7 +58,10 @@ function trophic_graph(m::InnerParms)
         SimpleDiGraph(m._trophic_links),
         Dict(m._species_index),
         m.species_names, # Need a fresh copy to update on removals.
-        OrderedSet(m._species_names),
+        OrderedDict(
+            n => is_producer for
+            (n, is_producer) in zip(m._species_names, m._producers_mask)
+        ),
     )
 end
 
@@ -94,7 +100,7 @@ export species
 
 Iterate over species originally in the trophic graph, in their original order.
 """
-original_species(g::TrophicGraph) = Iterators.map(identity, g._original_index)
+original_species(g::TrophicGraph) = keys(g._original_species)
 export original_species
 
 """
@@ -115,7 +121,7 @@ export trophic_links
 
 Query trophic graph for the existence of the given trophic node.
 """
-has_species(g::TrophicGraph, sp) = Symbol(sp) in keys(g._labels)
+has_species(g::TrophicGraph, sp) = haskey(g._labels, Symbol(sp))
 export has_species
 
 """
@@ -125,7 +131,7 @@ Was this species originally part of this trophic graph and then later removed?
 """
 function is_species_removed(g::TrophicGraph, sp)
     sp = Symbol(sp)
-    sp in g._original_index && !(sp in keys(g._labels))
+    haskey(g._original_species, sp) && !(haskey(g._labels, sp))
 end
 export is_species_removed
 
@@ -138,7 +144,7 @@ function has_trophic_link(g::TrophicGraph, predator, prey)
     (; _labels) = g
     s, t = Symbol.((predator, prey))
     for k in (s, t)
-        k in keys(_labels) || missing_label(g, k)
+        haskey(_labels, k) || missing_label(g, k)
     end
     i_s, i_t = _labels[s], _labels[t]
     has_edge(g._topology, i_s, i_t)
@@ -153,7 +159,7 @@ Iterate over predators of the given species.
 function predators(g::TrophicGraph, sp)
     (; _topology, _labels, _revmap) = g
     sp = Symbol(sp)
-    sp in keys(_labels) || missing_label(g, sp)
+    haskey(_labels, sp) || missing_label(g, sp)
     i_sp = _labels[sp]
     Iterators.map(inneighbors(_topology, i_sp)) do i_source
         _revmap[i_source]
@@ -169,7 +175,7 @@ Iterate over preys of the given species.
 function preys(g::TrophicGraph, sp)
     (; _topology, _labels, _revmap) = g
     sp = Symbol(sp)
-    sp in keys(_labels) || missing_label(g, sp)
+    haskey(_labels, sp) || missing_label(g, sp)
     i_sp = _labels[sp]
     Iterators.map(outneighbors(_topology, i_sp)) do i_target
         _revmap[i_target]
