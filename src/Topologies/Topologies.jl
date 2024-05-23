@@ -53,7 +53,10 @@ end
 export Topology
 
 include("unchecked_queries.jl")
+const U = Unchecked # Ease refs to unchecked queries.
+
 include("checks.jl")
+include("queries.jl")
 include("display.jl")
 
 #-------------------------------------------------------------------------------------------
@@ -109,29 +112,19 @@ function add_edge!(top::Topology, type, source, target)
     check_edge_type(top, type)
     check_node_ref(top, source)
     check_node_ref(top, target)
-    i_type = edge_type_index(top, type)
-    i_source = node_index(top, source)
-    i_target = node_index(top, target)
+    i_type = U.edge_type_index(top, type)
+    i_source = U.node_index(top, source)
+    i_target = U.node_index(top, target)
     check_live_node(top, i_source)
     check_live_node(top, i_target)
-    has_edge(top, i_type, i_source, i_target) &&
+    U.has_edge(top, i_type, i_source, i_target) &&
         argerr("There is already an edge of type $(repr(type))
                 betwen nodes $(repr(source)) and $(repr(target)).")
     push!(top.outgoing[i_source][i_type], i_target)
     push!(top.incoming[i_target][i_type], i_source)
+    top.n_edges[i_type] += 1
     top
 end
 export add_edge!
 
-
 end
-
-# ==========================================================================================
-# DEBUG
-using .Topologies
-top = Topology()
-add_nodes!(top, Symbol.(collect("abc")), :species)
-add_edge_type!(top, :trophic)
-add_edge!(top, :trophic, :a, :b)
-add_edge!(top, :trophic, :b, :c)
-# HERE: keep testing.

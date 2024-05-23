@@ -1,14 +1,15 @@
-# Basic queries,
-# all assume that input references are valid.
+# Basic queries all assume that input references are valid.
+# Namespace them all under this module as they share this property.
 # Methods that would leak references are protected with a '_' prefix.
+module Unchecked
+
+import ..Topologies: Topology, Tombstone
 
 const imap = Iterators.map
 const ifilter = Iterators.filter
 idmap(x) = imap(identity, x) # Useful to not leak refs to private collections.
 
 # Information about types.
-n_node_types(top::Topology) = length(top.node_types_labels)
-n_edge_types(top::Topology) = length(top.edge_types_labels)
 node_type_label(top::Topology, i::Int) = top.node_types_labels[i]
 node_type_index(top::Topology, lab::Symbol) = top.node_types_index[lab]
 node_type_label(::Topology, lab::Symbol) = lab
@@ -17,10 +18,6 @@ edge_type_label(top::Topology, i::Int) = top.edge_types_labels[i]
 edge_type_index(top::Topology, lab::Symbol) = top.edge_types_index[lab]
 edge_type_label(::Topology, lab::Symbol) = lab
 edge_type_index(::Topology, i::Int) = i
-_node_types(top::Topology) = top.node_types_labels
-node_types(top::Topology) = idmap(_node_types(top))
-_edge_types(top::Topology) = top.edge_types_labels
-edge_types(top::Topology) = idmap(_edge_types(top))
 
 # General information about nodes.
 n_nodes(top::Topology, type) = top.n_nodes[node_type_index(top, type)]
@@ -141,4 +138,6 @@ function has_edge(top::Topology, type, source, target)
     source = node_index(top, source)
     target = node_index(top, target)
     target in top.outgoing[source][type]
+end
+
 end

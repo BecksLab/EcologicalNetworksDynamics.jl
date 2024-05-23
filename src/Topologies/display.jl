@@ -1,9 +1,10 @@
 s(n) = n > 1 ? "s" : ""
+
 function Base.show(io::IO, top::Topology)
     n_nt = n_node_types(top)
     n_et = n_edge_types(top)
-    n_n = sum((n_nodes(top, i) for i in 1:n_nt); init = 0)
-    n_e = sum((n_edges(top, i) for i in 1:n_et); init = 0)
+    n_n = sum((U.n_nodes(top, i) for i in 1:n_nt); init = 0)
+    n_e = sum((U.n_edges(top, i) for i in 1:n_et); init = 0)
     print(
         io,
         "Topology(\
@@ -18,8 +19,8 @@ end
 function Base.show(io::IO, ::MIME"text/plain", top::Topology)
     n_nt = n_node_types(top)
     n_et = n_edge_types(top)
-    n_n = sum((n_nodes(top, i) for i in 1:n_nt); init = 0)
-    n_e = sum((n_edges(top, i) for i in 1:n_et); init = 0)
+    n_n = sum((U.n_nodes(top, i) for i in 1:n_nt); init = 0)
+    n_e = sum((U.n_edges(top, i) for i in 1:n_et); init = 0)
     print(
         io,
         "Topology for $n_nt node type$(s(n_nt)) \
@@ -39,7 +40,7 @@ function Base.show(io::IO, ::MIME"text/plain", top::Topology)
         push!(tombs, tomb)
         print(io, "    $(repr(type)) => [")
         empty = true
-        for node in _nodes_labels(top, i_type)
+        for node in U._nodes_labels(top, i_type)
             if node isa Tombstone
                 push!(tomb, node)
                 continue
@@ -54,13 +55,13 @@ function Base.show(io::IO, ::MIME"text/plain", top::Topology)
     for (i_type, type) in enumerate(_edge_types(top))
         print(io, "\n    $(repr(type))")
         empty = true
-        for (i_source, _neighbours) in _outgoing_edges_indices(top, i_type)
+        for (i_source, _neighbours) in U._outgoing_edges_indices(top, i_type)
             isempty(_neighbours) && continue
-            source = node_label(top, i_source)
+            source = U.node_label(top, i_source)
             print(io, "\n      $(repr(source)) => [")
             first = true
             for i_target in _neighbours
-                target = node_label(top, i_target)
+                target = U.node_label(top, i_target)
                 first || print(io, ", ")
                 print(io, repr(target))
                 first = false

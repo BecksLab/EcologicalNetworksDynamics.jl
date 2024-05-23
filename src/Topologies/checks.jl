@@ -28,7 +28,7 @@ check_node_ref(top::Topology, lab::Symbol) = check_label(lab, keys(top.nodes_ind
 
 # Check node liveliness, assuming the reference is valid.
 function check_live_node(top::Topology, node)
-    is_removed(top, node) &&
+    U.is_removed(top, node) &&
         argerr("Node $(repr(node)) has been removed from this topology.")
     node
 end

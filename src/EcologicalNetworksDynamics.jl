@@ -41,7 +41,8 @@ include("./multiplex_api.jl")
 using .MultiplexApi
 
 # Types to represent the model under a pure topological perspective.
-include("./topologies.jl") # Will be part of the internals after their refactoring.
+include("./Topologies/Topologies.jl")
+# (will be part of the internals after their refactoring)
 
 #-------------------------------------------------------------------------------------------
 # "Inner" parts: legacy internals.
