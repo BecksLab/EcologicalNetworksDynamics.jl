@@ -115,8 +115,8 @@ function add_edge!(top::Topology, type, source, target)
     i_type = U.edge_type_index(top, type)
     i_source = U.node_index(top, source)
     i_target = U.node_index(top, target)
-    check_live_node(top, i_source)
-    check_live_node(top, i_target)
+    check_live_node(top, i_source, source)
+    check_live_node(top, i_target, target)
     U.has_edge(top, i_type, i_source, i_target) &&
         argerr("There is already an edge of type $(repr(type))
                 betwen nodes $(repr(source)) and $(repr(target)).")
@@ -126,5 +126,43 @@ function add_edge!(top::Topology, type, source, target)
     top
 end
 export add_edge!
+
+# Remove all neighbours of this node and replace it with a tombstone.
+function _remove_node!(top::Topology, i_node::Int, i_type::Int)
+    # Assumes the node is valid and live, and that the type does correspond.
+    ts = Tombstone()
+    top.outgoing[i_node] = ts
+    top.incoming[i_node] = ts
+    for adjacency in (top.outgoing, top.incoming)
+        for other in adjacency
+            other isa Tombstone && continue
+            for neighbours in other
+                pop!(neighbours, i_node, nothing)
+            end
+        end
+    end
+    top.n_nodes[i_type] -= 1
+    top
+end
+# Checked version.
+function remove_node!(top::Topology, node, type)
+    check_node_ref(top, node)
+    check_node_type(top, type)
+    i_node = U.node_index(top, node)
+    check_live_node(top, i_node, node)
+    i_type = U.node_type_index(top, type)
+    U.is_node_of_type(top, i_node, i_type) ||
+        argerr("Node $(repr(node)) is not of type $(repr(type)).")
+    _remove_node!(top, i_node, i_type)
+end
+# Not specifying the type requires a linear search for it.
+function remove_node!(top::Topology, node)
+    check_node_ref(top, node)
+    i_node = U.node_index(top, node)
+    check_live_node(top, i_node, node)
+    i_type = U.type_index_of_node(top, node)
+    _remove_node!(top, i_node, i_type)
+end
+export remove_node!
 
 end

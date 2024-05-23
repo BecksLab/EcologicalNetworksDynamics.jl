@@ -27,8 +27,10 @@ check_edge_type(top::Topology, lab::Symbol) =
 check_node_ref(top::Topology, lab::Symbol) = check_label(lab, keys(top.nodes_index), "node")
 
 # Check node liveliness, assuming the reference is valid.
-function check_live_node(top::Topology, node)
+function check_live_node(top::Topology, node, original_ref = node)
+    # (use the original reference to trace back to actual user input
+    # and improve error message)
     U.is_removed(top, node) &&
-        argerr("Node $(repr(node)) has been removed from this topology.")
+        argerr("Node $(repr(original_ref)) has been removed from this topology.")
     node
 end

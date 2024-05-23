@@ -16,6 +16,7 @@ add_edge!(top, :trophic, :d, :u)
 add_edge!(top, :trophic, :b, :v)
 add_edge!(top, :mutualism, :a, :d)
 add_edge!(top, :interference, :a, :c)
+remove_node!(top, :b) #  HERE: fix!
 
 # Having this correct display implies that numerous internals are working correctly.
 @test "$top" == "Topology(2 node types, 3 edge types, 6 nodes, 7 edges)"
