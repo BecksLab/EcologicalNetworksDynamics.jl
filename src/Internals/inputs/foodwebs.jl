@@ -169,7 +169,7 @@ default is set to `1e5`.
 
 # Generate a `FoodWeb` from a `UnipartiteNetwork`
 
-Lastly, EcologicalNetworkDynamics.jl has been designed to interact nicely
+Lastly, EcologicalNetworksDynamics.jl has been designed to interact nicely
 with EcologicalNetworks.jl.
 Thus you can also create a `FoodWeb` from a `UnipartiteNetwork`:
 

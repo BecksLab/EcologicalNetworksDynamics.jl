@@ -30,11 +30,11 @@ To check that the package installation went well,
 create a simple food web with:
 
 ```julia
-using EcologicalNetworkDynamics
+using EcologicalNetworksDynamics
 Foodweb([1 => 2]) # Species 1 eats species 2.
 ```
 
-## Learning EcologicalNetworkDynamics
+## Learning EcologicalNetworksDynamics
 
 The [Quick start] page shows
 how to simulate biomass dynamics in a simple food web.

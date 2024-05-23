@@ -38,7 +38,7 @@ Foodweb([1 => 2])
 
 This is a two-species food web in which species 1 eats species 2.
 
-## Learning EcologicalNetworkDynamics
+## Learning EcologicalNetworksDynamics
 
 The [Quick Start](@ref) page shows how to simulate biomass dynamics in a simple food web.
 The rest of the guide provides a step by step introduction to the package features,
