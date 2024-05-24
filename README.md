@@ -16,10 +16,20 @@ who would like to tweak the model.
 
 ## Before you start
 
-Before anything else, to use EcologicalNetworksDynamics you have to install Julia.
-For that go to the [official download page](https://julialang.org/downloads/).
-Once you have successfully installed Julia,
-you can install the library by running from a Julia REPL:
+Before anything else, to use EcologicalNetworksDynamics you have to [install Julia](https://julialang.org/downloads/).
+Note that the package is **compatible with Julia 1.10 and higher**,
+therefore please make sure you have a recent enough version of Julia.
+Once you have successfully installed Julia, you can check the version
+by typing in a Julia terminal
+
+```julia
+VERSION >= v"1.10"
+```
+
+If the output is `true`, you are good to go.
+Otherwise, you will have to download a newer version of Julia.
+Once you have ensured that Julia is properly installed, 
+you can install the package by running in a Julia terminal
 
 ```julia
 using Pkg
@@ -27,7 +37,7 @@ Pkg.add("EcologicalNetworksDynamics")
 ```
 
 To check that the package installation went well,
-create a simple food web with:
+create a simple food web with
 
 ```julia
 using EcologicalNetworksDynamics
@@ -74,6 +84,9 @@ The contribution guidelines are detailed
 
 Please mention `EcologicalNetworksDynamics.jl`
 if you use it in research, teaching, or other activities.
+To cite the package, please refer to the associated 
+[preprint](https://doi.org/10.1101/2024.03.20.585899).
+
 
 ## Acknowledgments
 
