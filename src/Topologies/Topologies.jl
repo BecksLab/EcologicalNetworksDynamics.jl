@@ -1,6 +1,7 @@
 module Topologies
 
 using OrderedCollections
+using SparseArrays
 
 argerr(mess) = throw(ArgumentError(mess))
 
@@ -139,21 +140,123 @@ function add_edge!(top::Topology, type, source, target)
     check_live_node(top, i_target, target)
     U.has_edge(top, i_type, i_source, i_target) &&
         argerr("There is already an edge of type $(repr(type)) \
-                betwen nodes $(repr(source)) and $(repr(target)).")
-
+                between nodes $(repr(source)) and $(repr(target)).")
     # Commit.
+    _add_edge!(top, i_type, i_source, i_target)
+end
+function _add_edge!(top::Topology, i_type::Int, i_source::Int, i_target::Int)
     push!(top.outgoing[i_source][i_type], i_target)
     push!(top.incoming[i_target][i_type], i_source)
     top.n_edges[i_type] += 1
-
     top
 end
 export add_edge!
 
+# Add a bunch of node-type-internal edges from a square matrix input.
+# The matrix size must match the total number of nodes in this type,
+# including (blank) removed nodes.
+function add_edges_within_node_type!(
+    top::Topology,
+    node_type,
+    edge_type,
+    m::AbstractSparseMatrix{Bool},
+)
+    # Check transaction.
+    check_node_type(top, node_type)
+    check_edge_type(top, edge_type)
+    i_edge_type = U.edge_type_index(top, edge_type)
+    indices = U.nodes_indices(top, node_type)
+    n = length(indices)
+    size(m) == (n, n) || argerr("The given edges matrix should be of size ($n, $n) \
+                                 because there $(are(n)) $n node$(s(n)) \
+                                 of type $(repr(U.edge_type_label(top, edge_type))). \
+                                 Received instead: $(size(m)).")
+    # (matrix indices start from 1, not all node indices)
+    offset = first(indices) - 1
+    sources, targets, _ = findnz(m)
+    sources .+= offset
+    targets .+= offset
+    for (indices, dim) in ((sources, "row"), (targets, "column"))
+        for i_node in indices
+            if U.is_removed(top, i_node)
+                # Clarify error in case the offset is relevant.
+                i_m = i_node - offset
+                par = if offset == 0
+                    ""
+                else
+                    " (index $i_node: $(th(i_m)) \
+                       within the $(repr(U.node_type_label(top, node_type))) node type)"
+                end
+                argerr("Node $(repr(U.node_label(top, i_node)))$par \
+                        has been removed from this topology, \
+                        but the given matrix has a nonzero entry in \
+                        $dim $(i_m).")
+            end
+        end
+    end
+    for (i_src, i_tgt) in zip(sources, targets)
+        if U.has_edge(top, i_edge_type, i_src, i_tgt)
+            etype = U.edge_type_label(top, i_edge_type)
+            src = U.node_label(top, i_src)
+            tgt = U.node_label(top, i_tgt)
+            s_m = i_src - offset
+            t_m = i_tgt - offset
+            par = if offset == 0
+                " (indices $i_src and $i_tgt)"
+            else
+                " (indices $i_src and $i_tgt: \
+                 resp. $(th(s_m)) and $(th(t_m)) \
+                 within node type $(repr(U.node_type_label(top, node_type))))"
+            end
+            argerr("There is already an edge of type $(repr(etype)) \
+                    between nodes $(repr(src)) and $(repr(tgt))$par, \
+                    but the given matrix has a nonzero entry in \
+                    ($(i_src - offset), $(i_tgt - offset)).")
+        end
+    end
+
+    # Commit.
+    for (i_src, i_tgt) in zip(sources, targets)
+        _add_edge!(top, i_edge_type, i_src, i_tgt)
+    end
+
+    top
+end
+add_edges_within_node_type!(top::Topology, n, e, m::Matrix{Bool}) =
+    add_edges_within_node_type!(top, n, e, sparse(m))
+export add_edges_within_node_type!
+
 #-------------------------------------------------------------------------------------------
 # Remove all neighbours of this node and replace it with a tombstone.
 
-# Commit unexpose function (must not fail).
+# The exposed version is checked.
+function remove_node!(top::Topology, node, type)
+    # Check transaction.
+    check_node_ref(top, node)
+    check_node_type(top, type)
+    i_node = U.node_index(top, node)
+    U.is_live(top, i_node) || alreadyerr(node)
+    i_type = U.node_type_index(top, type)
+    U.is_node_of_type(top, i_node, i_type) ||
+        argerr("Node $(repr(node)) is not of type $(repr(type)).")
+    _remove_node!(top, i_node, i_type)
+end
+
+# Not specifying the type requires a linear search for it.
+function remove_node!(top::Topology, node)
+    # Check transaction.
+    check_node_ref(top, node)
+    i_node = U.node_index(top, node)
+    U.is_live(top, i_node) || alreadyerr(node)
+    i_type = U.type_index_of_node(top, node)
+    _remove_node!(top, i_node, i_type)
+end
+
+alreadyerr(node) = argerr("Node $(repr(node)) was already removed from this topology.")
+
+export remove_node!
+
+# Commit.
 function _remove_node!(top::Topology, i_node::Int, i_type::Int)
     # Assumes the node is valid and live, and that the type does correspond.
     top.n_edges .-= length.(top.outgoing[i_node])
@@ -172,31 +275,6 @@ function _remove_node!(top::Topology, i_node::Int, i_type::Int)
     top.n_nodes[i_type] -= 1
     top
 end
-
-# The exposed version is checked.
-function remove_node!(top::Topology, node, type)
-    check_node_ref(top, node)
-    check_node_type(top, type)
-    i_node = U.node_index(top, node)
-    U.is_live(top, i_node) || alreadyerr(node)
-    i_type = U.node_type_index(top, type)
-    U.is_node_of_type(top, i_node, i_type) ||
-        argerr("Node $(repr(node)) is not of type $(repr(type)).")
-    _remove_node!(top, i_node, i_type)
-end
-
-# Not specifying the type requires a linear search for it.
-function remove_node!(top::Topology, node)
-    check_node_ref(top, node)
-    i_node = U.node_index(top, node)
-    U.is_live(top, i_node) || alreadyerr(node)
-    i_type = U.type_index_of_node(top, node)
-    _remove_node!(top, i_node, i_type)
-end
-
-alreadyerr(node) = argerr("Node $(repr(node)) was already removed from this topology.")
-
-export remove_node!
 
 #-------------------------------------------------------------------------------------------
 

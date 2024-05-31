@@ -37,6 +37,8 @@ function add_nutrients!(model, names)
     # if the corresponding component is loaded.
     model._scratch[:nutrients_names] = names
     model._scratch[:nutrients_index] = OrderedDict(n => i for (i, n) in enumerate(names))
+    # Update topology.
+    add_nodes!(model.topology, names, :nutrients)
 end
 
 F.expand!(model, bp::Nodes) = add_nutrients!(model, bp.names)

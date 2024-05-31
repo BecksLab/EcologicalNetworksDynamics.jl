@@ -9,7 +9,9 @@ const imap = Iterators.map
 const ifilter = Iterators.filter
 idmap(x) = imap(identity, x) # Useful to not leak refs to private collections.
 
-# Information about types.
+# ==========================================================================================
+# Types.
+
 node_type_label(top::Topology, i::Int) = top.node_types_labels[i]
 node_type_index(top::Topology, lab::Symbol) = top.node_types_index[lab]
 node_type_label(::Topology, lab::Symbol) = lab
@@ -19,7 +21,10 @@ edge_type_index(top::Topology, lab::Symbol) = top.edge_types_index[lab]
 edge_type_label(::Topology, lab::Symbol) = lab
 edge_type_index(::Topology, i::Int) = i
 
-# General information about nodes.
+# ==========================================================================================
+# Nodes.
+
+# General information.
 n_nodes(top::Topology, type) = top.n_nodes[node_type_index(top, type)]
 n_nodes_including_removed(top::Topology, type) =
     length(top.nodes_types[node_type_index(top, type)])
@@ -48,7 +53,9 @@ end
 is_removed(top::Topology, node) = top.outgoing[node_index(top, node)] isa Tombstone
 is_live(top::Topology, node) = !is_removed(top, node)
 
-# Information about edges.
+# ==========================================================================================
+# Edges.
+
 n_edges(top::Topology, type) = top.n_edges[edge_type_index(top, type)]
 
 # Direct neighbourhood when querying particular edge type.

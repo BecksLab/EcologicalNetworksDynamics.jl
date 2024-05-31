@@ -12,6 +12,7 @@ using .EN.Framework
 import .EN: Framework as F, Internals, ModelBlueprint, join_elided, @component, @expose_data
 using OrderedCollections
 using SparseArrays
+using .EN.Topologies
 
 # The compartment defining nutrients nodes, akin to `Species`.
 include("./nodes.jl")
@@ -21,6 +22,7 @@ include("./nodes.jl")
 # just like the foodweb can infer the 'species' compartment.
 include("./turnover.jl")
 include("./supply.jl")
+# HERE: add trophic species -> nutrient edges within the topology from a rectangle matrix.
 include("./concentration.jl")
 include("./half_saturation.jl")
 

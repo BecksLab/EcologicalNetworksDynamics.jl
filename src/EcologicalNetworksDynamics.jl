@@ -42,6 +42,7 @@ using .MultiplexApi
 
 # Types to represent the model under a pure topological perspective.
 include("./Topologies/Topologies.jl")
+using .Topologies
 # (will be part of the internals after their refactoring)
 
 #-------------------------------------------------------------------------------------------

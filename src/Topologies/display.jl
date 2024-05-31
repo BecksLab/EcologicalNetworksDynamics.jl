@@ -1,4 +1,14 @@
 s(n) = n > 1 ? "s" : ""
+are(n) = n > 1 ? "are" : "is"
+function _th(n)
+    b, i = n ÷ 10, n % 10
+    b == 1 && return "th"
+    i == 1 && return "st"
+    i == 2 && return "nd"
+    i == 3 && return "rd"
+    "th"
+end
+th(n) = "$n$(_th(n))"
 
 function Base.show(io::IO, top::Topology)
     n_nt = n_node_types(top)

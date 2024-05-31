@@ -2,6 +2,7 @@ module TestTopologies
 
 using EcologicalNetworksDynamics.Topologies
 using Test
+import ..Main: @argfails
 
 # Having correct 'show'/display implies that numerous internals are working correctly.
 function check_display(top, short, long)
@@ -10,6 +11,9 @@ function check_display(top, short, long)
     show(IOContext(io, :limit => true, :displaysize => (20, 40)), "text/plain", top)
     @test String(take!(io)) == long
 end
+
+# ==========================================================================================
+# Exposed primitives.
 
 top = Topology()
 add_nodes!(top, Symbol.(collect("abcd")), :species)
@@ -89,7 +93,7 @@ remove_node!(v, :b, :species)
 )
 @argfails(
     add_edge_type!(top, :mutualism),
-    "Edge type :mutualism alerady exists in the topology."
+    "Edge type :mutualism already exists in the topology."
 )
 @argfails(
     add_edge_type!(top, :species),
@@ -108,7 +112,7 @@ remove_node!(v, :b, :species)
 @argfails(add_edge!(u, :trophic, :a, :b), "Node :b has been removed from this topology.")
 @argfails(
     add_edge!(top, :trophic, :a, :b),
-    "There is already on edge of type :trophic between nodes :a and :b."
+    "There is already an edge of type :trophic between nodes :a and :b."
 )
 @argfails(
     remove_node!(u, :x),
@@ -123,5 +127,135 @@ remove_node!(v, :b, :species)
 @argfails(remove_node!(u, :b), "Node :b was already removed from this topology.")
 @argfails(remove_node!(u, :b, :species), "Node :b was already removed from this topology.")
 @argfails(remove_node!(top, :b, :nutrients), "Node :b is not of type :nutrients.")
+
+# ==========================================================================================
+# Add a whole bunch of edges at once.
+
+w = add_edges_within_node_type!(
+    deepcopy(u),
+    :species,
+    :trophic,
+    Bool[
+        0 0 1 1
+        0 0 0 0
+        1 0 0 0
+        0 0 1 0
+    ],
+)
+#! format: off
+check_display(w,
+   "Topology(2 node types, 3 edge types, 5 nodes, 7 edges)",
+raw"Topology for 2 node types and 3 edge types with 5 nodes and 7 edges:
+  Nodes:
+    :species => [:a, :c, :d]  <removed: [:b]>
+    :nutrients => [:u, :v]
+  Edges:
+    :trophic
+      :a => [:c, :d]
+      :c => [:a]
+      :d => [:u, :c]
+    :mutualism
+      :a => [:d]
+    :interference
+      :a => [:c]",
+)
+#! format: on
+
+# Node indices are correctly offset based on their types.
+w = add_edges_within_node_type!(
+    deepcopy(u),
+    :nutrients,
+    :mutualism, # (say)
+    Bool[
+        0 1
+        0 0
+    ],
+)
+#! format: off
+check_display(w,
+   "Topology(2 node types, 3 edge types, 5 nodes, 4 edges)",
+raw"Topology for 2 node types and 3 edge types with 5 nodes and 4 edges:
+  Nodes:
+    :species => [:a, :c, :d]  <removed: [:b]>
+    :nutrients => [:u, :v]
+  Edges:
+    :trophic
+      :d => [:u]
+    :mutualism
+      :a => [:d]
+      :u => [:v]
+    :interference
+      :a => [:c]",
+)
+e = Bool[;;] # (https://github.com/domluna/JuliaFormatter.jl/issues/837)
+#! format: on
+
+@argfails(
+    add_edges_within_node_type!(deepcopy(u), :x, :trophic, e),
+    "Invalid node type label: :x. Valid labels are :nutrients and :species."
+)
+
+@argfails(
+    add_edges_within_node_type!(deepcopy(u), :species, :x, e),
+    "Invalid edge type label: :x. Valid labels are :interference, :mutualism and :trophic."
+)
+
+@argfails(
+    add_edges_within_node_type!(deepcopy(u), :species, :trophic, e),
+    "The given edges matrix should be of size (4, 4) \
+     because there are 4 nodes of type :trophic. \
+     Received instead: (0, 0)."
+)
+
+# Watch offset.
+w = remove_node!(deepcopy(u), :u, :nutrients)
+@argfails(
+    add_edges_within_node_type!(
+        w,
+        :nutrients,
+        :trophic,
+        Bool[
+            0 1
+            0 0
+        ],
+    ),
+    "Node :u (index 5: 1st within the :nutrients node type) \
+     has been removed from this topology, \
+     but the given matrix has a nonzero entry in row 1."
+)
+
+@argfails(
+    add_edges_within_node_type!(
+        deepcopy(u),
+        :species,
+        :mutualism,
+        Bool[
+            0 0 1 1
+            0 0 0 0
+            1 0 0 0
+            0 0 1 0
+        ],
+    ),
+    "There is already an edge of type :mutualism between nodes \
+    :a and :d (indices 1 and 4), \
+     but the given matrix has a nonzero entry in (1, 4)."
+)
+
+# Watch offset.
+w = add_edge!(deepcopy(u), :mutualism, :u, :v)
+@argfails(
+    add_edges_within_node_type!(
+        w,
+        :nutrients,
+        :mutualism,
+        Bool[
+            0 1
+            0 0
+        ],
+    ),
+    "There is already an edge of type :mutualism between nodes \
+     :u and :v (indices 5 and 6: resp. 1st and 2nd within node type :nutrients), \
+     but the given matrix has a nonzero entry in (1, 2)."
+)
 
 end

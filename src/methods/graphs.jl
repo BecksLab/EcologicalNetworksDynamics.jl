@@ -1,6 +1,6 @@
 # Retrieve underlying model topology.
 @expose_data graph begin
-    property(topology, model_graph)
+    property(topology)
     ref(m -> m.topology)
     get(m -> deepcopy(m.topology))
 end

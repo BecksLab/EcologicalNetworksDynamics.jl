@@ -11,9 +11,9 @@ mutable struct ModelParameters
     # These don't exactly have an 'empty' variant.
     network::Option{EcologicalNetwork}
     biorates::BioRates # (this one does but all values are initially 'nothing' inside)
+    topology::Topology # This will actually be part of the future refactoring.
     functional_response::Option{FunctionalResponse}
     producer_growth::Option{ProducerGrowth}
-    topology::Topology # This will actually be part of the future refactoring.
     # Since 'foodweb' is still a mandatory input to construct interaction layers,
     # keep this artificial reference to it to make the system/components API work
     # until we refactor all the internals.
@@ -39,6 +39,7 @@ mutable struct ModelParameters
             NoTemperatureResponse(),
             nothing,
             BioRates(),
+            Topology(),
             repeat([nothing], 3)...,
             Dict(),
             Dict(),
