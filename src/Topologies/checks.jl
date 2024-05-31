@@ -26,9 +26,14 @@ check_node_ref(top::Topology, i::Int) = check_index(i, length(top.nodes_labels),
 # Check labels validity.
 
 is_label_valid(lab, set) = lab in set
-err_label(lab, set, what) = argerr("Invalid $what label: $(repr(lab)). \
-                                    Valid labels are \
-                                    $(join(sort(repr.(set)), ", ", " and ")).")
+function err_label(lab, set, what)
+    valid = if isempty(set)
+        "There are no labels yet."
+    else
+        "Valid labels are $(join(sort(repr.(set)), ", ", " and "))."
+    end
+    argerr("Invalid $what label: $(repr(lab)). $valid")
+end
 function check_label(lab, set, what)
     is_label_valid(lab, set) || err_label(lab, set, what)
     lab

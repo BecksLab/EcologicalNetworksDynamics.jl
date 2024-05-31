@@ -131,6 +131,9 @@ remove_node!(v, :b, :species)
 # ==========================================================================================
 # Add a whole bunch of edges at once.
 
+#-------------------------------------------------------------------------------------------
+# Within a node compartment.
+
 w = add_edges_within_node_type!(
     deepcopy(u),
     :species,
@@ -203,8 +206,24 @@ e = Bool[;;] # (https://github.com/domluna/JuliaFormatter.jl/issues/837)
 @argfails(
     add_edges_within_node_type!(deepcopy(u), :species, :trophic, e),
     "The given edges matrix should be of size (4, 4) \
-     because there are 4 nodes of type :trophic. \
+     because there are 4 nodes of type :species. \
      Received instead: (0, 0)."
+)
+
+@argfails(
+    add_edges_within_node_type!(
+        deepcopy(u),
+        :species,
+        :trophic,
+        Bool[
+            0 1 1 1
+            0 0 0 0
+            1 0 0 0
+            0 0 1 0
+        ],
+    ),
+    "Node :b (index 2) has been removed from this topology, \
+     but the given matrix has a nonzero entry in column 2."
 )
 
 # Watch offset.
@@ -256,6 +275,126 @@ w = add_edge!(deepcopy(u), :mutualism, :u, :v)
     "There is already an edge of type :mutualism between nodes \
      :u and :v (indices 5 and 6: resp. 1st and 2nd within node type :nutrients), \
      but the given matrix has a nonzero entry in (1, 2)."
+)
+
+#-------------------------------------------------------------------------------------------
+# Accross node compartments.
+
+w = add_edges_accross_node_types!(
+    deepcopy(u),
+    :species,
+    :nutrients,
+    :trophic,
+    Bool[
+        0 1
+        0 0
+        1 0
+        0 0
+    ],
+)
+#! format: off
+check_display(w,
+   "Topology(2 node types, 3 edge types, 5 nodes, 5 edges)",
+raw"Topology for 2 node types and 3 edge types with 5 nodes and 5 edges:
+  Nodes:
+    :species => [:a, :c, :d]  <removed: [:b]>
+    :nutrients => [:u, :v]
+  Edges:
+    :trophic
+      :a => [:v]
+      :c => [:u]
+      :d => [:u]
+    :mutualism
+      :a => [:d]
+    :interference
+      :a => [:c]",
+)
+e = Bool[;;] # (https://github.com/domluna/JuliaFormatter.jl/issues/837)
+#! format: on
+
+@argfails(
+    add_edges_accross_node_types!(deepcopy(u), :x, :nutrients, :trophic, e),
+    "Invalid node type label: :x. Valid labels are :nutrients and :species."
+)
+
+@argfails(
+    add_edges_accross_node_types!(deepcopy(u), :species, :x, :trophic, e),
+    "Invalid node type label: :x. Valid labels are :nutrients and :species."
+)
+
+@argfails(
+    add_edges_accross_node_types!(deepcopy(u), :species, :nutrients, :x, e),
+    "Invalid edge type label: :x. Valid labels are :interference, :mutualism and :trophic."
+)
+
+@argfails(
+    add_edges_accross_node_types!(deepcopy(u), :species, :species, :trophic, e),
+    "Source node types and target node types are the same (:species). \
+     Use $add_edges_within_node_type! method instead."
+)
+
+@argfails(
+    add_edges_accross_node_types!(deepcopy(u), :species, :nutrients, :trophic, e),
+    "The given edges matrix should be of size (4, 2) \
+     because there are 4 nodes of type :species \
+     and 2 nodes of type :nutrients. Received instead: (0, 0)."
+)
+
+# Missing source node.
+@argfails(
+    add_edges_accross_node_types!(
+        deepcopy(u),
+        :species,
+        :nutrients,
+        :trophic,
+        Bool[
+            0 1
+            1 0
+            1 0
+            0 0
+        ],
+    ),
+    "Node :b has been removed from this topology, \
+     but the given matrix has a nonzero entry in row 2."
+)
+
+# Missing target node.
+w = remove_node!(deepcopy(u), :u, :nutrients)
+@argfails(
+    add_edges_accross_node_types!(
+        w,
+        :species,
+        :nutrients,
+        :trophic,
+        Bool[
+            0 1
+            0 0
+            1 0
+            0 0
+        ],
+    ),
+    "Node :u (index 5: 1st within the :nutrients node type) \
+     has been removed from this topology, \
+     but the given matrix has a nonzero entry in column 1."
+)
+
+@argfails(
+    add_edges_accross_node_types!(
+        deepcopy(u),
+        :species,
+        :nutrients,
+        :trophic,
+        Bool[
+            0 1
+            0 0
+            1 0
+            1 0
+        ],
+    ),
+    "There is already an edge of type :trophic between nodes \
+     :d and :u (indices 4 and 5: \
+     resp. 4th and 1st within node types :species and :nutrients), \
+     but the given matrix has a nonzero entry in (4, 1)."
 )
 
 end
