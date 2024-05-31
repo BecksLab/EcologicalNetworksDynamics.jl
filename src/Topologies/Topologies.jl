@@ -28,26 +28,33 @@ No tombstone remain for edges: once removed, there is no trace left of them.
 """
 struct Topology
     # List/index possible types for nodes and edges.
+    # Types cannot be removed.
     node_types_labels::Vector{Symbol} # [type index: type label]
     node_types_index::Dict{Symbol,Int} # {type label: type index}
     edge_types_labels::Vector{Symbol}
     edge_types_index::Dict{Symbol,Int}
+
     # List nodes and their associated types.
     # Nodes are *sorted by type*:
     # so that all nodes with the same type are stored contiguously in this array.
+    # Nodes can't be removed from this list, so the indexes remain stable.
     nodes_labels::Vector{Symbol} # [node index: node label]
     nodes_index::Dict{Symbol,Int} # {node label: node index}
     nodes_types::Vector{UnitRange{Int}} # [type index: (start, end) of nodes with this type]
+
     # Topological information: paired, layered adjacency lists.
+    # Tombstones marking nodes removal are stored here.
     outgoing::Vector{Union{Tombstone,Vector{OrderedSet{Int}}}}
     incoming::Vector{Union{Tombstone,Vector{OrderedSet{Int}}}}
     # [node: [edgetype: {nodeid}]]
     # ^--------------------------^- : Adjacency list: one entry per node 'N'.
     #        ^-------------------^- : One entry per edge type or a tombstone (removed node).
     #                   ^--------^- : One entry per neighbour of 'N': its index.
+
     # Cached redundant information.
     n_edges::Vector{Int} # Per edge type.
     n_nodes::Vector{Int} # Per node type, not counting tombstones.
+
     Topology() = new([], Dict(), [], Dict(), [], Dict(), [], [], [], [], [])
 end
 export Topology
@@ -64,37 +71,48 @@ include("display.jl")
 
 # Only push whole slices of nodes of a new type at once.
 function add_nodes!(top::Topology, labels, type::Symbol)
-    haskey(top.node_types_index, type) &&
-        argerr("Node type $(repr(type)) has already been pushed.")
-    haskey(top.edge_types_index, type) &&
-        argerr("Node type $(repr(type)) could be confused with edge type $(repr(type)).")
+
+    # Check whole transaction before commiting.
+    is_node_type_valid(top, type) &&
+        argerr("Node type $(repr(type)) already exists in the topology.")
+    is_edge_type_valid(top, type) &&
+        argerr("Node type $(repr(type)) would be confused with edge type $(repr(type)).")
+    labels = check_new_nodes_labels(top, labels)
+
+    # Add new node type.
     push!(top.node_types_labels, type)
     top.node_types_index[type] = length(top.node_types_labels)
-    nlabs = top.nodes_labels
+
+    # Add new associated nodes.
     nindex = top.nodes_index
+    nlabs = top.nodes_labels
     n_before = length(nlabs)
-    for new_lab::Symbol in labels
-        haskey(nindex, new_lab) && argerr("Label :$new_lab was already given \
-                                           to a node of type \
-                                           $(repr(node_type(top, new_lab))).")
+    for new_lab in labels
         push!(nlabs, new_lab)
         nindex[new_lab] = length(nlabs)
         for adj in (top.outgoing, top.incoming)
             push!(adj, Vector{OrderedSet{Int}}())
         end
     end
+
+    # Update value.
     n_after = length(nlabs)
     push!(top.nodes_types, n_before+1:n_after)
     push!(top.n_nodes, n_after - n_before)
+
     top
 end
 export add_nodes!
 
 function add_edge_type!(top::Topology, type::Symbol)
+
+    # Check transaction.
     haskey(top.edge_types_index, type) &&
-        argerr("Edge type $(repr(type)) has already been added.")
+        argerr("Edge type $(repr(type)) already exists in the topology.")
     haskey(top.node_types_index, type) &&
         argerr("Edge type $(repr(type)) would be confused with node type $(repr(type)).")
+
+    # Commit.
     push!(top.edge_types_labels, type)
     top.edge_types_index[type] = length(top.edge_types_labels)
     for adj in (top.outgoing, top.incoming)
@@ -104,11 +122,13 @@ function add_edge_type!(top::Topology, type::Symbol)
         end
     end
     push!(top.n_edges, 0)
+
     top
 end
 export add_edge_type!
 
 function add_edge!(top::Topology, type, source, target)
+    # Check transaction.
     check_edge_type(top, type)
     check_node_ref(top, source)
     check_node_ref(top, target)
@@ -118,18 +138,26 @@ function add_edge!(top::Topology, type, source, target)
     check_live_node(top, i_source, source)
     check_live_node(top, i_target, target)
     U.has_edge(top, i_type, i_source, i_target) &&
-        argerr("There is already an edge of type $(repr(type))
+        argerr("There is already an edge of type $(repr(type)) \
                 betwen nodes $(repr(source)) and $(repr(target)).")
+
+    # Commit.
     push!(top.outgoing[i_source][i_type], i_target)
     push!(top.incoming[i_target][i_type], i_source)
     top.n_edges[i_type] += 1
+
     top
 end
 export add_edge!
 
+#-------------------------------------------------------------------------------------------
 # Remove all neighbours of this node and replace it with a tombstone.
+
+# Commit unexpose function (must not fail).
 function _remove_node!(top::Topology, i_node::Int, i_type::Int)
     # Assumes the node is valid and live, and that the type does correspond.
+    top.n_edges .-= length.(top.outgoing[i_node])
+    top.n_edges .-= length.(top.incoming[i_node])
     ts = Tombstone()
     top.outgoing[i_node] = ts
     top.incoming[i_node] = ts
@@ -144,25 +172,41 @@ function _remove_node!(top::Topology, i_node::Int, i_type::Int)
     top.n_nodes[i_type] -= 1
     top
 end
-# Checked version.
+
+# The exposed version is checked.
 function remove_node!(top::Topology, node, type)
     check_node_ref(top, node)
     check_node_type(top, type)
     i_node = U.node_index(top, node)
-    check_live_node(top, i_node, node)
+    U.is_live(top, i_node) || alreadyerr(node)
     i_type = U.node_type_index(top, type)
     U.is_node_of_type(top, i_node, i_type) ||
         argerr("Node $(repr(node)) is not of type $(repr(type)).")
     _remove_node!(top, i_node, i_type)
 end
+
 # Not specifying the type requires a linear search for it.
 function remove_node!(top::Topology, node)
     check_node_ref(top, node)
     i_node = U.node_index(top, node)
-    check_live_node(top, i_node, node)
+    U.is_live(top, i_node) || alreadyerr(node)
     i_type = U.type_index_of_node(top, node)
     _remove_node!(top, i_node, i_type)
 end
+
+alreadyerr(node) = argerr("Node $(repr(node)) was already removed from this topology.")
+
 export remove_node!
+
+#-------------------------------------------------------------------------------------------
+
+# Compare for equality field-by-field.
+function Base.:(==)(a::Topology, b::Topology)
+    for fname in fieldnames(Topology)
+        fa, fb = getfield.((a, b), fname)
+        fa == fb || return false
+    end
+    true
+end
 
 end

@@ -33,15 +33,14 @@ function Base.show(io::IO, ::MIME"text/plain", top::Topology)
         print(".")
     end
     println(io, "\n  Nodes:")
-    tombs = [] # Collect removed nodes to display at the end.
     for (i_type, type) in enumerate(_node_types(top))
         i_type > 1 && println(io)
-        tomb = []
-        push!(tombs, tomb)
+        tomb = Symbol[] # Collect removed nodes to display at the end.
         print(io, "    $(repr(type)) => [")
         empty = true
-        for node in U._nodes_labels(top, i_type)
-            if node isa Tombstone
+        for i_node in U.nodes_indices(top, i_type)
+            node = U.node_label(top, i_node)
+            if U.is_removed(top, i_node)
                 push!(tomb, node)
                 continue
             end
@@ -50,6 +49,9 @@ function Base.show(io::IO, ::MIME"text/plain", top::Topology)
             empty = false
         end
         print(io, "]")
+        if !isempty(tomb)
+            print(io, "  <removed: $tomb>")
+        end
     end
     n_e > 0 && print(io, "\n  Edges:")
     for (i_type, type) in enumerate(_edge_types(top))

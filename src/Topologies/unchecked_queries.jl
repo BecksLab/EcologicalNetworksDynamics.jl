@@ -37,11 +37,11 @@ node_index(::Topology, i::Int) = i
 # but it is generally assumed that if you know the node, then you already know its type.
 type_index_of_node(top::Topology, id) =
     findfirst(range -> node_index(top, id) in range, top.nodes_types)
-type_of_node(top::Topology, id) = node_type_label(type_index_of_node(top, id))
+type_of_node(top::Topology, id) = node_type_label(top, type_index_of_node(top, id))
 # But it is O(1) to check whether a given node is of the given type.
 function is_node_of_type(top::Topology, node, type)
     i_node = node_index(top, node)
-    i_type = node_type_index(type)
+    i_type = node_type_index(top, type)
     i_node in top.nodes_types[i_type]
 end
 
