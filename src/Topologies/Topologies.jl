@@ -1,6 +1,7 @@
 module Topologies
 
 using OrderedCollections
+using Graphs
 using SparseArrays
 
 argerr(mess) = throw(ArgumentError(mess))
@@ -210,6 +211,87 @@ function _remove_node!(top::Topology, i_node::Int, i_type::Int)
 end
 
 #-------------------------------------------------------------------------------------------
+"""
+Iterate over the disconnected component within the topology.
+This create a collection of topologies
+with all the same compartments and nodes indices,
+but with different nodes marked as removed to constitute the various components.
+"""
+function disconnected_components(top::Topology)
+    # Construct a simpler graph representation
+    # with all nodes and edges compartments pooled together.
+    graph = SimpleDiGraph()
+    for _ in 1:length(top.nodes_labels)
+        add_vertex!(graph)
+    end
+    for (i_src, et) in enumerate(top.outgoing)
+        et isa Tombstone && continue
+        for targets in et, i_tgt in targets
+            Graphs.add_edge!(graph, i_src, i_tgt)
+        end
+    end
+    # Use it to run disconnection algorithm.
+    Iterators.map(weakly_connected_components(graph)) do component_nodes
+        # Construct a whole new value with only these nodes remaining.
+        new = Topology()
+        # All types are copied as-is.
+        append!(new.node_types_labels, top.node_types_labels)
+        append!(new.edge_types_labels, top.edge_types_labels)
+        for (k, v) in top.node_types_index
+            new.node_types_index[k] = v
+            push!(new.n_nodes, 0)
+        end
+        for (k, v) in top.edge_types_index
+            new.edge_types_index[k] = v
+            push!(new.n_edges, 0)
+        end
+        # All nodes are copied as-is.
+        append!(new.nodes_labels, top.nodes_labels)
+        append!(new.nodes_types, top.nodes_types)
+        for (k, v) in top.nodes_index
+            new.nodes_index[k] = v
+        end
+        # But only the ones in this component are reinserted with their neighbours,
+        # the others become tombstones.
+        ts = Tombstone()
+        component_nodes = Set(component_nodes)
+        i_node_type = 1
+        for i_node in 1:length(new.nodes_labels)
+            if i_node > last(new.nodes_types[i_node_type])
+                i_node_type += 1
+            end
+            inn = top.incoming[i_node] # `in` would break `a in b`.
+            out = top.outgoing[i_node]
+            if i_node in component_nodes && !(out isa Tombstone)
+                new_in = Vector{OrderedSet{Int}}()
+                new_out = Vector{OrderedSet{Int}}()
+                for (i_edge_type, (in_et, out_et)) in enumerate(zip(inn, out))
+                    in_entry = OrderedSet()
+                    out_entry = OrderedSet()
+                    first = true
+                    for (et, entry) in ((in_et, in_entry), (out_et, out_entry))
+                        for adj in et
+                            adj in component_nodes || continue
+                            push!(entry, adj)
+                            new.n_edges[i_edge_type] += first
+                        end
+                        first = false
+                    end
+                    push!(new_in, in_entry)
+                    push!(new_out, out_entry)
+                end
+                push!(new.incoming, new_in)
+                push!(new.outgoing, new_out)
+                new.n_nodes[i_node_type] += 1
+            else
+                push!(new.incoming, ts)
+                push!(new.outgoing, ts)
+            end
+        end
+        new
+    end
+end
+export disconnected_components
 
 # Compare for equality field-by-field.
 function Base.:(==)(a::Topology, b::Topology)

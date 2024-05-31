@@ -18,7 +18,7 @@ function add_edges_within_node_type!(
                                  of type $(repr(U.node_type_label(top, node_type))). \
                                  Received instead: $(size(e)).")
     # (matrix indices start from 1, not all node indices)
-    offset = first(indices) - 1
+    offset = U.node_index_offset(top, node_type)
     sources, targets, _ = findnz(e)
     sources .+= offset
     targets .+= offset
@@ -103,8 +103,8 @@ function add_edges_accross_node_types!(
                                  $(repr(U.node_type_label(top, target_node_type))). \
                                  Received instead: $(size(e)).")
     # (matrix indices start from 1, not all node indices)
-    source_offset = first(source_indices) - 1
-    target_offset = first(target_indices) - 1
+    source_offset = U.node_index_offset(top, source_node_type)
+    target_offset = U.node_index_offset(top, target_node_type)
     sources, targets, _ = findnz(e)
     sources .+= source_offset
     targets .+= target_offset

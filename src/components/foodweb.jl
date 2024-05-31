@@ -381,9 +381,6 @@ export TrophicLayer
     depends(Foodweb)
 end
 
-# Topology as a directed graph
-include("./foodweb_graph.jl")
-
 # Number of links.
 @expose_data graph begin
     property(n_trophic_links)

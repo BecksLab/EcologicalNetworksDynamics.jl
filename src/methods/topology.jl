@@ -1,3 +1,7 @@
+# Here are topology-related methods
+# that are dedicated to topologies extracted from the ecological model,
+# ie. with :species / :trophic compartments *etc.*
+
 # Retrieve underlying model topology.
 @expose_data graph begin
     property(topology)
@@ -5,35 +9,44 @@
     get(m -> deepcopy(m.topology))
 end
 
-"""
-    restrict_to_live!(g::TrophicGraph, biomasses; threshold = 0)
+const T = Topologies
+const U = Topologies.Unchecked
 
-Restrict the given graph to only nodes with "live" biomasses
+"""
+    restrict_to_live_species!(g::Topology, biomasses; threshold = 0)
+
+Remove species nodes until only species with "live" biomasses remain
 *i.e.* biomasses above the given threshold.
 """
-function restrict_to_live!(g::TrophicGraph, biomasses; threshold = 0)
+function restrict_to_live_species!(g::Topology, biomasses; threshold = 0)
     # Rely on species index memory to map biomass values to labels,
     # even though some species may already have been removed.
-    no, nb = length.((original_species(g), biomasses))
-    no == nb || argerr("The given trophic graph originally had $no species, \
+    is_node_type(g, :species) || argerr("The given topology has no :species compartment.")
+    sp = U.node_type_index(g, :species)
+    no = U.n_nodes(g, sp)
+    nb = length(biomasses)
+    no == nb || argerr("The given topology indexes $no species, \
                         but the given biomasses vector size is $nb.")
-    for (sp, bm) in zip(original_species(g), biomasses)
+    for (i_sp, bm) in zip(U.nodes_indices(g, sp), biomasses)
+        rm = U.is_removed(g, i_sp)
         if bm > threshold
-            has_species(g, sp) ||
-                argerr("Species $(repr(sp)) has been removed from this trophic graph, \
-                       but it still has a biomass above threshold: $bm > $threshold.")
+            rm && argerr("Species $(repr(U.node_label(g, i_sp))) \
+                          has been removed from this topology, \
+                          but its biomass is still above threshold: $bm > $threshold.")
         else
-            is_species_removed(g, sp) || remove_species!(g, sp)
+            rm || remove_node!(g, i_sp, sp)
         end
     end
 end
-export restrict_to_live!
+export restrict_to_live_species!
 
 """
     disconnected_components(g::TrophicGraph)
 
 Extract connected components from the trophic graph.
 """
+# HERE: re-implement in pure Topologies.
+struct TrophicGraph end # TEMP DEBUG.
 function disconnected_components(g::TrophicGraph)
     # Split the 'full' graph `g` into 'sub'graphs corresponding to components.
     # Watch re-indexing.

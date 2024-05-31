@@ -50,6 +50,14 @@ function is_node_of_type(top::Topology, node, type)
     i_node in top.nodes_types[i_type]
 end
 
+# Append correct offset to convert between relative / absolute nodes indices.
+first_node_index(top::Topology, type) = first(nodes_indices(top, type))
+node_index_offset(top::Topology, type) = first_node_index(top, type) - 1
+relative_node_index(top::Topology, type, node) =
+    node_index(top, node) - node_index_offset(top, type)
+absolute_node_index(top::Topology, type, relative_index::Int) =
+    relative_index + node_index_offset(top, type)
+
 is_removed(top::Topology, node) = top.outgoing[node_index(top, node)] isa Tombstone
 is_live(top::Topology, node) = !is_removed(top, node)
 

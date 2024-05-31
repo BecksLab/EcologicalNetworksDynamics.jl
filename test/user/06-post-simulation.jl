@@ -33,7 +33,7 @@ end
 
     # Simulation not exactly needed for these tests.
     m = Model(Foodweb([:a => [:b, :c], :b => :d, :c => :d, :e => [:c, :f], :g => :h]))
-    g = m.trophic_graph
+    g = m.topology
 
     # Sort to ease testing.
     adjacency(g) = sort(map(species(g)) do sp

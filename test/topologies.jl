@@ -397,4 +397,26 @@ w = remove_node!(deepcopy(u), :u, :nutrients)
      but the given matrix has a nonzero entry in (4, 1)."
 )
 
+# ==========================================================================================
+# Disconnected components.
+
+top = Topology()
+add_nodes!(top, Symbol.(collect("abcd")), :species)
+add_nodes!(top, Symbol.(collect("uv")), :nutrients)
+add_edge_type!(top, :trophic)
+add_edge_type!(top, :mutualism)
+add_edge_type!(top, :interference)
+add_edge!(top, :trophic, :a, :b)
+add_edge!(top, :trophic, :b, :u)
+add_edge!(top, :trophic, :c, :d)
+add_edge!(top, :trophic, :d, :v)
+add_edge!(top, :mutualism, :a, :u)
+add_edge!(top, :interference, :c, :v)
+
+x, y = collect(Topologies.disconnected_components(top))
+Topologies.debug(top)
+Topologies.debug(x)
+Topologies.debug(y)
+# HERE: seems okay: check with display.
+
 end
