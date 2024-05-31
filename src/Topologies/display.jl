@@ -86,3 +86,25 @@ function Base.show(io::IO, ::MIME"text/plain", top::Topology)
         end
     end
 end
+
+# A debug display to just screen through the whole value.
+debug(top::Topology) =
+    for fn in fieldnames(Topology)
+        val = getfield(top, fn)
+        if fn in (:incoming, :outgoing)
+            println("$fn: ")
+            for (i_adj, adj) in enumerate(val)
+                print("  $i_adj: ")
+                if adj isa Tombstone
+                    println("<tombstone>")
+                    continue
+                end
+                for (i_et, et) in enumerate(adj)
+                    print("\n    $i_et: $([i for i in et])")
+                end
+                println()
+            end
+        else
+            println("$fn: $val")
+        end
+    end

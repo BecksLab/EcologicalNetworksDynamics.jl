@@ -92,7 +92,12 @@ function add_nodes!(top::Topology, labels, type::Symbol)
         push!(nlabs, new_lab)
         nindex[new_lab] = length(nlabs)
         for adj in (top.outgoing, top.incoming)
-            push!(adj, Vector{OrderedSet{Int}}())
+            # Need an entry for every edge type.
+            entry = Vector{OrderedSet{Int}}()
+            for _ in 1:n_edge_types(top)
+                push!(entry, OrderedSet())
+            end
+            push!(adj, entry)
         end
     end
 

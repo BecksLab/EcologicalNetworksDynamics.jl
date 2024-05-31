@@ -22,7 +22,6 @@ include("./nodes.jl")
 # just like the foodweb can infer the 'species' compartment.
 include("./turnover.jl")
 include("./supply.jl")
-# HERE: add trophic species -> nutrient edges within the topology from a rectangle matrix.
 include("./concentration.jl")
 include("./half_saturation.jl")
 

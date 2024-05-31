@@ -32,13 +32,23 @@ function F.check(_, bp::RawNodes)
     end
 end
 
-function add_nutrients!(model, names)
+function add_nutrients!(m, names)
     # Store in the scratch, and only alias to model.producer_growth
     # if the corresponding component is loaded.
-    model._scratch[:nutrients_names] = names
-    model._scratch[:nutrients_index] = OrderedDict(n => i for (i, n) in enumerate(names))
+    m._scratch[:nutrients_names] = names
+    m._scratch[:nutrients_index] = OrderedDict(n => i for (i, n) in enumerate(names))
+
     # Update topology.
-    add_nodes!(model.topology, names, :nutrients)
+    top = m.topology
+    add_nodes!(top, names, :nutrients)
+
+    # For now, consider that the only presence of nutrients
+    # implies that every producer species is topologically connected to every nutrient.
+    # TODO: maybe this should be alleviated in case feeding coefficients are zero.
+    # In this situation, the edges would only appear when adding
+    # concentration/half-saturation coefficients.
+    edges = repeat(m._producers_mask, 1, length(names))
+    add_edges_accross_node_types!(top, :species, :nutrients, :trophic, edges)
 end
 
 F.expand!(model, bp::Nodes) = add_nutrients!(model, bp.names)
