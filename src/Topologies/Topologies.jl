@@ -68,27 +68,26 @@ struct Topology
 end
 export Topology
 
-# Wrap an absolute node type.
+# Wrap an absolute node index.
 struct Abs
     i::Int
 end
 
-# Wrap a relative node type.
+# Wrap a relative node index.
 struct Rel
     i::Int
 end
 
-# Either an index or a label.
-const AbsRef = Union{Abs,Symbol}
-const RelRef = Union{Rel,Symbol}
-
 # When exposing indices
 # explicit whether they mean relative or absolute.
 const IRef = Union{Int,Symbol}
+const RelRef = Union{Rel,Symbol}
 relative(i::Int) = Rel(i)
 absolute(i::Int) = Abs(i)
 relative(lab::Symbol) = lab
 absolute(lab::Symbol) = lab
+# A combination of Relative + Node type info constitutes an absolute node ref.
+const AbsRef = Union{Abs,Symbol,Tuple{RelRef,IRef}}
 
 include("unchecked_queries.jl")
 const U = Unchecked # Ease refs to unchecked queries.
@@ -101,30 +100,30 @@ include("display.jl")
 # Construction primitives.
 
 # Only push whole slices of nodes of a new type at once.
-function add_nodes!(top::Topology, labels, type::Symbol)
+function add_nodes!(g::Topology, labels, type::Symbol)
 
     # Check whole transaction before commiting.
-    has_node_type(top, type) &&
+    has_node_type(g, type) &&
         argerr("Node type $(repr(type)) already exists in the topology.")
-    has_edge_type(top, type) &&
+    has_edge_type(g, type) &&
         argerr("Node type $(repr(type)) would be confused with edge type $(repr(type)).")
-    labels = check_new_nodes_labels(top, labels)
+    labels = check_new_nodes_labels(g, labels)
 
     # Add new node type.
-    push!(top.node_types_labels, type)
-    top.node_types_index[type] = length(top.node_types_labels)
+    push!(g.node_types_labels, type)
+    g.node_types_index[type] = length(g.node_types_labels)
 
     # Add new associated nodes.
-    nindex = top.nodes_index
-    nlabs = top.nodes_labels
+    nindex = g.nodes_index
+    nlabs = g.nodes_labels
     n_before = length(nlabs)
     for new_lab in labels
         push!(nlabs, new_lab)
         nindex[new_lab] = length(nlabs)
-        for adj in (top.outgoing, top.incoming)
+        for adj in (g.outgoing, g.incoming)
             # Need an entry for every edge type.
             entry = Vector{OrderedSet{Int}}()
-            for _ in 1:n_edge_types(top)
+            for _ in 1:n_edge_types(g)
                 push!(entry, OrderedSet())
             end
             push!(adj, entry)
@@ -133,57 +132,57 @@ function add_nodes!(top::Topology, labels, type::Symbol)
 
     # Update value.
     n_after = length(nlabs)
-    push!(top.nodes_types, n_before+1:n_after)
-    push!(top.n_nodes, n_after - n_before)
+    push!(g.nodes_types, n_before+1:n_after)
+    push!(g.n_nodes, n_after - n_before)
 
-    top
+    g
 end
 export add_nodes!
 
-function add_edge_type!(top::Topology, type::Symbol)
+function add_edge_type!(g::Topology, type::Symbol)
 
     # Check transaction.
-    haskey(top.edge_types_index, type) &&
+    haskey(g.edge_types_index, type) &&
         argerr("Edge type $(repr(type)) already exists in the topology.")
-    haskey(top.node_types_index, type) &&
+    haskey(g.node_types_index, type) &&
         argerr("Edge type $(repr(type)) would be confused with node type $(repr(type)).")
 
     # Commit.
-    push!(top.edge_types_labels, type)
-    top.edge_types_index[type] = length(top.edge_types_labels)
-    for adj in (top.outgoing, top.incoming)
+    push!(g.edge_types_labels, type)
+    g.edge_types_index[type] = length(g.edge_types_labels)
+    for adj in (g.outgoing, g.incoming)
         for node in adj
             node isa Tombstone && continue
             push!(node, OrderedSet{Int}())
         end
     end
-    push!(top.n_edges, 0)
+    push!(g.n_edges, 0)
 
-    top
+    g
 end
 export add_edge_type!
 
-function add_edge!(top::Topology, type::IRef, source::AbsRef, target::AbsRef)
+function add_edge!(g::Topology, type::IRef, source::AbsRef, target::AbsRef)
     # Check transaction.
-    check_edge_type(top, type)
-    check_node_ref(top, source)
-    check_node_ref(top, target)
-    i_type = U.edge_type_index(top, type)
-    i_source = U.node_abs_index(top, source)
-    i_target = U.node_abs_index(top, target)
-    check_live_node(top, i_source, source)
-    check_live_node(top, i_target, target)
-    U.has_edge(top, i_type, i_source, i_target) &&
+    check_edge_type(g, type)
+    check_node_ref(g, source)
+    check_node_ref(g, target)
+    i_type = U.edge_type_index(g, type)
+    i_source = U.node_abs_index(g, source)
+    i_target = U.node_abs_index(g, target)
+    check_live_node(g, i_source, source)
+    check_live_node(g, i_target, target)
+    U.has_edge(g, i_type, i_source, i_target) &&
         argerr("There is already an edge of type $(repr(type)) \
                 between nodes $(repr(source)) and $(repr(target)).")
     # Commit.
-    _add_edge!(top, i_type, i_source, i_target)
+    _add_edge!(g, i_type, i_source, i_target)
 end
-function _add_edge!(top::Topology, i_type::Int, i_source::Abs, i_target::Abs)
-    push!(top.outgoing[i_source.i][i_type], i_target.i)
-    push!(top.incoming[i_target.i][i_type], i_source.i)
-    top.n_edges[i_type] += 1
-    top
+function _add_edge!(g::Topology, i_type::Int, i_source::Abs, i_target::Abs)
+    push!(g.outgoing[i_source.i][i_type], i_target.i)
+    push!(g.incoming[i_target.i][i_type], i_source.i)
+    g.n_edges[i_type] += 1
+    g
 end
 export add_edge!
 
@@ -193,37 +192,37 @@ include("./edges_from_matrices.jl")
 # Remove all neighbours of this node and replace it with a tombstone.
 
 # The exposed version is checked.
-function remove_node!(top::Topology, node::RelRef, type::IRef)
+function remove_node!(g::Topology, node::RelRef, type::IRef)
     # Check transaction.
-    check_node_type(top, type)
-    check_node_ref(top, node, type)
-    i_node = U.node_abs_index(top, node, type)
-    U.is_live(top, i_node) || alreadyerr(node)
-    i_type = U.node_type_index(top, type)
-    _remove_node!(top, i_node, i_type)
+    check_node_type(g, type)
+    check_node_ref(g, node, type)
+    i_node = U.node_abs_index(g, (node, type))
+    U.is_live(g, i_node) || alreadyerr(node)
+    i_type = U.node_type_index(g, type)
+    _remove_node!(g, i_node, i_type)
 end
 
 # Not specifying the type requires a linear search for it.
-function remove_node!(top::Topology, node::AbsRef)
+function remove_node!(g::Topology, node::AbsRef)
     # Check transaction.
-    check_node_ref(top, node)
-    i_node = U.node_abs_index(top, node)
-    U.is_live(top, i_node) || alreadyerr(node)
-    i_type = U.type_index_of_node(top, node)
-    _remove_node!(top, i_node, i_type)
+    check_node_ref(g, node)
+    i_node = U.node_abs_index(g, node)
+    U.is_live(g, i_node) || alreadyerr(node)
+    i_type = U.type_index_of_node(g, node)
+    _remove_node!(g, i_node, i_type)
 end
 
 alreadyerr(node) = argerr("Node $(repr(node)) was already removed from this topology.")
 
 # Commit.
-function _remove_node!(top::Topology, i_node::Abs, i_type::Int)
+function _remove_node!(g::Topology, i_node::Abs, i_type::Int)
     # Assumes the node is valid and live, and that the type does correspond.
-    top.n_edges .-= length.(top.outgoing[i_node.i])
-    top.n_edges .-= length.(top.incoming[i_node.i])
+    g.n_edges .-= length.(g.outgoing[i_node.i])
+    g.n_edges .-= length.(g.incoming[i_node.i])
     ts = Tombstone()
-    top.outgoing[i_node.i] = ts
-    top.incoming[i_node.i] = ts
-    for adjacency in (top.outgoing, top.incoming)
+    g.outgoing[i_node.i] = ts
+    g.incoming[i_node.i] = ts
+    for adjacency in (g.outgoing, g.incoming)
         for other in adjacency
             other isa Tombstone && continue
             for neighbours in other
@@ -231,29 +230,29 @@ function _remove_node!(top::Topology, i_node::Abs, i_type::Int)
             end
         end
     end
-    top.n_nodes[i_type] -= 1
-    top
+    g.n_nodes[i_type] -= 1
+    g
 end
 
 export remove_node!
 
 #-------------------------------------------------------------------------------------------
 """
-    disconnected_components(top::Topology)
+    disconnected_components(g::Topology)
 
 Iterate over the disconnected component within the topology.
 This create a collection of topologies
 with all the same compartments and nodes indices,
 but with different nodes marked as removed to constitute the various components.
 """
-function disconnected_components(top::Topology)
+function disconnected_components(g::Topology)
     # Construct a simpler graph representation
     # with all nodes and edges compartments pooled together.
     graph = SimpleDiGraph()
-    for _ in 1:length(top.nodes_labels)
+    for _ in 1:length(g.nodes_labels)
         add_vertex!(graph)
     end
-    for (i_src, et) in enumerate(top.outgoing)
+    for (i_src, et) in enumerate(g.outgoing)
         et isa Tombstone && continue
         for targets in et, i_tgt in targets
             Graphs.add_edge!(graph, i_src, i_tgt)
@@ -264,29 +263,26 @@ function disconnected_components(top::Topology)
         Iterators.filter(weakly_connected_components(graph)) do component_nodes
             # Removed nodes result in degenerated singleton components.
             # Dismiss them.
-            !(
-                length(component_nodes) == 1 &&
-                U.is_removed(top, Abs(first(component_nodes)))
-            )
+            !(length(component_nodes) == 1 && U.is_removed(g, Abs(first(component_nodes))))
         end,
     ) do component_nodes
         # Construct a whole new value with only these nodes remaining.
         new = Topology()
         # All types are copied as-is.
-        append!(new.node_types_labels, top.node_types_labels)
-        append!(new.edge_types_labels, top.edge_types_labels)
-        for (k, v) in top.node_types_index
+        append!(new.node_types_labels, g.node_types_labels)
+        append!(new.edge_types_labels, g.edge_types_labels)
+        for (k, v) in g.node_types_index
             new.node_types_index[k] = v
             push!(new.n_nodes, 0)
         end
-        for (k, v) in top.edge_types_index
+        for (k, v) in g.edge_types_index
             new.edge_types_index[k] = v
             push!(new.n_edges, 0)
         end
         # All nodes are copied as-is.
-        append!(new.nodes_labels, top.nodes_labels)
-        append!(new.nodes_types, top.nodes_types)
-        for (k, v) in top.nodes_index
+        append!(new.nodes_labels, g.nodes_labels)
+        append!(new.nodes_types, g.nodes_types)
+        for (k, v) in g.nodes_index
             new.nodes_index[k] = v
         end
         # But only the ones in this component are reinserted with their neighbours,
@@ -298,8 +294,8 @@ function disconnected_components(top::Topology)
             if i_node > last(new.nodes_types[i_node_type])
                 i_node_type += 1
             end
-            inc = top.incoming[i_node]
-            out = top.outgoing[i_node]
+            inc = g.incoming[i_node]
+            out = g.outgoing[i_node]
             if i_node in component_nodes && !(out isa Tombstone)
                 new_in = Vector{OrderedSet{Int}}()
                 new_out = Vector{OrderedSet{Int}}()

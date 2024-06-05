@@ -17,6 +17,11 @@ function _simulate(model::InnerParms, u0, tmax::Integer; kwargs...)
     # No default simulation time anymore.
     given(:tmax) && argerr("Received two values for 'tmax': $tmax and $(take!(:tmax)).")
 
+    # If set, produce an @info message
+    # to warn user about possible degenerated network topologies.
+    deg_top_arg = :display_degenerated_biomass_graph_properties
+    deg_top = take_or!(deg_top_arg, true)
+
     # Lower threshold.
     extinction_threshold = take_or!(:extinction_threshold, 1e-12, Any)
     extinction_threshold = @tographdata extinction_threshold {Scalar, Vector}{Float64}
@@ -28,7 +33,35 @@ function _simulate(model::InnerParms, u0, tmax::Integer; kwargs...)
     extc = extinction_callback(model, extinction_threshold; verbose)
     callback = take_or!(:callbacks, Internals.CallbackSet(extc))
 
-    Internals.simulate(model, u0; tmax, extinction_threshold, callback, verbose, kwargs...)
+    out = Internals.simulate(
+        model,
+        u0;
+        tmax,
+        extinction_threshold,
+        callback,
+        verbose,
+        kwargs...,
+    )
+
+    if deg_top
+        # Analyze eventual topology.
+        g = model.topology
+        biomass = out[end]
+        restrict_to_live_species!(g, biomass)
+        diagnostics = []
+        for comp in disconnected_components(g)
+            sp = collect(live_species(g))
+            prods = collect(live_producers(model, g))
+            cons = collect(live_consumers(model, g))
+            ip = isolated_producers(model, comp)
+            sc = starving_consumers(model, comp)
+            push!(diagnostics, (sp, prods, cons, ip, sc))
+        end
+        # HERE: display the message suggested in
+        # https://github.com/BecksLab/EcologicalNetworksDynamics.jl/issues/151#issuecomment-2058641548
+    end
+
+    out
 end
 @method _simulate depends(FunctionalResponse, ProducerGrowth, Metabolism, Mortality)
 

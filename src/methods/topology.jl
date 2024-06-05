@@ -17,31 +17,7 @@ const ifilter = Iterators.filter
 # Re-export from Topologies.
 export disconnected_components
 
-# TEMP DEBUG
-struct TrophicGraph end
-
-# Most methods hereafter are only defined
-# if :species and/or :trophic compartments do exist.
-check_species(g::Topology) =
-    is_node_type(g, :species) ||
-    argerr("The given topology has no :species node compartment.")
-check_trophic(g::Topology) =
-    is_edge_type(g, :trophic) ||
-    argerr("The given topology has no :trophic edges compartment.")
-
-"""
-    trophic_adjacency(g::Topology)
-
-Produce a two-level iterators yielding predators on first level
-and all its preys on the second level.
-This only includes :species nodes (and not *eg.* :nutrients).
-"""
-function trophic_adjacency(g::Topology)
-    check_species(g)
-    check_trophic(g)
-    U.outgoing_edges_labels(g, :trophic, :species)
-end
-export trophic_adjacency
+include("./basic_topology_queries.jl")
 
 """
     remove_species!(g::Topology, node::Symbol)
@@ -151,3 +127,25 @@ function starving_consumers(m::InnerParms, g::Topology)
 end
 @method starving_consumers depends(Foodweb)
 export starving_consumers
+
+# ==========================================================================================
+# Common checks.
+check_node_compartment(g::Topology, lab::Symbol) =
+    is_node_type(g, lab) ||
+    argerr("The given topology has no $(repr(lab)) node compartment.")
+check_edge_compartment(g::Topology, lab::Symbol) =
+    is_edge_type(g, lab) ||
+    argerr("The given topology has no $(repr(lab)) edge compartment.")
+
+check_species(g::Topology) = check_node_compartment(g, :species)
+check_nutrients(g::Topology) = check_node_compartment(g, :nutrients)
+check_trophic(g::Topology) = check_edge_compartment(g, :trophic)
+
+function check_species_numbers(m::InnerParms, g::Topology, i_sp)
+    a = m.n_species
+    b = U.n_nodes_including_removed(g, i_sp)
+    a == b || argerr("Mismatch between the number of species nodes \
+                      in the given model ($a) and the given topology ($b).")
+end
+check_species_numbers(m::InnerParms, g::Topology) = # (save this search when you can)
+    check_species_numbers(m, g, U.edge_type_index(:species))

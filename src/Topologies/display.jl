@@ -10,11 +10,11 @@ function _th(n)
 end
 th(n) = "$n$(_th(n))"
 
-function Base.show(io::IO, top::Topology)
-    n_nt = n_node_types(top)
-    n_et = n_edge_types(top)
-    n_n = sum((U.n_nodes(top, i) for i in 1:n_nt); init = 0)
-    n_e = sum((U.n_edges(top, i) for i in 1:n_et); init = 0)
+function Base.show(io::IO, g::Topology)
+    n_nt = n_node_types(g)
+    n_et = n_edge_types(g)
+    n_n = sum((U.n_nodes(g, i) for i in 1:n_nt); init = 0)
+    n_e = sum((U.n_edges(g, i) for i in 1:n_et); init = 0)
     print(
         io,
         "Topology(\
@@ -26,11 +26,11 @@ function Base.show(io::IO, top::Topology)
     )
 end
 
-function Base.show(io::IO, ::MIME"text/plain", top::Topology)
-    n_nt = n_node_types(top)
-    n_et = n_edge_types(top)
-    n_n = sum((U.n_nodes(top, i) for i in 1:n_nt); init = 0)
-    n_e = sum((U.n_edges(top, i) for i in 1:n_et); init = 0)
+function Base.show(io::IO, ::MIME"text/plain", g::Topology)
+    n_nt = n_node_types(g)
+    n_et = n_edge_types(g)
+    n_n = sum((U.n_nodes(g, i) for i in 1:n_nt); init = 0)
+    n_e = sum((U.n_edges(g, i) for i in 1:n_et); init = 0)
     print(
         io,
         "Topology for $n_nt node type$(s(n_nt)) \
@@ -43,14 +43,14 @@ function Base.show(io::IO, ::MIME"text/plain", top::Topology)
         print(".")
     end
     println(io, "\n  Nodes:")
-    for (i_type, type) in enumerate(_node_types(top))
+    for (i_type, type) in enumerate(_node_types(g))
         i_type > 1 && println(io)
         tomb = Symbol[] # Collect removed nodes to display at the end.
         print(io, "    $(repr(type)) => [")
         empty = true
-        for i_node in U.nodes_abs_indices(top, i_type)
-            node = U.node_label(top, i_node)
-            if U.is_removed(top, i_node)
+        for i_node in U.nodes_abs_indices(g, i_type)
+            node = U.node_label(g, i_node)
+            if U.is_removed(g, i_node)
                 push!(tomb, node)
                 continue
             end
@@ -64,16 +64,16 @@ function Base.show(io::IO, ::MIME"text/plain", top::Topology)
         end
     end
     n_e > 0 && print(io, "\n  Edges:")
-    for (i_type, type) in enumerate(_edge_types(top))
+    for (i_type, type) in enumerate(_edge_types(g))
         print(io, "\n    $(repr(type))")
         empty = true
-        for (i_source, _neighbours) in U._outgoing_edges_indices(top, i_type)
+        for (i_source, _neighbours) in U._outgoing_edges_indices(g, i_type)
             isempty(_neighbours) && continue
-            source = U.node_label(top, Abs(i_source))
+            source = U.node_label(g, Abs(i_source))
             print(io, "\n      $(repr(source)) => [")
             first = true
             for i_target in _neighbours
-                target = U.node_label(top, Abs(i_target))
+                target = U.node_label(g, Abs(i_target))
                 first || print(io, ", ")
                 print(io, repr(target))
                 first = false
@@ -88,9 +88,9 @@ function Base.show(io::IO, ::MIME"text/plain", top::Topology)
 end
 
 # A debug display to just screen through the whole value.
-debug(top::Topology) =
+debug(g::Topology) =
     for fn in fieldnames(Topology)
-        val = getfield(top, fn)
+        val = getfield(g, fn)
         if fn in (:incoming, :outgoing)
             println("$fn: ")
             for (i_adj, adj) in enumerate(val)
