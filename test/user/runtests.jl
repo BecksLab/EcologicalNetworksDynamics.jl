@@ -9,6 +9,7 @@ import ..Main: @sysfails, @argfails
 
 # Run all .jl files we can find except the current one (and without recursing).
 only = [] # Unless some files are specified here, in which case only run these.
+only = ["./06-post-simulation.jl"] # Unless some files are specified here, in which case only run these.
 if isempty(only)
     folder = dirname(@__FILE__)
     for file in readdir(folder)

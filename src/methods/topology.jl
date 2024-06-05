@@ -98,8 +98,7 @@ Iterate over isolated producers nodes in the topology
 """
 function isolated_producers(m::InnerParms, g::Topology)
     sp = U.node_type_index(g, :species)
-    abs(i_rel) = U.node_abs_index(g, i_rel, sp)
-    rel(i_abs) = U.node_rel_index(g, i_abs, sp)
+    abs(i_rel) = U.node_abs_index(g, T.Rel(i_rel), sp)
     lab(i_abs) = U.node_label(g, i_abs)
     imap(lab, ifilter(imap(abs, get_producers_indices(m))) do i_prod
         inc = g.incoming[i_prod.i]
@@ -122,8 +121,8 @@ Iterate over starving consumers nodes in the topology
 function starving_consumers(m::InnerParms, g::Topology)
     sp = U.node_type_index(g, :species)
     tr = U.edge_type_index(g, :trophic)
-    abs(i_rel) = U.node_abs_index(g, i_rel, sp)
-    rel(i_abs) = U.node_rel_index(g, i_abs, sp)
+    abs(i_rel) = U.node_abs_index(g, T.Rel(i_rel), sp)
+    rel(i_abs) = U.node_rel_index(g, i_abs, sp).i
     lab(i_abs) = U.node_label(g, i_abs)
     live(i_abs) = U.is_live(g, i_abs)
 
@@ -137,13 +136,13 @@ function starving_consumers(m::InnerParms, g::Topology)
     found = Set{T.Abs}()
     while !isempty(to_visit)
         i = pop!(to_visit)
-        if is_consumer(m, rel(i).i)
+        if is_consumer(m, rel(i))
             pop!(consumers, i)
         end
         push!(found, i)
-        for up in U._incoming_indices(g, i, tr)
+        for up in U.incoming_indices(g, i, tr)
             up in found && continue
-            push!(to_visit, rel(up))
+            push!(to_visit, up)
         end
     end
 

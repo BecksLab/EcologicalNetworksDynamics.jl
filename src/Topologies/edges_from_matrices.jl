@@ -3,8 +3,8 @@
 # including (blank) removed nodes.
 function add_edges_within_node_type!(
     top::Topology,
-    node_type,
-    edge_type,
+    node_type::IRef,
+    edge_type::IRef,
     e::AbstractSparseMatrix{Bool},
 )
     # Check transaction.
@@ -71,7 +71,7 @@ function add_edges_within_node_type!(
 
     top
 end
-add_edges_within_node_type!(top::Topology, n, e, m::Matrix{Bool}) =
+add_edges_within_node_type!(top::Topology, n::IRef, e::IRef, m::Matrix{Bool}) =
     add_edges_within_node_type!(top, n, e, sparse(m))
 export add_edges_within_node_type!
 
@@ -81,9 +81,9 @@ export add_edges_within_node_type!
 
 function add_edges_accross_node_types!(
     top::Topology,
-    source_node_type,
-    target_node_type,
-    edge_type,
+    source_node_type::IRef,
+    target_node_type::IRef,
+    edge_type::IRef,
     e::AbstractSparseMatrix{Bool},
 )
     # Check transaction.
@@ -160,6 +160,6 @@ function add_edges_accross_node_types!(
 
     top
 end
-add_edges_accross_node_types!(top::Topology, n, m, t, e::Matrix{Bool}) =
+add_edges_accross_node_types!(top::Topology, n::IRef, m::IRef, t::IRef, e::Matrix{Bool}) =
     add_edges_accross_node_types!(top, n, m, t, sparse(e))
 export add_edges_accross_node_types!

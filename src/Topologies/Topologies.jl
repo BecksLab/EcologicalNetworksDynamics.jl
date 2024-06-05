@@ -104,9 +104,9 @@ include("display.jl")
 function add_nodes!(top::Topology, labels, type::Symbol)
 
     # Check whole transaction before commiting.
-    is_node_type_valid(top, type) &&
+    has_node_type(top, type) &&
         argerr("Node type $(repr(type)) already exists in the topology.")
-    is_edge_type_valid(top, type) &&
+    has_edge_type(top, type) &&
         argerr("Node type $(repr(type)) would be confused with edge type $(repr(type)).")
     labels = check_new_nodes_labels(top, labels)
 
@@ -163,7 +163,7 @@ function add_edge_type!(top::Topology, type::Symbol)
 end
 export add_edge_type!
 
-function add_edge!(top::Topology, type, source::AbsRef, target::AbsRef)
+function add_edge!(top::Topology, type::IRef, source::AbsRef, target::AbsRef)
     # Check transaction.
     check_edge_type(top, type)
     check_node_ref(top, source)
@@ -193,7 +193,7 @@ include("./edges_from_matrices.jl")
 # Remove all neighbours of this node and replace it with a tombstone.
 
 # The exposed version is checked.
-function remove_node!(top::Topology, node::RelRef, type)
+function remove_node!(top::Topology, node::RelRef, type::IRef)
     # Check transaction.
     check_node_type(top, type)
     check_node_ref(top, node, type)
@@ -264,7 +264,10 @@ function disconnected_components(top::Topology)
         Iterators.filter(weakly_connected_components(graph)) do component_nodes
             # Removed nodes result in degenerated singleton components.
             # Dismiss them.
-            !(length(component_nodes) == 1 && U.is_removed(top, component_nodes[1]))
+            !(
+                length(component_nodes) == 1 &&
+                U.is_removed(top, Abs(first(component_nodes)))
+            )
         end,
     ) do component_nodes
         # Construct a whole new value with only these nodes remaining.

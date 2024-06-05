@@ -52,9 +52,12 @@ end
     ]
 
     # This graph has two disconnected components.
-    dc = collect(disconnected_components(g))
-    @test length(dc) == 2
-    u, v = dc
+    function check_components(g, n)
+        dc = collect(disconnected_components(g))
+        @test length(dc) == n
+        dc
+    end
+    u, v = check_components(g, 2)
     #! format: off
     @test sortadj(u) == [
         :a => [:b, :c],
@@ -82,9 +85,7 @@ end
     restrict_to_live_species!(g, biomass)
 
     # Now there are three disconnected components.
-    dc = collect(disconnected_components(g))
-    @test length(dc) == 3
-    u, v, w = dc
+    u, v, w = check_components(g, 3)
     @test sortadj(u) == [:a => [:b], :b => [:d], :d => []]
     @test sortadj(v) == [:e => [:f], :f => []]
     @test sortadj(w) == [:h => []]
@@ -96,9 +97,7 @@ end
 
     # The more extinct species the more quirks.
     remove_species!(g, :d)
-    dc = collect(disconnected_components(g))
-    @test length(dc) == 3
-    u, v, w = disconnected_components(g)
+    u, v, w = check_components(g, 3)
     @test sortadj(u) == [:a => [:b], :b => []]
     @test sortadj(v) == [:e => [:f], :f => []]
     @test sortadj(w) == [:h => []]
@@ -119,5 +118,27 @@ end
         "Species :c has been removed from this topology, \
          but its biomass is still above threshold: 1.0 > 0."
     )
+
+    # Producers connected by nutrients are not considered isolated anymore,
+    # and the corresponding topology is not anymore disconnected.
+    m += Nutrients.Nodes([:u])
+    g = m.topology
+    @test length(collect(disconnected_components(g))) == 1
+
+    # Obtaining starving consumers is possible on extinction,
+    # but not isolated producers.
+    biomass = [name in "bcg" ? 0 : 1 for name in "abcdefgh"]
+    restrict_to_live_species!(g, biomass)
+    u, v = check_components(g, 2)
+    check_set(isolated_producers, (u, v), [])
+    check_set(starving_consumers, (u,), [:a])
+    check_set(starving_consumers, (v,), [])
+
+    # Even if the very last producer is only connected to its nutrient source.
+    biomass = [name in "h" ? 1 : 0 for name in "abcdefgh"]
+    restrict_to_live_species!(g, biomass)
+    u, = check_components(g, 1)
+    check_set(isolated_producers, (u,), [])
+    check_set(starving_consumers, (u,), [])
 
 end

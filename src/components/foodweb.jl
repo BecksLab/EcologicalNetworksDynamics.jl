@@ -360,6 +360,11 @@ function F.expand!(m, bp::Foodweb)
     top = m.topology
     add_edge_type!(top, :trophic)
     add_edges_within_node_type!(top, :species, :trophic, A)
+
+    # TODO: this should happen with components-combinations-triggered-hooks
+    # (see Nutrient.Nodes expansion)
+    Topologies.has_node_type(top, :nutrients) && Nutrients.connect_producers_to_nutrients(m)
+
 end
 
 @component Foodweb implies(Species)

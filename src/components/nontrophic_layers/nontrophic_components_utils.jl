@@ -139,7 +139,7 @@ end
 # ==========================================================================================
 # Check/expand full layer components.
 
-has_nontrophic_layers(model) = model.network isa MultiplexNetwork
+has_nontrophic_layers(model) = model.network isa Internals.MultiplexNetwork
 export has_nontrophic_layers
 
 # The application procedure differs

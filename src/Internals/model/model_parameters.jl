@@ -183,6 +183,7 @@ function ModelParameters(
         temperature_response,
         network,
         biorates,
+        Topology(),
         functional_response,
         producer_growth,
         nothing,
