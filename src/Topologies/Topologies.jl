@@ -27,6 +27,13 @@ always consistent with their indices from the model value when extracted.
 As a consequence, every node in the topology
 can be queried for having been 'removed' or not: tombstones remain.
 No tombstone remain for edges: once removed, there is no trace left of them.
+Node types and edge types constitute the various "compartments" of the topology:
+equivalence classes gather all nodes/edges with the same type.
+There are two ways of querying nodes information with indices:
+
+  - Using *absolute* indices, uniquely identifying nodes within the whole topology.
+  - Using *relative* indices, uniquely identifying nodes within their *compartment*.
+    Two newtypes types `Abs` and `Rel` are used in the API to protect against mixing them up.
 """
 struct Topology
     # List/index possible types for nodes and edges.
@@ -40,8 +47,8 @@ struct Topology
     # Nodes are *sorted by type*:
     # so that all nodes with the same type are stored contiguously in this array.
     # Nodes can't be removed from this list, so the indexes remain stable.
-    nodes_labels::Vector{Symbol} # [node index: node label]
-    nodes_index::Dict{Symbol,Int} # {node label: node index}
+    nodes_labels::Vector{Symbol} # [node absolute index: node label]
+    nodes_index::Dict{Symbol,Int} # {node label: node absolute index}
     nodes_types::Vector{UnitRange{Int}} # [type index: (start, end) of nodes with this type]
 
     # Topological information: paired, layered adjacency lists.
@@ -51,7 +58,7 @@ struct Topology
     # [node: [edgetype: {nodeid}]]
     # ^--------------------------^- : Adjacency list: one entry per node 'N'.
     #        ^-------------------^- : One entry per edge type or a tombstone (removed node).
-    #                   ^--------^- : One entry per neighbour of 'N': its index.
+    #                   ^--------^- : One entry per neighbour of 'N': its absolute index.
 
     # Cached redundant information.
     n_edges::Vector{Int} # Per edge type.
@@ -60,6 +67,28 @@ struct Topology
     Topology() = new([], Dict(), [], Dict(), [], Dict(), [], [], [], [], [])
 end
 export Topology
+
+# Wrap an absolute node type.
+struct Abs
+    i::Int
+end
+
+# Wrap a relative node type.
+struct Rel
+    i::Int
+end
+
+# Either an index or a label.
+const AbsRef = Union{Abs,Symbol}
+const RelRef = Union{Rel,Symbol}
+
+# When exposing indices
+# explicit whether they mean relative or absolute.
+const IRef = Union{Int,Symbol}
+relative(i::Int) = Rel(i)
+absolute(i::Int) = Abs(i)
+relative(lab::Symbol) = lab
+absolute(lab::Symbol) = lab
 
 include("unchecked_queries.jl")
 const U = Unchecked # Ease refs to unchecked queries.
@@ -134,14 +163,14 @@ function add_edge_type!(top::Topology, type::Symbol)
 end
 export add_edge_type!
 
-function add_edge!(top::Topology, type, source, target)
+function add_edge!(top::Topology, type, source::AbsRef, target::AbsRef)
     # Check transaction.
     check_edge_type(top, type)
     check_node_ref(top, source)
     check_node_ref(top, target)
     i_type = U.edge_type_index(top, type)
-    i_source = U.node_index(top, source)
-    i_target = U.node_index(top, target)
+    i_source = U.node_abs_index(top, source)
+    i_target = U.node_abs_index(top, target)
     check_live_node(top, i_source, source)
     check_live_node(top, i_target, target)
     U.has_edge(top, i_type, i_source, i_target) &&
@@ -150,9 +179,9 @@ function add_edge!(top::Topology, type, source, target)
     # Commit.
     _add_edge!(top, i_type, i_source, i_target)
 end
-function _add_edge!(top::Topology, i_type::Int, i_source::Int, i_target::Int)
-    push!(top.outgoing[i_source][i_type], i_target)
-    push!(top.incoming[i_target][i_type], i_source)
+function _add_edge!(top::Topology, i_type::Int, i_source::Abs, i_target::Abs)
+    push!(top.outgoing[i_source.i][i_type], i_target.i)
+    push!(top.incoming[i_target.i][i_type], i_source.i)
     top.n_edges[i_type] += 1
     top
 end
@@ -164,23 +193,21 @@ include("./edges_from_matrices.jl")
 # Remove all neighbours of this node and replace it with a tombstone.
 
 # The exposed version is checked.
-function remove_node!(top::Topology, node, type)
+function remove_node!(top::Topology, node::RelRef, type)
     # Check transaction.
-    check_node_ref(top, node)
     check_node_type(top, type)
-    i_node = U.node_index(top, node)
+    check_node_ref(top, node, type)
+    i_node = U.node_abs_index(top, node, type)
     U.is_live(top, i_node) || alreadyerr(node)
     i_type = U.node_type_index(top, type)
-    U.is_node_of_type(top, i_node, i_type) ||
-        argerr("Node $(repr(node)) is not of type $(repr(type)).")
     _remove_node!(top, i_node, i_type)
 end
 
 # Not specifying the type requires a linear search for it.
-function remove_node!(top::Topology, node)
+function remove_node!(top::Topology, node::AbsRef)
     # Check transaction.
     check_node_ref(top, node)
-    i_node = U.node_index(top, node)
+    i_node = U.node_abs_index(top, node)
     U.is_live(top, i_node) || alreadyerr(node)
     i_type = U.type_index_of_node(top, node)
     _remove_node!(top, i_node, i_type)
@@ -188,21 +215,19 @@ end
 
 alreadyerr(node) = argerr("Node $(repr(node)) was already removed from this topology.")
 
-export remove_node!
-
 # Commit.
-function _remove_node!(top::Topology, i_node::Int, i_type::Int)
+function _remove_node!(top::Topology, i_node::Abs, i_type::Int)
     # Assumes the node is valid and live, and that the type does correspond.
-    top.n_edges .-= length.(top.outgoing[i_node])
-    top.n_edges .-= length.(top.incoming[i_node])
+    top.n_edges .-= length.(top.outgoing[i_node.i])
+    top.n_edges .-= length.(top.incoming[i_node.i])
     ts = Tombstone()
-    top.outgoing[i_node] = ts
-    top.incoming[i_node] = ts
+    top.outgoing[i_node.i] = ts
+    top.incoming[i_node.i] = ts
     for adjacency in (top.outgoing, top.incoming)
         for other in adjacency
             other isa Tombstone && continue
             for neighbours in other
-                pop!(neighbours, i_node, nothing)
+                pop!(neighbours, i_node.i, nothing)
             end
         end
     end
@@ -210,8 +235,12 @@ function _remove_node!(top::Topology, i_node::Int, i_type::Int)
     top
 end
 
+export remove_node!
+
 #-------------------------------------------------------------------------------------------
 """
+    disconnected_components(top::Topology)
+
 Iterate over the disconnected component within the topology.
 This create a collection of topologies
 with all the same compartments and nodes indices,
@@ -231,7 +260,13 @@ function disconnected_components(top::Topology)
         end
     end
     # Use it to run disconnection algorithm.
-    Iterators.map(weakly_connected_components(graph)) do component_nodes
+    Iterators.map(
+        Iterators.filter(weakly_connected_components(graph)) do component_nodes
+            # Removed nodes result in degenerated singleton components.
+            # Dismiss them.
+            !(length(component_nodes) == 1 && U.is_removed(top, component_nodes[1]))
+        end,
+    ) do component_nodes
         # Construct a whole new value with only these nodes remaining.
         new = Topology()
         # All types are copied as-is.
@@ -260,12 +295,12 @@ function disconnected_components(top::Topology)
             if i_node > last(new.nodes_types[i_node_type])
                 i_node_type += 1
             end
-            inn = top.incoming[i_node] # `in` would break `a in b`.
+            inc = top.incoming[i_node]
             out = top.outgoing[i_node]
             if i_node in component_nodes && !(out isa Tombstone)
                 new_in = Vector{OrderedSet{Int}}()
                 new_out = Vector{OrderedSet{Int}}()
-                for (i_edge_type, (in_et, out_et)) in enumerate(zip(inn, out))
+                for (i_edge_type, (in_et, out_et)) in enumerate(zip(inc, out))
                     in_entry = OrderedSet()
                     out_entry = OrderedSet()
                     first = true

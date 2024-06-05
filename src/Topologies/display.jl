@@ -48,7 +48,7 @@ function Base.show(io::IO, ::MIME"text/plain", top::Topology)
         tomb = Symbol[] # Collect removed nodes to display at the end.
         print(io, "    $(repr(type)) => [")
         empty = true
-        for i_node in U.nodes_indices(top, i_type)
+        for i_node in U.nodes_abs_indices(top, i_type)
             node = U.node_label(top, i_node)
             if U.is_removed(top, i_node)
                 push!(tomb, node)
@@ -69,11 +69,11 @@ function Base.show(io::IO, ::MIME"text/plain", top::Topology)
         empty = true
         for (i_source, _neighbours) in U._outgoing_edges_indices(top, i_type)
             isempty(_neighbours) && continue
-            source = U.node_label(top, i_source)
+            source = U.node_label(top, Abs(i_source))
             print(io, "\n      $(repr(source)) => [")
             first = true
             for i_target in _neighbours
-                target = U.node_label(top, i_target)
+                target = U.node_label(top, Abs(i_target))
                 first || print(io, ", ")
                 print(io, repr(target))
                 first = false

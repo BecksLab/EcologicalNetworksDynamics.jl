@@ -11,6 +11,51 @@ end
 
 const T = Topologies
 const U = Topologies.Unchecked
+const imap = Iterators.map
+const ifilter = Iterators.filter
+
+# Re-export from Topologies.
+export disconnected_components
+
+# TEMP DEBUG
+struct TrophicGraph end
+
+# Most methods hereafter are only defined
+# if :species and/or :trophic compartments do exist.
+check_species(g::Topology) =
+    is_node_type(g, :species) ||
+    argerr("The given topology has no :species node compartment.")
+check_trophic(g::Topology) =
+    is_edge_type(g, :trophic) ||
+    argerr("The given topology has no :trophic edges compartment.")
+
+"""
+    trophic_adjacency(g::Topology)
+
+Produce a two-level iterators yielding predators on first level
+and all its preys on the second level.
+This only includes :species nodes (and not *eg.* :nutrients).
+"""
+function trophic_adjacency(g::Topology)
+    check_species(g)
+    check_trophic(g)
+    U.outgoing_edges_labels(g, :trophic, :species)
+end
+export trophic_adjacency
+
+"""
+    remove_species!(g::Topology, node::Symbol)
+
+Remove the given species from the topology.
+The species name will remain in-place so that integer-based-indexing remains stable,
+but it will be replaced with a tombstone
+and all incoming and outgoing links will be forgotten.
+"""
+function remove_species!(g::Topology, node::T.IRef)
+    check_species(g)
+    T.remove_node!(g, T.relative(node), :species)
+end
+export remove_species!
 
 """
     restrict_to_live_species!(g::Topology, biomasses; threshold = 0)
@@ -21,151 +66,89 @@ Remove species nodes until only species with "live" biomasses remain
 function restrict_to_live_species!(g::Topology, biomasses; threshold = 0)
     # Rely on species index memory to map biomass values to labels,
     # even though some species may already have been removed.
-    is_node_type(g, :species) || argerr("The given topology has no :species compartment.")
+    check_species(g)
     sp = U.node_type_index(g, :species)
-    no = U.n_nodes(g, sp)
+    no = U.n_nodes_including_removed(g, sp)
     nb = length(biomasses)
-    no == nb || argerr("The given topology indexes $no species, \
-                        but the given biomasses vector size is $nb.")
-    for (i_sp, bm) in zip(U.nodes_indices(g, sp), biomasses)
+    if no != nb
+        n_live = U.n_nodes(g, sp)
+        rem = n_live == no ? "" : " ($(no - n_live) removed)"
+        argerr("The given topology indexes $no species$rem, \
+                but the given biomasses vector size is $nb.")
+    end
+    for (i_sp, bm) in zip(U.nodes_abs_indices(g, sp), biomasses)
         rm = U.is_removed(g, i_sp)
         if bm > threshold
             rm && argerr("Species $(repr(U.node_label(g, i_sp))) \
                           has been removed from this topology, \
                           but its biomass is still above threshold: $bm > $threshold.")
         else
-            rm || remove_node!(g, i_sp, sp)
+            rm || T._remove_node!(g, i_sp, sp)
         end
     end
+    g
 end
 export restrict_to_live_species!
 
 """
-    disconnected_components(g::TrophicGraph)
+    isolated_producers(m::Model, g::Topology)
 
-Extract connected components from the trophic graph.
+Iterate over isolated producers nodes in the topology
+*i.e.* producers without incoming or outgoing edges.
 """
-# HERE: re-implement in pure Topologies.
-struct TrophicGraph end # TEMP DEBUG.
-function disconnected_components(g::TrophicGraph)
-    # Split the 'full' graph `g` into 'sub'graphs corresponding to components.
-    # Watch re-indexing.
-    (; _topology, _revmap, _original_species) = g # Properties of the full graph.
-    map(weakly_connected_components(_topology)) do component_nodes
-        sub = SimpleDiGraph()
-        reindex = Dict{Int,Int}() # { node index in full graph -> node index in sub graph }
-        labels = Dict{Symbol,Int}()
-        revmap = Vector{Symbol}()
-        # Construct all nodes.
-        for (i_sub, i_full) in enumerate(component_nodes)
-            add_vertex!(sub)
-            reindex[i_full] = i_sub
-            sp = _revmap[i_full]
-            push!(revmap, sp)
-            labels[sp] = i_sub
-        end
-        # Construct all edges.
-        for (sub_source, full_source) in enumerate(component_nodes)
-            for full_target in neighbors(_topology, full_source)
-                sub_target = reindex[full_target]
-                add_edge!(sub, sub_source, sub_target)
-            end
-        end
-        TrophicGraph(sub, labels, revmap, _original_species)
-    end
+function isolated_producers(m::InnerParms, g::Topology)
+    sp = U.node_type_index(g, :species)
+    abs(i_rel) = U.node_abs_index(g, i_rel, sp)
+    rel(i_abs) = U.node_rel_index(g, i_abs, sp)
+    lab(i_abs) = U.node_label(g, i_abs)
+    imap(lab, ifilter(imap(abs, get_producers_indices(m))) do i_prod
+        inc = g.incoming[i_prod.i]
+        inc isa T.Tombstone && return false
+        any(!isempty, inc) && return false
+        out = g.outgoing[i_prod.i]
+        any(!isempty, out) && return false
+        true
+    end)
 end
-export disconnected_components
-
-"""
-    isolated_producers(g::TrophicGraph)
-
-Collect isolated producers nodes in the trophic graph
-*i.e.* producer without incoming edges.
-"""
-function isolated_producers(graph::TrophicGraph)
-    (; _revmap, _original_species, _topology) = graph
-    res = Set{Symbol}()
-    for (i, sp) in enumerate(_revmap)
-        is_producer = _original_species[sp]
-        is_producer || continue
-        isempty(inneighbors(_topology, i)) || continue
-        push!(res, sp)
-    end
-    res
-end
+@method isolated_producers depends(Foodweb)
 export isolated_producers
 
 """
-    starving_consumers(graph::TrophicGraph)
+    starving_consumers(m::Model, g::Topology)
 
-Collect starving consumers nodes in the trophic graph
-*i.e.* consumers with no directed path to a consumer.
+Iterate over starving consumers nodes in the topology
+*i.e.* consumers with no directed trophic path to a consumer.
 """
-function starving_consumers(graph::TrophicGraph)
-    (; _topology, _original_species, _revmap) = graph
+function starving_consumers(m::InnerParms, g::Topology)
+    sp = U.node_type_index(g, :species)
+    tr = U.edge_type_index(g, :trophic)
+    abs(i_rel) = U.node_abs_index(g, i_rel, sp)
+    rel(i_abs) = U.node_rel_index(g, i_abs, sp)
+    lab(i_abs) = U.node_label(g, i_abs)
+    live(i_abs) = U.is_live(g, i_abs)
 
-    # Collect all current producers and consumers.
-    producers = Vector{Int}()
-    consumers = Set{Symbol}()
-    for (i, sp) in enumerate(_revmap)
-        is_producer = _original_species[sp]
-        if is_producer
-            push!(producers, i)
-        else
-            push!(consumers, sp)
-        end
-    end
+    # Collect all current (live) producers and consumers.
+    producers = collect(ifilter(live, imap(abs, get_producers_indices(m))))
+    consumers = Set(ifilter(live, imap(abs, get_consumers_indices(m))))
 
     # Visit the graph from producers up to consumers,
     # and remove all consumers founds.
     to_visit = producers
-    found = Set{Int}()
+    found = Set{T.Abs}()
     while !isempty(to_visit)
         i = pop!(to_visit)
-        sp = _revmap[i]
-        is_consumer = !_original_species[sp]
-        if is_consumer
-            pop!(consumers, sp)
+        if is_consumer(m, rel(i).i)
+            pop!(consumers, i)
         end
         push!(found, i)
-        for up in inneighbors(_topology, i)
+        for up in U._incoming_indices(g, i, tr)
             up in found && continue
-            push!(to_visit, up)
+            push!(to_visit, rel(up))
         end
     end
 
     # The remaining consumers are starving.
-    consumers
+    imap(lab, consumers)
 end
+@method starving_consumers depends(Foodweb)
 export starving_consumers
-
-# ==========================================================================================
-# Expose as checked model methods.
-
-function biomass_foodweb(
-    m::InnerParms,
-    biomasses;
-    threshold = 0,
-    warn_nontrophic_links = true,
-)
-    g = m.trophic_graph
-    if warn_nontrophic_links && has_nontrophic_layers(m)
-        @warn "Restricting ecological model to only a trophic graph \
-               with extinct species nodes removed \
-               may yield inconsistent expectations regarding \
-               the meaning of remaining non-trophic interactions."
-    end
-    restrict_to_live!(g, biomasses; threshold)
-end
-@method biomass_foodweb depends(Foodweb)
-
-function disconnected_components(m::InnerParms, biomasses; threshold = 0)
-    g = biomass(m, biomasses; threshold)
-    # HERE: this raises too many complications
-    # just because non-trophic interactions
-    # are not represented by the trophic graph.
-    # Make the trophic graph a simple view into the whole model topology,
-    # reified as a true `ModelGraph` type,
-    # with proper layers for nodes and edges.
-    # Drop Graphs.jl in this respect: only locally useful for very particular algorithms.
-end

@@ -126,7 +126,11 @@ remove_node!(v, :b, :species)
 )
 @argfails(remove_node!(u, :b), "Node :b was already removed from this topology.")
 @argfails(remove_node!(u, :b, :species), "Node :b was already removed from this topology.")
-@argfails(remove_node!(top, :b, :nutrients), "Node :b is not of type :nutrients.")
+@argfails(
+    remove_node!(top, :b, :nutrients),
+    "Invalid :nutrients node label: :b. \
+     Valid labels are :u and :v."
+)
 
 # ==========================================================================================
 # Add a whole bunch of edges at once.
@@ -413,10 +417,36 @@ add_edge!(top, :trophic, :d, :v)
 add_edge!(top, :mutualism, :a, :u)
 add_edge!(top, :interference, :c, :v)
 
-x, y = collect(Topologies.disconnected_components(top))
-Topologies.debug(top)
-Topologies.debug(x)
-Topologies.debug(y)
-# HERE: seems okay: check with display.
+x, y = disconnected_components(top)
+#! format: off
+check_display(x,
+   "Topology(2 node types, 3 edge types, 3 nodes, 3 edges)",
+raw"Topology for 2 node types and 3 edge types with 3 nodes and 3 edges:
+  Nodes:
+    :species => [:a, :b]  <removed: [:c, :d]>
+    :nutrients => [:u]  <removed: [:v]>
+  Edges:
+    :trophic
+      :a => [:b]
+      :b => [:u]
+    :mutualism
+      :a => [:u]
+    :interference <none>",
+)
+check_display(y,
+   "Topology(2 node types, 3 edge types, 3 nodes, 3 edges)",
+raw"Topology for 2 node types and 3 edge types with 3 nodes and 3 edges:
+  Nodes:
+    :species => [:c, :d]  <removed: [:a, :b]>
+    :nutrients => [:v]  <removed: [:u]>
+  Edges:
+    :trophic
+      :c => [:d]
+      :d => [:v]
+    :mutualism <none>
+    :interference
+      :c => [:v]",
+)
+#! format: on
 
 end

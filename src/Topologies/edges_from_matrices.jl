@@ -11,7 +11,7 @@ function add_edges_within_node_type!(
     check_node_type(top, node_type)
     check_edge_type(top, edge_type)
     i_edge_type = U.edge_type_index(top, edge_type)
-    indices = U.nodes_indices(top, node_type)
+    indices = U._nodes_abs_range(top, node_type)
     n = length(indices)
     size(e) == (n, n) || argerr("The given edges matrix should be of size ($n, $n) \
                                  because there $(are(n)) $n node$(s(n)) \
@@ -24,7 +24,8 @@ function add_edges_within_node_type!(
     targets .+= offset
     for (indices, dim) in ((sources, "row"), (targets, "column"))
         for i_node in indices
-            if U.is_removed(top, i_node)
+            a_n = Abs(i_node)
+            if U.is_removed(top, a_n)
                 i_matrix = i_node - offset
                 # Clarify error in case the offset is relevant.
                 par = if offset == 0
@@ -33,7 +34,7 @@ function add_edges_within_node_type!(
                     " (index $i_node: $(th(i_matrix)) \
                        within the $(repr(U.node_type_label(top, node_type))) node type)"
                 end
-                argerr("Node $(repr(U.node_label(top, i_node)))$par \
+                argerr("Node $(repr(U.node_label(top, a_n)))$par \
                         has been removed from this topology, \
                         but the given matrix has a nonzero entry in \
                         $dim $(i_matrix).")
@@ -41,10 +42,12 @@ function add_edges_within_node_type!(
         end
     end
     for (i_src, i_tgt) in zip(sources, targets)
-        if U.has_edge(top, i_edge_type, i_src, i_tgt)
+        a_s = Abs(i_src)
+        a_t = Abs(i_tgt)
+        if U.has_edge(top, i_edge_type, a_s, a_t)
             etype = U.edge_type_label(top, i_edge_type)
-            src = U.node_label(top, i_src)
-            tgt = U.node_label(top, i_tgt)
+            src = U.node_label(top, a_s)
+            tgt = U.node_label(top, a_t)
             i_matrix = i_src - offset
             j_matrix = i_tgt - offset
             par = if offset == 0
@@ -63,7 +66,7 @@ function add_edges_within_node_type!(
 
     # Commit.
     for (i_src, i_tgt) in zip(sources, targets)
-        _add_edge!(top, i_edge_type, i_src, i_tgt)
+        _add_edge!(top, i_edge_type, Abs(i_src), Abs(i_tgt))
     end
 
     top
@@ -88,8 +91,8 @@ function add_edges_accross_node_types!(
     check_node_type(top, target_node_type)
     check_edge_type(top, edge_type)
     i_edge_type = U.edge_type_index(top, edge_type)
-    source_indices = U.nodes_indices(top, source_node_type)
-    target_indices = U.nodes_indices(top, target_node_type)
+    source_indices = U._nodes_abs_range(top, source_node_type)
+    target_indices = U._nodes_abs_range(top, target_node_type)
     source_indices == target_indices && argerr("Source node types and target node types \
                                                 are the same ($(repr(source_node_type))). \
                                                 Use $add_edges_within_node_type! \
@@ -113,7 +116,8 @@ function add_edges_accross_node_types!(
         (targets, "column", target_offset, target_node_type),
     )
         for i_node in indices
-            if U.is_removed(top, i_node)
+            a_n = Abs(i_node)
+            if U.is_removed(top, a_n)
                 i_matrix = i_node - offset
                 # Clarify error in case the offset is relevant.
                 par = if offset == 0
@@ -122,7 +126,7 @@ function add_edges_accross_node_types!(
                     " (index $i_node: $(th(i_matrix)) \
                        within the $(repr(U.node_type_label(top, node_type))) node type)"
                 end
-                argerr("Node $(repr(U.node_label(top, i_node)))$par \
+                argerr("Node $(repr(U.node_label(top, a_n)))$par \
                         has been removed from this topology, \
                         but the given matrix has a nonzero entry in \
                         $dim $(i_matrix).")
@@ -130,10 +134,12 @@ function add_edges_accross_node_types!(
         end
     end
     for (i_src, i_tgt) in zip(sources, targets)
-        if U.has_edge(top, i_edge_type, i_src, i_tgt)
+        a_s = Abs(i_src)
+        a_t = Abs(i_tgt)
+        if U.has_edge(top, i_edge_type, a_s, a_t)
             etype = U.edge_type_label(top, i_edge_type)
-            src = U.node_label(top, i_src)
-            tgt = U.node_label(top, i_tgt)
+            src = U.node_label(top, a_s)
+            tgt = U.node_label(top, a_t)
             i_matrix = i_src - source_offset
             j_matrix = i_tgt - target_offset
             par = " (indices $i_src and $i_tgt: \
@@ -149,7 +155,7 @@ function add_edges_accross_node_types!(
 
     # Commit.
     for (i_src, i_tgt) in zip(sources, targets)
-        _add_edge!(top, i_edge_type, i_src, i_tgt)
+        _add_edge!(top, i_edge_type, Abs(i_src), Abs(i_tgt))
     end
 
     top

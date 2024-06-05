@@ -36,11 +36,11 @@ end
     g = m.topology
 
     # Sort to ease testing.
-    adjacency(g) = sort(map(species(g)) do sp
-        sp => sort(collect(preys(g, sp)))
-    end)
+    sortadj(g) = sort(
+        collect([pred => sort(collect(preys)) for (pred, preys) in trophic_adjacency(g)]),
+    )
 
-    @test adjacency(g) == [
+    @test sortadj(g) == [
         :a => [:b, :c],
         :b => [:d],
         :c => [:d],
@@ -52,9 +52,11 @@ end
     ]
 
     # This graph has two disconnected components.
-    u, v = disconnected_components(g)
+    dc = collect(disconnected_components(g))
+    @test length(dc) == 2
+    u, v = dc
     #! format: off
-    @test adjacency(u) == [
+    @test sortadj(u) == [
         :a => [:b, :c],
         :b => [:d],
         :c => [:d],
@@ -62,53 +64,60 @@ end
         :e => [:c, :f],
         :f => [],
     ]
-    @test adjacency(v) == [
+    @test sortadj(v) == [
         :g => [:h],
         :h => [],
     ]
     #! format: on
 
     # But no degenerated species yet.
-    @test all(==(Set()), isolated_producers.((g, u, v)))
-    @test all(==(Set()), starving_consumers.((g, u, v)))
+    check_set(fn, tops, expected) = for top in tops
+        @test Set(fn(m, top)) == Set(expected)
+    end
+    check_set(isolated_producers, (g, u, v), [])
+    check_set(starving_consumers, (g, u, v), [])
 
     # Removing species changes the situation.
     biomass = [name in "cg" ? 0 : 1 for name in "abcdefgh"]
-    restrict_to_live!(g, biomass)
+    restrict_to_live_species!(g, biomass)
 
     # Now there are three disconnected components.
-    u, v, w = disconnected_components(g)
-    @test adjacency(u) == [:a => [:b], :b => [:d], :d => []]
-    @test adjacency(v) == [:h => []]
-    @test adjacency(w) == [:e => [:f], :f => []]
+    dc = collect(disconnected_components(g))
+    @test length(dc) == 3
+    u, v, w = dc
+    @test sortadj(u) == [:a => [:b], :b => [:d], :d => []]
+    @test sortadj(v) == [:e => [:f], :f => []]
+    @test sortadj(w) == [:h => []]
 
     # A few quirks appear regarding foreseeable equilibrium state.
-    @test all(==(Set([:h])), isolated_producers.((g, v)))
-    @test all(==(Set()), isolated_producers.((u, w)))
-    @test all(==(Set()), starving_consumers.((g, u, v, w)))
+    check_set(isolated_producers, (g, w), [:h])
+    check_set(isolated_producers, (u, v), [])
+    check_set(starving_consumers, (g, u, v, w), [])
 
     # The more extinct species the more quirks.
     remove_species!(g, :d)
+    dc = collect(disconnected_components(g))
+    @test length(dc) == 3
     u, v, w = disconnected_components(g)
-    @test adjacency(u) == [:a => [:b], :b => []]
-    @test adjacency(v) == [:h => []]
-    @test adjacency(w) == [:e => [:f], :f => []]
-    @test all(==(Set([:h])), isolated_producers.((g, v)))
-    @test all(==(Set([:a, :b])), starving_consumers.((g, u)))
-    @test all(==(Set()), isolated_producers.((u, w)))
-    @test all(==(Set()), starving_consumers.((v, w)))
+    @test sortadj(u) == [:a => [:b], :b => []]
+    @test sortadj(v) == [:e => [:f], :f => []]
+    @test sortadj(w) == [:h => []]
+    check_set(isolated_producers, (g, w), [:h])
+    check_set(starving_consumers, (g, u), [:a, :b])
+    check_set(isolated_producers, (u, v), [])
+    check_set(starving_consumers, (v, v), [])
 
     @argfails(
-        restrict_to_live!(g, [1]),
-        "The given trophic graph originally had 8 species, \
+        restrict_to_live_species!(g, [1]),
+        "The given topology indexes 8 species (3 removed), \
          but the given biomasses vector size is 1."
     )
 
     # Cannot resurrect species.
     @argfails(
-        restrict_to_live!(g, ones(8)),
-        "Species :c has been removed from this trophic graph, \
-         but it still has a biomass above threshold: 1.0 > 0."
+        restrict_to_live_species!(g, ones(8)),
+        "Species :c has been removed from this topology, \
+         but its biomass is still above threshold: 1.0 > 0."
     )
 
 end
