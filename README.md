@@ -36,6 +36,18 @@ using Pkg
 Pkg.add("EcologicalNetworksDynamics")
 ```
 
+> [!TIP]
+> If the package cannot be installed because of incompatible dependencies
+> (for example, if you have already an old package installed that requires old versions of some dependencies),
+> we advise you to create a fresh environment by running
+>
+> ```julia
+> using Pkg; Pkg.activate("your_environment_name")
+> Pkg.add("EcologicalNetworksDynamics")
+> ```
+>
+> By doing so, you will avoid conflicts with other packages.
+
 To check that the package installation went well,
 create a simple food web with
 
