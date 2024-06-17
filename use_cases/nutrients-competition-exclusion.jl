@@ -53,4 +53,4 @@ Legend(
     tellheight = true, # Adjust the height of the legend sub-figure.
     tellwidth = false, # Do not adjust width of the orbit diagram.
 )
-save("/tmp/plot.png", fig; size = (450, 300), px_per_unit = 3)
+save("nutrients-competition-exclusion.png", fig; size = (450, 300), px_per_unit = 3)

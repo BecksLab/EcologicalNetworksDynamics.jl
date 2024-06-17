@@ -88,4 +88,17 @@ Legend(
     tellwidth = false, # Do not adjust bottom subfigure width to legend width.
 )
 # To save the figure, uncomment and execute the line below.
-save("/tmp/plot.png", fig; size = (450, 300), px_per_unit = 3)
+save("persistence-vs-producer-competition.png", fig; size = (450, 300), px_per_unit = 3)
+
+# Added for revisions.
+# Compute mean number of producers for each connectance value.
+df_prod = DataFrame(; C = Float64[], n_producers = Int64[])
+for C in C_values
+    df_thread = DataFrame(; C = Float64[], aij = Float64[], persistence = Float64[])
+    for j in 1:n_replicates
+        foodweb = Foodweb(:niche; S, C, tol_C)
+        base_model = default_model(foodweb, bodymass; without = ProducerGrowth)
+        push!(df_prod, [C, base_model.n_producers])
+    end
+end
+combine(groupby(df_prod, :C), :n_producers => mean)

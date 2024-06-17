@@ -114,7 +114,7 @@ for (idx, interaction) in zip(indices, interaction_names)
 end
 # Write x and y labels.
 font = firasans("Medium") # Label font.
-Label(fig[1:2, 0], "Diversity variation"; font, rotation = pi / 2, width = 0)
+Label(fig[1:2, 0], "Relative change in diversity"; font, rotation = pi / 2, width = 0)
 Label(fig[3, 1:2], "Interaction intensity"; font, height = 0)
 # To save the figure, uncomment and execute the line below.
-save("/tmp/plot.png", fig; size = (450, 320), px_per_unit = 3)
+save("diversity-vs-nti-intensity.png", fig; size = (450, 320), px_per_unit = 3)
