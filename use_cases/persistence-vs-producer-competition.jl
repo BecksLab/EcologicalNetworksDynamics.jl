@@ -7,7 +7,7 @@ using EcologicalNetworksDynamics
 
 # Define global community parameters.
 S = 20 # Species richness.
-bodymass = BodyMass(; Z=100) # Z = predator-prey bodymass ratio.
+bodymass = BodyMass(; Z = 100) # Z = predator-prey bodymass ratio.
 K = 1.0 # Producer carrying capacity.
 aii = 1.0 # Intraspecific competition among producers.
 extinction_threshold = 1e-6 # Set biomass threshold to consider a species extinct.
@@ -29,14 +29,14 @@ standardize_K(n_producers, K, aij) = K * (1 + (aij * (n_producers - 1))) / n_pro
 dfs = [DataFrame() for _ in eachindex(C_values)] # Fill the vector with empty DataFrames.
 Threads.@threads for i in eachindex(C_values) # Parallelize on connctance values.
     C = C_values[i]
-    df_thread = DataFrame(; C=Float64[], aij=Float64[], persistence=Float64[])
+    df_thread = DataFrame(; C = Float64[], aij = Float64[], persistence = Float64[])
     for j in 1:n_replicates
         foodweb = Foodweb(:niche; S, C, tol_C)
-        base_model = default_model(foodweb, bodymass; without=ProducerGrowth)
+        base_model = default_model(foodweb, bodymass; without = ProducerGrowth)
         for aij in aij_values
             logistic_growth = LogisticGrowth(;
-                producers_competition=(diag=aii, offdiag=aij),
-                K=standardize_K(base_model.n_producers, K, aij),
+                producers_competition = (diag = aii, offdiag = aij),
+                K = standardize_K(base_model.n_producers, K, aij),
             )
             m = base_model + logistic_growth # Update logistic growth component.
             B0 = rand(S) # Initial biomass.
@@ -67,8 +67,8 @@ set_aog_theme!()
 fig = Figure()
 ax = Axis(
     fig[2, 1];
-    xlabel="Interspecific producer competition, αᵢⱼ",
-    ylabel="Species persistence",
+    xlabel = "Interspecific producer competition, αᵢⱼ",
+    ylabel = "Species persistence",
 )
 curves = []
 colors = [get(viridis, val) for val in LinRange(0, 1, length(C_values))]
@@ -77,30 +77,30 @@ for (C, color) in zip(C_values, colors)
     x = df_extract.aij
     y = df_extract.persistence_mean
     ci = df_extract.ci95
-    sl = scatterlines!(x, y; color=color, markercolor=color)
-    errorbars!(x, y, ci; color, whiskerwidth=5)
+    sl = scatterlines!(x, y; color = color, markercolor = color)
+    errorbars!(x, y, ci; color, whiskerwidth = 5)
     push!(curves, sl)
 end
 Legend(
     fig[1, 1],
     curves,
     ["C = $C" for C in C_values];
-    orientation=:horizontal,
-    tellheight=true, # Adjust top subfigure height to legend height.
-    tellwidth=false, # Do not adjust bottom subfigure width to legend width.
+    orientation = :horizontal,
+    tellheight = true, # Adjust top subfigure height to legend height.
+    tellwidth = false, # Do not adjust bottom subfigure width to legend width.
 )
 # To save the figure, uncomment and execute the line below.
-save("/tmp/plot.png", fig; size=(450, 300), px_per_unit=3)
+save("/tmp/plot.png", fig; size = (450, 300), px_per_unit = 3)
 
 # Added for revisions.
 # Compute mean number of producers for each connectance value.
-df_prod = DataFrame(; C=Float64[], n_producers=Int64[])
+df_prod = DataFrame(; C = Float64[], n_producers = Int64[])
 for i in eachindex(C_values) # Parallelize on connctance values.
     C = C_values[i]
-    df_thread = DataFrame(; C=Float64[], aij=Float64[], persistence=Float64[])
+    df_thread = DataFrame(; C = Float64[], aij = Float64[], persistence = Float64[])
     for j in 1:n_replicates
         foodweb = Foodweb(:niche; S, C, tol_C)
-        base_model = default_model(foodweb, bodymass; without=ProducerGrowth)
+        base_model = default_model(foodweb, bodymass; without = ProducerGrowth)
         push!(df_prod, [C, base_model.n_producers])
     end
 end

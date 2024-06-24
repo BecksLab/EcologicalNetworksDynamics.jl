@@ -28,7 +28,7 @@ VERSION >= v"1.10"
 
 If the output is `true`, you are good to go.
 Otherwise, you will have to download a newer version of Julia.
-Once you have ensured that Julia is properly installed, 
+Once you have ensured that Julia is properly installed,
 you can install the package by running in a Julia terminal
 
 ```julia
@@ -96,7 +96,7 @@ The contribution guidelines are detailed
 
 Please mention `EcologicalNetworksDynamics.jl`
 if you use it in research, teaching, or other activities.
-To cite the package, please refer to the associated 
+To cite the package, please refer to the associated
 [preprint](https://doi.org/10.1101/2024.03.20.585899).
 
 

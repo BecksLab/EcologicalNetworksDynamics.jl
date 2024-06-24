@@ -41,12 +41,12 @@ n_interaction = length(interaction_names)
 dfs = [DataFrame() for _ in 1:n_foodweb] # Fill the vector with empty DataFrames.
 Threads.@threads for i in 1:n_foodweb # Parallelize computation if possible.
     df_thread = DataFrame(;
-        foodweb_id=Int64[],
-        interaction=Symbol[],
-        intensity=Float64[],
-        diversity=Int64[],
+        foodweb_id = Int64[],
+        interaction = Symbol[],
+        intensity = Float64[],
+        diversity = Int64[],
     )
-    fw = Foodweb(:niche; S=50, C=0.06)
+    fw = Foodweb(:niche; S = 50, C = 0.06)
     for interaction in interaction_names
         intensity_values = intensity_values_dict[interaction]
         # Third, increase the non-trophic interaction intensity.
@@ -55,13 +55,13 @@ Threads.@threads for i in 1:n_foodweb # Parallelize computation if possible.
             # with the given intensity.
             m = default_model(
                 fw,
-                BodyMass(; Z=50),
-                ClassicResponse(; c=0.8),
-                NontrophicLayers(; interaction => (; intensity, L=L_nti)),
+                BodyMass(; Z = 50),
+                ClassicResponse(; c = 0.8),
+                NontrophicLayers(; interaction => (; intensity, L = L_nti)),
             )
             callback(m) =
                 CallbackSet(extinction_callback(m, 1e-5), TerminateSteadyState(1e-8, 1e-6))
-            solution = simulate(m, rand(S), t; callback=callback(m))
+            solution = simulate(m, rand(S), t; callback = callback(m))
             # Save the final diversity at equilibrium.
             push!(df_thread, [i, interaction, intensity, richness(solution[end])])
         end
@@ -102,19 +102,19 @@ for (idx, interaction) in zip(indices, interaction_names)
     df_interaction = df_processed[df_processed.interaction.==interaction, :]
     ax = Axis(
         fig[idx...];
-        title="$interaction",
-        titlefont=firasans("Light"),
-        titlegap=0,
+        title = "$interaction",
+        titlefont = firasans("Light"),
+        titlegap = 0,
     )
     x = df_interaction.intensity
     y = df_interaction.delta_diversity_mean
     ci = df_interaction.delta_diversity_ci95
     scatterlines!(x, y)
-    errorbars!(x, y, ci; whiskerwidth=5)
+    errorbars!(x, y, ci; whiskerwidth = 5)
 end
 # Write x and y labels.
 font = firasans("Medium") # Label font.
-Label(fig[1:2, 0], "Relative change in diversity"; font, rotation=pi / 2, width=0)
-Label(fig[3, 1:2], "Interaction intensity"; font, height=0)
+Label(fig[1:2, 0], "Relative change in diversity"; font, rotation = pi / 2, width = 0)
+Label(fig[3, 1:2], "Interaction intensity"; font, height = 0)
 # To save the figure, uncomment and execute the line below.
-save("nti.png", fig; size=(450, 320), px_per_unit=3)
+save("nti.png", fig; size = (450, 320), px_per_unit = 3)
