@@ -50,8 +50,6 @@ end
 @info "All simulations done."
 df = reduce(vcat, dfs)
 
-
-
 # Compute the mean persistence and the 95% confidence interval (`ci95`)
 # for each (C, αij) combination.
 groups = groupby(df, [:C, :aij])
@@ -90,13 +88,12 @@ Legend(
     tellwidth = false, # Do not adjust bottom subfigure width to legend width.
 )
 # To save the figure, uncomment and execute the line below.
-save("/tmp/plot.png", fig; size = (450, 300), px_per_unit = 3)
+save("producer-competition.png", fig; size = (450, 300), px_per_unit = 3)
 
 # Added for revisions.
 # Compute mean number of producers for each connectance value.
 df_prod = DataFrame(; C = Float64[], n_producers = Int64[])
-for i in eachindex(C_values) # Parallelize on connectance values.
-    C = C_values[i]
+for C in C_values
     df_thread = DataFrame(; C = Float64[], aij = Float64[], persistence = Float64[])
     for j in 1:n_replicates
         foodweb = Foodweb(:niche; S, C, tol_C)

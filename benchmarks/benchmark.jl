@@ -13,13 +13,7 @@ B0 = 0.5 .+ rand(S)
 t_max = 100_000
 
 # Simulation time - First call.
-t1 = time()
-simulate(model, B0, t_max)
-t2 = time()
-t2 - t1 # Time to first call ~ 3 seconds on a MacBook Pro M1.
+@time simulate(model, B0, t_max); # Time to first call ~ 3 seconds on a MacBook Pro M1.
 
-# Simulation time - After first call (even faster).
-t1 = time()
-simulate(model, B0, t_max)
-t2 = time()
-t2 - t1 # Time after first call <~ 0.1 seconds on a MacBook Pro M1.
+# Simulation time - After first call.
+@time simulate(model, B0, t_max); # Even faster ~ 0.1 seconds.
