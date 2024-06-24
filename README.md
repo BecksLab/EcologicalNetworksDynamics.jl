@@ -42,7 +42,8 @@ Pkg.add("EcologicalNetworksDynamics")
 > we advise you to create a fresh environment by running
 >
 > ```julia
-> using Pkg; Pkg.activate("your_environment_name")
+> using Pkg
+> Pkg.activate("your_environment_name")
 > Pkg.add("EcologicalNetworksDynamics")
 > ```
 >

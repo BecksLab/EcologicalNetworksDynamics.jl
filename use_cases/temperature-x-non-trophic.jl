@@ -4,7 +4,7 @@ using DataFrames
 using DifferentialEquations
 using DiffEqCallbacks
 using EcologicalNetworksDynamics
-set_aog_theme!()
+set_aog_theme!() # Default plot config.
 
 S_pool = 30 # Number of species in the pool, that is, before assembly.
 T_values = range(290, 310; length=10) # Temperature range.

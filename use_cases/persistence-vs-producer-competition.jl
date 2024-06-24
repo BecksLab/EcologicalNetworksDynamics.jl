@@ -95,7 +95,7 @@ save("/tmp/plot.png", fig; size = (450, 300), px_per_unit = 3)
 # Added for revisions.
 # Compute mean number of producers for each connectance value.
 df_prod = DataFrame(; C = Float64[], n_producers = Int64[])
-for i in eachindex(C_values) # Parallelize on connctance values.
+for i in eachindex(C_values) # Parallelize on connectance values.
     C = C_values[i]
     df_thread = DataFrame(; C = Float64[], aij = Float64[], persistence = Float64[])
     for j in 1:n_replicates
