@@ -12,6 +12,7 @@ using .EN.Framework
 import .EN: Framework as F, Internals, ModelBlueprint, join_elided, @component, @expose_data
 using OrderedCollections
 using SparseArrays
+using .EN.Topologies
 
 # The compartment defining nutrients nodes, akin to `Species`.
 include("./nodes.jl")
