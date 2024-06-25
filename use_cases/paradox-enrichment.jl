@@ -58,4 +58,4 @@ Legend(
     tellwidth = false, # Do not adjust width of the orbit diagram.
 )
 # To save the figure, uncomment and execute the line below.
-save("/tmp/plot.png", fig; size = (450, 300), px_per_unit = 3)
+save("paradox-enrichment.png", fig; size = (450, 300), px_per_unit = 3)

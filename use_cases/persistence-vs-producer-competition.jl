@@ -88,7 +88,7 @@ Legend(
     tellwidth = false, # Do not adjust bottom subfigure width to legend width.
 )
 # To save the figure, uncomment and execute the line below.
-save("producer-competition.png", fig; size = (450, 300), px_per_unit = 3)
+save("persistence-vs-producer-competition.png", fig; size = (450, 300), px_per_unit = 3)
 
 # Added for revisions.
 # Compute mean number of producers for each connectance value.

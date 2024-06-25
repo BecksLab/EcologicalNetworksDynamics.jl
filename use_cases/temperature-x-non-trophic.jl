@@ -45,4 +45,4 @@ heatmap!(
 )
 limits = extrema(df_top.biomass)
 Colorbar(fig[1, 2]; label = "Biomass of top predator", colormap = :viridis, limits)
-save("temperature-nti.png", fig; size = (450, 300), px_per_unit = 3)
+save("temperature-x-nontrophic.png", fig; size = (450, 300), px_per_unit = 3)
