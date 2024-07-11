@@ -16,7 +16,7 @@ using OrderedCollections
 using SparseArrays
 using Statistics
 using Decimals
-
+using StatsBase
 
 # Include scripts
 include(joinpath(".", "macros.jl"))

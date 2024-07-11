@@ -29,12 +29,13 @@ function dBdt!(dB, B, p, t)
 
     if stressor.addstressor == true
         if t >= stressor.start
-            for (idx, val) in enumerate(producers(params.network))
-                params.biorates.r[val] = 1 + (stressor.slope[idx] * (t-stressor.start))
-            end
-        else
-            for (idx, val) in enumerate(producers(params.network))
-                params.biorates.r[val] = 1
+
+            for (idx, val) in enumerate(stressor.stressed_species) # stressed species can either be stochastic (we stress μ), or producers (we stress r), or consumers (we stress x)
+                if val ∈ producers(params.network)
+                    params.biorates.r[val] = stressor.base_rate[idx] + (stressor.slope[idx] * ceil((t - stressor.start)/stressor.step_length))
+                else # a consumer
+                    params.biorates.x[val] = stressor.base_rate[idx] * (1 + (stressor.slope[idx] * ceil((t - stressor.start)/stressor.step_length)))
+                end
             end
         end
     end
@@ -87,12 +88,14 @@ function stoch_dBdt!(dB, B, p, t)
     if stressor.addstressor == true
         if t >= stressor.start
 
-            for i in 1:S
-                if i in stochasticity.stochspecies
-                    idx = first(findall(x -> x == i, stochasticity.stochspecies))
-                    dB[S+idx] = stochasticity.θ[idx] * ((1 + (stressor.slope[idx] * (t-stressor.start))) - B[S+idx])
-                elseif i ∈ producers(params.network)
-                    params.biorates.r[i] = 1 + (stressor.slope[i] * (t-stressor.start))
+            for (idx, val) in enumerate(stressor.stressed_species) # stressed species can either be stochastic (we stress μ), or producers (we stress r), or consumers (we stress x)
+                if val in stochasticity.stochspecies
+                    stoch_idx = first(findall(x -> x == val, stochasticity.stochspecies))
+                    dB[S+stoch_idx] = stochasticity.θ[stoch_idx] * ((stressor.base_rate[idx] + (stressor.slope[idx] * ceil((t - stressor.start)/stressor.step_length))) - B[S+stoch_idx])
+                elseif val ∈ producers(params.network)
+                    params.biorates.r[val] = stressor.base_rate[idx] + (stressor.slope[idx] * ceil((t - stressor.start)/stressor.step_length))
+                else # a consumer
+                    params.biorates.x[val] = stressor.base_rate[idx] * (1 + (stressor.slope[idx] * ceil((t - stressor.start)/stressor.step_length)))
                 end
             end
         end
