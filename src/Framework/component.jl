@@ -1,33 +1,32 @@
 # Components are not values, but they are reified here as julia *singletons types*
-# whose corresponding blueprint types are statically associated to.
+# whose corresponding blueprints associate to.
 #
 # No concrete component type can be added twice to the system.
 #
-# When user wants to add a component to the system,
-# they provide a blueprint value which needs to be expanded into a component.
+# When user wants to add (a) component(s) to the system,
+# they provide a blueprint value which needs to be expanded into (a) component(s).
 #
 # The data inside the blueprint is only useful to run the internal `expand!()` method once,
 # and must not lend caller references to the system,
-# so its internal state cannot be broken later.
+# for the internal state to not be possibly corrupted later.
 # For now, this is enforced by requiring that all blueprints be copy-able.
-# Only a copy of the caller blueprint is actually used for component expansion.
-#
-# This also permits that the whole system forks,
-# including its own history of components as a collection of the blueprints used.
+# Only a copy of the caller blueprint is actually used for component(s) expansion.
 #
 # Components may 'require' other components,
 # because the data they bring are meaningless without them.
+# If A requires B, it means that A cannot be added in a system with no B.
 #
 # Components also 'conflict' with each other:
-# It is a failure to add a component if it conflicts
-# with another component already added.
+# because the data they bring makes no sense within their context.
+# If A conflicts with B, it means that an error should be raised
+# when attempting to add A in a system with B.
 #
-# Component types can be structured with a julia abstract type hierarchy:
+# Component types can be structured with a julia's abstract type hierarchy:
 #
 #   - Conflicting with an abstract component A
-#     is conflicting with any component subtyping A.
+#     means conflicting with any component subtyping A.
 #
-#   - An abstract component cannot conflict with a component subtyping itself.
+#   - If component B subtypes A, then A and B cannot conflict with each other.
 #
 # It is not currently possible for an abstract component to 'require',
 # But this might be implemented for a convincingly motivated need,

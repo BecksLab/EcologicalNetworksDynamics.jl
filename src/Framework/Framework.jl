@@ -27,25 +27,17 @@
 # In consequence, lib users cannot get a 'component' variable
 # referring to data inside the system.
 # Instead, they get 'blueprints' for components,
-# which they can construct and tweak as just regular julia structs.
+# which they can construct and tweak like regular julia structs.
 # When ready, a blueprint can be read by the system, checked,
-# and expanded into the actual components.
+# and expanded into the actual component(s).
 #
 # No component can be added twice,
-# and no blueprint can be read and expanded into different components types.
-# As a consequence, 'Components' are implemented as julia DataTypes,
-# and 'blueprint' are plain instances of these types:
+# but blueprints can be read and expanded into different components types.
+# Also, the components they bring may depend on their value
+# and/or the current state of the system.
 #
-#   component = Blueprint # Refers to the 'component' concept but not to data in the system.
-#   blueprint = Blueprint(...) # Contains data later used to expand into a system component.
-#
-# TODO: the above design puts too much constraint on the blueprint/component relations.
-#       refactor the framework to dissociate them into distinct sets of types.
-#       Considering that blueprints imply/bring other blueprints,
-#       it is even *wrong* now under certain aspects.
-#       The fix is to separate component types from blueprint types,
-#       but this requires deep refactoring with strong ergonomics consequences
-#       (on the framework users, but not on the users of the lib they develop with it).
+# 'Components' contain no data and are implemented as julia singletons marker types.
+# 'Blueprints' are regular data structures implementing the blueprint interface.
 #
 # Adding a component to the system therefore reduces to:
 #
@@ -72,7 +64,7 @@
 # Before being expanded into a component,
 # every blueprint is carefully checked by lib devs
 # so they can guarantee that the internal state cannot be corrupted during expansion,
-# and by the exposed System/Blueprint/Component/Method interface in general.
+# and by the exposed System/Blueprints/Components/Methods interface in general.
 #
 # As a current limitation, there is no way to "remove" a component from the system,
 # so the system evolution is monotonic.
@@ -93,7 +85,9 @@ module Framework
 #   - [x] Encourage moving sophisticated function definitions outside macro calls
 #     to ease burden on `Revise`.
 #   - [x] blueprints *optionnaly* bring other blueprints.
+#   - [!] Components are not blueprint types, but an autonomous hierachy of singleton types.
 #   - [.] "*blueprints* imply/bring *blueprints*", not "components imply/bring components"
+#   - [.] Blueprints 'history' become meaningless if methods can mutate the internal state.
 #   - [ ] `depends(other_method_name)` to inherit all dependent components.
 #   - [.] Recurring pattern: various blueprints types provide 'the same component': reify.
 #   - [ ] Namespace properties into like system.namespace.namespace.property.
@@ -108,9 +102,9 @@ using OrderedCollections
 
 argerr(m) = throw(ArgumentError(m))
 const Option{T} = Union{T,Nothing}
+struct PhantomData{T} end
 
 # Abstract over various exception thrown during inconsistent use of the system.
-struct PhantomData{T} end
 abstract type SystemException <: Exception end
 
 # Base structure.
