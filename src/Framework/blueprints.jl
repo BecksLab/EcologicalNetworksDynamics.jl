@@ -1,5 +1,7 @@
 # Blueprint expand into components within a system.
 #
+# The components added during blueprint expansion depend on its value. # <- HERE: BREAKING!
+#
 # Blueprint may 'bring' other blueprints than themselves,
 # so other components than their own,
 # because they contain enough data to construct more than one component.
@@ -30,6 +32,14 @@
 # even though the component they bring does not.
 # This blueprint requirement is specified by the 'expands_from' function.
 # Expanding-from an abstract component A is expanding from any component subtyping A.
+
+## HERE: ALTERNATE DESIGN:
+## A blueprint type should not be tied to a component type,
+## I suspect that this introduces too much constraint on the range of possible blueprints.
+## As a consequence: the method componentof(::Type{B}) where {B<:Blueprint}
+## should not exist anymore.
+## Remove it and check consequences.
+## I bet (hope?) they should be be small: removing a constraint without removing structure.
 
 abstract type Blueprint{V} end
 export Blueprint

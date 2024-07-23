@@ -13,11 +13,11 @@
 # Only a copy of the caller blueprint is actually used for component(s) expansion.
 #
 # Components may 'require' other components,
-# because the data they bring are meaningless without them.
+# because the data they become are meaningless without them.
 # If A requires B, it means that A cannot be added in a system with no B.
 #
 # Components also 'conflict' with each other:
-# because the data they bring makes no sense within their context.
+# because the data they become makes no sense within their context.
 # If A conflicts with B, it means that an error should be raised
 # when attempting to add A in a system with B.
 #
@@ -51,8 +51,8 @@ export Component
 ##
 ##    module OmegaBlueprints
 ##       # /!\ many redundant imports to factorize here.
-##       struct Raw <: Blueprint{_Omega} ... end
-##       struct Random <: Blueprint{_Omega} ... end
+##       struct Raw <: Blueprint ... end
+##       struct Random <: Blueprint ... end
 ##       ...
 ##    end
 ##
@@ -63,7 +63,7 @@ export Component
 ##    )
 ##    export Omega
 ##
-##    function (C::Omega)(args...; kwargs...)
+##    function (C::_Omega)(args...; kwargs...)
 ##       if ..
 ##           C.Raw(...)
 ##       elseif ...
@@ -88,7 +88,7 @@ export Component
 ##     the brought is an 'embedding' or an 'implication'.
 ##     - Error if an embedded blueprint brings a component already in the system.
 ##     - Ignore implied blueprints bringing components already in the system.
-##     - Error if any brought component is already brought by another blueprint
+##     - Error if any brought component is already brought by another sub-blueprint
 ##       and the two differ.
 ##     - Error if any brought component conflicts with components already in the system.
 ##   - When collection is over, visit the tree post-order to:
