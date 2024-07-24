@@ -403,7 +403,10 @@ function tidy_output(params::ModelParameters, output)
 
     output = (t = output.t, B = hcat(output.u...)')
 
-    to_keep = findall(x -> x != 0, diff(output.t)) # where diff == 0 (difference to next timestep), the callback has kicked in
+    to_drop = findall(x -> x == 0, diff(output.t)) # where diff == 0 (difference to next timestep), the callback has kicked in
+    # because the length of diff(time) is length(time) - 1, to drop gives the indexes of the first of the repeated timesteps
+
+    to_keep = setdiff([1:1:length(output.t);], to_drop) # we want everything else
 
     biomasses = output.B[to_keep, :]
 
