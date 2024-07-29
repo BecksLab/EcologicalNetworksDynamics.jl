@@ -1,11 +1,14 @@
 # Components append data to a value wrapped in a 'System'.
-# The system keeps track of all the blueprints used to add components their dependencies.
+# The system keeps track of all the components added.
 # It also checks that the method called and properties invoked
 # do meet the components requirements.
 #
 # The whole framework responsibility is to ensure consistency of the wrapped value.
 # As a consequence, don't leak references to it or its inner data
 # unless user cannot corrupt the value state through them.
+#
+# The value wrapped needs to be constructible from no arguments,
+# so the user can start with an "empty system".
 #
 # The value wrapped needs to be copy-able for the system to be forked.
 # So do the components blueprints.
@@ -68,9 +71,7 @@ function Base.getproperty(system::System{V}, p::Symbol) where {V}
     # Authorize direct accesses to private fields.
     p in fieldnames(System) && return getfield(system, p)
     # Search property method.
-    props = properties_(V)
-    haskey(props, p) || syserr(V, "Invalid property name: '$p'.")
-    fn = props[p].read
+    fn = read_property(V, Val(p))
     # Check for required components availability.
     Miss = missing_dependency_for(V, fn, system)
     if !isnothing(Miss)
@@ -85,39 +86,32 @@ function Base.setproperty!(system::System{V}, p::Symbol, rhs) where {V}
     # Authorize direct accesses to private fields.
     p in fieldnames(System) && return setfield!(system, p, rhs)
     # Search property method.
-    props = properties_(V)
-    haskey(props, p) || syserr(V, "Invalid property name: '$p'.")
-    fn = props[p].write
-    isnothing(fn) && properr(V, p, "This property is read-only.")
+    fn = readwrite_property(V, Val(p))
     # Check for required components availability.
     Miss = missing_dependency_for(V, fn, system)
     if !isnothing(Miss)
         comp = isabstracttype(Miss) ? "A component $Miss" : "Component $Miss"
         properr(V, p, "$comp is required to write to this property.")
     end
-    # Invoke property method, checking for available components.
+    # Invoke property method.
     fn(system, rhs)
 end
 
-# In case the client agrees,
+# In case the framework user agrees,
 # also forward the properties to the wrapped value.
-# Note that this happens without checking dependent components.
+# Note that this happens without checking dependent components,
+# and that the `; _system` hook cannot be provided then in this context.
 # Still, a lot of things *are* checked, so this 'unchecked' does *not* mean 'performant'.
 function unchecked_getproperty(value::V, p::Symbol) where {V}
-    perr(mess) = properr(V, p, mess)
     p in fieldnames(V) && return getfield(value, p)
-    props = properties_(V)
-    haskey(props, p) || perr("Neither a field of '$V' nor a property.")
-    props[p].read(value)
+    fn = read_property(V, Val(p))
+    fn(value)
 end
 
 function unchecked_setproperty!(value::V, p::Symbol, rhs) where {V}
     perr(mess) = properr(V, p, mess)
     p in fieldnames(V) && return setfield!(value, p, rhs)
-    props = properties_(V)
-    haskey(props, p) || perr("Neither a field or a property.")
-    fn = props[p].write
-    isnothing(fn) && properr(V, p, "Property is not writable.")
+    fn = readwrite_property(V, p)
     fn(value, rhs)
 end
 
@@ -146,22 +140,40 @@ has_component(s::System{V}, c::Component{V}) where {V} = has_component(s, typeof
 has_concrete_component(s::System{V}, c::Component{V}) where {V} = typeof(c) in s._concrete
 export has_component, has_concrete_component
 
-# List properties available for this instance.
-# Returns {:propname => is_writeable}
-function properties(s::System{V}) where {V}
-    res = Dict{Symbol,Bool}()
-    for (name, prop) in properties_(V)
-        readable = isnothing(missing_dependency_for(V, prop.read, s))
-        if isnothing(prop.write)
-            writeable = false
-        else
-            writeable = isnothing(missing_dependency_for(V, prop.write, s))
-        end
-        readable && (res[name] = writeable)
+# List all properties and associated functions for this type.
+# Yields (name, is_read, Option{is_write}) values.
+function properties(::Type{V}) where {V}
+    Iterators.map(
+        Iterators.filter(methods(read_property, Tuple{Type{V},Val}, Framework)) do mth
+            val = mth.sig.types[end]
+            val <: Val ||
+                throw("Unexpected method signature for $read_property: $(mth.sig)")
+            val !== Val # Omit generic implementation.
+        end,
+    ) do mth
+        val = mth.sig.types[end]
+        name = first(val.parameters)
+        (name, mth(V, Val(name)), possible_write_property(V, Val(name)))
     end
-    res
+end
+
+# List properties available for this system type.
+# Returns {:propname => is_writeable}
+function properties(::Type{System{V}}) where {V}
+    Dict(p => isnothing(write) for (p, read, write) in properties(V))
+end
+
+# List properties available for this instance.
+function properties(s::System{V}) where {V}
+    Dict(
+        p => isnothing(write) for
+        (p, read, write) in properties(V) if isnothing(missing_dependency_for(V, read, s))
+    )
 end
 export properties
+
+# Consistency + REPL completion.
+Base.propertynames(s::System{V}) where {V} = collect(keys(properties(s)))
 
 #-------------------------------------------------------------------------------------------
 

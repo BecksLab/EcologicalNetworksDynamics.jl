@@ -10,16 +10,21 @@
 #
 # Only the second one needs to be specified by the framework user,
 # along with its components dependencies.
-
+#
+# If the method needs to run differently
+# depending on the presence/absence of other components,
+# then the following hook is provided:
+#
+#   - method(v::Value, ..; .., _system::System) <- to enable has_component(_system, C).
+#
 # Also, methods with these exact signatures:
 #
-#   - method(v::Value)
+#   - method(v::Value)  (+ optional `; _system`)
 #
-#   - method!(v::Value, rhs)
+#   - method!(v::Value, rhs) ( + optional `; _system`)
 #
 # Can optionally become properties of the system/value,
 # in the sense of julia's `getproperty/set_property`.
-# This requires module-level bookkeeping of the associated property names.
 #
 # The properties also come in two styles:
 #
@@ -38,52 +43,71 @@ missing_dependency_for(::Type, ::Type{<:Function}, _) = nothing
 depends(V::Type, fn::Function) = depends(V, typeof(fn))
 missing_dependency_for(V::Type, fn::Function, s) = missing_dependency_for(V, typeof(fn), s)
 
-mutable struct Property
-    read::Function
-    write::Union{Nothing,Function} # Leave blank if the property is read-only.
-    Property(read) = new(read, nothing)
-end
+# Map wrapped system value and property name to the corresponding function.
+read_property(V::Type, ::Val{name}) where {name} =
+    throw(PropertyError(V, name, "Unknown property."))
+write_property(V::Type, ::Val{name}) where {name} =
+    throw(PropertyError(V, name, "Unknown property."))
 
-# {SystemWrappedValueType => {:propname => property_functions}}
-const PropDict = Dict{Symbol,Property}
-properties_(::Type) = PropDict()
-# When specialized, the above method yields a reference to underlying value,
-# updated according to this module's own logic. Don't expose.
+has_read_property(V::Type, name::Symbol) =
+    try
+        read_property(V, Val(name))
+        true
+    catch e
+        e isa PropertyError || rethrow(e)
+        false
+    end
+
+possible_write_property(V::Type, name::Symbol) =
+    try
+        write_property(V, Val(name))
+    catch e
+        e isa PropertyError || rethrow(e)
+        nothing
+    end
+
+has_write_property(V::Type, name::Symbol) = !isnothing(possible_write_property(V, name))
+
+function readwrite_property(V::Type, name::Symbol)
+    read_property(V, Val(name)) # Errors if not even 'read-'.
+    try
+        write_property(V, Val(name))
+    catch e
+        e isa PropertyError || rethrow(e)
+        properr(V, name, "This property is read-only.")
+    end
+end
 
 # Hack flag to avoid that the checks below interrupt the `Revise` process.
 # Raise when done defining properties in the package.
 global REVISING = false
 
 # Set read property first..
-function set_read_property!(V::Type, name::Symbol, mth::Function)
-    current = properties_(V)
-    (haskey(current, name) && !REVISING) &&
+function set_read_property!(V::Type, name::Symbol, fn::Function)
+    REVISING ||
+        has_read_property(V, name) ||
         properr(V, name, "Readable property already exists.")
-    if isempty(current)
-        # Dynamically add method to lend reference to the value lended by `properties_`.
-        eval(quote
-            properties_(::Type{$V}) = $current
-        end)
-    end
-    # Or just mutating this value is enough.
-    current[name] = Property(mth)
+    # Dynamically add method to connect property name to the given function.
+    name = Meta.quot(name)
+    eval(quote
+        read_property(::Type{$V}, ::Val{$name}) = $fn
+    end)
 end
 
 # .. and only after, and optionally, the corresponding write property.
-function set_write_property!(V::Type, name::Symbol, mth::Function)
-    current = properties_(V)
-    if !haskey(current, name)
-        properr(
-            V,
-            name,
-            "Property cannot be set writable \
-             without having been set readable first.",
-        )
-    end
-    prop = current[name]
-    (isnothing(prop.write) || REVISING) ||
-        properr(V, name, "Writable property already exists.")
-    prop.write = mth
+function set_write_property!(V::Type, name::Symbol, fn::Function)
+    has_read_property(V, name) || properr(
+        V,
+        name,
+        "Property cannot be set writable \
+         without having been set readable first.",
+    )
+    REVISING ||
+        has_write_property(V, name) && properr(V, name, "Writable property already exists.")
+    name = Meta.quot(name)
+    eval(quote
+        write_property(::Type{$V}, ::Val{$name}) = $fn
+    end)
 end
 
 # ==========================================================================================
