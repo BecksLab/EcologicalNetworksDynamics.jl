@@ -1,6 +1,6 @@
 # Add components to the system: check and expand.
 #
-# During the add!(system, blueprint) procedure:
+# Here is the add!(system, blueprint) procedure for one focal blueprint:
 #   - The given blueprint is visited pre-order
 #     to collect the corresponding graph of sub-blueprints:
 #     it is the root node, and edges are colored depending on whether
@@ -40,8 +40,9 @@ struct Node
     children::Vector{Node}
 end
 
-# Keep track of all blueprints about broughts,
-# indexed by their concrete component instance.
+# Keep track of the blueprints about to be brought,
+# indexed by the concrete components they provide.
+# Blueprints providing several components are duplicated.
 const BroughtList{V} = Dict{CompType{V},Vector{Node}}
 
 #-------------------------------------------------------------------------------------------
@@ -55,25 +56,27 @@ function Node(
     brought::BroughtList,
 )
 
-    C = componentof(blueprint)
-    isabstracttype(C) && throw("No blueprint expands into an abstract component. \
-                                This is a bug in the framework.")
-
     # Create node and connect to parent, without its children yet.
     node = Node(blueprint, parent, implied, [])
 
-    # Check for duplication if embedded.
-    !implied && has_component(system, C) && throw(BroughtAlreadyInValue(node))
+    for C in componentsof(blueprint)
+        isabstracttype(C) && throw("No blueprint expands into an abstract component. \
+                                    This is a bug in the framework.")
 
-    # Check for consistency with other possible blueprints bringing the same component.
-    if haskey(brought, C)
-        others = brought[C]
-        for other in others
-            blueprint == other.blueprint || throw(InconsistentForSameComponent(node, other))
+        # Check for duplication if embedded.
+        !implied && has_component(system, C) && throw(BroughtAlreadyInValue(C, node))
+
+        # Check for consistency with other possible blueprints bringing the same component.
+        if haskey(brought, C)
+            others = brought[C]
+            for other in others
+                blueprint == other.blueprint ||
+                    throw(InconsistentForSameComponent(C, node, other))
+            end
+            push!(others, node)
+        else
+            brought[C] = [node]
         end
-        push!(others, node)
-    else
-        brought[C] = [node]
     end
 
     # Recursively construct children.
@@ -118,39 +121,41 @@ function check(
 
     # Check requirements.
     blueprint = node.blueprint
-    component = componentof(blueprint)
-    for (reqs, for_expansion) in
-        [(requires(component), false), (checked_expands_from(blueprint), true)]
-        for (R, reason) in reqs
-            # Check against the current system value.
-            has_component(system, R) && continue
-            # Check against other components about to be brought.
-            any(C -> R <: C, checked) ||
-                throw(MissingRequiredComponent(R, node, reason, for_expansion))
+    for C in componentsof(blueprint)
+        for (reqs, requirer) in
+            [(requires(C), C), (checked_expands_from(blueprint), nothing)]
+            for (R, reason) in reqs
+                # Check against the current system value.
+                has_component(system, R) && continue
+                # Check against other components about to be brought.
+                any(C -> R <: C, checked) ||
+                    throw(MissingRequiredComponent(requirer, R, node, reason))
+            end
         end
-    end
 
-    # Guard against conflicts.
-    for (C, reason) in conflicts_(component)
-        has_component(system, C) && throw(ConflictWithSystemComponent(node, C, reason))
-        for Chk in checked
-            C <: typeof(Chk) &&
-                throw(ConflictWithBroughtComponent(node, brought[C], reason))
+        # Guard against conflicts.
+        for (F, reason) in conflicts_(C)
+            has_component(system, F) &&
+                throw(ConflictWithSystemComponent(C, node, F, reason))
+            for Chk in checked
+                F <: typeof(Chk) &&
+                    throw(ConflictWithBroughtComponent(C, node, brought[F], reason))
+            end
         end
-    end
 
-    # Run exposed hook for further checking.
-    try
-        early_check(blueprint)
-    catch e
-        if e isa BlueprintCheckFailure
-            rethrow(HookCheckFailure(node, e.message, false))
-        else
-            throw(UnexpectedHookFailure(node, false))
+        # Run exposed hook for further checking.
+        try
+            early_check(blueprint)
+        catch e
+            if e isa BlueprintCheckFailure
+                rethrow(HookCheckFailure(node, e.message, false))
+            else
+                throw(UnexpectedHookFailure(node, false))
+            end
         end
-    end
 
-    push!(checked, component)
+        push!(checked, C)
+    end
 
 end
 
@@ -229,14 +234,15 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
             end
 
             # Record.
-            C = componentof(blueprint)
-            crt, abs = system._concrete, system._abstract
-            push!(crt, C)
-            for sup in supertypes(C)
-                sup === C && continue
-                sup === Component{V} && break
-                sub = haskey(abs, sup) ? abs[sup] : (abs[sup] = Set{CompType{V}}())
-                push!(sub, C)
+            for C in componentsof(blueprint)
+                crt, abs = system._concrete, system._abstract
+                push!(crt, C)
+                for sup in supertypes(C)
+                    sup === C && continue
+                    sup === Component{V} && break
+                    sub = haskey(abs, sup) ? abs[sup] : (abs[sup] = Set{CompType{V}}())
+                    push!(sub, C)
+                end
             end
 
             # Expand.
@@ -300,28 +306,32 @@ export add!
 abstract type AddException <: SystemException end
 
 struct BroughtAlreadyInValue <: AddException
+    comp::CompType
     node::Node
 end
 
 struct InconsistentForSameComponent <: AddException
+    comp::CompType
     focal::Node
     other::Node
 end
 
 struct MissingRequiredComponent <: AddException
+    comp::Option{CompType} # Set if the *component* requires, none if the *blueprint* does.
     miss::CompType
     node::Node
     reason::Reason
-    for_expansion::Bool # Raise if the blueprint requires, lower if the component requires.
 end
 
 struct ConflictWithSystemComponent <: AddException
+    comp::CompType
     node::Node
     other::CompType
     reason::Reason
 end
 
 struct ConflictWithBroughtComponent <: AddException
+    comp::CompType
     node::Node
     other::Node
     reason::Reason
@@ -391,9 +401,8 @@ end
 render_path(node::Node) = render_path(path(node))
 
 function Base.showerror(io::IO, e::BroughtAlreadyInValue)
-    (; node) = e
+    (; comp, node) = e
     path = render_path(node)
-    comp = componentof(node.blueprint)
     print(
         io,
         "Blueprint expands into component '$comp', \
@@ -402,10 +411,9 @@ function Base.showerror(io::IO, e::BroughtAlreadyInValue)
 end
 
 function Base.showerror(io::IO, e::MissingRequiredComponent)
-    (; miss, node, reason, for_expansion) = e
+    (; comp, miss, node, reason) = e
     path = render_path(node)
-    comp = componentof(node.blueprint)
-    if for_expansion
+    if isnothing(comp)
         header = "Blueprint cannot expand without component $miss"
     else
         header = "Component $comp requires $miss, neither found in the system \
@@ -462,9 +470,8 @@ function Base.showerror(io::IO, e::UnexpectedHookFailure)
 end
 
 function Base.showerror(io::IO, e::ConflictWithSystemComponent)
-    (; node, other, reason) = e
+    (; comp, node, other, reason) = e
     path = render_path(node)
-    comp = componentof(node.blueprint)
     header = "Blueprint would expand into $(typeof(comp)), \
               which conflicts with $other already in the system"
     if isnothing(reason)
