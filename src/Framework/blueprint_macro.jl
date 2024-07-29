@@ -1,16 +1,15 @@
 # Convenience macro for defining blueprints.
 #
-# Invoker defines the blueprint struct,
-# (before the corresponding component is actually defined)
+# Invoker defines the blueprint struct
+# (before the corresponding component is actually defined),
 # and associated late_check/expand!/etc. methods the way they wish,
 # and then calls:
 #
 #   @blueprint Name
 #
-# Regarding the blueprint 'brought': make an ergonomic BET.
-# Any blueprint field typed with Union{Nothing,Blueprint,CompType}
-# is automatically considered 'potential brought'.
-# In this case, enforce that, if a blueprint, the value would expand to the given component.
+# Regarding the blueprints 'brought': make an ergonomic BET.
+# Any blueprint field typed with `Union{Nothing,Blueprint,CompType}`
+# is automatically considered 'potential brought': the macro invocation makes it work.
 # The following methods are relevant then:
 #
 #   brought(::Name) = generated iterator over the fields, skipping 'nothing' values.
@@ -21,24 +20,28 @@
 #   setproperty!(::Name, field, value)
 #
 # When given `nothing` as a value, void the field.
-# When given a blueprint, check that its component for consistency then make it embedded.
+# When given a blueprint, check its provided components for consistency then embed.
 # When given a comptype or a singleton component instance, make it implied.
 # When given anything else, query the following for a callable blueprint constructor:
 #
-#   assignment_to_embedded(::Name, field) = Component
+#   constructor_for_embedded(::Name, ::Val{fieldname}) = Component
 #   # (default, not reified/overrideable yet)
 #
 # then pass whatever value to this constructor to get this sugar:
 #
 #   blueprint.field = value  --->  blueprint.field = EmbeddedBlueprintConstructor(value)
 #
-# Construct field type to be automatically detected as brought blueprints.
+# ERGONOMIC BET: This will only work if there is no ambiguity which constructor to call:
+#  ake it only work if the blueprint type only provides one component
+# and this component singleton instance is callable.
+
+# Dedicated field type to be automatically detected as brought blueprints.
 struct BroughtField{C,V} # where C<:CompType{V} (enforce)
     value::Union{Nothing,Blueprint{V},Type{C}}
 end
 Brought(C::CompType{V}) where {V} = BroughtField{C,V}
 Brought(c::Component) = Brought(typeof(c))
-componentsof(::Type{BroughtField{C,V}}) where {C,V} = C
+componentof(::Type{BroughtField{C,V}}) where {C,V} = C
 export Brought
 
 # The code checking macro invocation consistency requires
@@ -84,9 +87,9 @@ macro blueprint(input...)
         )
     end
 
-    # The first section needs to be a concrete blueprint type.
+    # The first (and only) section needs to be a concrete blueprint type.
     # Use it to extract the associated underlying expected system value type,
-    # checked for consistency against upcoming other specified blueprints.
+    # checked for consistency against upcoming other (implicitly) specified blueprints.
     blueprint_xp = input[1]
     push_res!(
         quote
@@ -115,13 +118,10 @@ macro blueprint(input...)
             for (name, fieldtype) in zip(fieldnames(NewBlueprint), NewBlueprint.types)
 
                 fieldtype <: BroughtField || continue
-                C = componentsof(fieldtype)
+                C = componentof(fieldtype)
                 TC = Type{C}
-                try
-                    which(implied_blueprint_for, (NewBlueprint, TC))
-                catch
+                applicable(implied_blueprint_for, (NewBlueprint, TC)) ||
                     xerr("Method $implied_blueprint_for($NewBlueprint, $TC) unspecified.")
-                end
 
                 # Triangular-check against redundancies.
                 for (a, Already) in broughts
@@ -143,18 +143,19 @@ macro blueprint(input...)
 
     #---------------------------------------------------------------------------------------
     # At this point, all necessary information should have been parsed and checked,
-    # both at expansion time and generated code execution time.
-    # The only remaining task is to generate the code required
+    # both at expansion time (within this very macro body code)
+    # and generated code execution time
+    # (within the code currently being generated although not executed yet).
+    # The only remaining code to generate work is just the code required
     # for the system to work correctly.
 
     # Setup the blueprints brought.
     push_res!(
         quote
+            imap = Iterators.map
+            ifilter = Iterators.filter
             Framework.brought(b::NewBlueprint) =
-                Iterators.map(
-                    Iterators.filter(f -> !isnothing(getfield(b, f)), keys(broughts)),
-                ) do f
-                    f = getfield(b, f)
+                imap(ifilter(!isnothing, imap(f -> getfield(b, f), keys(brought)))) do f
                     f isa Component ? typeof(f) : f
                 end
         end,
@@ -171,7 +172,12 @@ macro blueprint(input...)
                     V == ValueType ||
                         serr("Blueprint cannot be embedded by a blueprint \
                               for System{$ValueType}: $rhs.")
-                    C = componentsof(rhs)
+                    comps = componentsof(rhs)
+                    length(comps) == 1 || serr("Blueprint would expand into $comps, \
+                                                but the field :$prop of $(typeof(b)) \
+                                                is supposed to only bring $expected_C:\n\
+                                                $rhs")
+                    C = first(comps)
                     C <: expected_C || serr("Blueprint would expand into $C, \
                                              but the field :$prop of $(typeof(b)) \
                                              is supposed to bring \
@@ -210,6 +216,13 @@ macro blueprint(input...)
                         ((rhs,), (;))
                     end
                     bp = cstr(args...; kwargs...)
+                    comps = componentsof(bp)
+                    length(comps) == 1 || throw(
+                        "Automatic blueprint constructor fo brought blueprint assignment \
+                         yielded a blueprint bringing $comps instead of $expected_C. \
+                         This is a bug in the components library.",
+                    )
+                    C = first(comps)
                     bp <: Blueprint{ValueType} && componentsof(bp) isa expected_C ||
                         throw(
                             "Automatic blueprint constructor for brought blueprint assignment \
@@ -232,8 +245,8 @@ macro blueprint(input...)
             Base.show(io::IO, ::MIME"text/plain", b::NewBlueprint) = display_long(io, b)
 
             function Framework.display_short(io::IO, bp::NewBlueprint)
-                C = componentsof(bp)
-                print(io, "$C:$(nameof(NewBlueprint))(")
+                comps = provided_comps_display(bp)
+                print(io, "$comps:$(nameof(NewBlueprint))(")
                 for (i, name) in enumerate(fieldnames(NewBlueprint))
                     i > 1 && print(io, ", ")
                     print(io, "$name: ")
@@ -245,7 +258,7 @@ macro blueprint(input...)
             end
 
             function Framework.display_long(io::IO, bp::NewBlueprint; level = 0)
-                C = componentsof(bp)
+                comps = provided_comps_display(bp)
                 print(io, "blueprint for $C: $(nameof(NewBlueprint)) {")
                 preindent = repeat("  ", level)
                 level += 1
@@ -267,9 +280,9 @@ macro blueprint(input...)
         end,
     )
 
-    # Legacy record.
+    # Record to avoid multiple calls to `@blueprint A`.
     push_res!(quote
-        push!(BLUEPRINTS_SPECIFIED, NewBlueprint)
+        Framework.specified_as_blueprint(::Type{NewBlueprint}) = true
     end)
 
     # Avoid confusing/leaky return type from macro invocation.
@@ -281,8 +294,7 @@ macro blueprint(input...)
 end
 export @blueprint
 
-const BLUEPRINTS_SPECIFIED = Set{Type{<:Blueprint}}()
-specified_as_blueprint(B::Type{<:Blueprint}) = B in BLUEPRINTS_SPECIFIED
+specified_as_blueprint(B::Type{<:Blueprint}) = false
 
 # Stubs for display methods.
 function display_short end
@@ -291,6 +303,16 @@ function display_long end
 # Escape hatch to override in case blueprint field values need special display.
 display_blueprint_field_short(io::IO, val) = print(io, val)
 display_blueprint_field_long(io::IO, val; level = 0) = print(io, val)
+
+# Special-case the single-provided-component case.
+function provided_comps_display(bp::Blueprint)
+    comps = componentsof(bp)
+    if length(comps) == 1
+        "$(first(comps))"
+    else
+        "{$(join(comps, ", "))}"
+    end
+end
 
 #-------------------------------------------------------------------------------------------
 # Protect against constructing invalid brought fields.
@@ -309,7 +331,9 @@ Base.convert(::Type{BroughtField{C,V}}, c::Component) where {V,C} =
 
 # From a blueprint to embed it.
 function Base.convert(::Type{BroughtField{C,V}}, bp::Blueprint{V}) where {C,V}
-    componentsof(bp) <: C || throw(InvalidBroughtBlueprint{V}(bp, C))
+    comps = componentsof(bp)
+    length(comps) > 1 && throw(InvalidBroughtBlueprint{V}(bp, C))
+    first(comps) <: C || throw(InvalidBroughtBlueprint{V}(bp, C))
     BroughtField{C,V}(bp)
 end
 
@@ -375,7 +399,6 @@ function Base.showerror(io::IO, e::InvalidBroughtBlueprint{V}) where {V}
     print(
         io,
         "The field should bring $C, \
-         but this blueprint would expand into $(componentsof(b)) instead: $b.",
+         but this blueprint would expand into $(provided_comps_display(b)) instead: $b.",
     )
 end
-
