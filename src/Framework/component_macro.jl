@@ -1,8 +1,9 @@
 # Convenience macro for defining components.
 #
-# Invoker defines the component blueprints,
-# and possible abstract component supertypes,
-# and then calls:
+# Invoker defines possible abstract component supertypes,
+# and/or some component blueprints types
+# only supposed to provide the created component,
+# and then invokes:
 #
 #   @component Name{ValueType} requires(components...) blueprints(name::Type, ...)
 #
@@ -10,7 +11,7 @@
 #
 #   @component Name <: SuperComponentType requires(components...) blueprints(name::Type, ...)
 #
-# Or alternately:
+# Or alternately block-form:
 #
 #   @component begin
 #       Name{ValueType}
@@ -19,12 +20,30 @@
 #       blueprints(name::Type, ...)
 #   end
 #
-# The component struct code will result from expansion of the macro.
+# After checking, the following approximate component code
+# should result from expansion of the macro:
 #
-# If all blueprints for the component
-# potentially bring or imply blueprints for the same other component,
-# that other components is automatically recorded as 'required',
-# even if unspecified in the 'requires' section.
+#   # Component type.
+#   struct _Name <: SuperComponentType (or Component{ValueType})
+#     Blueprint1::Type{Blueprint{ValueType}}
+#     Blueprint2::Type{Blueprint{ValueType}}
+#     ...
+#   end
+#
+#   # Component singleton value.
+#   const Name = _Name(
+#       BlueprintType1,
+#       BlueprintType2,
+#       ...
+#   )
+#   singleton_instance(::Type{_Name}) = Name
+#
+#   # Base blueprints.
+#   componentsof(::Blueprint1) = (_Name,)
+#   componentsof(::Blueprint2) = (_Name,)
+#   ...
+#
+#   requires(::Type{_Name}) = ...
 #
 # The code checking macro invocation consistency requires
 # that these pre-requisites be specified *prior* to invocation.
@@ -38,7 +57,7 @@ macro component(input...)
     perr(mess) = throw(ItemMacroParseError(:component, __source__, mess))
 
     # Raise *during execution* if the macro was invoked with inconsistent input.
-    # (assuming `NewComponent` generated variable has been set)
+    # (assuming the `NewComponent` generated variable has been set)
     src = Meta.quot(__source__)
     push_res!(
         quote
@@ -48,7 +67,7 @@ macro component(input...)
         end,
     )
 
-    # Convenience wrap.
+    # Convenience local wrap.
     tovalue(xp, ctx, type) = to_value(__module__, xp, ctx, :xerr, type)
     tobptype(xp, ctx) = to_blueprint_type(__module__, xp, :ValueType, ctx, :xerr)
     todep(xp, ctx) = to_dependency(__module__, xp, ctx, :xerr)
@@ -76,7 +95,7 @@ macro component(input...)
 
     # Extract component name, value type and supercomponent from the first section.
     component_xp = input[1]
-    name, value_type, super = nothing, nothing, nothing # (help JuliaLS)
+    name, value_type, super = nothing, nothing, nothing # (to help JuliaLS)
     @capture(component_xp, name_{value_type_} | (name_ <: super_))
     isnothing(name) &&
         perr("Expected component `Name{ValueType}` or `Name <: SuperComponent`, \
@@ -145,7 +164,7 @@ macro component(input...)
             continue
         end
 
-        # Implies section: specify automatically expanded blueprints.
+        # Blueprints section: specify blueprints providing the new component.
         bps = nothing # (help JuliaLS)
         @capture(i, blueprints(bps__))
         if !isnothing(bps)
@@ -158,15 +177,15 @@ macro component(input...)
                     perr("Expected `name::Type` to specify blueprint, found $(repr(bp)).")
                 is_identifier_path(B) ||
                     perr("Not a blueprint identifier path: $(repr(B)).")
-                xp = tobptype(B, "Implied blueprint")
+                xp = tobptype(B, "Blueprint")
                 push!(blueprints_xp.args, :($(Meta.quot(bpname)), $xp))
             end
             continue
         end
 
         perr("Invalid @component section. \
-              Expected `requires(..)` or `implies(..)`, \
-              got: $(repr(i)).")
+              Expected `requires(..)` or `blueprints(..)`, \
+              got instead: $(repr(i)).")
 
     end
     isnothing(requires_xp) && (requires_xp = :([]))
@@ -186,68 +205,38 @@ macro component(input...)
                         Req,
                         Already,
                         () -> xerr("Requirement $Req is specified twice."),
-                        (Sub, Sup) ->
-                            xerr("Requirement $Sub is also specified as $Sup."),
+                        (Sub, Sup) -> xerr("Requirement $Sub is also specified as $Sup."),
                     )
                 end
                 reqs[Req] = reason
             end
-
-            # Possible blueprints.
-            # Take this opportunity to collect automatically required components.
-            bps = []
-            auto_req = CompsReasons{ValueType}()
-            for (i, (bpname, B)) in enumerate($blueprints_xp)
-                # Check that this blueprint is not already bound to another component.
-                try
-                    C = componentsof(B)
-                    xerr("Blueprint $(repr(B)) already bound to component $(repr(C)).")
-                catch e
-                    e isa UnspecifiedComponents{B} || rethrow(e)
-                end
-                # Triangular-check against redundancies.
-                for (already_name, already_B) in bps
-                    already_name === bpname &&
-                        xerr("Blueprint name '$bpname' is used twice.")
-                    already_B === B && xerr("Blueprint '$B' is specified twice.")
-                end
-                if i == 0
-                    # Fill auto_req with all components brought by the first blueprint.
-                    for E in max_embeds(B)
-                        auto_req[componentsof(E)] = "possibly embedded by all blueprints."
-                    end
-                    for I in max_implies(B)
-                        auto_req[componentsof(I)] = "possibly implied by all blueprints."
-                    end
-                else
-                    # Remove from auto_req any component not also brought by the others.
-                    remove = []
-                    for C in keys(auto_req)
-                        C in max_embeds(B) || C in max_implies(B) || push!(remove, C)
-                    end
-                    for C in remove
-                        pop!(auto_req, C)
-                    end
-                end
-                push!(bps, (bpname, B))
-            end
-            isempty(bps) &&
-                xerr("No blueprint to be expanded into component $(repr(NewComponent)).")
-
-            # Automatically require components brought/implied by all blueprints.
-            for (C, reason) in auto_req
-                haskey(reqs, C) || (reqs[C] = reason)
-            end
         end,
     )
 
+    # Guard against redundancies among base blueprints.
+    push_res!(quote
+        base_blueprints = []
+        for (name, B) in $blueprints_xp
+            # Triangular-check.
+            for (other, Other) in base_blueprints
+                other == name && xerr("Base blueprint $(repr(other)) \
+                                       both refer to $Other and to $B.")
+                Other == B && xerr("Base blueprint $B bound to \
+                                    both names $(repr(other)) and $(repr(name))")
+            end
+            push!(base_blueprints, (name, B))
+        end
+    end)
+
     #---------------------------------------------------------------------------------------
     # At this point, all necessary information should have been parsed and checked,
-    # both at expansion time and generated code execution time.
+    # both at expansion time (within this very macro body code)
+    # and generated code execution time
+    # (within the code currently being generated although not executed yet).
     # The only remaining code to generate work is just the code required
     # for the system to work correctly.
 
-    # Construct the component type, with blueprints as fields.
+    # Construct the component type, with base blueprints types as fields.
     ena = esc(component_name)
     ety = esc(component_type)
     enas = Meta.quot(component_name)
@@ -256,9 +245,9 @@ macro component(input...)
         str = quote
             struct $($etys) <: $SuperComponent end
         end
-        for (bpname, B) in bps
+        for (name, B) in base_blueprints
             push!(str.args[2].args[3].args, quote
-                $bpname::Type{$B}
+                $name::Type{$B}
             end)
         end
         $__module__.eval(str)
@@ -268,7 +257,7 @@ macro component(input...)
     push_res!(
         quote
             cstr = :($($etys)())
-            for (_, B) in bps
+            for (_, B) in base_blueprints
                 push!(cstr.args, B)
             end
             cstr = quote
@@ -285,9 +274,9 @@ macro component(input...)
 
     # Connect to blueprint types.
     push_res!(quote
-        for (_, B) in bps
+        for (_, B) in base_blueprints
             $__module__.eval(quote
-                $Framework.componentof(::Type{$B}) = $($etys)
+                $Framework.componentsof(::$B) = $($etys,)
             end)
         end
     end)
@@ -296,18 +285,18 @@ macro component(input...)
     push_res!(
         quote
             Framework.requires(::Type{$ety}) =
-                CompsReasons{ValueType}(k => v for (k, v) in reqs)
+                CompsReasons{ValueType}(k => v for (k, v) in reqs) # Copy to avoid leaks.
         end,
     )
 
 
-    # Helpful display resuming bundled blueprint types for this component.
+    # Helpful display resuming base blueprint types for this component.
     push_res!(
         quote
-            function Base.show(io::IO, ::MIME"text/plain", c::$ety)
-                print(io, "$c $(crayon"black")(component for $ValueType, expandable from:")
-                for name in fieldnames(typeof(c))
-                    bp = getfield(c, name)
+            function Base.show(io::IO, ::MIME"text/plain", C::$ety)
+                print(io, "$C $(crayon"black")(component for $ValueType, expandable from:")
+                for name in fieldnames(typeof(C))
+                    bp = getfield(C, name)
                     print(io, "\n  $name: $bp,")
                 end
                 print(io, "\n)$(crayon"reset")")

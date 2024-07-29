@@ -2,7 +2,7 @@
 #
 # The components added during blueprint expansion depend on the blueprint value.
 #
-# Blueprint may 'bring' other blueprints than themselves,
+# Blueprint values may 'bring' other blueprints than themselves,
 # because they contain enough data to do so.
 # This loosely feels like "sub-components", although it is more subtle.
 # There are two ways for blueprints bring each other:
@@ -191,5 +191,5 @@ function Base.show(io::IO, ::MIME"text/plain", B::Type{<:Blueprint})
 end
 
 function Base.showerror(io::IO, ::UnspecifiedComponents{B}) where {B}
-    print(io, "Unspecified component for '$(repr(B))'.")
+    print(io, "Unspecified provided components for '$(repr(B))'.")
 end

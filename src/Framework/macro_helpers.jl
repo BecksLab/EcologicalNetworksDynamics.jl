@@ -1,11 +1,15 @@
 # The macros exposed in this module
-# generate code to define new components, blueprints and methods,
-# and do their best to check that their input make sense,
-# or emit useful error messages both during expansion and execution of the generated code.
+# generate code to correctly define new components, blueprints and methods,
+# and check that their input make sense.
+# On incorrect input, they emit
+# useful error messages either during expansion
+# or execution of the generated code.
 #
-# In particular, they accept arguments referring to other types within the same module,
+# In particular, they accept arguments referring to
+# other types within the same invocation module,
 # which may also have been defined with macros.
-# Checking that these arguments are valid types is not straightforward then,
+# Checking that these arguments are valid types
+# is not straightforward then,
 # because in the following:
 #
 #   @create_type A
@@ -20,27 +24,29 @@
 #     @create_type B depends_on_type(A)
 #   end
 #
-# As a consequence, it cannot be checked that `A` is a valid reference to an existing type
-# during macro expansion.
+# As a consequence, it cannot be checked that `A`
+# is a valid reference to an existing type during macro expansion.
 # This check must therefore be performed during generated code execution,
 # and macros must emit code for that.
-# Be careful that the emitted code
+# When developping these macros,
+# be careful that the emitted code
 # should enforce hygiene with respect to their temporary variables,
 # and evaluate expressions only once (as the invoker expects)
-# unless these expressions can be proved to have no side effects
+# unless the expressions can be assumed to have no side effects
 # like `raw.identifiers.paths`.
 #
 # The following helper functions should be helpful in this respect.
 
-# In general, these macros are expected to only be invoked at module's toplevel scopes.
+# In general, these macros are expected to only be invoked in
+# user's modules toplevel scopes.
 # So their input is evaluated in the invocation module's toplevel scope.
-# However, this prevents them to be tested against types and methods
+# However, this prevents them from being tested against types and methods
 # defined within `@testset` blocks, because these do introduce local scopes.
 # Raise this flag when doing so, just as a hack for testing comfort.
 LOCAL_MACROCALLS = false
 
 # Generate code checking evaluation of invoker's expression, in invocation context.
-# Optionally specify a type to be checked.
+# Optionally specify a type for the evaluation result to be checked against.
 function to_value(mod, expression, context, error_out, type = nothing)
     evcode = if LOCAL_MACROCALLS
         # Evaluate as given in local invocation scope.
@@ -84,17 +90,6 @@ function to_component(mod, xp, value_type_var, ctx, xerr)
     end
 end
 
-# Component dependencies are either specified
-# as singleton instances (because it is convenient),
-# or as component type (because they may be abstract).
-# Yet only use extract corresponding types.
-function to_dependency(mod, xp, ctx, xerr)
-    quote
-        dep = $(to_value(mod, xp, ctx, xerr, Union{Component,<:CompType}))
-        dep isa Type ? dep : typeof(dep)
-    end
-end
-
 # Same for a blueprint type.
 function to_blueprint_type(mod, xp, value_type_var, ctx, xerr)
     quote
@@ -108,8 +103,20 @@ function to_blueprint_type(mod, xp, value_type_var, ctx, xerr)
     end
 end
 
+# Component dependencies are either specified
+# as singleton instances (because it is convenient),
+# or as component type (because they may be abstract).
+# Yet only extract corresponding types.
+function to_dependency(mod, xp, ctx, xerr)
+    quote
+        dep = $(to_value(mod, xp, ctx, xerr, Union{Component,<:CompType}))
+        dep isa Type ? dep : typeof(dep)
+    end
+end
+
 # Check whether the expression is a `raw.identifier.path`.
-# If so, then it is okay to have it evaluated multiple times
+# If so, then we assume it produces no side effect
+# so it is okay to have it evaluated multiple times
 # within the generated code.
 function is_identifier_path(xp)
     xp isa Symbol && return true
@@ -129,7 +136,7 @@ end
 # User provides invalid macro arguments.
 struct ItemMacroParseError <: Exception
     category::Symbol # (:component, :blueprint or :method)
-    src::LineNumberNode # Locate macro invocation in source code.
+    src::LineNumberNode # Locate macro invocation in user source code.
     message::String
 end
 
