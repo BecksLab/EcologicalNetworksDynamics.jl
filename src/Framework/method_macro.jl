@@ -37,9 +37,9 @@ macro method(input...)
     # while also generating code checking invoker input within invocation context.
 
     # Unwrap input if given in a block.
-        if length(input) == 1 && input[1] isa Expr && input[1].head == :block
-            input = rmlines(input[1]).args
-        end
+    if length(input) == 1 && input[1] isa Expr && input[1].head == :block
+        input = rmlines(input[1]).args
+    end
 
     li = length(input)
     if li == 0 || li > 3
@@ -190,7 +190,7 @@ macro method(input...)
 
             # Now that we have a guarantee that 'ValueType' has been completely inferred,
             # use it to guard against redundant method specifications.
-            (specified_as_method(ValueType, fn) && !REVISING) &&
+            (specified_as_method(ValueType, typeof(fn)) && !REVISING) &&
                 xerr("Function '$fn' already marked as a method \
                       for '$(System{ValueType})'.")
 
@@ -200,8 +200,7 @@ macro method(input...)
                         Dep,
                         Already,
                         () -> xerr("Dependency '$Dep' is specified twice."),
-                        (Sub, Sup) ->
-                            xerr("Dependency $Sub is also specified as $Sup."),
+                        (Sub, Sup) -> xerr("Dependency $Sub is also specified as $Sup."),
                     )
                 end
                 push!(deps, Dep)
@@ -224,7 +223,7 @@ macro method(input...)
     if kw == write_kw
         push_res!(
             quote
-                # The assesment is trickier here
+                # The assessment is trickier here
                 # since there may be a constraint on the second argument,
                 # although there is no restriction which constraint,
                 # so which(fn, Tuple{ValueType,Any}) would incorrectly fail.
@@ -244,9 +243,23 @@ macro method(input...)
         )
     end
 
+    # Check properties availability.
+    propsymbols = map(s -> first(s.args), propsymbols)
+    push_res!(
+        quote
+            for psymbol in $[propsymbols...]
+                has_read_property(ValueType, psymbol) && xerr(
+                    "The property $psymbol is already defined for $($System){$Valuetype}.",
+                )
+            end
+        end,
+    )
+
     #---------------------------------------------------------------------------------------
     # At this point, all necessary information should have been parsed and checked,
-    # both at expansion time and generated code execution time.
+    # both at expansion time (within this very macro body code)
+    # and generated code execution time
+    # (within the code currently being generated although not executed yet).
     # The only remaining code to generate work is just the code required
     # for the system to work correctly.
 
@@ -272,7 +285,7 @@ macro method(input...)
         end,
     )
 
-    # But generate the checked method for the system.
+    # Generate the checked method for the system.
     efn = LOCAL_MACROCALLS ? esc(fn_xp) : :($__module__.$fn_xp)
     fn_path = Meta.quot(fn_xp)
     push_res!(
@@ -290,7 +303,7 @@ macro method(input...)
                     a = isabstracttype(dep) ? " a" : ""
                     throw(MethodError(ValueType, $fn_path, "Requires$a component $dep."))
                 end
-                fn(s._value, args...; kwargs...)
+                fn(s._value, args...; _system = s, kwargs...)
             end
             # TODO: if unexistent, then
             # defining a fallback `fn(value, args...; _system=s, kwargs...)` method here
@@ -305,16 +318,17 @@ macro method(input...)
     # (for getproperty(s::System, ..))
     if !isnothing(proptype)
         set = (proptype == read_kw) ? :set_read_property! : :set_write_property!
-        # TODO: check property availability *before* setting it,
-        # otherwise the components type system ends up in a broken state
-        # when the following fails.
-        propsymbols = map(s -> first(s.args), propsymbols)
         push_res!(quote
             for psymbol in $[propsymbols...]
                 $set(ValueType, psymbol, fn)
             end
         end)
     end
+
+    # Record as specified to avoid it being recorded again.
+    push_res!(quote
+        Framework.specified_as_method(::Type{ValueType}, ::typeof(fn)) = true
+    end)
 
     # Avoid confusing/leaky return type from macro invocation.
     push_res!(quote
@@ -326,7 +340,4 @@ end
 export @method
 
 # Check whether the function has already been specified as a @method.
-# (it has been if there is a dedicated `depends` method for it)
-specified_as_method(V::Type, fn::Function) =
-    which(Framework.depends, Tuple{Type{V},Type{typeof(fn)}}).sig.parameters[3] ===
-    Type{typeof(fn)}
+specified_as_method(::Type, ::Type{Function}) = false

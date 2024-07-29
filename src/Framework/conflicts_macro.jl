@@ -52,6 +52,7 @@ macro conflicts(input...)
     entries = :([])
     for entry in input
 
+        comp, conf, invalid, reasons, mess = repeat(nothing, 5) # (help JuliaLS)
         #! format: off
         @capture(entry,
             (comp_ => (reasons__,)) |
