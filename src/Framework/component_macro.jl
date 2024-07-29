@@ -200,10 +200,10 @@ macro component(input...)
             for (i, (bpname, B)) in enumerate($blueprints_xp)
                 # Check that this blueprint is not already bound to another component.
                 try
-                    C = componentof(B)
+                    C = componentsof(B)
                     xerr("Blueprint $(repr(B)) already bound to component $(repr(C)).")
                 catch e
-                    e isa UnspecifiedComponent{B} || rethrow(e)
+                    e isa UnspecifiedComponents{B} || rethrow(e)
                 end
                 # Triangular-check against redundancies.
                 for (already_name, already_B) in bps
@@ -214,10 +214,10 @@ macro component(input...)
                 if i == 0
                     # Fill auto_req with all components brought by the first blueprint.
                     for E in max_embeds(B)
-                        auto_req[componentof(E)] = "possibly embedded by all blueprints."
+                        auto_req[componentsof(E)] = "possibly embedded by all blueprints."
                     end
                     for I in max_implies(B)
-                        auto_req[componentof(I)] = "possibly implied by all blueprints."
+                        auto_req[componentsof(I)] = "possibly implied by all blueprints."
                     end
                 else
                     # Remove from auto_req any component not also brought by the others.

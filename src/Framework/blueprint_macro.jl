@@ -38,7 +38,7 @@ struct BroughtField{C,V} # where C<:CompType{V} (enforce)
 end
 Brought(C::CompType{V}) where {V} = BroughtField{C,V}
 Brought(c::Component) = Brought(typeof(c))
-componentof(::Type{BroughtField{C,V}}) where {C,V} = C
+componentsof(::Type{BroughtField{C,V}}) where {C,V} = C
 export Brought
 
 # The code checking macro invocation consistency requires
@@ -115,7 +115,7 @@ macro blueprint(input...)
             for (name, fieldtype) in zip(fieldnames(NewBlueprint), NewBlueprint.types)
 
                 fieldtype <: BroughtField || continue
-                C = componentof(fieldtype)
+                C = componentsof(fieldtype)
                 TC = Type{C}
                 try
                     which(implied_blueprint_for, (NewBlueprint, TC))
@@ -171,7 +171,7 @@ macro blueprint(input...)
                     V == ValueType ||
                         serr("Blueprint cannot be embedded by a blueprint \
                               for System{$ValueType}: $rhs.")
-                    C = componentof(rhs)
+                    C = componentsof(rhs)
                     C <: expected_C || serr("Blueprint would expand into $C, \
                                              but the field :$prop of $(typeof(b)) \
                                              is supposed to bring \
@@ -210,7 +210,7 @@ macro blueprint(input...)
                         ((rhs,), (;))
                     end
                     bp = cstr(args...; kwargs...)
-                    bp <: Blueprint{ValueType} && componentof(bp) isa expected_C ||
+                    bp <: Blueprint{ValueType} && componentsof(bp) isa expected_C ||
                         throw(
                             "Automatic blueprint constructor for brought blueprint assignment \
                              yielded an invalid blueprint. \
@@ -232,7 +232,7 @@ macro blueprint(input...)
             Base.show(io::IO, ::MIME"text/plain", b::NewBlueprint) = display_long(io, b)
 
             function Framework.display_short(io::IO, bp::NewBlueprint)
-                C = componentof(bp)
+                C = componentsof(bp)
                 print(io, "$C:$(nameof(NewBlueprint))(")
                 for (i, name) in enumerate(fieldnames(NewBlueprint))
                     i > 1 && print(io, ", ")
@@ -245,7 +245,7 @@ macro blueprint(input...)
             end
 
             function Framework.display_long(io::IO, bp::NewBlueprint; level = 0)
-                C = componentof(bp)
+                C = componentsof(bp)
                 print(io, "blueprint for $C: $(nameof(NewBlueprint)) {")
                 preindent = repeat("  ", level)
                 level += 1
@@ -309,7 +309,7 @@ Base.convert(::Type{BroughtField{C,V}}, c::Component) where {V,C} =
 
 # From a blueprint to embed it.
 function Base.convert(::Type{BroughtField{C,V}}, bp::Blueprint{V}) where {C,V}
-    componentof(bp) <: C || throw(InvalidBroughtBlueprint{V}(bp, C))
+    componentsof(bp) <: C || throw(InvalidBroughtBlueprint{V}(bp, C))
     BroughtField{C,V}(bp)
 end
 
@@ -375,7 +375,7 @@ function Base.showerror(io::IO, e::InvalidBroughtBlueprint{V}) where {V}
     print(
         io,
         "The field should bring $C, \
-         but this blueprint would expand into $(componentof(b)) instead: $b.",
+         but this blueprint would expand into $(componentsof(b)) instead: $b.",
     )
 end
 

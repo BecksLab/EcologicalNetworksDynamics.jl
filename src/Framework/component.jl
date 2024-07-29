@@ -3,8 +3,8 @@
 #
 # No concrete component type can be added twice to the system.
 #
-# When user wants to add (a) component(s) to the system,
-# they provide a blueprint value which needs to be expanded into (a) component(s).
+# When user wants to add components to the system,
+# they provide a blueprint value which needs to be expanded into components.
 #
 # The data inside the blueprint is only useful to run the internal `expand!()` method once,
 # and must not lend caller references to the system,
@@ -13,7 +13,7 @@
 # Only a copy of the caller blueprint is actually used for component(s) expansion.
 #
 # Components may 'require' other components,
-# because the data they become are meaningless without them.
+# because the data they represent are meaningless without them.
 # If A requires B, it means that A cannot be added in a system with no B.
 #
 # Components also 'conflict' with each other:
@@ -28,97 +28,24 @@
 #
 #   - If component B subtypes A, then A and B cannot conflict with each other.
 #
-# It is not currently possible for an abstract component to 'require',
-# But this might be implemented for a convincingly motivated need,
+# It is not currently possible for an abstract component to 'require'.
+# This might be implemented in the future for a convincingly motivated need,
 # at the cost of extending @component macro to produce abstract types.
 
 # The parametric type 'V' for the component
 # is the type of the value wrapped by the system.
 abstract type Component{V} end
 export Component
-## HERE: ALTERNATE DESIGN:
-## Components are identified by nodes in a type hierarchy,
-## and exposed as singleton instances of concrete types in this hierarchy.
-##
-##    abstract type Component end
-##
-##    struct _Omega <: Component
-##       Raw::Type{Blueprint}
-##       Random::Type{Blueprint}
-##       Allometry::Type{Blueprint}
-##       Temperature::Type{Blueprint}
-##    end
-##
-##    module OmegaBlueprints
-##       # /!\ many redundant imports to factorize here.
-##       struct Raw <: Blueprint ... end
-##       struct Random <: Blueprint ... end
-##       ...
-##    end
-##
-##    const Omega = _Omega(
-##       OmegaBlueprints.Raw,
-##       OmegaBlueprints.Random,
-##       ...
-##    )
-##    export Omega
-##
-##    function (C::_Omega)(args...; kwargs...)
-##       if ..
-##           C.Raw(...)
-##       elseif ...
-##           C.Random(...)
-##       else ...
-##       end
-##    end
-##
-##    # Use as a blueprint constructor, but also as a blueprint namespace.
-##    Omega(...)
-##    Omega.Random(...)
-##    Omega.Raw(...)
-##
-## Components require each other or conflict with each other.
-## Blueprints bring each other.
-## Blueprints are trees of sub-blueprints and must be treated as such.
-##
-## During the add! procedure:
-##   - The given blueprint is visited pre-order
-##     to collect the corresponding graph of sub-blueprints:
-##     it is the root node, and edges are colored depending on whether
-##     the brought is an 'embedding' or an 'implication'.
-##     - Error if an embedded blueprint brings a component already in the system.
-##     - Ignore implied blueprints bringing components already in the system.
-##     - Error if any brought component is already brought by another sub-blueprint
-##       and the two differ.
-##     - Error if any brought component conflicts with components already in the system.
-##   - When collection is over, visit the tree post-order to:
-##     - Check requirements/conflicts against components already brought in pre-order.
-##     - Run the `early_check`.
-##   - Visit post-order again to:
-##     - Run the late `check`.
-##     - Expand the blueprint into a component.
-##
-## Exposing the first analysis steps of the above will be useful to implement default_model.
-## The default model handles a *forest* of blueprints, and needs to possibly *move* nodes
-## from later blueprints to earlier blueprints so as to make the inference intuitive and
-## consistent.
-## Maybe this can even be implemented within the framework itself, something along:
-##    add_default!(
-##        forest::Blueprints;
-##        without = Component[],
-##        defaults = OrderedDict{Component,Function{<SomeState> ↦ Blueprint}}(),
-##        state_control! = Function{new_brought/implied_blueprint ↦ edit_state},
-##    )
 
 # Most framework internals work with component types
 # because they can be abstract,
 # most exposed methods work with concrete singleton instance.
 const CompType{V} = Type{<:Component{V}}
-Base.convert(::CompType{V}, c::Component{V}) where V = typeof(c) # Singleton ergonomy.
+Base.convert(::CompType{V}, c::Component{V}) where {V} = typeof(c) # Singleton ergonomy.
 
-# Component types being singleton, we *can* infer the value from the type.
+# Component types being singleton, we *can* infer the value from the type at runtime.
 singleton_instance(C::CompType) = throw("No concrete singleton instance of '$C'.")
-# Constructors only yields singleton instances.
+# Default constructors only yields singleton instances.
 (C::CompType{V})() where {V} = singleton_instance(C)
 
 # Extract underlying system wrapped value type from a component.
@@ -136,13 +63,12 @@ const Reason = Option{String}
 const CompsReasons{V} = OrderedDict{CompType{V},Reason}
 
 # Specify which components are needed for the focal one to make sense.
-# (these may or may not be implied/brought by the corresponding blueprints)
-requires(::CompType{V}) where {V} = CompsReasons{V}()
+requires(C::CompType{V}) where {V} = throw("Unspecified requirements for $C.")
 requires(c::Component) = requires(typeof(c))
 
-# List all possible blueprints for the component.
-blueprints(C::CompType{V}) where {V} = throw("No blueprint specified for $C.")
-blueprints(c::Component{V}) where {V} = throw("No blueprint specified for $c.")
+# List all possible blueprints types providing the component.
+blueprints(C::CompType{V}) where {V} = throw("No blueprint type specified for $C.")
+blueprints(c::Component{V}) where {V} = throw("No blueprint type specified for $c.")
 
 #-------------------------------------------------------------------------------------------
 # Conflicts.
@@ -150,7 +76,7 @@ blueprints(c::Component{V}) where {V} = throw("No blueprint specified for $c.")
 # Components that contradict each other can be grouped into mutually exclusive clusters.
 # The clusters need to be defined *after* the components themselves,
 # so they can all refer to each other
-# as a clique of incompatible nodes in the component graph.
+# as a clique of incompatible nodes in the components graph.
 conflicts_(::CompType{V}) where {V} = CompsReasons{V}()
 conflicts_(c::Component) = conflicts_(typeof(c))
 # When specialized, the above method yields a reference to underlying value,
@@ -162,6 +88,7 @@ conflicts_(c::Component) = conflicts_(typeof(c))
 
 are_subtypes(A::CompType, B::CompType) = (A <: B) ? (A, B) : (B <: A) ? (B, A) : nothing
 
+# The provided function yields the error to emit in case the inputs subtype each other.
 function vertical_guard(A::CompType, B::CompType, diverging_err::Function)
     vert = are_subtypes(A, B)
     isnothing(vert) && return
@@ -169,6 +96,7 @@ function vertical_guard(A::CompType, B::CompType, diverging_err::Function)
     diverging_err(sub, sup)
 end
 
+# Provide one special function to error in case inputs are identical.
 function vertical_guard(A::CompType, B::CompType, err_same::Function, err_diff::Function)
     vert = are_subtypes(A, B)
     isnothing(vert) && return
@@ -253,7 +181,7 @@ function declare_conflicts_clique(err, components::Vector{<:CompType{V}}) where 
 
     # Triangular-iterate to guard against redundant items.
     for (i, a) in enumerate(components)
-        for b in components[i+1:end]
+        for b in components[1:(i-1)]
             process_pair(a, b)
             process_pair(b, a)
         end
@@ -262,6 +190,8 @@ function declare_conflicts_clique(err, components::Vector{<:CompType{V}}) where 
 end
 
 # ==========================================================================================
+# Display.
+
 # By default, strip the standard leading '_' in component type, wrap in angle brackets <>,
 # and don't display blueprint details within component values.
 # NOTE: this enhances ergonomics

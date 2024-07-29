@@ -1,4 +1,34 @@
 # Add components to the system: check and expand.
+#
+# During the add!(system, blueprint) procedure:
+#   - The given blueprint is visited pre-order
+#     to collect the corresponding graph of sub-blueprints:
+#     it is the root node, and edges are colored depending on whether
+#     the brought is an 'embedding' or an 'implication'.
+#     - Error if an embedded blueprint brings a component already in the system.
+#     - Ignore implied blueprints bringing components already in the system.
+#     - Error if any brought component is already brought by another sub-blueprint
+#       and the two differ.
+#     - Error if any brought component conflicts with components already in the system.
+#   - When collection is over, visit the tree post-order to:
+#     - Check requirements/conflicts against components already brought in pre-order.
+#     - Run the `early_check`.
+#   - Visit post-order again to:
+#     - Run the late `check`.
+#     - Expand the blueprint into a component.
+#
+# TODO: Exposing the first analysis steps of the above will be useful
+# to implement default_model.
+# The default model handles a *forest* of blueprints, and needs to possibly *move* nodes
+# from later blueprints to earlier blueprints so as to make the inference intuitive and
+# consistent.
+# Maybe this can even be implemented within the framework itself, something along:
+#    add_default!(
+#        forest::Blueprints;
+#        without = Component[],
+#        defaults = OrderedDict{Component,Function{<SomeState> ↦ Blueprint}}(),
+#        state_control! = Function{new_brought/implied_blueprint ↦ edit_state},
+#    )
 
 # Prepare thorough analysis of recursive sub-blueprints possibly brought
 # by the blueprints given.

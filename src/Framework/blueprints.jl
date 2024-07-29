@@ -1,10 +1,9 @@
-# Blueprint expand into components within a system.
+# Blueprint provide components by expanding into them within a system.
 #
-# The components added during blueprint expansion depend on its value. # <- HERE: BREAKING!
+# The components added during blueprint expansion depend on the blueprint value.
 #
 # Blueprint may 'bring' other blueprints than themselves,
-# so other components than their own,
-# because they contain enough data to construct more than one component.
+# because they contain enough data to do so.
 # This loosely feels like "sub-components", although it is more subtle.
 # There are two ways for blueprints bring each other:
 #
@@ -14,17 +13,17 @@
 #
 #   - Or they 'imply' other blueprints for designated components,
 #     which could be calculated from the data they contain if needed.
-#     This does not need to happen if the implied blueprints components
+#     This does not need to happen if the components provided by the implied blueprints
 #     are already in the system.
 #     A blueprint does not 'imply' another specific blueprint,
-#     but it 'implies' *some* blueprint bringing another specific component.
+#     but it 'implies' *some* blueprint bringing other specific components.
 #
 # Whether a brought blueprint is embedded or implied
 # depends on the bringer value.
-# For instance, it could be implied if user has not specified brought-blueprint data,
+# For instance, it can be implied if user has not specified brought-blueprint data,
 # and embedded if user has explicitly asked that it be.
 #
-# Implying blueprints for an abstract component is not currently supported,
+# Implying blueprints providing abstract components is not currently supported,
 # but could possibly be if it makes sense to do so.
 #
 # Blueprint may also require that other components be present
@@ -33,29 +32,18 @@
 # This blueprint requirement is specified by the 'expands_from' function.
 # Expanding-from an abstract component A is expanding from any component subtyping A.
 
-## HERE: ALTERNATE DESIGN:
-## A blueprint type should not be tied to a component type,
-## I suspect that this introduces too much constraint on the range of possible blueprints.
-## As a consequence: the method componentof(::Type{B}) where {B<:Blueprint}
-## should not exist anymore.
-## Remove it and check consequences.
-## I bet (hope?) they should be be small: removing a constraint without removing structure.
-
 abstract type Blueprint{V} end
 export Blueprint
 
-# Every blueprint is supposed to bring exactly one major, concrete component.
-# This method implements the mapping,
-# and must be explicited by components devs.
-struct UnspecifiedComponent{B<:Blueprint} end
-componentof(::Type{B}) where {B<:Blueprint} = throw(UnspecifiedComponent{B}())
-componentof(::B) where {B<:Blueprint} = componentof(B)
+# Every blueprint provides only concrete components, and at least one.
+struct UnspecifiedComponents{B<:Blueprint} end
+componentsof(::B) where {B<:Blueprint} = throw(UnspecifiedComponents{B}())
 
 system_value_type(::Type{<:Blueprint{V}}) where {V} = V
 system_value_type(::Blueprint{V}) where {V} = V
 
 # Blueprints must be copyable, but be careful that the default (deepcopy)
-# is not necessarily what component devs are after.
+# is not necessarily what blueprints devs are after.
 Base.copy(b::Blueprint) = deepcopy(b)
 
 #-------------------------------------------------------------------------------------------
@@ -64,7 +52,7 @@ Base.copy(b::Blueprint) = deepcopy(b)
 # Return non-empty list if components are required
 # for this blueprint to expand,
 # even though the corresponding component itself would make sense without these.
-expands_from(::Blueprint{V}) where {V} = CompsReasons{V}()
+expands_from(B::Blueprint{V}) where {V} = throw("Unspecified requirements for $B.")
 # The above is specialized by hand by framework users,
 # so make its return type flexible,
 # guarded by the below.
@@ -72,7 +60,8 @@ function checked_expands_from(bp::Blueprint{V}) where {V}
     err(x) = "Invalid expansion requirement. \
               Expected either a component for $V or (component, reason::String), \
               got instead: $(repr(x)) ::$(typeof(x))."
-    to_reqreason(x) = if x isa Component{V}
+    to_reqreason(x) =
+        if x isa Component{V}
             (typeof(x), nothing)
         elseif x isa CompType{V}
             (x, nothing)
@@ -102,18 +91,19 @@ end
 # List brought blueprints.
 # Yield blueprint values for embedded blueprints.
 # Yield component types for implied blueprints (possibly abstract).
-brought(b::Blueprint) = throw("Bringing from $(typeof(b)) is unimplemented.")
+brought(b::Blueprint) = throw("Blueprints brought by $(typeof(b)) are unspecified.")
 # Implied blueprints need to be constructed from the value on-demand,
 # for a target component.
-# No default method, so it can be checked
-# whether it has been set from within @blueprint macro.
+# Define no default method, so it can be checked
+# whether it has been set from within the @blueprint macro.
 function implied_blueprint_for end # (blueprint, comptype) -> blueprint for this component.
 function checked_implied_blueprint_for(b::Blueprint, C::CompType)
     bp = implied_blueprint_for(b, C)
-    componentof(bp) <: C ||
+    if !any(comp -> comp <: C, componentsof(bp))
         throw("Blueprint $(typeof(b)) is supposed to imply a blueprint for $C,
-               but it implied a blueprint for $(componentof(bp)) instead:\n
+               but it implied a blueprint for $(collect(componentsof(bp))) instead:\n
                $b\n --- implied --->\n$bp")
+    end
     bp
 end
 
@@ -128,9 +118,10 @@ end
 # and that it makes sense to expand within in.
 # The objective is to avoid failure during expansion,
 # as it could result in inconsistent system state.
-# Raise a blueprint error if not the case.
+# Raise the dedicated blueprint check exception if not the case.
 # NOTE: a failure during late check does not compromise the system state consistency,
-#       but it does result in that not all blueprints brought by the focal blueprint
+#       but it does result in that not all blueprints
+#       brought by the toplevel added blueprint
 #       be added as expected.
 #       This is to avoid the need for making the system mutable and systematically fork it
 #       to possibly revert to original state in case of failure.
@@ -143,18 +134,18 @@ late_check(_, ::Blueprint) = nothing # No particular constraint to enforce by de
 # but, as it cannot be assumed that required components have already been expanded,
 # the check should not depend on the system value.
 # TODO: add formal test for this.
-early_check(::Blueprint) = nothing # No particular
+early_check(::Blueprint) = nothing # No particular constraint to enforce by default.
 
 # The expansion step is when and the wrapped system value
 # is finally modified, based on the information contained in the blueprint,
-# to feature the associated component.
+# to feature the provided components.
 # This is only called if all component addition conditions are met
 # and the above check passed.
 # This function must not fail,
 # otherwise the system ends up in a bad state.
 # TODO: must it also be deterministic?
 #       Or can a random component expansion happen
-#       if based on consistent blueprint input and infallible.
+#       if infallible and based on consistent blueprint input.
 #       Note that random expansion would result in:
 #       (System{Value}() + blueprint).property != (System{Value}() + blueprint).property
 #       which may be confusing.
@@ -178,7 +169,7 @@ expand!(v, b::Blueprint, _) = expand!(v, b)
 
 # This exception error is thrown by the system guards
 # before expansion of a blueprint, reporting a failure to meet the requirements.
-# In particular, this is the exception expected to be thrown from the `check` method.
+# In particular, this is the exception expected to be thrown from the `*_check` methods.
 # Not parametrized over blueprint type because the exception is only thrown and caught
 # within a controlled context where this type is known.
 struct BlueprintCheckFailure <: Exception
@@ -194,11 +185,11 @@ function Base.show(io::IO, ::MIME"text/plain", B::Type{<:Blueprint})
         io,
         "$B \
          $(crayon"black")\
-         (blueprint type for component '$(componentof(B))')\
+         (blueprint type for component '$(componentsof(B))')\
          $(crayon"reset")",
     )
 end
 
-function Base.showerror(io::IO, ::UnspecifiedComponent{B}) where {B}
+function Base.showerror(io::IO, ::UnspecifiedComponents{B}) where {B}
     print(io, "Unspecified component for '$(repr(B))'.")
 end

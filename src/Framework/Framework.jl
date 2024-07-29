@@ -18,7 +18,7 @@
 # Instead of constructing the value directly,
 # lib users will start from an "empty" or "default" base system,
 # then populate it with the 'components' at hand
-# until it has all the component required to exhibit the behaviour they need
+# until it contains all the data required to exhibit the behaviour they need
 # via the 'methods' at hand.
 #
 # Consistently with this "builder" approach,
@@ -28,12 +28,12 @@
 # referring to data inside the system.
 # Instead, they get 'blueprints' for components,
 # which they can construct and tweak like regular julia structs.
-# When ready, a blueprint can be read by the system, checked,
-# and expanded into the actual component(s).
+# When ready, a blueprint can be read by the system, 'check'ed,
+# and 'expand'ed into the actual component(s).
 #
 # No component can be added twice,
 # but blueprints can be read and expanded into different components types.
-# Also, the components they bring may depend on their value
+# Also, the components they 'provide' may depend on their value
 # and/or the current state of the system.
 #
 # 'Components' contain no data and are implemented as julia singletons marker types.
@@ -49,19 +49,19 @@
 #
 # Additional sugar is provided:
 #
-#   s = System{WrappedValue}(blueprints...) # Start with a sequence of initial components.
-#   s += blueprint                          # Add component from extra blueprint.
-#   s.property                              # Implicit `get_property_method(s)`
-#   s.property = value                      # Implicit `set_property_method(s, value)`
+#   s = System{WrappedValue}(blueprints...) # Start from a sequence of initial blueprints.
+#   s += blueprint                          # Provide new component from extra blueprint.
+#   s.property                              # Implicit `get_property(s)`
+#   s.property = value                      # Implicit `set_property(s, value)`
 #
 # Components and methods are organized into a dependency hierarchy,
 # with components requiring each other
 # and methods depending on the presence of certain components to run.
 # This makes it possible to emit useful errors
 # when lib users attempt to invoke the above behaviour
-# but not all required component have been added to the system.
+# but not all required components have been added to the system.
 #
-# Before being expanded into a component,
+# Before being expanded into the components they provide,
 # every blueprint is carefully checked by lib devs
 # so they can guarantee that the internal state cannot be corrupted during expansion,
 # and by the exposed System/Blueprints/Components/Methods interface in general.
@@ -88,13 +88,60 @@ module Framework
 #   - [!] Components are not blueprint types, but an autonomous hierachy of singleton types.
 #   - [.] "*blueprints* imply/bring *blueprints*", not "components imply/bring components"
 #   - [.] Blueprints 'history' become meaningless if methods can mutate the internal state.
-#   - [ ] `depends(other_method_name)` to inherit all dependent components.
 #   - [.] Recurring pattern: various blueprints types provide 'the same component': reify.
+#   - [ ] `depends(other_method_name)` to inherit all dependent components.
 #   - [ ] Namespace properties into like system.namespace.namespace.property.
 #   - [ ] Hooks need to trigger when special components combination become available.
 #         See for instance the expansion of `Nutrients.Nodes`
 #         which should trigger the creation of links if there is already `Species`.. or vice
 #         versa.
+
+## HERE: Refactoring design.
+## Components are identified by nodes in a type hierarchy,
+## and exposed as singleton instances of concrete types in this hierarchy.
+## A component may not be a plain marker types,
+## and its fields may contain blueprint types for various blueprint providing it.
+##
+##    abstract type Component end
+##
+##    struct _Omega <: Component
+##       Raw::Type{Blueprint}
+##       Random::Type{Blueprint}
+##       Allometry::Type{Blueprint}
+##       Temperature::Type{Blueprint}
+##    end
+##
+##    module OmegaBlueprints
+##       # /!\ many redundant imports to factorize here.
+##       struct Raw <: Blueprint ... end
+##       struct Random <: Blueprint ... end
+##       ...
+##    end
+##
+##    const Omega = _Omega(
+##       OmegaBlueprints.Raw,
+##       OmegaBlueprints.Random,
+##       ...
+##    )
+##    export Omega
+##
+##    function (C::_Omega)(args...; kwargs...)
+##       if ..
+##           C.Raw(...)
+##       elseif ...
+##           C.Random(...)
+##       else ...
+##       end
+##    end
+##
+##    # Use as a blueprint constructor, but also as a blueprint namespace.
+##    Omega(...)
+##    Omega.Random(...)
+##    Omega.Raw(...)
+##
+## Components require each other or conflict with each other.
+## Blueprints bring each other.
+## Blueprints are trees of sub-blueprints and must be treated as such.
 
 using Crayons
 using MacroTools
