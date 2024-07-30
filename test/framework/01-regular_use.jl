@@ -204,7 +204,7 @@ end
     @test s.n == 3
 
     # Forbid unexistent properties.
-    @sysfails(s.x, System, "Invalid property name: 'x'.")
+    @sysfails(s.x, Property(x), "Unknown property.")
     # Forbid existent properties without appropriate component.
     @sysfails(s.b, Property(b), "Component $_B is required to read this property.")
     # Same with methods.
@@ -215,7 +215,7 @@ end
     @sysfails((s.n = 4), Property(n), "This property is read-only.")
 
     # Cannot add component twice.
-    @sysfails(add!(s, NLines(5)), Add(BroughtAlreadyInValue, [NLines]))
+    @sysfails(add!(s, NLines(5)), Add(BroughtAlreadyInValue, Size, [NLines]))
 
     # Add component requiring previous one from a blueprint.
     t = s + A.Uniform(5)
@@ -231,7 +231,7 @@ end
     e = System{Value}() # Empty.
     @sysfails(
         e + B.Raw([8, 8, 8]), # Size is brought, but not A.
-        Add(MissingRequiredComponent, A, [B.Raw], nothing, false),
+        Add(MissingRequiredComponent, B, A, [B.Raw], nothing),
     )
 
     # Chain summations.
@@ -243,7 +243,7 @@ end
     # Cannot add incompatible component.
     @sysfails(
         s + SparseMark(),
-        Add(ConflictWithSystemComponent, [SparseMark], Size, nothing),
+        Add(ConflictWithSystemComponent, Sparse, [SparseMark], Size, nothing),
     )
 
     # Blueprint checking may depend on other components.
@@ -273,7 +273,7 @@ end
     # without its component itself requiring them.
     @sysfails(
         s + ReflectFromB(), # .. although reflection does not require B in general.
-        Add(MissingRequiredComponent, A, [ReflectFromB], nothing, true),
+        Add(MissingRequiredComponent, nothing, A, [ReflectFromB], nothing),
     )
     sa = s + A.Raw([1, 2, 3, 2, 1])
     sr = sa + ReflectFromB()
@@ -323,7 +323,7 @@ end
     # Embedded blueprints.
 
     # Explicitly bring it instead of implying.
-    a.size = NLines(2)
+    a.size = NLines(2) # HERE: check Base.setproperty! definition in blueprint_macro.jl.
 
     # The component is also brought.
     s = e + a

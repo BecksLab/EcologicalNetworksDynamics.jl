@@ -63,7 +63,7 @@ const Reason = Option{String}
 const CompsReasons{V} = OrderedDict{CompType{V},Reason}
 
 # Specify which components are needed for the focal one to make sense.
-requires(C::CompType{V}) where {V} = throw("Unspecified requirements for $C.")
+requires(::CompType{V}) where {V} = () # Require nothing by default.
 requires(c::Component) = requires(typeof(c))
 
 # List all possible blueprints types providing the component.

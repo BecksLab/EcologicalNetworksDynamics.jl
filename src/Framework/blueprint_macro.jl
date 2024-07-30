@@ -47,6 +47,12 @@ export Brought
 # The code checking macro invocation consistency requires
 # that pre-requisites (methods implementations) be specified *prior* to invocation.
 macro blueprint(input...)
+    blueprint_macro(__module__, __source__, input...)
+end
+export @blueprint
+
+# Extract function to ease debugging with Revise.
+function blueprint_macro(__module__, __source__, input...)
 
     # Push resulting generated code to this variable.
     res = quote end
@@ -120,7 +126,7 @@ macro blueprint(input...)
                 fieldtype <: BroughtField || continue
                 C = componentof(fieldtype)
                 TC = Type{C}
-                applicable(implied_blueprint_for, (NewBlueprint, TC)) ||
+                hasmethod(implied_blueprint_for, Tuple{NewBlueprint,TC}) ||
                     xerr("Method $implied_blueprint_for($NewBlueprint, $TC) unspecified.")
 
                 # Triangular-check against redundancies.
@@ -155,7 +161,9 @@ macro blueprint(input...)
             imap = Iterators.map
             ifilter = Iterators.filter
             Framework.brought(b::NewBlueprint) =
-                imap(ifilter(!isnothing, imap(f -> getfield(b, f), keys(brought)))) do f
+                imap(
+                    ifilter(!isnothing, imap(f -> getfield(b, f).value, keys(broughts))),
+                ) do f
                     f isa Component ? typeof(f) : f
                 end
         end,
@@ -259,7 +267,7 @@ macro blueprint(input...)
 
             function Framework.display_long(io::IO, bp::NewBlueprint; level = 0)
                 comps = provided_comps_display(bp)
-                print(io, "blueprint for $C: $(nameof(NewBlueprint)) {")
+                print(io, "blueprint for $comps: $(nameof(NewBlueprint)) {")
                 preindent = repeat("  ", level)
                 level += 1
                 indent = repeat("  ", level)
@@ -292,7 +300,6 @@ macro blueprint(input...)
 
     res
 end
-export @blueprint
 
 specified_as_blueprint(B::Type{<:Blueprint}) = false
 

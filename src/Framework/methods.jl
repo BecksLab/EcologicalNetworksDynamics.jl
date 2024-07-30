@@ -49,29 +49,30 @@ read_property(V::Type, ::Val{name}) where {name} =
 write_property(V::Type, ::Val{name}) where {name} =
     throw(PropertyError(V, name, "Unknown property."))
 
-has_read_property(V::Type, name::Symbol) =
+has_read_property(V::Type, n::Val{name}) where {name} =
     try
-        read_property(V, Val(name))
+        read_property(V, n)
         true
     catch e
         e isa PropertyError || rethrow(e)
         false
     end
 
-possible_write_property(V::Type, name::Symbol) =
+possible_write_property(V::Type, n::Val{name}) where {name} =
     try
-        write_property(V, Val(name))
+        write_property(V, n)
     catch e
         e isa PropertyError || rethrow(e)
         nothing
     end
 
-has_write_property(V::Type, name::Symbol) = !isnothing(possible_write_property(V, name))
+has_write_property(V::Type, n::Val{name}) where {name} =
+    !isnothing(possible_write_property(V, n))
 
-function readwrite_property(V::Type, name::Symbol)
-    read_property(V, Val(name)) # Errors if not even 'read-'.
+function readwrite_property(V::Type, n::Val{name}) where {name}
+    read_property(V, n) # Errors if not even 'read-'.
     try
-        write_property(V, Val(name))
+        write_property(V, n)
     catch e
         e isa PropertyError || rethrow(e)
         properr(V, name, "This property is read-only.")
@@ -85,8 +86,8 @@ global REVISING = false
 # Set read property first..
 function set_read_property!(V::Type, name::Symbol, fn::Function)
     REVISING ||
-        has_read_property(V, name) ||
-        properr(V, name, "Readable property already exists.")
+        has_read_property(V, Val(name)) &&
+            properr(V, name, "Readable property already exists.")
     # Dynamically add method to connect property name to the given function.
     name = Meta.quot(name)
     eval(quote
@@ -96,14 +97,15 @@ end
 
 # .. and only after, and optionally, the corresponding write property.
 function set_write_property!(V::Type, name::Symbol, fn::Function)
-    has_read_property(V, name) || properr(
+    has_read_property(V, Val(name)) || properr(
         V,
         name,
         "Property cannot be set writable \
          without having been set readable first.",
     )
     REVISING ||
-        has_write_property(V, name) && properr(V, name, "Writable property already exists.")
+        has_write_property(V, Val(name)) &&
+            properr(V, name, "Writable property already exists.")
     name = Meta.quot(name)
     eval(quote
         write_property(::Type{$V}, ::Val{$name}) = $fn

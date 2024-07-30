@@ -111,7 +111,7 @@ end
 function unchecked_setproperty!(value::V, p::Symbol, rhs) where {V}
     perr(mess) = properr(V, p, mess)
     p in fieldnames(V) && return setfield!(value, p, rhs)
-    fn = readwrite_property(V, p)
+    fn = readwrite_property(V, Val(p))
     fn(value, rhs)
 end
 
@@ -141,7 +141,7 @@ has_concrete_component(s::System{V}, c::Component{V}) where {V} = typeof(c) in s
 export has_component, has_concrete_component
 
 # List all properties and associated functions for this type.
-# Yields (name, is_read, Option{is_write}) values.
+# Yields (name, fn_read, Option{fn_write}) values.
 function properties(::Type{V}) where {V}
     Iterators.map(
         Iterators.filter(methods(read_property, Tuple{Type{V},Val}, Framework)) do mth
@@ -153,7 +153,7 @@ function properties(::Type{V}) where {V}
     ) do mth
         val = mth.sig.types[end]
         name = first(val.parameters)
-        (name, mth(V, Val(name)), possible_write_property(V, Val(name)))
+        (name, read_property(V, Val(name)), possible_write_property(V, Val(name)))
     end
 end
 

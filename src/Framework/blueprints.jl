@@ -52,7 +52,7 @@ Base.copy(b::Blueprint) = deepcopy(b)
 # Return non-empty list if components are required
 # for this blueprint to expand,
 # even though the corresponding component itself would make sense without these.
-expands_from(B::Blueprint{V}) where {V} = throw("Unspecified requirements for $B.")
+expands_from(::Blueprint{V}) where {V} = () # Require nothing by default.
 # The above is specialized by hand by framework users,
 # so make its return type flexible,
 # guarded by the below.
@@ -180,12 +180,12 @@ export BlueprintCheckFailure, checkfails
 
 # ==========================================================================================
 # Explicit terminal display.
-function Base.show(io::IO, ::MIME"text/plain", B::Type{<:Blueprint})
+function Base.show(io::IO, ::MIME"text/plain", B::Type{<:Blueprint{V}}) where {V}
     print(
         io,
         "$B \
          $(crayon"black")\
-         (blueprint type for component '$(componentsof(B))')\
+         (blueprint type for $(nameof(System)){$V})\
          $(crayon"reset")",
     )
 end

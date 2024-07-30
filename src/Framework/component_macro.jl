@@ -48,6 +48,12 @@
 # The code checking macro invocation consistency requires
 # that these pre-requisites be specified *prior* to invocation.
 macro component(input...)
+    component_macro(__module__, __source__, input...)
+end
+export @component
+
+# Extract function to ease debugging with Revise.
+function component_macro(__module__, __source__, input...)
 
     # Push resulting generated code to this variable.
     res = quote end
@@ -276,7 +282,7 @@ macro component(input...)
     push_res!(quote
         for (_, B) in base_blueprints
             $__module__.eval(quote
-                $Framework.componentsof(::$B) = $($etys,)
+                $Framework.componentsof(::$B) = $($ety,)
             end)
         end
     end)
@@ -311,7 +317,6 @@ macro component(input...)
 
     res
 end
-export @component
 
 #-------------------------------------------------------------------------------------------
 # The 'conflicts_' mapping entries are either abstract or concrete component,

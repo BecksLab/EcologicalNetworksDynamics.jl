@@ -19,6 +19,12 @@
 #
 # Minimal use: @conflicts(A, B, C)
 macro conflicts(input...)
+    conflicts_macro(__module__, __source__, input...)
+end
+export @conflicts
+
+# Extract function to ease debugging with Revise.
+function conflicts_macro(__module__, __source__, input...)
 
     # Push resulting generated code to this variable.
     res = quote end
@@ -52,7 +58,7 @@ macro conflicts(input...)
     entries = :([])
     for entry in input
 
-        comp, conf, invalid, reasons, mess = repeat(nothing, 5) # (help JuliaLS)
+        comp, conf, invalid, reasons, mess = repeat([nothing], 5) # (help JuliaLS)
         #! format: off
         @capture(entry,
             (comp_ => (reasons__,)) |
@@ -124,4 +130,3 @@ macro conflicts(input...)
     res
 
 end
-export @conflicts
