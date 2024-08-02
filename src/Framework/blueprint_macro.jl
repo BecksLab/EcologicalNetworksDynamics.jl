@@ -12,20 +12,20 @@
 # is automatically considered 'potential brought': the macro invocation makes it work.
 # The following methods are relevant then:
 #
-#   brought(::Name) = generated iterator over the fields, skipping 'nothing' values.
-#   implied_blueprint_for(::Name, ::Type{CompType}) = <assumed implemented by macro invoker>
+#   brought(::Blueprint) = generated iterator over the fields, skipping 'nothing' values.
+#   implied_blueprint_for(::Blueprint, ::Type{CompType}) = <assumed implemented by macro invoker>
 #
 # And for blueprint user convenience, override:
 #
-#   setproperty!(::Name, field, value)
+#   setproperty!(::Blueprint, field, value)
 #
 # When given `nothing` as a value, void the field.
 # When given a blueprint, check its provided components for consistency then embed.
 # When given a comptype or a singleton component instance, make it implied.
 # When given anything else, query the following for a callable blueprint constructor:
 #
-#   constructor_for_embedded(::Name, ::Val{fieldname}) = Component
-#   # (default, not reified/overrideable yet)
+#   constructor_for_embedded(::Blueprint, ::Val{fieldname}) = Component
+#   # (defaults to the provided component if single, not reified/overrideable yet)
 #
 # then pass whatever value to this constructor to get this sugar:
 #
@@ -241,7 +241,7 @@ function blueprint_macro(__module__, __source__, input...)
                         )
                     bp
                 end
-                setfield!(b, prop, val)
+                setfield!(b, prop, BroughtField{expected_C, ValueType}(val))
             end
         end,
     )

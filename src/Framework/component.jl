@@ -32,16 +32,8 @@
 # This might be implemented in the future for a convincingly motivated need,
 # at the cost of extending @component macro to produce abstract types.
 
-# The parametric type 'V' for the component
-# is the type of the value wrapped by the system.
-abstract type Component{V} end
-export Component
-
-# Most framework internals work with component types
-# because they can be abstract,
-# most exposed methods work with concrete singleton instance.
-const CompType{V} = Type{<:Component{V}}
-Base.convert(::CompType{V}, c::Component{V}) where {V} = typeof(c) # Singleton ergonomy.
+# Singleton component ergonomy.
+Base.convert(::CompType{V}, c::Component{V}) where {V} = typeof(c)
 
 # Component types being singleton, we *can* infer the value from the type at runtime.
 singleton_instance(C::CompType) = throw("No concrete singleton instance of '$C'.")

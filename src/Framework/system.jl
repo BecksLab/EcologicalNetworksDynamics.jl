@@ -73,9 +73,9 @@ function Base.getproperty(system::System{V}, p::Symbol) where {V}
     # Search property method.
     fn = read_property(V, Val(p))
     # Check for required components availability.
-    Miss = missing_dependency_for(V, fn, system)
-    if !isnothing(Miss)
-        comp = isabstracttype(Miss) ? "A component $Miss" : "Component $Miss"
+    miss = missing_dependency_for(fn, system)
+    if !isnothing(miss)
+        comp = isabstracttype(miss) ? "A component $miss" : "Component $miss"
         properr(V, p, "$comp is required to read this property.")
     end
     # Forward to method.
@@ -88,9 +88,9 @@ function Base.setproperty!(system::System{V}, p::Symbol, rhs) where {V}
     # Search property method.
     fn = readwrite_property(V, Val(p))
     # Check for required components availability.
-    Miss = missing_dependency_for(V, fn, system)
-    if !isnothing(Miss)
-        comp = isabstracttype(Miss) ? "A component $Miss" : "Component $Miss"
+    miss = missing_dependency_for(fn, system)
+    if !isnothing(miss)
+        comp = isabstracttype(miss) ? "A component $miss" : "Component $miss"
         properr(V, p, "$comp is required to write to this property.")
     end
     # Invoke property method.
@@ -119,8 +119,8 @@ end
 # Query components.
 
 # Iterate over all concrete components.
-component_types(s::System) = Iterators.map(identity, s._concrete)
-components(s::System) = Iterators.map(singleton_instance, component_types(s))
+component_types(s::System) = imap(identity, s._concrete)
+components(s::System) = imap(singleton_instance, component_types(s))
 # Restrict to the given component (super)type.
 components_types(system::System{V}, C::CompType{V}) where {V} =
     if isabstracttype(C)
@@ -131,7 +131,7 @@ components_types(system::System{V}, C::CompType{V}) where {V} =
         C in d ? (C,) : ()
     end
 components(s::System, C::CompType{V}) where {V} =
-    Iterators.map(singleton_instance, components_types(s, C))
+    imap(singleton_instance, components_types(s, C))
 export components, component_types
 
 # Basic check.
@@ -141,10 +141,11 @@ has_concrete_component(s::System{V}, c::Component{V}) where {V} = typeof(c) in s
 export has_component, has_concrete_component
 
 # List all properties and associated functions for this type.
-# Yields (name, fn_read, Option{fn_write}) values.
+# Yields (property_name, fn_read, Option{fn_write}, iterator{dependencies...}).
 function properties(::Type{V}) where {V}
-    Iterators.map(
-        Iterators.filter(methods(read_property, Tuple{Type{V},Val}, Framework)) do mth
+    imap(
+        ifilter(methods(read_property, Tuple{Type{V},Val}, Framework)) do mth
+            mth.sig isa UnionAll && return false # Only consider concrete implementations.
             val = mth.sig.types[end]
             val <: Val ||
                 throw("Unexpected method signature for $read_property: $(mth.sig)")
@@ -153,27 +154,39 @@ function properties(::Type{V}) where {V}
     ) do mth
         val = mth.sig.types[end]
         name = first(val.parameters)
-        (name, read_property(V, Val(name)), possible_write_property(V, Val(name)))
+        read_fn = read_property(V, Val(name))
+        write_fn = possible_write_property(V, Val(name))
+        (name, read_fn, write_fn, imap(identity, depends(V, read_fn)))
+    end
+end
+# Also feature for system type directly.
+properties(::Type{System{V}}) where {V} = properties(V)
+export properties
+
+# List properties available for *this* particular instance.
+# Yields (:propname, read, Option{write})
+function properties(s::System{V}) where {V}
+    imap(ifilter(properties(V)) do (_, read, _, _)
+        isnothing(missing_dependency_for(read, s))
+    end) do (name, read, write, _)
+        (name, read, write)
     end
 end
 
-# List properties available for this system type.
-# Returns {:propname => is_writeable}
-function properties(::Type{System{V}}) where {V}
-    Dict(p => isnothing(write) for (p, read, write) in properties(V))
+# List *unavailable* properties for this instance
+# along with the components missing to support them.
+# Yields (:propname, read, Option{write}, iterator{missing_dependencies...})
+function latent_properties(s::System{V}) where {V}
+    imap(ifilter(properties(V)) do (_, read, _, _)
+        !isnothing(missing_dependency_for(read, s))
+    end) do (name, read, write, deps)
+        (name, read, write, ifilter(d -> !has_component(s, d), deps))
+    end
 end
-
-# List properties available for this instance.
-function properties(s::System{V}) where {V}
-    Dict(
-        p => isnothing(write) for
-        (p, read, write) in properties(V) if isnothing(missing_dependency_for(V, read, s))
-    )
-end
-export properties
+export latent_properties
 
 # Consistency + REPL completion.
-Base.propertynames(s::System{V}) where {V} = collect(keys(properties(s)))
+Base.propertynames(s::System) = imap(first, properties(s))
 
 #-------------------------------------------------------------------------------------------
 

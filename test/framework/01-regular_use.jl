@@ -279,6 +279,33 @@ end
     sr = sa + ReflectFromB()
     @test sr.reflection == collect("12321")
 
+    #---------------------------------------------------------------------------------------
+    # List properties.
+
+    # All possible system properties and their dependencies.
+    props = properties(typeof(sa))
+    @test sort(map(((n, r, w, g),) -> (n, r, w, F.singleton_instance.(g)), props)) == [
+        (:a, get_a, nothing, Component[A]),
+        (:b, get_b, nothing, Component[B]),
+        (:n, get_n, nothing, Component[Size]),
+        (:ref, get_reflection, set_reflection!, Component[Reflection]),
+        (:reflection, get_reflection, set_reflection!, Component[Reflection]),
+        (:sum, get_sum, nothing, Component[A, B]),
+    ]
+
+    # Only the ones available on this instance.
+    props = properties(sa)
+    @test sort(collect(props)) == [(:a, get_a, nothing), (:n, get_n, nothing)]
+
+    # Only the ones *missing* on this instance.
+    props = latent_properties(sa)
+    @test sort(map(((n, r, w, g),) -> (n, r, w, F.singleton_instance.(g)), props)) == [
+        (:b, get_b, nothing, Component[B]),
+        (:ref, get_reflection, set_reflection!, Component[Reflection]),
+        (:reflection, get_reflection, set_reflection!, Component[Reflection]),
+        (:sum, get_sum, nothing, Component[B]),
+    ]
+
 end
 
 # ==========================================================================================
@@ -323,7 +350,7 @@ end
     # Embedded blueprints.
 
     # Explicitly bring it instead of implying.
-    a.size = NLines(2) # HERE: check Base.setproperty! definition in blueprint_macro.jl.
+    a.size = NLines(2)
 
     # The component is also brought.
     s = e + a
@@ -346,7 +373,7 @@ end
 
     # And it is an error to bring it if the component is already there.
     s = e + NLines(2) # (*even* if the data are consistent)
-    @sysfails(s += a, Add(BroughtAlreadyInValue, [NLines, false, A.Raw]))
+    @sysfails(s += a, Add(BroughtAlreadyInValue, Size, [NLines, false, A.Raw]))
 
     #---------------------------------------------------------------------------------------
     # Unbrought blueprints.
@@ -355,7 +382,7 @@ end
     a.size = nothing
 
     # The component is not brought then.
-    @sysfails(e + a, Add(MissingRequiredComponent, Size, [A.Raw], nothing, false))
+    @sysfails(e + a, Add(MissingRequiredComponent, A, Size, [A.Raw], nothing))
 
 end
 

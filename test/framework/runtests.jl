@@ -6,7 +6,10 @@ Framework.LOCAL_MACROCALLS = true
 
 # Run all numbered -.jl files we can find by default, except the current one.
 only = [
+    # HERE (2024-08-02): all main framework logic has been refactored,
+    # now the tests need to pass again.. but I need to stop for a month or so :'(
     "./01-regular_use.jl",
+    #  "./02-blueprints.jl",
 ] # Unless some files are specified here, in which case only run these.
 if isempty(only)
     for (folder, _, files) in walkdir(dirname(@__FILE__))
@@ -25,5 +28,7 @@ else
         include(file)
     end
 end
+
+Framework.LOCAL_MACROCALLS = false
 
 end

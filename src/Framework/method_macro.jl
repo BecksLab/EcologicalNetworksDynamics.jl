@@ -359,23 +359,6 @@ function method_macro(__module__, __source__, input...)
         Framework.depends(::Type{ValueType}, ::Type{typeof(fn)}) = deps
     end)
 
-    # Generate the method checking that required components
-    # are loaded on the system instance.
-    push_res!(
-        quote
-            function Framework.missing_dependency_for(
-                ::Type{ValueType},
-                M::Type{typeof(fn)},
-                s::System,
-            )
-                for dep in depends(ValueType, M)
-                    has_component(s, dep) || return dep
-                end
-                nothing
-            end
-        end,
-    )
-
     # Override the detected methods with checked code receiving system values.
     efn = LOCAL_MACROCALLS ? esc(fn_xp) : Meta.quot(:($__module__.$fn_xp))
     fn_path = Meta.quot(Meta.quot(fn_xp))
@@ -388,7 +371,7 @@ function method_macro(__module__, __source__, input...)
                 xp = quote
                     function $($efn)(; kwargs...)
                         #  function $mod.$fnname(; kwargs...)
-                        $dep = missing_dependency_for($ValueType, $($efn), $receiver)
+                        $dep = missing_dependency_for($($efn), $receiver)
                         if !isnothing($dep)
                             $a = isabstracttype($dep) ? " a" : ""
                             throw(

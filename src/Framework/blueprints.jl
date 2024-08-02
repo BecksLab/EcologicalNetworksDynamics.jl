@@ -32,9 +32,6 @@
 # This blueprint requirement is specified by the 'expands_from' function.
 # Expanding-from an abstract component A is expanding from any component subtyping A.
 
-abstract type Blueprint{V} end
-export Blueprint
-
 # Every blueprint provides only concrete components, and at least one.
 struct UnspecifiedComponents{B<:Blueprint} end
 componentsof(::B) where {B<:Blueprint} = throw(UnspecifiedComponents{B}())

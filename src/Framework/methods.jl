@@ -36,12 +36,23 @@
 # The wrapped system value type must always be specified.
 
 # Methods depend on nothing by default.
-depends(V::Type, ::Type{<:Function}) = CompType{V}[]
-missing_dependency_for(::Type, ::Type{<:Function}, _) = nothing
+depends(::Type{V}, ::Type{<:Function}) where {V} = CompType{V}[]
+missing_dependencies_for(fn::Type{<:Function}, s::System{V}) where {V} =
+    Iterators.filter(depends(V, fn)) do dep
+        !has_component(s, dep)
+    end
+# Just pick the first one. Return nothing if dependencies are met.
+function missing_dependency_for(fn::Type{<:Function}, s::System)
+    for dep in missing_dependencies_for(fn, s)
+        return dep
+    end
+    nothing
+end
 
 # Direct call with the functions themselves.
-depends(V::Type, fn::Function) = depends(V, typeof(fn))
-missing_dependency_for(V::Type, fn::Function, s) = missing_dependency_for(V, typeof(fn), s)
+depends(::Type{V}, fn::Function) where {V} = depends(V, typeof(fn))
+missing_dependencies_for(fn::Function, s::System) = missing_dependencies_for(typeof(fn), s)
+missing_dependency_for(fn::Function, s::System) = missing_dependency_for(typeof(fn), s)
 
 # Map wrapped system value and property name to the corresponding function.
 read_property(V::Type, ::Val{name}) where {name} =

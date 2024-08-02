@@ -147,18 +147,39 @@ using Crayons
 using MacroTools
 using OrderedCollections
 
+# Convenience aliases.
 argerr(m) = throw(ArgumentError(m))
 const Option{T} = Union{T,Nothing}
 struct PhantomData{T} end
+const imap = Iterators.map
+const ifilter = Iterators.filter
+
+# ==========================================================================================
+# Early small types declarations to avoid circular dependencies among code files.
 
 # Abstract over various exception thrown during inconsistent use of the system.
 abstract type SystemException <: Exception end
 
+# The parametric type 'V' for the component
+# is the type of the value wrapped by the system.
+abstract type Component{V} end
+abstract type Blueprint{V} end
+
+export Component
+export Blueprint
+
+# Most framework internals work with component types
+# because they can be abstract,
+# most exposed methods work with concrete singleton instance.
+const CompType{V} = Type{<:Component{V}}
+
+# ==========================================================================================
+
 # Base structure.
-include("./component.jl")
+include("./system.jl") #  <- Defines the 'System' type used in the next files..
+include("./component.jl") # <- But better start reading from this file.
 include("./blueprints.jl")
 include("./methods.jl")
-include("./system.jl")
 include("./add.jl")
 include("./plus_operator.jl")
 
