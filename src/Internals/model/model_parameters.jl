@@ -11,6 +11,7 @@ mutable struct ModelParameters
     # These don't exactly have an 'empty' variant.
     network::Option{EcologicalNetwork}
     biorates::BioRates # (this one does but all values are initially 'nothing' inside)
+    _topology::Topology # This will actually be part of the future refactoring.
     functional_response::Option{FunctionalResponse}
     producer_growth::Option{ProducerGrowth}
     # Since 'foodweb' is still a mandatory input to construct interaction layers,
@@ -38,6 +39,7 @@ mutable struct ModelParameters
             NoTemperatureResponse(),
             nothing,
             BioRates(),
+            Topology(),
             repeat([nothing], 3)...,
             Dict(),
             Dict(),
@@ -46,9 +48,15 @@ mutable struct ModelParameters
     ModelParameters(args...) = new(args...)
 end
 # Required to fork the system.
-# Ok as long as the value above contains no critical self-references.
+# Self-references (very) fortunately are not a problem:
+# https://discourse.julialang.org/t/how-is-deepcopy-so-clever-regarding-aliasing-and-self-reference/113235
 Base.copy(m::ModelParameters) = deepcopy(m)
 #### end ####
+
+# Ignore cached values for equivalence relation.
+const model_equivalence_ignored_fields = Set([:_cache])
+Base.:(==)(a::ModelParameters, b::ModelParameters) =
+    equal_fields(a, b; ignore = model_equivalence_ignored_fields)
 
 #### Type display ####
 """
@@ -175,6 +183,7 @@ function ModelParameters(
         temperature_response,
         network,
         biorates,
+        Topology(),
         functional_response,
         producer_growth,
         nothing,
