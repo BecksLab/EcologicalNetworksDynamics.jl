@@ -3,7 +3,7 @@ module EcologicalNetworksDynamics
 #  using Crayons
 #  using MacroTools
 #  using OrderedCollections
-#  using SparseArrays
+using SparseArrays
 #  using Graphs
 
 #-------------------------------------------------------------------------------------------
