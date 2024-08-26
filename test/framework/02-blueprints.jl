@@ -153,7 +153,7 @@ end
 module Abstracts
 using ..Blueprints
 using EcologicalNetworksDynamics.Framework
-using Main: @sysfails, @pcompfails, @xcompfails
+using Main: @failswith, @sysfails, @pcompfails, @xcompfails, @xbluefails
 using Test
 
 const S = System{Value}
@@ -190,7 +190,7 @@ comps(s) = sort(collect(components(s)); by=repr)
     @component Ahv{Value} blueprints(b::Ahv_b) requires(A)
     @sysfails(
         S(Ahv_b()), # No A component.
-        Add(MissingRequiredComponent, A, [Ahv_b], nothing, false)
+        Add(MissingRequiredComponent, Ahv, A, [Ahv_b], nothing)
     )
     # But any concrete sub-component is good.
     sb = S(Bb(), Ahv_b())
@@ -220,26 +220,38 @@ comps(s) = sort(collect(components(s)); by=repr)
     @test has_component(s, B) # (the one actually brought)
     # Embedding another is ok..
     s = S(Wmu_b(Cb()))
-    @test has_component(s, A) # ← ..because this is enforced.
+    @test has_component(s, A) # ← ..because this still holds.
     @test has_component(s, C)
 
-    struct Xb <: Blueprint{Value} end
-    @blueprint Xb
-    @component X{Value} blueprints(b::Xb)
-    # HERE: the following is now guarded against with the BroughtField newtype.
-    # Make add! work with again with this newtype then resume.
-    w = Wmu_b(Xb())
-
-    @xcompfails(
-        (@component begin
-            ImpliesAbstractComponent
-            implies(A())
-        end),
-        ImpliesAbstractComponent,
-        "No trivial blueprint default constructor has been defined \
-        to implicitly add '$A' when adding '$ImpliesAbstractComponent' to a system."
+    # Embedding anything else is not ok.
+    @failswith(
+        Wmu_b(5),
+        F.InvalidBroughtInput(5, A),
     )
-    @test comps(S(D(), ImpliesAbstractComponent())) == [D, ImpliesAbstractComponent]
+    struct Btb_b <: Blueprint{Value} end
+    @blueprint Btb_b
+    @component Btb{Value} blueprints(b::Btb_b)
+    @failswith(
+        Wmu_b(Btb),
+        F.InvalidImpliedComponent(_Btb, A),
+    )
+    @failswith(
+        Wmu_b(Btb_b()),
+        F.InvalidBroughtBlueprint(Btb_b(), A),
+    )
+
+    # Don't forget to specify default implied constructor.
+    struct Ipq_b <: Blueprint{Value}
+        a::Brought(A)
+    end
+    @xbluefails(
+        (@blueprint Ipq_b),
+        Ipq_b,
+        "Method implied_blueprint_for($Ipq_b, Type{<A>}) unspecified \
+         to implicitly bring <A> from $Ipq_b blueprints.",
+    )
+
+    # HERE: a lot of the following tests have lost their meanings with the new design, sort.
 
     #  A() = B() # Implicit to B(), say.
     #  @component ImpliesAbstractComponent implies(A())

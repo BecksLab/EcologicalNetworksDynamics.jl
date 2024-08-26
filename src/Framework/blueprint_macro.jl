@@ -127,7 +127,8 @@ function blueprint_macro(__module__, __source__, input...)
                 C = componentof(fieldtype)
                 TC = Type{C}
                 hasmethod(implied_blueprint_for, Tuple{NewBlueprint,TC}) ||
-                    xerr("Method $implied_blueprint_for($NewBlueprint, $TC) unspecified.")
+                    xerr("Method $implied_blueprint_for($NewBlueprint, $TC) unspecified \
+                          to implicitly bring $C from $NewBlueprint blueprints.")
 
                 # Triangular-check against redundancies.
                 for (a, Already) in broughts
@@ -241,7 +242,7 @@ function blueprint_macro(__module__, __source__, input...)
                         )
                     bp
                 end
-                setfield!(b, prop, BroughtField{expected_C, ValueType}(val))
+                setfield!(b, prop, BroughtField{expected_C,ValueType}(val))
             end
         end,
     )
@@ -344,6 +345,10 @@ function Base.convert(::Type{BroughtField{C,V}}, bp::Blueprint{V}) where {C,V}
     BroughtField{C,V}(bp)
 end
 
+# From anything else to disallow.
+Base.convert(::Type{BroughtField{C,V}}, i::Any) where {C,V} =
+    throw(InvalidBroughtInput(i, C))
+
 struct InvalidImpliedComponent{V}
     T::Type
     C::CompType{V}
@@ -352,6 +357,39 @@ end
 struct InvalidBroughtBlueprint{V}
     b::Blueprint{V}
     C::CompType{V}
+end
+
+struct InvalidBroughtInput{V}
+    i::Any
+    C::CompType{V}
+end
+
+function Base.showerror(io::IO, e::InvalidImpliedComponent{V}) where {V}
+    (; T, C) = e
+    print(
+        io,
+        "The field should bring $C, \
+         but this component would imply $T instead.",
+    )
+end
+
+function Base.showerror(io::IO, e::InvalidBroughtBlueprint{V}) where {V}
+    (; b, C) = e
+    print(
+        io,
+        "The field should bring $C, \
+         but this blueprint would expand into $(provided_comps_display(b)) instead: $b.",
+    )
+end
+
+function Base.showerror(io::IO, e::InvalidBroughtInput{V}) where {V}
+    (; i, C) = e
+    print(
+        io,
+        "The field should bring $C, \
+         but a blueprint for this component cannot be constructed \
+         from: $(repr(i)) ::$(typeof(i)).",
+    )
 end
 
 #-------------------------------------------------------------------------------------------
@@ -390,22 +428,4 @@ function display_blueprint_field_long(io::IO, bf::BroughtField; level = 0)
         throw("unreachable: invalid brought blueprint field value: \
                $(repr(value)) ::$(typeof(value))")
     end
-end
-
-function Base.showerror(io::IO, e::InvalidImpliedComponent{V}) where {V}
-    (; T, C) = e
-    print(
-        io,
-        "The field should bring $C, \
-         but this component would imply $T instead.",
-    )
-end
-
-function Base.showerror(io::IO, e::InvalidBroughtBlueprint{V}) where {V}
-    (; b, C) = e
-    print(
-        io,
-        "The field should bring $C, \
-         but this blueprint would expand into $(provided_comps_display(b)) instead: $b.",
-    )
 end

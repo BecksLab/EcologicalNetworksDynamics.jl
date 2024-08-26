@@ -361,16 +361,16 @@ function method_macro(__module__, __source__, input...)
 
     # Override the detected methods with checked code receiving system values.
     efn = LOCAL_MACROCALLS ? esc(fn_xp) : Meta.quot(:($__module__.$fn_xp))
+    # HERE: metaprog fails when the above is true during actual `] test`: investigate and fix.
     fn_path = Meta.quot(Meta.quot(fn_xp))
     push_res!(
         quote
             for (mth, parms, pnames, receiver, hook) in to_override
                 # Start from dummy (; kwargs...) signature/forward call..
-                # Hygienic temporary variables, generated for the target module.
+                # (hygienic temporary variables, generated for the target module)
                 local dep, a = Core.eval($__module__, :(gensym.([:dep, :a])))
                 xp = quote
                     function $($efn)(; kwargs...)
-                        #  function $mod.$fnname(; kwargs...)
                         $dep = missing_dependency_for($($efn), $receiver)
                         if !isnothing($dep)
                             $a = isabstracttype($dep) ? " a" : ""
@@ -410,12 +410,6 @@ function method_macro(__module__, __source__, input...)
                 end
                 eval(xp)
             end
-            # TODO: if unexistent, then
-            # defining a fallback `fn(value, args...; _system=s, kwargs...)` method here
-            # would enable that implementors of `fn` take decisions
-            # depending on the whole system value, and components currently available.
-            # In particular, it would avoid the need
-            # to define both `_simulate` and `simulate` in the exposed lib.
         end,
     )
 
