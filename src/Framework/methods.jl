@@ -9,31 +9,22 @@
 #   - method(v::Value, ..) -> Runs, with undefined behaviour if components are missing.
 #
 # Only the second one needs to be specified by the framework user,
-# along with its components dependencies.
+# and then the @method macro should do the rest (see documentation there).
 #
-# If the method needs to run differently
-# depending on the presence/absence of other components,
-# then the following hook is provided:
+# Methods with these exact signatures:
 #
-#   - method(v::Value, ..; .., _system::System) <- to enable has_component(_system, C).
+#   - method(v::Value)
+#   - method!(v::Value, rhs)
 #
-# Also, methods with these exact signatures:
-#
-#   - method(v::Value)  (+ optional `; _system`)
-#
-#   - method!(v::Value, rhs) ( + optional `; _system`)
-#
-# Can optionally become properties of the system/value,
+# .. can optionally become properties of the system/value,
 # in the sense of julia's `getproperty/set_property`.
 #
 # The properties also come in two styles:
 #
 #   - system.property -> Checks that the required components exist.
-#
 #   - value.property -> Runs and see what happens.
 #
-# Method's polymorphism use julia dispatch over function types.
-# The wrapped system value type must always be specified.
+# The polymorphism of methods use julia dispatch over function types.
 
 # Methods depend on nothing by default.
 depends(::Type{V}, ::Type{<:Function}) where {V} = CompType{V}[]

@@ -1,11 +1,12 @@
-# Convenience macro for defining methods and properties.
+# Convenience macro for defining a new system method and possible associated properties.
 #
 # Invoker defines the behaviour in a function code containing at least one 'receiver':
-# an argument typed with the system wrapped value.
+# an argument explicitly typed with the system wrapped value.
 #
 #   f(v::Value, ...) = <invoker code>
 #
-# If no receiver is found, the first argument is assumed to be it if it's `::Any`.
+# If no explicit receiver is found,
+# then first argument is assumed to be the receiver provided it is untyped or `::Any`.
 #
 # Then, the macro invokation goes like:
 #
@@ -19,8 +20,9 @@
 #       read_as(property_names...) # or write_as(property_names...)
 #   end
 #
-# This will generate additional methods to `f` so it accepts `System{Value}` instead of
-# `Value` as the receiver. These method check that components dependencies are met
+# This will generate additional methods to `f`
+# so it accepts `System{Value}` instead of `Value` as the receiver.
+# These wrapper methods check that components dependencies are met
 # before forwarding to the original method.
 #
 # If an original method has the exact:
@@ -30,12 +32,12 @@
 # Sometimes, the method needs to take decision
 # depending on other system components that are not strict dependencies,
 # so the whole system needs to be queried and not just the wrapped value.
-# In this case, the invoker may add a 'hook' `::System` parameter to their signature:
+# In this case, the invoker adds a 'hook' `::System` parameter to their signature:
 #
 #   f(v, a, b, _system::System) = ...
 #
-# The new method generated will then elide this extra 'hook' argument,
-# yet forward the whole system to it:
+# The generated wrapper method then elides this extra 'hook' argument,
+# but still forwards the whole system to it:
 #
 #   f(v::System{ValueType}, a, b) = f(v._value, a, b, v) # (generated)
 #

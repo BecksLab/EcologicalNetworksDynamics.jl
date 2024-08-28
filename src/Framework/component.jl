@@ -4,24 +4,18 @@
 # No concrete component type can be added twice to the system.
 #
 # When user wants to add components to the system,
-# they provide a blueprint value which needs to be expanded into components.
-#
-# The data inside the blueprint is only useful to run the internal `expand!()` method once,
-# and must not lend caller references to the system,
-# for the internal state to not be possibly corrupted later.
-# For now, this is enforced by requiring that all blueprints be copy-able.
-# Only a copy of the caller blueprint is actually used for component(s) expansion.
+# they provide a blueprint value which is then *expanded* into components.
 #
 # Components may 'require' other components,
 # because the data they represent are meaningless without them.
 # If A requires B, it means that A cannot be added in a system with no B.
 #
 # Components also 'conflict' with each other:
-# because the data they become makes no sense within their context.
+# because the data they represent make no sense within their context.
 # If A conflicts with B, it means that an error should be raised
 # when attempting to add A in a system with B.
 #
-# Component types can be structured with a julia's abstract type hierarchy:
+# Component types can be structured with julia's abstract type hierarchy:
 #
 #   - Conflicting with an abstract component A
 #     means conflicting with any component subtyping A.

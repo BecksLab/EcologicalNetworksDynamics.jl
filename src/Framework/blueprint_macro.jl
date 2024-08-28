@@ -1,39 +1,46 @@
-# Convenience macro for defining blueprints.
+# Convenience macro for defining a new blueprint.
 #
 # Invoker defines the blueprint struct
-# (before the corresponding component is actually defined),
+# (before the corresponding components are actually defined),
 # and associated late_check/expand!/etc. methods the way they wish,
 # and then calls:
 #
 #   @blueprint Name
 #
+# to record their type as a blueprint.
+#
 # Regarding the blueprints 'brought': make an ergonomic BET.
-# Any blueprint field typed with `Union{Nothing,Blueprint,CompType}`
-# is automatically considered 'potential brought': the macro invocation makes it work.
+# Any blueprint field typed with `BroughtField`
+# is automatically considered 'potential brought':
+# the macro invocation makes it work out of the box.
 # The following methods are relevant then:
 #
-#   brought(::Blueprint) = generated iterator over the fields, skipping 'nothing' values.
-#   implied_blueprint_for(::Blueprint, ::Type{CompType}) = <assumed implemented by macro invoker>
+#   # Generated:
+#   brought(::Blueprint) = iterator over the brought fields, skipping 'nothing' values.
 #
-# And for blueprint user convenience, override:
+#   # Invoker-defined:
+#   implied_blueprint_for(::Blueprint, ::Type{CompType}) = ...
+#
+# And for blueprint user convenience, the generated code also overrides:
 #
 #   setproperty!(::Blueprint, field, value)
 #
-# When given `nothing` as a value, void the field.
-# When given a blueprint, check its provided components for consistency then embed.
-# When given a comptype or a singleton component instance, make it implied.
-# When given anything else, query the following for a callable blueprint constructor:
+# with something comfortable:
+#   - When given `nothing` as a value, void the field.
+#   - When given a blueprint, check its provided components for consistency then *embed*.
+#   - When given a comptype or a singleton component instance, make it *implied*.
+#   - When given anything else, query the following for a callable blueprint constructor:
 #
-#   constructor_for_embedded(::Blueprint, ::Val{fieldname}) = Component
-#   # (defaults to the provided component if single, not reified/overrideable yet)
+#     constructor_for_embedded(::Blueprint, ::Val{fieldname}) = Component
+#     # (defaults to the provided component if single, not reified/overrideable yet)
 #
-# then pass whatever value to this constructor to get this sugar:
+# Then pass whatever value to this constructor to get this sugar:
 #
 #   blueprint.field = value  --->  blueprint.field = EmbeddedBlueprintConstructor(value)
 #
 # ERGONOMIC BET: This will only work if there is no ambiguity which constructor to call:
-#  ake it only work if the blueprint type only provides one component
-# and this component singleton instance is callable.
+# make it only work if the component singleton instance brought by the field is callable,
+# as this means there is an unambiguous default blueprint to be constructed.
 
 # Dedicated field type to be automatically detected as brought blueprints.
 struct BroughtField{C,V} # where C<:CompType{V} (enforce)
@@ -227,7 +234,7 @@ function blueprint_macro(__module__, __source__, input...)
                     bp = cstr(args...; kwargs...)
                     comps = componentsof(bp)
                     length(comps) == 1 || throw(
-                        "Automatic blueprint constructor fo brought blueprint assignment \
+                        "Automatic blueprint constructor for brought blueprint assignment \
                          yielded a blueprint bringing $comps instead of $expected_C. \
                          This is a bug in the components library.",
                     )

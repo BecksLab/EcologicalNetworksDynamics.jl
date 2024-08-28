@@ -54,7 +54,7 @@
 #   s.property                              # Implicit `get_property(s)`
 #   s.property = value                      # Implicit `set_property(s, value)`
 #
-# Components and methods are organized into a dependency hierarchy,
+# Components and methods are organized into a dependency network,
 # with components requiring each other
 # and methods depending on the presence of certain components to run.
 # This makes it possible to emit useful errors

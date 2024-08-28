@@ -1,9 +1,8 @@
-# Convenience macro for defining components.
+# Convenience macro for defining a new component.
 #
-# Invoker defines possible abstract component supertypes,
-# and/or some component blueprints types
-# only supposed to provide the created component,
-# and then invokes:
+# Invoker defines possible abstract component supertype,
+# and/or some blueprints types providing only the created component,
+# then invokes:
 #
 #   @component Name{ValueType} requires(components...) blueprints(name::Type, ...)
 #
@@ -11,7 +10,7 @@
 #
 #   @component Name <: SuperComponentType requires(components...) blueprints(name::Type, ...)
 #
-# Or alternately block-form:
+# This alternate block-form is supported:
 #
 #   @component begin
 #       Name{ValueType}
@@ -20,9 +19,11 @@
 #       blueprints(name::Type, ...)
 #   end
 #
-# After checking, the following approximate component code
-# should result from expansion of the macro:
+# Consistency checks are run by the macro then by the generated code.
+# When all check pass, the following (approximate) component code
+# should result from expansion:
 #
+# ------------------------------------------------------------------
 #   # Component type.
 #   struct _Name <: SuperComponentType (or Component{ValueType})
 #     Blueprint1::Type{Blueprint{ValueType}}
@@ -44,15 +45,14 @@
 #   ...
 #
 #   requires(::Type{_Name}) = ...
+# ------------------------------------------------------------------
 #
-# The code checking macro invocation consistency requires
-# that these pre-requisites be specified *prior* to invocation.
 macro component(input...)
+    # Extract function to ease debugging with Revise.
     component_macro(__module__, __source__, input...)
 end
 export @component
 
-# Extract function to ease debugging with Revise.
 function component_macro(__module__, __source__, input...)
 
     # Push resulting generated code to this variable.

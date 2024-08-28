@@ -1,4 +1,4 @@
-# Components append data to a value wrapped in a 'System'.
+# Components consist in data stored to a value wrapped in a 'System'.
 # The system keeps track of all the components added.
 # It also checks that the method called and properties invoked
 # do meet the components requirements.
@@ -11,7 +11,6 @@
 # so the user can start with an "empty system".
 #
 # The value wrapped needs to be copy-able for the system to be forked.
-# So do the components blueprints.
 
 struct RawConstruct end # Used to dispatch constructor.
 

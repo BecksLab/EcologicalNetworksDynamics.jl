@@ -2,10 +2,16 @@
 #
 # The components added during blueprint expansion depend on the blueprint value.
 #
+# The data inside the blueprint is only useful to run the internal `expand!()` method once,
+# and must not lend caller references to the system,
+# for the internal state to not be possibly corrupted later.
+# For now, this is enforced by requiring that all blueprints be copy-able.
+# Only a copy of the caller blueprint is actually used for component(s) expansion.
+#
 # Blueprint values may 'bring' other blueprints than themselves,
 # because they contain enough data to do so.
 # This loosely feels like "sub-components", although it is more subtle.
-# There are two ways for blueprints bring each other:
+# There are two ways for blueprints to bring each other:
 #
 #   - Either they 'embed' other blueprints as sub-blueprints,
 #     which expand as part of their own expansion process.
@@ -16,20 +22,17 @@
 #     This does not need to happen if the components provided by the implied blueprints
 #     are already in the system.
 #     A blueprint does not 'imply' another specific blueprint,
-#     but it 'implies' *some* blueprint bringing other specific components.
+#     but it 'implies' *some* blueprint bringing the other specific components.
 #
 # Whether a brought blueprint is embedded or implied
 # depends on the bringer value.
 # For instance, it can be implied if user has not specified brought-blueprint data,
 # and embedded if user has explicitly asked that it be.
 #
-# Implying blueprints providing abstract components is not currently supported,
-# but could possibly be if it makes sense to do so.
-#
 # Blueprint may also require that other components be present
 # for their expansion process to happen correctly,
-# even though the component they bring does not.
-# This blueprint requirement is specified by the 'expands_from' function.
+# even though the components they bring actually do not.
+# This blueprint-level requirement is specified by the 'expands_from' function.
 # Expanding-from an abstract component A is expanding from any component subtyping A.
 
 # Every blueprint provides only concrete components, and at least one.
