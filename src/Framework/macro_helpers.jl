@@ -130,6 +130,33 @@ function is_identifier_path(xp)
     end
 end
 
+# Append path to a module,
+# not straightforward because with U = :(a.b) and V = :(c.d),
+# then :($U.$V) is *not* :(a.b.c.d) but :(a.b.:(c.d)) and most likely unusable.
+# But cat_path(U, V) *is* :(a.b.c.d).
+function cat_path(mod, path::Expr)
+    # Collect all path steps.
+    steps = Symbol[]
+    current = path
+    err() = argerr("Not a raw path of identifiers: $(repr(path)).")
+    while !(current isa Symbol)
+        current.head == :. || err()
+        current, step = current.args
+        step isa QuoteNode || err()
+        step.value isa Symbol || err()
+        push!(steps, step.value)
+    end
+    push!(steps, current)
+    # Construct final expression with reverse read.
+    res = mod
+    for step in reverse(steps)
+        res = :($res.$step)
+    end
+    res
+end
+# Trivial case.
+cat_path(mod, id::Symbol) = :($mod.$id)
+
 # ==========================================================================================
 # Dedicated exceptions.
 

@@ -201,10 +201,11 @@ function method_macro(__module__, __source__, input...)
         raw_deps = $deps_xp
     end)
 
-    # Scroll existing methods to find the ones to override.
+    # Scroll existing methods to find the ones to wrap
+    # with methods receiving 'System' values as parameters.
     push_res!(
         quote
-            to_override = []
+            to_wrap = []
             for mth in methods(fn)
 
                 # Retrieve fixed-parameters types for the method.
@@ -249,10 +250,10 @@ function method_macro(__module__, __source__, input...)
                     pop!(system_values)
                 end
 
-                # Record for overriding.
-                push!(to_override, (mth, parms, names, receiver, hook))
+                # Record for wrapping.
+                push!(to_wrap, (mth, parms, names, receiver, hook))
             end
-            isempty(to_override) &&
+            isempty(to_wrap) &&
                 xerr("No suitable method has been found to mark $fn as a system method. \
                       Valid methods must have at least \
                       one 'receiver' argument of type ::$ValueType \
@@ -359,18 +360,22 @@ function method_macro(__module__, __source__, input...)
         Framework.depends(::Type{ValueType}, ::Type{typeof(fn)}) = deps
     end)
 
-    # Override the detected methods with checked code receiving system values.
-    efn = LOCAL_MACROCALLS ? esc(fn_xp) : Meta.quot(:($__module__.$fn_xp))
-    # HERE: metaprog fails when the above is true during actual `] test`: investigate and fix.
+    # Wrap the detected methods within checked methods receiving 'System' values.
+    efn = LOCAL_MACROCALLS ? esc(fn_xp) : Meta.quot(cat_path(__module__, fn_xp))
     fn_path = Meta.quot(Meta.quot(fn_xp))
     push_res!(
         quote
-            for (mth, parms, pnames, receiver, hook) in to_override
+            for (mth, parms, pnames, receiver, hook) in to_wrap
                 # Start from dummy (; kwargs...) signature/forward call..
                 # (hygienic temporary variables, generated for the target module)
                 local dep, a = Core.eval($__module__, :(gensym.([:dep, :a])))
                 xp = quote
-                    function $($efn)(; kwargs...)
+                    function (::typeof($($efn)))(; kwargs...)
+                        #    ^^^^^^^^^^-------^^
+                        # (useful to get it working
+                        #  when the macro is called within @testset blocks
+                        #  with LOCAL_MACROCALLS = true:
+                        #  https://stackoverflow.com/a/55292662/3719101)
                         $dep = missing_dependency_for($($efn), $receiver)
                         if !isnothing($dep)
                             $a = isabstracttype($dep) ? " a" : ""
