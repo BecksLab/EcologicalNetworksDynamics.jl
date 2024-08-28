@@ -77,20 +77,7 @@ function to_value(mod, expression, context, error_out, type = nothing)
 end
 
 # Special-case of the above when the expression is expected to evaluate
-# into a component for the given expected value type.
-function to_component(mod, xp, value_type_var, ctx, xerr)
-    quote
-        comp = $(to_value(mod, xp, ctx, xerr, Component))
-        Sup = Component{$value_type_var}
-        if !(comp isa Sup)
-            but = comp isa Component ? ", but '$(Component{system_value_type(comp)})'" : ""
-            $xerr("$($ctx): '$comp' is not of type '$Sup'$but.")
-        end
-        comp
-    end
-end
-
-# Same for a blueprint type.
+# into a blueprint type for the given expected value type.
 function to_blueprint_type(mod, xp, value_type_var, ctx, xerr)
     quote
         B = $(to_value(mod, xp, ctx, xerr, DataType))
@@ -103,16 +90,52 @@ function to_blueprint_type(mod, xp, value_type_var, ctx, xerr)
     end
 end
 
-# Component dependencies are either specified
-# as singleton instances (because it is convenient),
-# or as component type (because they may be abstract).
-# Yet only extract corresponding types.
-function to_dependency(mod, xp, ctx, xerr)
+# Display input expression, its evaluation result and its resulting type.
+xpres(xp, v) = "\nExpression: $(repr(xp))\nResult: $v ::$(typeof(v))"
+
+# Same for a component type, but a singleton *instance* can be given instead.
+function to_component(mod, xp, value_type_var, ctx, xerr)
     quote
-        dep = $(to_value(mod, xp, ctx, xerr, Union{Component,<:CompType}))
-        dep isa Type ? dep : typeof(dep)
+        C = $(to_value(mod, xp, ctx, xerr, Any))
+        # A particular system value type is already expected: check it against input.
+        Sup = Component{$value_type_var}
+        if C isa Type
+            if !(C <: Sup)
+                but = C <: Component ? ", but '$(Component{system_value_type(C)})'" : ""
+                $xerr("$($ctx): the given type \
+                       does not subtype '$Sup'$but:$(xpres($xp, C))")
+            end
+            C
+        else
+            c = C # Actually an instance.
+            if !(c isa Sup)
+                but = c isa Component ? ", but for '$(system_value_type(c))'" : ""
+                $xerr("$($ctx): the given expression does not evaluate \
+                       to a component for '$($value_type_var)'$but:$(xpres($xp, c))")
+            end
+            typeof(c)
+        end
     end
 end
+
+# Same, but without checking against a prior expectation for the system value type.
+function to_component(mod, xp, ctx, xerr)
+    quote
+        C = $(to_value(mod, xp, ctx, xerr, Any))
+        # Don't check the system value type, but infer it.
+        if C isa Type
+            C <: Component || $xerr("$($ctx): the given type \
+                                     does not subtype $Component:$(xpres($xp, C))")
+            C
+        else
+            c = C # Actually an instance.
+            c isa Component || $xerr("$($ctx): the given value \
+                                      is not a component:$(xpres($xp, c))")
+            typeof(c)
+        end
+    end
+end
+
 
 # Check whether the expression is a `raw.identifier.path`.
 # If so, then we assume it produces no side effect

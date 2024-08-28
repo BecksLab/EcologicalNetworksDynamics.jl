@@ -9,7 +9,8 @@ only = [
     # HERE (2024-08-02): all main framework logic has been refactored,
     # now the tests need to pass again.. but I need to stop for a month or so :'(
     "./01-regular_use.jl",
-    #  "./02-blueprints.jl",
+    "./02-blueprint_macro.jl",
+    "./03-component_macro.jl",
 ] # Unless some files are specified here, in which case only run these.
 if isempty(only)
     for (folder, _, files) in walkdir(dirname(@__FILE__))

@@ -41,6 +41,7 @@ function conflicts_macro(__module__, __source__, input...)
 
     # Convenience wrap.
     tovalue(xp, ctx, type) = to_value(__module__, xp, ctx, :xerr, type)
+    tocomp_novaluetype(xp, ctx) = to_component(__module__, xp, ctx, :xerr)
     tocomp(xp, ctx) = to_component(__module__, xp, :ValueType, ctx, :xerr)
 
     #---------------------------------------------------------------------------------------
@@ -76,7 +77,7 @@ function conflicts_macro(__module__, __source__, input...)
             ctx = "First conflicting entry"
             push_res!(
                 quote
-                    First = $(tovalue(comp, ctx, Component))
+                    First = $(tocomp_novaluetype(comp, ctx))
                     ValueType = system_value_type(First)
                 end,
             )
@@ -108,7 +109,7 @@ function conflicts_macro(__module__, __source__, input...)
     push_res!(
         quote
             entries = $entries
-            comps = CompType{ValueType}[typeof(first(e)) for e in entries]
+            comps = CompType{ValueType}[first(e) for e in entries]
             keys = OrderedSet{CompType{ValueType}}(comps)
             for (a, reasons) in entries
                 for (b, message) in reasons

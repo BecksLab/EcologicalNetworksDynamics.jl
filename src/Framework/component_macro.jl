@@ -76,7 +76,7 @@ function component_macro(__module__, __source__, input...)
     # Convenience local wrap.
     tovalue(xp, ctx, type) = to_value(__module__, xp, ctx, :xerr, type)
     tobptype(xp, ctx) = to_blueprint_type(__module__, xp, :ValueType, ctx, :xerr)
-    todep(xp, ctx) = to_dependency(__module__, xp, ctx, :xerr)
+    tocomp(xp, ctx) = to_component(__module__, xp, :ValueType, ctx, :xerr)
 
     #---------------------------------------------------------------------------------------
     # Parse macro input,
@@ -163,7 +163,7 @@ function component_macro(__module__, __source__, input...)
                 else
                     reason = tovalue(reason, "Requirement reason", String)
                 end
-                comp = todep(comp, "Required component")
+                comp = tocomp(comp, "Required component")
                 req = :($comp => $reason)
                 push!(requires_xp.args, req)
             end
@@ -179,10 +179,8 @@ function component_macro(__module__, __source__, input...)
             for bp in bps
                 bpname, B = nothing, nothing # (help JuliaLS)
                 @capture(bp, bpname_::B_)
-                isnothing(bpname) &&
-                    perr("Expected `name::Type` to specify blueprint, found $(repr(bp)).")
-                is_identifier_path(B) ||
-                    perr("Not a blueprint identifier path: $(repr(B)).")
+                isnothing(bpname) && perr("Expected `name::Type` to specify blueprint, \
+                                           found instead: $(repr(bp)).")
                 xp = tobptype(B, "Blueprint")
                 push!(blueprints_xp.args, :($(Meta.quot(bpname)), $xp))
             end
@@ -219,16 +217,16 @@ function component_macro(__module__, __source__, input...)
         end,
     )
 
-    # Guard against redundancies among base blueprints.
+    # Guard against redundancies / collisions among base blueprints.
     push_res!(quote
         base_blueprints = []
         for (name, B) in $blueprints_xp
             # Triangular-check.
             for (other, Other) in base_blueprints
                 other == name && xerr("Base blueprint $(repr(other)) \
-                                       both refer to $Other and to $B.")
+                                       both refers to $Other and to $B.")
                 Other == B && xerr("Base blueprint $B bound to \
-                                    both names $(repr(other)) and $(repr(name))")
+                                    both names $(repr(other)) and $(repr(name)).")
             end
             push!(base_blueprints, (name, B))
         end
@@ -297,18 +295,22 @@ function component_macro(__module__, __source__, input...)
 
 
     # Helpful display resuming base blueprint types for this component.
-    push_res!(
-        quote
-            function Base.show(io::IO, ::MIME"text/plain", C::$ety)
-                print(io, "$C $(crayon"black")(component for $ValueType, expandable from:")
+    push_res!(quote
+        function Base.show(io::IO, ::MIME"text/plain", C::$ety)
+            print(io, "$C $(crayon"black")(component for $ValueType")
+            names = fieldnames(typeof(C))
+            if isempty(names)
+                print(io, " with no base blueprint")
+            else
+                println(io, ", expandable from:")
                 for name in fieldnames(typeof(C))
                     bp = getfield(C, name)
-                    print(io, "\n  $name: $bp,")
+                    println(io, "  $name: $bp,")
                 end
-                print(io, "\n)$(crayon"reset")")
             end
-        end,
-    )
+            print(io, ")$(crayon"reset")")
+        end
+    end)
 
     # Avoid confusing/leaky return type from macro invocation.
     push_res!(quote

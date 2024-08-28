@@ -66,7 +66,8 @@ function method_macro(__module__, __source__, input...)
 
     # Convenience wrap.
     tovalue(xp, ctx, type) = to_value(__module__, xp, ctx, :xerr, type)
-    todep(xp, ctx) = to_dependency(__module__, xp, ctx, :xerr)
+    tocomp_novaluetype(xp, ctx) = to_component(__module__, xp, ctx, :xerr)
+    tocomp(xp, ctx) = to_component(__module__, xp, :ValueType, ctx, :xerr)
 
     #---------------------------------------------------------------------------------------
     # Parse macro input,
@@ -129,7 +130,7 @@ function method_macro(__module__, __source__, input...)
                 if first
                     # Infer the value type from the first dep if possible.
                     xp = quote
-                        C = $(todep(dep, "First dependency"))
+                        C = $(tocomp_novaluetype(dep, "First dependency"))
                         if isnothing(ValueType)
                             ValueType = system_value_type(C)
                         else
@@ -146,7 +147,7 @@ function method_macro(__module__, __source__, input...)
                     end
                     first = false
                 else
-                    xp = todep(dep, "Depends section")
+                    xp = tocomp(dep, "Depends section")
                 end
                 push!(deps_xp.args, xp)
             end

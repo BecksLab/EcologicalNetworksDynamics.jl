@@ -1,11 +1,20 @@
 module Blueprints
 
+# Testing these macros requires to generate numerous new types
+# which are bound to constant julia variables.
+# In particular, testing macros for *failure*
+# typically result in generated code aborting halway through their expansion/execution
+# and make it likely that unexpected interactions occur between subsequent tests
+# if the names of generated blueprints/components collide.
+# Alleviate this by picking random trigrams for the tests:
+#   - `Xyz` as component names
+#   - `Xyz_b` as associated blueprint names.
+
 # The plain value to wrap in a "system" in subsequent tests.
 struct Value end
 Base.copy(v::Value) = deepcopy(v)
 export Value
 
-# Use submodules to not clash type names.
 # ==========================================================================================
 module MacroInvocations
 using ..Blueprints
@@ -13,6 +22,81 @@ using EcologicalNetworksDynamics.Framework
 using Main: @sysfails, @pbluefails, @xbluefails
 using Test
 const F = Framework
+
+@testset "Invocation variations of @blueprint macro." begin
+
+    #---------------------------------------------------------------------------------------
+    # Basic use: empty blueprint.
+    struct Gdu_b <: Blueprint{Value} end
+    @blueprint Gdu_b # (that's all it takes)
+
+    # Works with a component to expand into.
+    @component Gdu{Value} blueprints(b::Gdu_b)
+    s = System{Value}(Gdu.b())
+    @test has_component(s, Gdu)
+
+    #---------------------------------------------------------------------------------------
+    # Any expression can be given if it evaluates to expected macro input.
+
+    struct Tap_b <: Blueprint{Value} end
+
+    ev_count = [0] # (check that the expression is only evaluated once)
+    function value_expression()
+        ev_count[1] += 1
+        Tap_b
+    end
+
+    @blueprint value_expression()
+
+    # Works as expected.
+    @component Tap{Value} blueprints(b::Tap_b)
+    @test has_component(System{Value}(Tap.b()), Tap)
+
+    # Only evaluated once.
+    @test ev_count == [1]
+
+    # ======================================================================================
+    # Invalid invocations.
+
+    #---------------------------------------------------------------------------------------
+    # Raw basic misuses.
+
+    @xbluefails(
+        (@blueprint 4 + 5),
+        nothing,
+        "Blueprint type: expression does not evaluate to a DataType: :(4 + 5), \
+         but to a Int64: 9.",
+    )
+
+    @xbluefails(
+        (@blueprint Undefined),
+        nothing,
+        "Blueprint type: expression does not evaluate: :Undefined. \
+         (See error further down the exception stack.)",
+    )
+
+    @xbluefails(
+        (@blueprint Vector{Int}),
+        Vector{Int},
+        "Not a subtype of '$Blueprint': 'Vector{$Int}'."
+    )
+
+    abstract type Hek <: Blueprint{Value} end
+    @xbluefails(
+        (@blueprint Hek),
+        Hek,
+        "Cannot define blueprint from an abstract type: '$Hek'."
+    )
+
+    struct Eap <: Blueprint{Value} end
+    @blueprint Eap
+    @xbluefails(
+        (@blueprint Eap),
+        Eap,
+        "Type '$Eap' already marked as a blueprint for '$System{$Value}'."
+    )
+
+end
 
 @testset "Invalid @blueprint macro invocations." begin
 
@@ -65,6 +149,7 @@ const F = Framework
     f() = Correct
     @blueprint f()
 
+    # Guard against double specifications.
     struct Twice <: Blueprint{Value} end
     @blueprint Twice
     @xbluefails(
@@ -98,7 +183,8 @@ const F = Framework
     @xbluefails(
         (@blueprint MissingImplyFields),
         MissingImplyFields,
-        "Method implied_blueprint_for($MissingImplyFields, Type{<Data>}) unspecified."
+        "Method implied_blueprint_for($MissingImplyFields, Type{<Data>}) unspecified \
+         to implicitly bring <Data> from $MissingImplyFields blueprints."
     )
 
     # Define one, but not the other.
@@ -106,7 +192,8 @@ const F = Framework
     @xbluefails(
         (@blueprint MissingImplyFields),
         MissingImplyFields,
-        "Method implied_blueprint_for($MissingImplyFields, Type{<Empty>}) unspecified."
+        "Method implied_blueprint_for($MissingImplyFields, Type{<Empty>}) unspecified \
+         to implicitly bring <Empty> from $MissingImplyFields blueprints."
     )
     F.implied_blueprint_for(::MissingImplyFields, ::Type{_Empty}) = Empty()
 
@@ -155,11 +242,12 @@ using ..Blueprints
 using EcologicalNetworksDynamics.Framework
 using Main: @failswith, @sysfails, @pcompfails, @xcompfails, @xbluefails
 using Test
+const F = Framework
 
 const S = System{Value}
-comps(s) = sort(collect(components(s)); by=repr)
+comps(s) = sort(collect(components(s)); by = repr)
 
-@testset "Abstract component types requirements." begin
+@testset "Abstract component types relations." begin
 
     # Component type hierachy.
     #
@@ -188,11 +276,9 @@ comps(s) = sort(collect(components(s)); by=repr)
     struct Ahv_b <: Blueprint{Value} end
     @blueprint Ahv_b
     @component Ahv{Value} blueprints(b::Ahv_b) requires(A)
-    @sysfails(
-        S(Ahv_b()), # No A component.
-        Add(MissingRequiredComponent, Ahv, A, [Ahv_b], nothing)
-    )
-    # But any concrete sub-component is good.
+    # It is an error to attempt to expand with no 'A' component.
+    @sysfails(S(Ahv_b()), Add(MissingRequiredComponent, Ahv, A, [Ahv_b], nothing))
+    # But any concrete component is good.
     sb = S(Bb(), Ahv_b())
     sc = S(Cb(), Ahv_b())
     sd = S(Db(), Ahv_b())
@@ -200,7 +286,7 @@ comps(s) = sort(collect(components(s)); by=repr)
     @test all(has_component(sc, i) for i in [C, A, Ahv])
     @test all(has_component(sd, i) for i in [D, A, Ahv])
 
-    # Bring an abstract component.
+    # Bring an abstract component from a blueprint.
     struct Wmu_b <: Blueprint{Value}
         a::Brought(A)
     end
@@ -224,21 +310,12 @@ comps(s) = sort(collect(components(s)); by=repr)
     @test has_component(s, C)
 
     # Embedding anything else is not ok.
-    @failswith(
-        Wmu_b(5),
-        F.InvalidBroughtInput(5, A),
-    )
+    @failswith(Wmu_b(5), F.InvalidBroughtInput(5, A),)
     struct Btb_b <: Blueprint{Value} end
     @blueprint Btb_b
     @component Btb{Value} blueprints(b::Btb_b)
-    @failswith(
-        Wmu_b(Btb),
-        F.InvalidImpliedComponent(_Btb, A),
-    )
-    @failswith(
-        Wmu_b(Btb_b()),
-        F.InvalidBroughtBlueprint(Btb_b(), A),
-    )
+    @failswith(Wmu_b(Btb), F.InvalidImpliedComponent(_Btb, A),)
+    @failswith(Wmu_b(Btb_b()), F.InvalidBroughtBlueprint(Btb_b(), A),)
 
     # Don't forget to specify default implied constructor.
     struct Ipq_b <: Blueprint{Value}
@@ -251,49 +328,31 @@ comps(s) = sort(collect(components(s)); by=repr)
          to implicitly bring <A> from $Ipq_b blueprints.",
     )
 
-    # HERE: a lot of the following tests have lost their meanings with the new design, sort.
+    # Expanding from an abstract component.
+    struct Som_b <: Blueprint{Value} end
+    F.expands_from(::Som_b) = A
+    @blueprint Som_b
+    @component Som{Value} blueprints(b::Som_b)
+    @test isempty(F.requires(Som)) # The component requires nothing..
+    # .. but expansion of this blueprint does.
+    @sysfails(S(Som_b()), Add(MissingRequiredComponent, nothing, A, [Som_b], nothing))
+    # Any concrete component A enables expansion.
+    s = S(Bb(), Som_b())
+    @test has_component(s, B) # The prerequisite added: B.
+    @test has_component(s, A) # Same B but as an abstract A.
+    @test has_component(s, Som) # Thus the expansion success.
 
-    #  A() = B() # Implicit to B(), say.
-    #  @component ImpliesAbstractComponent implies(A())
-    #  @test comps(S(ImpliesAbstractComponent())) == [B, ImpliesAbstractComponent] # Fixed.
-    #  @test comps(S(D(), ImpliesAbstractComponent())) == [D, ImpliesAbstractComponent]
+    #---------------------------------------------------------------------------------------
+    # Invocation failures.
 
-    #  # Implied abstract with explicit constructor.
-    #  struct ImpliesDefaultConcreteComponent <: Blueprint{Value} end
-    #  A(::ImpliesDefaultConcreteComponent) = C()
-    #  @component begin
-    #  ImpliesDefaultConcreteComponent
-    #  implies(A)
-    #  end
-    #  @test comps(S(ImpliesDefaultConcreteComponent())) ==
-    #  [C, ImpliesDefaultConcreteComponent]
-    #  @test comps(S(D(), ImpliesAbstractComponent())) == [D, ImpliesAbstractComponent]
-
-    #  # Brought abstract.
-    #  struct BroughtAbstractComponent <: Blueprint{Value}
-    #  a::A
-    #  end
-    #  @component BroughtAbstractComponent
-    #  @test comps(S(BroughtAbstractComponent(D()))) == [BroughtAbstractComponent, D]
-
-    #  #---------------------------------------------------------------------------------------
-    #  # Invocation failures.
-
-    #  # Guard against double specifications.
-    #  struct Wta <: Blueprint{Value} end
-    #  @component Wta # Once.
-    #  @xcompfails(
-    #  (@component Wta), # Not twice.
-    #  Wta,
-    #  "Blueprint type '$Wta' already marked as a component for '$System{$Value}'."
-    #  )
+    # HERE: keep fixing.
 
     #  # Implicit redundant requires.
     #  struct Hxl <: Blueprint{Value} end
     #  @xcompfails(
-    #  (@component Hxl requires(A, B)),
-    #  Hxl,
-    #  "Requirement '$B' is also specified as '$A'."
+        #  (@component Hxl requires(A, B)),
+        #  Hxl,
+        #  "Requirement '$B' is also specified as '$A'."
     #  )
 
     #  struct Ppo <: Blueprint{Value} end
@@ -399,9 +458,6 @@ comps(s) = sort(collect(components(s)); by=repr)
     #  Spn,
     #  "Component is both implied (as '$B') and brought: '$A'."
     #  )
-
-    #  #---------------------------------------------------------------------------------------
-    #  # Requiring/Implying as an abstract component is not implemented yet.
 
 end
 end
