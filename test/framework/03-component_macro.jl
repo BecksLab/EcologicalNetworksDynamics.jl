@@ -171,8 +171,9 @@ using Test
     @test tap_count == [1]
     @test dsn_count == [1]
 
-    # ======================================================================================
-    # Invalid invocations.
+end
+
+@testset "Invalid @component macro invocations." begin
 
     #---------------------------------------------------------------------------------------
     # Raw basic misuses.
@@ -249,12 +250,12 @@ using Test
     )
 
     # The given blueprint(s) need to target the same type.
-    struct Uvv_i <: Blueprint{Int64} end
+    struct Uvv_i <: Blueprint{Int} end
     @blueprint Uvv_i
     @xcompfails(
         (@component Uvv{Value} blueprints(b::Uvv_i)),
         :Uvv,
-        "Blueprint: 'Uvv_i' does not subtype 'Blueprint{Value}', but 'Blueprint{Int64}'.",
+        "Blueprint: '$Uvv_i' does not subtype '$Blueprint{$Value}', but '$Blueprint{$Int}'.",
     )
 
     # Guard against redundancy / collisions.
@@ -271,7 +272,7 @@ using Test
     @xcompfails(
         (@component Uvv{Value} blueprints(b::Uvv_b, b::Uvv_c)),
         :Uvv,
-        "Base blueprint :b both refers to Uvv_b and to Uvv_c.",
+        "Base blueprint :b both refers to $Uvv_b and to $Uvv_c.",
     )
 
     #---------------------------------------------------------------------------------------
@@ -334,86 +335,6 @@ using Test
         "Requirement <Rhr> is also specified as <Lpx>."
     )
 
-    # HERE: keep fixing.
-
-    #  #---------------------------------------------------------------------------------------
-    #  # Implies section.
-
-    #  struct Pqc <: Blueprint{Value} end
-    #  @xcompfails(
-    #  (@component Pqc implies(4 + 5)),
-    #  Pqc,
-    #  "Implied blueprint: expression does not evaluate to a DataType: :(4 + 5), \
-    #  but to a Int64: 9."
-    #  )
-
-    #  struct Rci <: Blueprint{Value} end
-    #  @xcompfails(
-    #  (@component Rci implies(NotAComponent)),
-    #  Rci,
-    #  "Implied blueprint: expression does not evaluate: :NotAComponent. \
-    #  (See error further down the exception stack.)"
-    #  )
-
-    #  struct Nzu <: Blueprint{Value} end
-    #  @xcompfails(
-    #  (@component Nzu implies(NotAComponent())),
-    #  Nzu,
-    #  "Trivial implied blueprint: expression does not evaluate: :NotAComponent. \
-    #  (See error further down the exception stack.)"
-    #  )
-
-    #  struct Vbz <: Blueprint{Value} end
-    #  @xcompfails(
-    #  (@component Vbz implies(Empty, Empty)),
-    #  Vbz,
-    #  "Implied blueprint '$Empty' is specified twice."
-    #  )
-
-    #  struct Iwg <: Blueprint{Value} end
-    #  @xcompfails(
-    #  (@component Iwg implies(Empty(), Empty)),
-    #  Iwg,
-    #  "Implied blueprint '$Empty' is specified twice."
-    #  )
-
-    #  struct Inm <: Blueprint{Value} end
-    #  @xcompfails(
-    #  (@component Inm implies(Int64)),
-    #  Inm,
-    #  "Implied blueprint: '$Int64' does not subtype '$Blueprint{$Value}'."
-    #  )
-
-    #  struct Bai <: Blueprint{Value} end
-    #  @xcompfails(
-    #  (@component Bai implies(Empty) requires(Empty)),
-    #  Bai,
-    #  "Component is both a requirement and implied: '$Empty'."
-    #  )
-
-    #  struct Eil <: Blueprint{Value} end
-    #  @xcompfails(
-    #  (@component Eil implies(Empty)),
-    #  Eil,
-    #  "No blueprint constructor has been defined \
-    #  to implicitly add '$Empty' when adding '$Eil' to a system."
-    #  )
-
-    #  #---------------------------------------------------------------------------------------
-    #  # Guard against inconsistent repetitions.
-
-    #  struct Tzx <: Blueprint{Value} end
-    #  @pcompfails(
-    #  (@component Tzx requires(Bai) requires(Inm)),
-    #  "The `requires` section is specified twice."
-    #  )
-
-    #  struct Cok <: Blueprint{Value} end
-    #  @pcompfails(
-    #  (@component Cok implies(Bai) implies(Inm)),
-    #  "The `implies` section is specified twice."
-    #  )
-
 end
 end
 
@@ -443,8 +364,8 @@ comps(s) = sort(collect(components(s)); by = repr)
     #  @component C
     #  @component D
 
-    #  #---------------------------------------------------------------------------------------
-    #  # Basic semantics.
+    #---------------------------------------------------------------------------------------
+    # Basic semantics.
 
     #  # Requires abstract.
     #  struct RequiresAbstractComponent <: Blueprint{Value} end

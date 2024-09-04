@@ -26,9 +26,6 @@
 # This might be implemented in the future for a convincingly motivated need,
 # at the cost of extending @component macro to produce abstract types.
 
-# Singleton component ergonomy.
-Base.convert(::CompType{V}, c::Component{V}) where {V} = typeof(c)
-
 # Component types being singleton, we *can* infer the value from the type at runtime.
 singleton_instance(C::CompType) = throw("No concrete singleton instance of '$C'.")
 # Default constructors only yields singleton instances.

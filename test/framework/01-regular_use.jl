@@ -63,7 +63,7 @@ mutable struct Raw <: Blueprint{Value}
     size::Brought(Size)
     Raw(a) = new(a, _Size) # Default to implying brought blueprint.
 end
-F.implied_blueprint_for(r::Raw, ::Type{_Size}) = NLines(length(r.a))
+F.implied_blueprint_for(r::Raw, ::_Size) = NLines(length(r.a))
 function F.late_check(v, raw::Raw)
     na = length(raw.a)
     nv = v.n # <- Use properties there thanks to unchecked_[gs]etproperty(!).
@@ -113,7 +113,7 @@ function F.late_check(v, raw::Raw)
 end
 F.expand!(v, r::Raw) = (v._dict[:b] = deepcopy(r.b))
 Basics.NLines(r::Raw) = NLines(length(r.b))
-F.implied_blueprint_for(r::Raw, ::Type{_Size}) = NLines(length(r.b))
+F.implied_blueprint_for(r::Raw, ::_Size) = NLines(length(r.b))
 @blueprint Raw
 
 end # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

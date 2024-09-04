@@ -122,8 +122,9 @@ end
 
 # If anything else than an exception is thrown, just test for equality.
 function _check_unwrapped_exception(thrown, actual)
-    thrown == actual || error("Expected thrown value: $(repr(thrown)) ::$(typeof(thrown))\n\
-                               got instead: $(repr(actual)) ::$(typeof(actual))")
+    thrown == actual ||
+        error("Expected thrown value:\n  $(repr(thrown)) ::$(typeof(thrown))\n\
+               got instead:\n  $(repr(actual)) ::$(typeof(actual))")
 end
 
 # Open end for user extension.

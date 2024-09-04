@@ -1,5 +1,7 @@
 module Blueprints
 
+using EcologicalNetworksDynamics.Framework
+
 # Testing these macros requires to generate numerous new types
 # which are bound to constant julia variables.
 # In particular, testing macros for *failure*
@@ -11,21 +13,29 @@ module Blueprints
 #   - `Xyz_b` as associated blueprint names.
 
 # The plain value to wrap in a "system" in subsequent tests.
-struct Value end
+struct Value
+    d::Dict{Symbol,Any}
+    Value() = new(Dict())
+end
 Base.copy(v::Value) = deepcopy(v)
+Base.getproperty(s::Framework.System{Value}, name::Symbol) =
+    name in fieldnames(System) ? getfield(s, name) : s._value.d[name]
 export Value
 
 # ==========================================================================================
 module MacroInvocations
 using ..Blueprints
 using EcologicalNetworksDynamics.Framework
-using Main: @sysfails, @pbluefails, @xbluefails
+using Main: @failswith, @sysfails, @pbluefails, @xbluefails
 using Test
+using Crayons
 const F = Framework
+
+const S = System{Value}
+comps(s) = collect(components(s))
 
 @testset "Invocation variations of @blueprint macro." begin
 
-    #---------------------------------------------------------------------------------------
     # Basic use: empty blueprint.
     struct Gdu_b <: Blueprint{Value} end
     @blueprint Gdu_b # (that's all it takes)
@@ -35,9 +45,7 @@ const F = Framework
     s = System{Value}(Gdu.b())
     @test has_component(s, Gdu)
 
-    #---------------------------------------------------------------------------------------
     # Any expression can be given if it evaluates to expected macro input.
-
     struct Tap_b <: Blueprint{Value} end
 
     ev_count = [0] # (check that the expression is only evaluated once)
@@ -55,24 +63,42 @@ const F = Framework
     # Only evaluated once.
     @test ev_count == [1]
 
-    # ======================================================================================
-    # Invalid invocations.
+end
 
-    #---------------------------------------------------------------------------------------
-    # Raw basic misuses.
+@testset "Invalid @blueprint macro invocations." begin
+
+    @pbluefails(
+        (@blueprint),
+        "Not enough macro input provided. Example usage:\n\
+         | @blueprint Name\n"
+    )
+
+    @pbluefails(
+        (@blueprint a b),
+        "Too much macro input provided. Example usage:\n\
+         | @blueprint Name\n"
+    )
+
+    @xbluefails(
+        (@blueprint Cpf),
+        nothing,
+        "Blueprint type: expression does not evaluate: :Cpf. \
+        (See error further down the exception stack.)"
+    )
+
+    Zmw_b = 5
+    @xbluefails(
+        (@blueprint Zmw_b),
+        nothing,
+        "Blueprint type: expression does not evaluate to a DataType: :Zmw_b, \
+         but to a $Int: 5."
+    )
 
     @xbluefails(
         (@blueprint 4 + 5),
         nothing,
         "Blueprint type: expression does not evaluate to a DataType: :(4 + 5), \
-         but to a Int64: 9.",
-    )
-
-    @xbluefails(
-        (@blueprint Undefined),
-        nothing,
-        "Blueprint type: expression does not evaluate: :Undefined. \
-         (See error further down the exception stack.)",
+         but to a $Int: 9.",
     )
 
     @xbluefails(
@@ -80,6 +106,9 @@ const F = Framework
         Vector{Int},
         "Not a subtype of '$Blueprint': 'Vector{$Int}'."
     )
+
+    struct Xgi end
+    @xbluefails((@blueprint Xgi), Xgi, "Not a subtype of '$Blueprint': '$Xgi'.")
 
     abstract type Hek <: Blueprint{Value} end
     @xbluefails(
@@ -98,140 +127,258 @@ const F = Framework
 
 end
 
-@testset "Invalid @blueprint macro invocations." begin
+@testset "Brought fields." begin
 
     #---------------------------------------------------------------------------------------
-    # Basic input guards.
+    # Definition.
 
-    @pbluefails(
-        (@blueprint),
-        "Not enough macro input provided. Example usage:\n\
-         | @blueprint Name\n"
-    )
+    # Empty blueprint to be brought.
+    struct Xhu_b <: Blueprint{Value} end
+    @blueprint Xhu_b
+    @component Xhu{Value} blueprints(b::Xhu_b)
 
-    @pbluefails(
-        (@blueprint a b),
-        "Too much macro input provided. Example usage:\n\
-         | @blueprint Name\n"
-    )
-
-    @xbluefails(
-        (@blueprint Undefined),
-        nothing,
-        "Blueprint type: expression does not evaluate: :Undefined. \
-        (See error further down the exception stack.)"
-    )
-
-    NotAType = 5
-    @xbluefails(
-        (@blueprint NotAType),
-        nothing,
-        "Blueprint type: expression does not evaluate to a DataType: :NotAType, \
-         but to a Int64: 5."
-    )
-
-    struct NotABlueprint end
-    @xbluefails(
-        (@blueprint NotABlueprint),
-        NotABlueprint,
-        "Not a subtype of '$Blueprint': '$NotABlueprint'."
-    )
-
-    abstract type Abstract <: Blueprint{Value} end
-    @xbluefails(
-        (@blueprint Abstract),
-        Abstract,
-        "Cannot define blueprint from an abstract type: '$Abstract'."
-    )
-
-    # Okay with any expression evaluating to a blueprint type.
-    struct Correct <: Blueprint{Value} end
-    f() = Correct
-    @blueprint f()
-
-    # Guard against double specifications.
-    struct Twice <: Blueprint{Value} end
-    @blueprint Twice
-    @xbluefails(
-        (@blueprint Twice),
-        Twice,
-        "Type '$Twice' already marked as a blueprint for '$System{$Value}'.",
-    )
-
-    #---------------------------------------------------------------------------------------
-    # Check brought fields.
-
-    struct EmptyMarker <: Blueprint{Value} end
-    @blueprint EmptyMarker
-    @component Empty{Value} blueprints(Empty::EmptyMarker)
-
-    struct DataBlueprint <: Blueprint{Value}
-        a::Int64
-        b::Int64
+    # Blueprint with data to be brought.
+    struct Ejp_b <: Blueprint{Value}
+        u::Int64
+        v::Int64
     end
-    @blueprint DataBlueprint
-    @component Data{Value} blueprints(Data::DataBlueprint)
+    function F.expand!(v, ejp::Ejp_b)
+        v.d[:u] = ejp.u
+        v.d[:v] = ejp.v
+    end
+    @blueprint Ejp_b
+    @component Ejp{Value} blueprints(b::Ejp_b)
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # Forget to specify how to construct implied blueprints.
-    struct MissingImplyFields <: Blueprint{Value}
-        u::Float64
-        v::Float64
-        data::Brought(Data)
-        empty::Brought(Empty)
+    mutable struct Bdz_b <: Blueprint{Value}
+        x::Float64
+        y::Float64
+        xhu::Brought(Xhu)
+        ejp::Brought(Ejp)
+    end
+    F.implied_blueprint_for(::Bdz_b, ::Type{_Xhu}) = Xhu.b() # Regular method signature.
+    F.implied_blueprint_for(::Bdz_b, ::_Ejp) = Ejp.b(5, 8) # Convenience method signature.
+    @blueprint Bdz_b
+    @component Bdz{Value} blueprints(b::Bdz_b)
+
+    #---------------------------------------------------------------------------------------
+    # Use.
+
+    # Bring nothing.
+    bdz = Bdz_b(1, 2, nothing, nothing)
+    @test comps(S(bdz)) == [Bdz]
+    @test comps(S(Xhu.b(), bdz)) == [Xhu, Bdz]
+    s = S(Xhu.b(), Ejp.b(1, 2), bdz)
+    @test comps(s) == [Xhu, Ejp, Bdz]
+    @test (s.u, s.v) == (1, 2)
+
+    # Imply component.
+    s = S(Bdz_b(1, 2, nothing, Ejp))
+    @test comps(s) == [Ejp, Bdz]
+    @test (s.u, s.v) == (5, 8) # Default ones.
+
+    # Only bring the ones missing.
+    #    already here                  implied
+    #     vvvvvvvvvvv                   vvv
+    s = S(Ejp.b(4, 5), Bdz_b(1, 2, Xhu, Ejp))
+    @test comps(s) == [Ejp, Xhu, Bdz]
+    @test (s.u, s.v) == (4, 5) # (not the implied one)
+
+    # Embed blueprints.
+    s = S(Bdz_b(1, 2, Xhu.b(), Ejp.b(15, 30)))
+    @test comps(s) == [Xhu, Ejp, Bdz]
+    @test (s.u, s.v) == (15, 30)
+
+    # It's an error to embed into a system when it's already there.
+    @sysfails(
+        S(Xhu.b(), Bdz_b(1, 2, Xhu.b(), Ejp.b(15, 30))),
+        Add(BroughtAlreadyInValue, Xhu, [Xhu_b, false, Bdz_b]),
+    )
+
+    # Same tests, but from a blueprint modified on the fly.
+    bdz = Bdz_b(1, 2, nothing, nothing)
+    # Imply.
+    bdz.ejp = Ejp
+    s = S(bdz)
+    @test comps(s) == [Ejp, Bdz]
+    @test (s.u, s.v) == (5, 8)
+    # Only bring the ones missing.
+    bdz.xhu = Xhu
+    s = S(Ejp.b(4, 5), bdz)
+    @test comps(s) == [Ejp, Xhu, Bdz]
+    @test (s.u, s.v) == (4, 5) # (not the implied one)
+    # Embed.
+    bdz.ejp = Ejp.b(15, 30)
+    s = S(bdz)
+    @test comps(s) == [Xhu, Ejp, Bdz]
+    @test (s.u, s.v) == (15, 30)
+
+    # Embed using implicit blueprint construction.
+    (::typeof(Ejp))(u, v) = Ejp.b(u, v)
+    bdz.ejp = (15, 30)
+    bdz.ejp # HERE: <- improve brought blueprint display.
+    s = S(bdz)
+
+    # HERE: the working versions.
+
+end
+
+@testset "Invalid brought fields use." begin
+
+    @failswith(Brought(5), MethodError)
+    @failswith(Brought(Int), MethodError)
+    @failswith(Brought(Vector{Int}), MethodError)
+    @failswith(Brought(Vector), MethodError)
+    @failswith(Brought(F.Component), MethodError)
+    struct Amg_b <: Blueprint{Value} end
+    @blueprint Amg_b
+    @failswith(Brought(Amg_b), MethodError)
+
+    # Forget to specify how to construct implied blueprints.
+    struct Ihb_b <: Blueprint{Value}
+        x::Float64
+        y::Float64
+        xhu::Brought(Xhu)
+        ejp::Brought(Ejp)
     end
     @xbluefails(
-        (@blueprint MissingImplyFields),
-        MissingImplyFields,
-        "Method implied_blueprint_for($MissingImplyFields, Type{<Data>}) unspecified \
-         to implicitly bring <Data> from $MissingImplyFields blueprints."
+        (@blueprint Ihb_b),
+        Ihb_b,
+        "Method implied_blueprint_for($Ihb_b, <Xhu>) unspecified \
+         to implicitly bring <Xhu> from $Ihb_b blueprints."
     )
 
     # Define one, but not the other.
-    F.implied_blueprint_for(::MissingImplyFields, ::Type{_Data}) = DataBlueprint(5, 8)
+    F.implied_blueprint_for(::Ihb_b, ::Type{_Xhu}) = Xhu.b() # Regular method signature.
     @xbluefails(
-        (@blueprint MissingImplyFields),
-        MissingImplyFields,
-        "Method implied_blueprint_for($MissingImplyFields, Type{<Empty>}) unspecified \
-         to implicitly bring <Empty> from $MissingImplyFields blueprints."
+        (@blueprint Ihb_b),
+        Ihb_b,
+        "Method implied_blueprint_for($Ihb_b, <Ejp>) unspecified \
+         to implicitly bring <Ejp> from $Ihb_b blueprints."
     )
-    F.implied_blueprint_for(::MissingImplyFields, ::Type{_Empty}) = Empty()
+    F.implied_blueprint_for(::Ihb_b, ::_Ejp) = Ejp.b(5, 8) # Convenience method signature.
 
     # Now it's okay.
-    @blueprint MissingImplyFields
+    @blueprint Ihb_b
+
+    # Can't define both the regular *and* convenience methods.
+    struct Ntz_b <: Blueprint{Value}
+        xhu::Brought(Xhu)
+    end
+    F.implied_blueprint_for(::Ntz_b, ::_Xhu) = Xhu.b()
+    F.implied_blueprint_for(::Ntz_b, ::Type{_Xhu}) = Xhu.b()
+    @xbluefails(
+        (@blueprint Ntz_b),
+        Ntz_b,
+        "Ambiguity: the two following methods have been defined:\n  \
+           $(F.implied_blueprint_for)(::$Ntz_b, ::<Xhu>)\n  \
+           $(F.implied_blueprint_for)(::$Ntz_b, ::Type{<Xhu>})\n\
+         Consider removing either one."
+    )
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # Guard against redundant blueprints.
-    struct Qev <: Blueprint{Value}
-        data::Brought(Data)
-        other::Brought(Data)
+    struct Qev_b <: Blueprint{Value}
+        data::Brought(Ejp)
+        other::Brought(Ejp)
     end
-    F.implied_blueprint_for(::Qev, ::Type{_Data}) = DataBlueprint(5, 8)
+    F.implied_blueprint_for(::Qev_b, ::_Ejp) = Ejp.b(5, 8)
     @xbluefails(
-        (@blueprint Qev),
-        Qev,
-        "Both fields 'data' and 'other' potentially bring <Data>.",
+        (@blueprint Qev_b),
+        Qev_b,
+        "Both fields 'data' and 'other' potentially bring <Ejp>.",
     )
 
-    # Redundancy *can* be detected through abstract component hierarchy.
+    # Redundancy is guarded through abstract component hierarchy.
     abstract type TopComp <: Component{Value} end
-    struct Agf <: Blueprint{Value} end
-    @blueprint Agf
-    @component BottomComp <: TopComp blueprints(Agf::Agf)
+    struct Agf_b <: Blueprint{Value} end
+    @blueprint Agf_b
+    @component BottomComp <: TopComp blueprints(b::Agf_b)
 
-    struct Jzd <: Blueprint{Value}
+    struct Jzd_b <: Blueprint{Value}
         sup::Brought(TopComp)
         sub::Brought(BottomComp)
     end
-    F.implied_blueprint_for(::Jzd, ::Type{TopComp}) = Agf()
-    F.implied_blueprint_for(::Jzd, ::Type{_BottomComp}) = Agf()
+    F.implied_blueprint_for(::Jzd_b, ::TopComp) = Agf.b()
+    F.implied_blueprint_for(::Jzd_b, ::_BottomComp) = Agf.b()
     @xbluefails(
-        (@blueprint Jzd),
-        Jzd,
+        (@blueprint Jzd_b),
+        Jzd_b,
         "Fields 'sub' and 'sup': \
          brought blueprint <BottomComp> \
          is also specified as <TopComp>."
     )
+
+    # Can't call the implicit embedded blueprint constructor if undefined.
+    struct Opv_b <: Blueprint{Value} end
+    @blueprint Opv_b
+    @component Opv{Value} blueprints(b::Opv_b)
+    mutable struct Twt_b <: Blueprint{Value}
+        opv::Brought(Opv)
+    end
+    F.implied_blueprint_for(::Twt_b, ::_Opv) = Opv.b()
+    @blueprint Twt_b
+    @component Twt{Value} blueprints(b::Twt_b)
+    twt = Twt_b(nothing)
+
+    baf(m, rhs) = F.BroughtAssignFailure(Twt_b, :opv, _Opv, m, rhs)
+    @failswith((twt.opv = ()), baf(
+        "'$Opv' is not (yet?) callable. \
+         Consider providing a blueprint value instead.",
+        (),
+    ))
+
+    # The implicit constructor must construct a consistent blueprint.
+    constructed = nothing # (to change without triggering 'WARNING: Method definition overwritten'.
+    (::typeof(Opv))() = constructed
+    red, res = (crayon"bold red", crayon"reset")
+    bug = "\n$(red)This is a bug in the components library.$res"
+
+    constructed = 5
+    @failswith(
+        (twt.opv = ()),
+        baf(
+            "Implicit blueprint constructor did not yield a blueprint, but: 5 ::$Int.$bug",
+            (),
+        )
+    )
+
+    struct Yfi_b <: Blueprint{Int} end
+    constructed = Yfi_b()
+    @failswith(
+        (twt.opv = ()),
+        baf(
+            "Implicit blueprint constructor did not yield a blueprint for '$Value', \
+             but for '$Int': $Yfi_b().$bug",
+            (),
+        )
+    )
+
+    struct Sxo_b <: Blueprint{Value} end
+    @blueprint Sxo_b
+    @component Iej{Value}
+    @component Axl{Value}
+    F.componentsof(::Sxo_b) = [Iej, Axl]
+    constructed = Sxo_b()
+    @failswith((twt.opv = ()), baf(
+        "Implicit blueprint constructor yielded instead \
+         a blueprint for: $([Iej, Axl]).$bug",
+        (),
+    ))
+
+    struct Dpt_b <: Blueprint{Value} end
+    @blueprint Dpt_b
+    @component Dpt{Value} blueprints(b::Dpt_b)
+    constructed = Dpt_b()
+    @failswith(
+        (twt.opv = ()),
+        baf(
+            "Implicit blueprint constructor yielded instead a blueprint for: <Dpt>.$bug",
+            (),
+        )
+    )
+
+    # HERE: the failing versions.
 
 end
 end
@@ -324,7 +471,7 @@ comps(s) = sort(collect(components(s)); by = repr)
     @xbluefails(
         (@blueprint Ipq_b),
         Ipq_b,
-        "Method implied_blueprint_for($Ipq_b, Type{<A>}) unspecified \
+        "Method implied_blueprint_for($Ipq_b, <A>) unspecified \
          to implicitly bring <A> from $Ipq_b blueprints.",
     )
 
@@ -345,14 +492,12 @@ comps(s) = sort(collect(components(s)); by = repr)
     #---------------------------------------------------------------------------------------
     # Invocation failures.
 
-    # HERE: keep fixing.
-
     #  # Implicit redundant requires.
     #  struct Hxl <: Blueprint{Value} end
     #  @xcompfails(
-        #  (@component Hxl requires(A, B)),
-        #  Hxl,
-        #  "Requirement '$B' is also specified as '$A'."
+    #  (@component Hxl requires(A, B)),
+    #  Hxl,
+    #  "Requirement '$B' is also specified as '$A'."
     #  )
 
     #  struct Ppo <: Blueprint{Value} end

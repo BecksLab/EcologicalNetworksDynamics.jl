@@ -95,6 +95,7 @@ xpres(xp, v) = "\nExpression: $(repr(xp))\nResult: $v ::$(typeof(v))"
 
 # Same for a component type, but a singleton *instance* can be given instead.
 function to_component(mod, xp, value_type_var, ctx, xerr)
+    qxp = Meta.quot(xp)
     quote
         C = $(to_value(mod, xp, ctx, xerr, Any))
         # A particular system value type is already expected: check it against input.
@@ -103,7 +104,7 @@ function to_component(mod, xp, value_type_var, ctx, xerr)
             if !(C <: Sup)
                 but = C <: Component ? ", but '$(Component{system_value_type(C)})'" : ""
                 $xerr("$($ctx): the given type \
-                       does not subtype '$Sup'$but:$(xpres($xp, C))")
+                       does not subtype '$Sup'$but:$(xpres($qxp, C))")
             end
             C
         else
@@ -111,7 +112,7 @@ function to_component(mod, xp, value_type_var, ctx, xerr)
             if !(c isa Sup)
                 but = c isa Component ? ", but for '$(system_value_type(c))'" : ""
                 $xerr("$($ctx): the given expression does not evaluate \
-                       to a component for '$($value_type_var)'$but:$(xpres($xp, c))")
+                       to a component for '$($value_type_var)'$but:$(xpres($qxp, c))")
             end
             typeof(c)
         end
@@ -120,17 +121,18 @@ end
 
 # Same, but without checking against a prior expectation for the system value type.
 function to_component(mod, xp, ctx, xerr)
+    qxp = Meta.quot(xp)
     quote
         C = $(to_value(mod, xp, ctx, xerr, Any))
         # Don't check the system value type, but infer it.
         if C isa Type
             C <: Component || $xerr("$($ctx): the given type \
-                                     does not subtype $Component:$(xpres($xp, C))")
+                                     does not subtype $Component:$(xpres($qxp, C))")
             C
         else
             c = C # Actually an instance.
             c isa Component || $xerr("$($ctx): the given value \
-                                      is not a component:$(xpres($xp, c))")
+                                      is not a component:$(xpres($qxp, c))")
             typeof(c)
         end
     end

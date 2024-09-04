@@ -20,6 +20,7 @@
 #
 #   # Invoker-defined:
 #   implied_blueprint_for(::Blueprint, ::Type{CompType}) = ...
+#   <XOR> implied_blueprint_for(::Blueprint, ::CompType) = ... # (for convenience)
 #
 # And for blueprint user convenience, the generated code also overrides:
 #
@@ -128,14 +129,23 @@ function blueprint_macro(__module__, __source__, input...)
             # Brought blueprints/components
             # are automatically inferred from the struct fields.
             broughts = OrderedDict{Symbol,CompType{ValueType}}()
+            convenience_methods = Bool[]
             for (name, fieldtype) in zip(fieldnames(NewBlueprint), NewBlueprint.types)
 
                 fieldtype <: BroughtField || continue
                 C = componentof(fieldtype)
-                TC = Type{C}
-                hasmethod(implied_blueprint_for, Tuple{NewBlueprint,TC}) ||
-                    xerr("Method $implied_blueprint_for($NewBlueprint, $TC) unspecified \
+                # Check whether either the specialized method XOR its convenience alias
+                # have been defined.
+                sp = hasmethod(implied_blueprint_for, Tuple{NewBlueprint,Type{C}})
+                conv = hasmethod(implied_blueprint_for, Tuple{NewBlueprint,C})
+                (conv || sp) ||
+                    xerr("Method $implied_blueprint_for($NewBlueprint, $C) unspecified \
                           to implicitly bring $C from $NewBlueprint blueprints.")
+                (conv && sp) &&
+                    xerr("Ambiguity: the two following methods have been defined:\n  \
+                          $implied_blueprint_for(::$NewBlueprint, ::$C)\n  \
+                          $implied_blueprint_for(::$NewBlueprint, ::$Type{$C})\n\
+                          Consider removing either one.")
 
                 # Triangular-check against redundancies.
                 for (a, Already) in broughts
@@ -151,6 +161,7 @@ function blueprint_macro(__module__, __source__, input...)
                 end
 
                 broughts[name] = C
+                push!(convenience_methods, conv)
             end
         end,
     )
@@ -162,6 +173,19 @@ function blueprint_macro(__module__, __source__, input...)
     # (within the code currently being generated although not executed yet).
     # The only remaining code to generate work is just the code required
     # for the system to work correctly.
+
+    # In case the convenience `implied_blueprint_for` has been defined,
+    # forward the proper calls to it.
+    push_res!(
+        quote
+            for (C, conv) in zip(values(broughts), convenience_methods)
+                if conv
+                    Framework.implied_blueprint_for(b::NewBlueprint, C::Type{C}) =
+                        implied_blueprint_for(b, singleton_instance(C))
+                end
+            end
+        end,
+    )
 
     # Setup the blueprints brought.
     push_res!(
@@ -183,30 +207,25 @@ function blueprint_macro(__module__, __source__, input...)
             function Base.setproperty!(b::NewBlueprint, prop::Symbol, rhs)
                 prop in keys(broughts) || setfield!(b, prop, rhs)
                 expected_C = broughts[prop]
+                ferr(m) = throw(
+                    BroughtAssignFailure{ValueType}(NewBlueprint, prop, expected_C, m, rhs),
+                )
                 val = if rhs isa Blueprint
                     V = system_value_type(rhs)
-                    V == ValueType ||
-                        serr("Blueprint cannot be embedded by a blueprint \
-                              for System{$ValueType}: $rhs.")
+                    V == ValueType || ferr("Expected a RHS blueprint for $ValueType.\n\
+                                            Got instead a blueprint for: $V.")
                     comps = componentsof(rhs)
-                    length(comps) == 1 || serr("Blueprint would expand into $comps, \
-                                                but the field :$prop of $(typeof(b)) \
-                                                is supposed to only bring $expected_C:\n\
-                                                $rhs")
+                    length(comps) == 1 ||
+                        ferr("Blueprint would instead expand into $comps.")
                     C = first(comps)
-                    C <: expected_C || serr("Blueprint would expand into $C, \
-                                             but the field :$prop of $(typeof(b)) \
-                                             is supposed to bring \
-                                             $expected_C:\n  $rhs")
+                    C <: expected_C || ferr("Blueprint would instead expand into $C.")
                     rhs
                 elseif rhs isa Component || rhs isa CompType
                     rhs isa Component && (rhs = typeof(rhs))
                     V = system_value_type(rhs)
-                    V == ValueType || serr("Component cannot be implied \
-                                            by a blueprint for System{$ValueType}: $rhs.")
-                    rhs === expected_C || serr("The field :$prop of $(typeof(b)) \
-                                                is supposed to bring $expected_C. \
-                                                As such, it cannot imply $rhs instead.")
+                    V == ValueType || ferr("Expected a RHS component for $ValueType.\n\
+                                            Got instead a component for: $V.")
+                    rhs === expected_C || ferr("Value would imply instead: $rhs.")
                     expected_C
                 elseif isnothing(rhs)
                     nothing
@@ -217,11 +236,9 @@ function blueprint_macro(__module__, __source__, input...)
                         isabstracttype(expected_C) ? expected_C :
                         singleton_instance(expected_C)
                     # This needs to be callable.
-                    isempty(methods(cstr)) && serr(
-                        "Cannot set brought field from arguments values \
-                         because $cstr is not (yet?) callable. \
-                         Consider providing a blueprint value instead of $(repr(rhs)).",
-                    )
+                    isempty(methods(cstr)) && ferr("'$cstr' is not (yet?) callable. \
+                                                    Consider providing a \
+                                                    blueprint value instead.")
                     args, kwargs = if rhs isa Tuple{<:Tuple,<:NamedTuple}
                         rhs
                     elseif rhs isa Tuple
@@ -232,21 +249,24 @@ function blueprint_macro(__module__, __source__, input...)
                         ((rhs,), (;))
                     end
                     bp = cstr(args...; kwargs...)
-                    comps = componentsof(bp)
-                    length(comps) == 1 || throw(
-                        "Automatic blueprint constructor for brought blueprint assignment \
-                         yielded a blueprint bringing $comps instead of $expected_C. \
-                         This is a bug in the components library.",
+                    # It is a bug in the component library (introduced by framework users)
+                    # if the implicit constructor yields a wrong value.
+                    function bug(m)
+                        red, res = (crayon"bold red", crayon"reset")
+                        ferr("Implicit blueprint constructor $m\n\
+                              $(red)This is a bug in the components library.$res")
+                    end
+                    bp isa Blueprint || bug("did not yield a blueprint, \
+                                             but: $(repr(bp)) ::$(typeof(bp)).")
+                    V = system_value_type(bp)
+                    V == ValueType || bug(
+                        "did not yield a blueprint for '$ValueType', but for '$V': $bp.",
                     )
+                    comps = componentsof(bp)
+                    length(comps) == 1 ||
+                        bug("yielded instead a blueprint for: $comps.")
                     C = first(comps)
-                    bp <: Blueprint{ValueType} && componentsof(bp) isa expected_C ||
-                        throw(
-                            "Automatic blueprint constructor for brought blueprint assignment \
-                             yielded an invalid blueprint. \
-                             This is a bug in the components library. \
-                             Expected blueprint for $expected_C, \
-                             got instead:\n$bp",
-                        )
+                    C == expected_C || bug("yielded instead a blueprint for: $C.")
                     bp
                 end
                 setfield!(b, prop, BroughtField{expected_C,ValueType}(val))
@@ -327,6 +347,26 @@ function provided_comps_display(bp::Blueprint)
     else
         "{$(join(comps, ", "))}"
     end
+end
+
+#-------------------------------------------------------------------------------------------
+# Error when assigning to brought blueprint fields.
+struct BroughtAssignFailure{V}
+    BlueprintType::Type{<:Blueprint{V}}
+    fieldname::Symbol
+    BroughtComponent::CompType{V}
+    message::String
+    rhs::Any
+end
+
+function Base.showerror(io::IO, e::BroughtAssignFailure)
+    (; BlueprintType, fieldname, BroughtComponent, message, rhs) = e
+    print(
+        io,
+        "Failed to assign to field :$fieldname of '$BlueprintType' \
+         supposed to bring component $BroughtComponent:\n$message\n\
+         RHS was: $(repr(rhs)) ::$(typeof(rhs))",
+    )
 end
 
 #-------------------------------------------------------------------------------------------
