@@ -28,8 +28,6 @@
 
 # Component types being singleton, we *can* infer the value from the type at runtime.
 singleton_instance(C::CompType) = throw("No concrete singleton instance of '$C'.")
-# Default constructors only yields singleton instances.
-(C::CompType{V})() where {V} = singleton_instance(C)
 
 # Extract underlying system wrapped value type from a component.
 system_value_type(::CompType{V}) where {V} = V

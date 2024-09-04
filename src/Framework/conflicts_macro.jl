@@ -75,12 +75,10 @@ function conflicts_macro(__module__, __source__, input...)
 
         if isnothing(first_entry)
             ctx = "First conflicting entry"
-            push_res!(
-                quote
-                    First = $(tocomp_novaluetype(comp, ctx))
-                    ValueType = system_value_type(First)
-                end,
-            )
+            push_res!(quote
+                First = $(tocomp_novaluetype(comp, ctx))
+                ValueType = system_value_type(First)
+            end)
             first_entry = comp
             comp = :First
         else

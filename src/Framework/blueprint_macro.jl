@@ -208,7 +208,11 @@ function blueprint_macro(__module__, __source__, input...)
                 prop in keys(broughts) || setfield!(b, prop, rhs)
                 expected_C = broughts[prop]
                 ferr(m) = throw(
-                    BroughtAssignFailure{ValueType}(NewBlueprint, prop, expected_C, m, rhs),
+                    BroughtAssignFailure{ValueType}(
+                        NewBlueprint,
+                        prop,
+                        BroughtConvertFailure(expected_C, m, rhs),
+                    ),
                 )
                 BF = BroughtField{expected_C,ValueType}
                 bf = if rhs isa Blueprint
@@ -222,11 +226,32 @@ function blueprint_macro(__module__, __source__, input...)
                     C <: expected_C || ferr("Blueprint would instead expand into $C.")
                     BF(rhs)
                 elseif rhs isa Component || rhs isa CompType
-                    rhs isa Component && (rhs = typeof(rhs))
-                    V = system_value_type(rhs)
+                    C = rhs isa Component ? typeof(rhs) : rhs
+                    V = system_value_type(C)
                     V == ValueType || ferr("Expected a RHS component for $ValueType.\n\
                                             Got instead a component for: $V.")
-                    rhs === expected_C || ferr("Value would imply instead: $rhs.")
+                    if C !== expected_C
+                        blue, it, res = crayon"blue", crayon"italics", crayon"reset"
+                        # Should we not fail in the following case,
+                        # then we would either need to enforce
+                        # that every future component subtyping `expected_C`
+                        # has the correct default `implied_blueprint_for` method defined
+                        # (which is impossible)
+                        # or we should define it on-the-fly during this call (smelly).
+                        # Choose *not* to feature yet.
+                        # Reconsider if neeeded and meaningful.
+                        C <: expected_C && ferr(
+                            "RHS would instead imply another component \
+                             subtying $expected_C: $C.\n\
+                             This has no semantic yet and is therefore forbidden.\n\
+                             Consider $(it)embedding$(res) instead \
+                             with an actual blueprint $(it)value$res \
+                             that would expand into $C, $(it)e.g.$res:\n  \
+                               $(blue)host.$prop = $(strip_compname(V, C))(...)$res \
+                               # (or alike)",
+                        )
+                        ferr("RHS would instead imply: $C.")
+                    end
                     BF(expected_C)
                 elseif isnothing(rhs)
                     BF(nothing)
@@ -333,14 +358,35 @@ function implicit_constructor_for(
     kwargs::NamedTuple,
     rhs::Any,
 )
-    err(m) = throw(BroughtConvertFailure{ValueType}(expected_C, m, rhs))
+    bcf(m) = BroughtConvertFailure{ValueType}(expected_C, m, rhs)
+    err(m) = throw(bcf(m))
     # TODO: make this constructor customizeable depending on the value.
-    cstr = isabstracttype(expected_C) ? C : singleton_instance(expected_C)
+    cstr = isabstracttype(expected_C) ? expected_C : singleton_instance(expected_C)
     # This needs to be callable.
     isempty(methods(cstr)) && err("'$cstr' is not (yet?) callable. \
                                     Consider providing a \
                                     blueprint value instead.")
-    bp = cstr(args...; kwargs...)
+    bp = try
+        cstr(args...; kwargs...)
+    catch e
+        if e isa Base.MethodError
+            akw = join(args, ", ")
+            if !isempty(kwargs)
+                akw *=
+                    "; " * join(
+                        # Wow.. is there anything more idiomatic? ^ ^"
+                        Iterators.map(
+                            pair -> "$(pair[1]) = $(pair[2])",
+                            zip(keys(kwargs), values(kwargs)),
+                        ),
+                        ", ",
+                    )
+            end
+            throw(bcf("No method matching $cstr($akw). \
+                       (See further down the stacktrace.)"))
+        end
+        rethrow(e)
+    end
     # It is a bug in the component library (introduced by framework users)
     # if the implicit constructor yields a wrong value.
     function bug(m)
@@ -355,7 +401,7 @@ function implicit_constructor_for(
     comps = componentsof(bp)
     length(comps) == 1 || bug("yielded instead a blueprint for: $comps.")
     C = first(comps)
-    C == expected_C || bug("yielded instead a blueprint for: $C.")
+    C <: expected_C || bug("yielded instead a blueprint for: $C.")
     bp
 end
 
@@ -420,6 +466,10 @@ function Base.convert(::Type{BroughtField{C,V}}, bp::Blueprint{V}) where {C,V}
 end
 
 # From arguments to embed with a call to implicit constructor.
+function Base.convert(BF::Type{BroughtField{C,V}}, input::Any) where {C,V}
+    BF(implicit_constructor_for(C, V, (input,), (;), input))
+end
+
 function Base.convert(BF::Type{BroughtField{C,V}}, args::Tuple) where {C,V}
     BF(implicit_constructor_for(C, V, args, (;), args))
 end
@@ -431,10 +481,6 @@ function Base.convert(BF::Type{BroughtField{C,V}}, akw::Tuple{Tuple,NamedTuple})
     BF(implicit_constructor_for(C, V, args, kwargs, akw))
 end
 
-# From anything else to disallow.
-Base.convert(::Type{BroughtField{C,V}}, i::Any) where {C,V} =
-    throw(InvalidBroughtInput(i, C))
-
 struct InvalidImpliedComponent{V}
     T::Type
     C::CompType{V}
@@ -442,11 +488,6 @@ end
 
 struct InvalidBroughtBlueprint{V}
     b::Blueprint{V}
-    C::CompType{V}
-end
-
-struct InvalidBroughtInput{V}
-    i::Any
     C::CompType{V}
 end
 
@@ -465,16 +506,6 @@ function Base.showerror(io::IO, e::InvalidBroughtBlueprint{V}) where {V}
         io,
         "The field should bring $C, \
          but this blueprint would expand into $(provided_comps_display(b)) instead: $b.",
-    )
-end
-
-function Base.showerror(io::IO, e::InvalidBroughtInput{V}) where {V}
-    (; i, C) = e
-    print(
-        io,
-        "The field should bring $C, \
-         but a blueprint for this component cannot be constructed \
-         from: $(repr(i)) ::$(typeof(i)).",
     )
 end
 

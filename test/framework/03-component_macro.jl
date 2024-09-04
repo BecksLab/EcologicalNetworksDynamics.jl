@@ -23,10 +23,10 @@ using Main: @sysfails, @pcompfails, @xcompfails, @failswith
 const F = Framework
 using Test
 
-@testset "Invocation variations of @component macro." begin
+const S = System{Value}
+comps(s) = collect(components(s))
 
-    # ======================================================================================
-    # Valid invocations.
+@testset "Invocation variations of @component macro." begin
 
     #---------------------------------------------------------------------------------------
     # Basic, null component.
@@ -159,7 +159,7 @@ using Test
         Dsn_b
     end
 
-    # Use arbitrary instead of identifier paths.
+    # Use arbitrary expression instead of identifier paths.
     @component Dsn{Value} blueprints(b::dsn_expression()) requires(tap_expression())
 
     # The requirement works..
@@ -171,12 +171,13 @@ using Test
     @test tap_count == [1]
     @test dsn_count == [1]
 
+    # HERE working versions.
 end
 
 @testset "Invalid @component macro invocations." begin
 
     #---------------------------------------------------------------------------------------
-    # Raw basic misuses.
+    # Basic misuses.
 
     @pcompfails((@component), ["Not enough macro input provided. Example usage:\n"])
 
@@ -188,7 +189,6 @@ end
          got instead: :(4 + 5)."
     )
 
-    # Missing value type.
     @pcompfails(
         (@component Vector),
         "Expected component `Name{ValueType}` or `Name <: SuperComponent`, \
@@ -335,6 +335,7 @@ end
         "Requirement <Rhr> is also specified as <Lpx>."
     )
 
+    # HERE: failing versions.
 end
 end
 
@@ -348,36 +349,39 @@ using Test
 const S = System{Value}
 comps(s) = sort(collect(components(s)); by = repr)
 
-@testset "Abstract component types requirements." begin
+# Component type hierachy.
+#
+#      A
+#    ┌─┼─┐
+#    B C D
+#
+abstract type A <: Component{Value} end
+struct B_b <: Blueprint{Value} end
+struct C_b <: Blueprint{Value} end
+struct D_b <: Blueprint{Value} end
+@blueprint B_b
+@blueprint C_b
+@blueprint D_b
+@component B <: A blueprints(b::B_b)
+@component C <: A blueprints(b::C_b)
+@component D <: A blueprints(b::D_b)
 
-    #  # Component type hierachy.
-    #  #
-    #  #      A
-    #  #    ┌─┼─┐
-    #  #    B C D
-    #  #
-    #  abstract type A <: Blueprint{Value} end
-    #  struct B <: A end
-    #  struct C <: A end
-    #  struct D <: A end
-    #  @component B
-    #  @component C
-    #  @component D
+@testset "Abstract component types semantics." begin
 
-    #---------------------------------------------------------------------------------------
-    # Basic semantics.
-
-    #  # Requires abstract.
-    #  struct RequiresAbstractComponent <: Blueprint{Value} end
-    #  @component begin
-    #  RequiresAbstractComponent
-    #  requires(A)
-    #  end
-    #  @sysfails(
-    #  S(RequiresAbstractComponent()),
-    #  Check(RequiresAbstractComponent),
-    #  "missing a required component '$A'."
-    #  )
+    # Require an abstract component.
+    struct Ahv_b <: Blueprint{Value} end
+    @blueprint Ahv_b
+    @component Ahv{Value} blueprints(b::Ahv_b) requires(A)
+    # It is an error to attempt to expand with no 'A' component.
+    @sysfails(S(Ahv_b()), Add(MissingRequiredComponent, Ahv, A, [Ahv_b], nothing))
+    # But any concrete component is good.
+    sb = S(B.b(), Ahv_b())
+    sc = S(C.b(), Ahv_b())
+    sd = S(D.b(), Ahv_b())
+    @test comps(sb) == [Ahv, B]
+    @test comps(sc) == [Ahv, C]
+    @test comps(sd) == [Ahv, D]
+    @test all(has_component.([sb, sc, sd], A))
 
     #  # Trivial implied abstract.
     #  struct ImpliesAbstractComponent <: Blueprint{Value} end

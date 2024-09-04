@@ -218,19 +218,21 @@ function component_macro(__module__, __source__, input...)
     )
 
     # Guard against redundancies / collisions among base blueprints.
-    push_res!(quote
-        base_blueprints = []
-        for (name, B) in $blueprints_xp
-            # Triangular-check.
-            for (other, Other) in base_blueprints
-                other == name && xerr("Base blueprint $(repr(other)) \
-                                       both refers to $Other and to $B.")
-                Other == B && xerr("Base blueprint $B bound to \
-                                    both names $(repr(other)) and $(repr(name)).")
+    push_res!(
+        quote
+            base_blueprints = []
+            for (name, B) in $blueprints_xp
+                # Triangular-check.
+                for (other, Other) in base_blueprints
+                    other == name && xerr("Base blueprint $(repr(other)) \
+                                           both refers to $Other and to $B.")
+                    Other == B && xerr("Base blueprint $B bound to \
+                                        both names $(repr(other)) and $(repr(name)).")
+                end
+                push!(base_blueprints, (name, B))
             end
-            push!(base_blueprints, (name, B))
-        end
-    end)
+        end,
+    )
 
     #---------------------------------------------------------------------------------------
     # At this point, all necessary information should have been parsed and checked,
@@ -292,7 +294,6 @@ function component_macro(__module__, __source__, input...)
                 CompsReasons{ValueType}(k => v for (k, v) in reqs) # Copy to avoid leaks.
         end,
     )
-
 
     # Helpful display resuming base blueprint types for this component.
     push_res!(quote
