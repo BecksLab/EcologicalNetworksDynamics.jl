@@ -210,7 +210,8 @@ function blueprint_macro(__module__, __source__, input...)
                 ferr(m) = throw(
                     BroughtAssignFailure{ValueType}(NewBlueprint, prop, expected_C, m, rhs),
                 )
-                val = if rhs isa Blueprint
+                BF = BroughtField{expected_C,ValueType}
+                bf = if rhs isa Blueprint
                     V = system_value_type(rhs)
                     V == ValueType || ferr("Expected a RHS blueprint for $ValueType.\n\
                                             Got instead a blueprint for: $V.")
@@ -219,57 +220,29 @@ function blueprint_macro(__module__, __source__, input...)
                         ferr("Blueprint would instead expand into $comps.")
                     C = first(comps)
                     C <: expected_C || ferr("Blueprint would instead expand into $C.")
-                    rhs
+                    BF(rhs)
                 elseif rhs isa Component || rhs isa CompType
                     rhs isa Component && (rhs = typeof(rhs))
                     V = system_value_type(rhs)
                     V == ValueType || ferr("Expected a RHS component for $ValueType.\n\
                                             Got instead a component for: $V.")
                     rhs === expected_C || ferr("Value would imply instead: $rhs.")
-                    expected_C
+                    BF(expected_C)
                 elseif isnothing(rhs)
-                    nothing
+                    BF(nothing)
                 else
                     # In any other case, forward to an underlying blueprint constructor.
-                    # TODO: make this constructor customizeable depending on the value.
-                    cstr =
-                        isabstracttype(expected_C) ? expected_C :
-                        singleton_instance(expected_C)
-                    # This needs to be callable.
-                    isempty(methods(cstr)) && ferr("'$cstr' is not (yet?) callable. \
-                                                    Consider providing a \
-                                                    blueprint value instead.")
-                    args, kwargs = if rhs isa Tuple{<:Tuple,<:NamedTuple}
-                        rhs
-                    elseif rhs isa Tuple
-                        (rhs, (;))
-                    elseif rhs isa NamedTuple
-                        ((), rhs)
-                    else
-                        ((rhs,), (;))
+                    # (happens via conversion so the same logic
+                    #  applies to host blueprint constructor arguments)
+                    try
+                        Base.convert(BF, rhs)
+                    catch e
+                        e isa BroughtConvertFailure &&
+                            rethrow(BroughtAssignFailure(NewBlueprint, prop, e))
+                        rethrow(e)
                     end
-                    bp = cstr(args...; kwargs...)
-                    # It is a bug in the component library (introduced by framework users)
-                    # if the implicit constructor yields a wrong value.
-                    function bug(m)
-                        red, res = (crayon"bold red", crayon"reset")
-                        ferr("Implicit blueprint constructor $m\n\
-                              $(red)This is a bug in the components library.$res")
-                    end
-                    bp isa Blueprint || bug("did not yield a blueprint, \
-                                             but: $(repr(bp)) ::$(typeof(bp)).")
-                    V = system_value_type(bp)
-                    V == ValueType || bug(
-                        "did not yield a blueprint for '$ValueType', but for '$V': $bp.",
-                    )
-                    comps = componentsof(bp)
-                    length(comps) == 1 ||
-                        bug("yielded instead a blueprint for: $comps.")
-                    C = first(comps)
-                    C == expected_C || bug("yielded instead a blueprint for: $C.")
-                    bp
                 end
-                setfield!(b, prop, BroughtField{expected_C,ValueType}(val))
+                setfield!(b, prop, bf)
             end
         end,
     )
@@ -329,6 +302,9 @@ function blueprint_macro(__module__, __source__, input...)
     res
 end
 
+#-------------------------------------------------------------------------------------------
+# Minor stubs for the macro to work.
+
 specified_as_blueprint(B::Type{<:Blueprint}) = false
 
 # Stubs for display methods.
@@ -349,21 +325,72 @@ function provided_comps_display(bp::Blueprint)
     end
 end
 
-#-------------------------------------------------------------------------------------------
-# Error when assigning to brought blueprint fields.
-struct BroughtAssignFailure{V}
-    BlueprintType::Type{<:Blueprint{V}}
-    fieldname::Symbol
+# Checked call to implicit constructor, supposed to yield a consistent blueprint.
+function implicit_constructor_for(
+    expected_C::CompType,
+    ValueType::DataType,
+    args::Tuple,
+    kwargs::NamedTuple,
+    rhs::Any,
+)
+    err(m) = throw(BroughtConvertFailure{ValueType}(expected_C, m, rhs))
+    # TODO: make this constructor customizeable depending on the value.
+    cstr = isabstracttype(expected_C) ? C : singleton_instance(expected_C)
+    # This needs to be callable.
+    isempty(methods(cstr)) && err("'$cstr' is not (yet?) callable. \
+                                    Consider providing a \
+                                    blueprint value instead.")
+    bp = cstr(args...; kwargs...)
+    # It is a bug in the component library (introduced by framework users)
+    # if the implicit constructor yields a wrong value.
+    function bug(m)
+        red, res = (crayon"bold red", crayon"reset")
+        err("Implicit blueprint constructor $m\n\
+             $(red)This is a bug in the components library.$res")
+    end
+    bp isa Blueprint || bug("did not yield a blueprint, \
+                             but: $(repr(bp)) ::$(typeof(bp)).")
+    V = system_value_type(bp)
+    V == ValueType || bug("did not yield a blueprint for '$ValueType', but for '$V': $bp.")
+    comps = componentsof(bp)
+    length(comps) == 1 || bug("yielded instead a blueprint for: $comps.")
+    C = first(comps)
+    C == expected_C || bug("yielded instead a blueprint for: $C.")
+    bp
+end
+
+# Error when implicitly using default constructor
+# to convert arbitrary input to a brought field.
+struct BroughtConvertFailure{V}
     BroughtComponent::CompType{V}
     message::String
     rhs::Any
 end
 
-function Base.showerror(io::IO, e::BroughtAssignFailure)
-    (; BlueprintType, fieldname, BroughtComponent, message, rhs) = e
+# Specialize error when it occurs in the context
+# of a field assignment on the host blueprint.
+struct BroughtAssignFailure{V}
+    HostBlueprint::Type{<:Blueprint{V}}
+    fieldname::Symbol
+    fail::BroughtConvertFailure{V}
+end
+
+function Base.showerror(io::IO, e::BroughtConvertFailure)
+    (; BroughtComponent, message, rhs) = e
     print(
         io,
-        "Failed to assign to field :$fieldname of '$BlueprintType' \
+        "Failed to convert input \
+         to a brought blueprint for $BroughtComponent:\n$message\n\
+         Input was: $(repr(rhs)) ::$(typeof(rhs))",
+    )
+end
+
+function Base.showerror(io::IO, e::BroughtAssignFailure)
+    (; HostBlueprint, fieldname, fail) = e
+    (; BroughtComponent, message, rhs) = fail
+    print(
+        io,
+        "Failed to assign to field :$fieldname of '$HostBlueprint' \
          supposed to bring component $BroughtComponent:\n$message\n\
          RHS was: $(repr(rhs)) ::$(typeof(rhs))",
     )
@@ -390,6 +417,18 @@ function Base.convert(::Type{BroughtField{C,V}}, bp::Blueprint{V}) where {C,V}
     length(comps) > 1 && throw(InvalidBroughtBlueprint{V}(bp, C))
     first(comps) <: C || throw(InvalidBroughtBlueprint{V}(bp, C))
     BroughtField{C,V}(bp)
+end
+
+# From arguments to embed with a call to implicit constructor.
+function Base.convert(BF::Type{BroughtField{C,V}}, args::Tuple) where {C,V}
+    BF(implicit_constructor_for(C, V, args, (;), args))
+end
+function Base.convert(BF::Type{BroughtField{C,V}}, kwargs::NamedTuple) where {C,V}
+    BF(implicit_constructor_for(C, V, (), kwargs, kwargs))
+end
+function Base.convert(BF::Type{BroughtField{C,V}}, akw::Tuple{Tuple,NamedTuple}) where {C,V}
+    args, kwargs = akw
+    BF(implicit_constructor_for(C, V, args, kwargs, akw))
 end
 
 # From anything else to disallow.
@@ -441,6 +480,15 @@ end
 
 #-------------------------------------------------------------------------------------------
 
+function Base.show(io::IO, ::Type{<:BroughtField{C,V}}) where {C,V}
+    grey = crayon"black"
+    reset = crayon"reset"
+    print(io, "$grey<brought field type for $reset$C$grey>$reset")
+end
+Base.show(io::IO, bf::BroughtField) = display_blueprint_field_short(io, bf)
+Base.show(io::IO, ::MIME"text/plain", bf::BroughtField) =
+    display_blueprint_field_long(io, bf)
+
 function display_blueprint_field_short(io::IO, bf::BroughtField)
     grey = crayon"black"
     reset = crayon"reset"
@@ -468,7 +516,7 @@ function display_blueprint_field_long(io::IO, bf::BroughtField; level = 0)
     elseif value isa CompType
         print(io, "$grey<implied blueprint for $reset$value$grey>$reset")
     elseif value isa Blueprint
-        print(io, "$grey<brought $reset")
+        print(io, "$grey<embedded $reset")
         display_long(io, value; level)
         print(io, "$grey>$reset")
     else

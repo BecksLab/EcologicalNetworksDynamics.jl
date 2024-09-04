@@ -215,9 +215,18 @@ end
 
     # Embed using implicit blueprint construction.
     (::typeof(Ejp))(u, v) = Ejp.b(u, v)
+
+    # As field assignments.
     bdz.ejp = (15, 30)
-    bdz.ejp # HERE: <- improve brought blueprint display.
     s = S(bdz)
+    @test comps(s) == [Xhu, Ejp, Bdz]
+    @test (s.u, s.v) == (15, 30)
+
+    # As constructor arguments.
+    bdz = Bdz_b(1, 2, nothing, (15, 30))
+    s = S(bdz)
+    @test comps(s) == [Ejp, Bdz]
+    @test (s.u, s.v) == (15, 30)
 
     # HERE: the working versions.
 
@@ -234,7 +243,10 @@ end
     @blueprint Amg_b
     @failswith(Brought(Amg_b), MethodError)
 
-    # Forget to specify how to construct implied blueprints.
+    #---------------------------------------------------------------------------------------
+    # Implied blueprint constructors.
+
+    # Forgot to define it.
     struct Ihb_b <: Blueprint{Value}
         x::Float64
         y::Float64
@@ -276,7 +288,7 @@ end
          Consider removing either one."
     )
 
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    #---------------------------------------------------------------------------------------
     # Guard against redundant blueprints.
     struct Qev_b <: Blueprint{Value}
         data::Brought(Ejp)
@@ -309,7 +321,10 @@ end
          is also specified as <TopComp>."
     )
 
-    # Can't call the implicit embedded blueprint constructor if undefined.
+    #---------------------------------------------------------------------------------------
+    # Implicit brought blueprints constructor.
+
+    # Can't call if undefined.
     struct Opv_b <: Blueprint{Value} end
     @blueprint Opv_b
     @component Opv{Value} blueprints(b::Opv_b)
@@ -321,38 +336,33 @@ end
     @component Twt{Value} blueprints(b::Twt_b)
     twt = Twt_b(nothing)
 
-    baf(m, rhs) = F.BroughtAssignFailure(Twt_b, :opv, _Opv, m, rhs)
-    @failswith((twt.opv = ()), baf(
-        "'$Opv' is not (yet?) callable. \
-         Consider providing a blueprint value instead.",
-        (),
-    ))
+    bcf(m, rhs) = F.BroughtConvertFailure(_Opv, m, rhs)
+    baf(m, rhs) = F.BroughtAssignFailure(Twt_b, :opv, bcf(m, rhs))
 
-    # The implicit constructor must construct a consistent blueprint.
-    constructed = nothing # (to change without triggering 'WARNING: Method definition overwritten'.
+    # Check both failure on constructor and on field assignment.
+    erm = "'$Opv' is not (yet?) callable. \
+           Consider providing a blueprint value instead."
+    @failswith(Twt_b(()), bcf(erm, ()))
+    @failswith((twt.opv = ()), baf(erm, ()))
+
+    # Must construct a consistent blueprint.
+    constructed = nothing
+    # (change ↑ freely to test without triggering 'WARNING: Method definition overwritten')
     (::typeof(Opv))() = constructed
     red, res = (crayon"bold red", crayon"reset")
     bug = "\n$(red)This is a bug in the components library.$res"
 
     constructed = 5
-    @failswith(
-        (twt.opv = ()),
-        baf(
-            "Implicit blueprint constructor did not yield a blueprint, but: 5 ::$Int.$bug",
-            (),
-        )
-    )
+    erm = "Implicit blueprint constructor did not yield a blueprint, but: 5 ::$Int.$bug"
+    @failswith(Twt_b(()), bcf(erm, ()))
+    @failswith((twt.opv = ()), baf(erm, ()))
 
     struct Yfi_b <: Blueprint{Int} end
     constructed = Yfi_b()
-    @failswith(
-        (twt.opv = ()),
-        baf(
-            "Implicit blueprint constructor did not yield a blueprint for '$Value', \
-             but for '$Int': $Yfi_b().$bug",
-            (),
-        )
-    )
+    erm = "Implicit blueprint constructor did not yield a blueprint for '$Value', \
+           but for '$Int': $Yfi_b().$bug"
+    @failswith(Twt_b(()), bcf(erm, ()))
+    @failswith((twt.opv = ()), baf(erm, ()))
 
     struct Sxo_b <: Blueprint{Value} end
     @blueprint Sxo_b
@@ -360,23 +370,18 @@ end
     @component Axl{Value}
     F.componentsof(::Sxo_b) = [Iej, Axl]
     constructed = Sxo_b()
-    @failswith((twt.opv = ()), baf(
-        "Implicit blueprint constructor yielded instead \
-         a blueprint for: $([Iej, Axl]).$bug",
-        (),
-    ))
+    erm = "Implicit blueprint constructor yielded instead \
+           a blueprint for: $([Iej, Axl]).$bug"
+    @failswith(Twt_b(()), bcf(erm, ()))
+    @failswith((twt.opv = ()), baf(erm, ()))
 
     struct Dpt_b <: Blueprint{Value} end
     @blueprint Dpt_b
     @component Dpt{Value} blueprints(b::Dpt_b)
     constructed = Dpt_b()
-    @failswith(
-        (twt.opv = ()),
-        baf(
-            "Implicit blueprint constructor yielded instead a blueprint for: <Dpt>.$bug",
-            (),
-        )
-    )
+    erm = "Implicit blueprint constructor yielded instead a blueprint for: <Dpt>.$bug"
+    @failswith(Twt_b(()), bcf(erm, ()))
+    @failswith((twt.opv = ()), baf(erm, ()))
 
     # HERE: the failing versions.
 
