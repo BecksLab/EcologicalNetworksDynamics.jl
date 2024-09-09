@@ -243,7 +243,15 @@ end
     # Cannot add incompatible component.
     @sysfails(
         s + SparseMark(),
-        Add(ConflictWithSystemComponent, Sparse, [SparseMark], Size, nothing),
+        Add(
+            ConflictWithSystemComponent,
+            Sparse,
+            nothing,
+            [SparseMark],
+            Size,
+            nothing,
+            nothing,
+        ),
     )
 
     # Blueprint checking may depend on other components.

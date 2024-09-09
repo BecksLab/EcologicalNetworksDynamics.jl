@@ -86,6 +86,29 @@ function vertical_guard(A::CompType, B::CompType, err_same::Function, err_diff::
     err_diff(sub, sup)
 end
 
+#-------------------------------------------------------------------------------------------
+# The 'conflicts_' mapping entries are either abstract or concrete component,
+# which makes checking information for one particular component not exactly straighforward.
+
+# (for some reason this is absent from Base)
+function supertypes(T::Type)
+    S = supertype(T)
+    S === T ? (T,) : (T, supertypes(S)...)
+end
+
+# Iterate over all conflicts for one particular component.
+# yields (conflict_key, conflicting_component, reason)
+# The yielded conflict key may be a supercomponent of the focal one.
+function all_conflicts(C::CompType)
+    supers = ifilter(T -> T !== Any, supertypes(C))
+    Iterators.flatten(imap(supers) do Sup
+        entries = conflicts_(Sup)
+        imap(entries) do (k, v)
+            (Sup, k, v)
+        end
+    end)
+end
+
 # ==========================================================================================
 # Display.
 

@@ -103,15 +103,15 @@ function to_component(mod, xp, value_type_var, ctx, xerr)
         if C isa Type
             if !(C <: Sup)
                 but = C <: Component ? ", but '$(Component{system_value_type(C)})'" : ""
-                $xerr("$($ctx): the given type \
-                       does not subtype '$Sup'$but:$(xpres($qxp, C))")
+                $xerr("$($ctx): expression does not evaluate \
+                       to a subtype of $Sup$but:$(xpres($qxp, C))")
             end
             C
         else
             c = C # Actually an instance.
             if !(c isa Sup)
                 but = c isa Component ? ", but for '$(system_value_type(c))'" : ""
-                $xerr("$($ctx): the given expression does not evaluate \
+                $xerr("$($ctx): expression does not evaluate \
                        to a component for '$($value_type_var)'$but:$(xpres($qxp, c))")
             end
             typeof(c)
@@ -126,13 +126,13 @@ function to_component(mod, xp, ctx, xerr)
         C = $(to_value(mod, xp, ctx, xerr, Any))
         # Don't check the system value type, but infer it.
         if C isa Type
-            C <: Component || $xerr("$($ctx): the given type \
-                                     does not subtype $Component:$(xpres($qxp, C))")
+            C <: Component || $xerr("$($ctx): expression does not evaluate \
+                                     to a subtype of $Component:$(xpres($qxp, C))")
             C
         else
             c = C # Actually an instance.
-            c isa Component || $xerr("$($ctx): the given value \
-                                      is not a component:$(xpres($qxp, c))")
+            c isa Component || $xerr("$($ctx): expression does not evaluate \
+                                      to a component:$(xpres($qxp, c))")
             typeof(c)
         end
     end

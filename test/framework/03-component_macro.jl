@@ -287,7 +287,7 @@ end
     @xcompfails(
         (@component Kpr{Value} requires(4 + 5)),
         :Kpr,
-        "Required component: the given expression does not evaluate \
+        "Required component: expression does not evaluate \
          to a component for '$Value':\n\
          Expression: :(4 + 5)\n\
          Result: 9 ::$Int"
@@ -296,7 +296,8 @@ end
     @xcompfails(
         (@component Kpr{Value} requires(Int)),
         :Kpr,
-        "Required component: the given type does not subtype '<Component{$Value}>':\n\
+        "Required component: expression does not evaluate \
+         to a subtype of <Component{$Value}>:\n\
          Expression: :Int\n\
          Result: $Int ::DataType"
     )
@@ -305,7 +306,7 @@ end
     @xcompfails(
         (@component Odv{Value} requires(Wdj)),
         :Odv,
-        "Required component: the given expression does not evaluate \
+        "Required component: expression does not evaluate \
          to a component for '$Value', but for '$Int':\n\
          Expression: :Wdj\n\
          Result: $Wdj ::<Wdj>"

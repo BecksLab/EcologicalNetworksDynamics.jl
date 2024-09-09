@@ -115,9 +115,7 @@ function component_macro(__module__, __source__, input...)
                 SuperComponent =
                     $(tovalue(super, "Evaluating given supercomponent", DataType))
                 if !(SuperComponent <: Component)
-                    xerr(
-                        "Supercomponent: '$SuperComponent' does not subtype '$Component'.",
-                    )
+                    xerr("Supercomponent: $SuperComponent does not subtype $Component.")
                 end
                 ValueType = system_value_type(SuperComponent)
             end,
@@ -319,88 +317,4 @@ function component_macro(__module__, __source__, input...)
     end)
 
     res
-end
-
-#-------------------------------------------------------------------------------------------
-# The 'conflicts_' mapping entries are either abstract or concrete component,
-# which makes checking information for one particular component not exactly straighforward.
-
-# (for some reason this is absent from Base)
-function supertypes(T::Type)
-    S = supertype(T)
-    S === T ? (T,) : (T, supertypes(S)...)
-end
-
-# Iterate over all conflicting entries with the given component or a supercomponent of it.
-super_conflict_keys(C::CompType) =
-    Iterators.filter(supertypes(C)) do sup
-        conflicts_(sup)
-    end
-
-# Iterate over all conflicts for one particular component.
-# yields (conflict_key, conflicting_component, reason)
-# The yielded conflict key may be a supercomponent of the focal one.
-function all_conflicts(C::CompType)
-    Iterators.flatten(Iterators.map(super_conflict_keys(C)) do key
-        Iterators.map(conflicts_(key)) do (conflicting, reason)
-            (key, conflicting, reason)
-        end
-    end)
-end
-
-# Guard against declaring conflicts between sub/super components.
-function vertical_conflict(err)
-    (sub, sup) -> begin
-        it = sub === sup ? "itself" : "its own super-component '$sup'"
-        err("Component '$sub' cannot conflict with $it.")
-    end
-end
-
-# Declare one particular conflict with a reason.
-# Guard against redundant reasons specifications.
-function declare_conflict(A::CompType, B::CompType, reason::Reason, err)
-    vertical_guard(A, B, vertical_conflict(err))
-    for (k, c, reason) in all_conflicts(A)
-        isnothing(reason) && continue
-        if B <: c
-            as_K = k === A ? "" : " (as '$k')"
-            as_C = B === c ? "" : " (as '$c')"
-            err("Component '$A'$as_K already declared to conflict with '$B'$as_C \
-                 for the following reason:\n  $(reason)")
-        end
-    end
-    # Append new method or override by updating value.
-    current = conflicts_(A) # Creates a new empty value if falling back on default impl.
-    if isempty(current)
-        # Dynamically add method to lend reference to the value lended by `conflicts_`.
-        eval(quote
-            conflicts_(::Type{$A}) = $current
-        end)
-    end
-    current[B] = reason
-end
-
-# Fill up a clique, not overriding any existing reason.
-function declare_conflicts_clique(err, components::Vector{<:CompType{V}}) where {V}
-
-    function process_pair(A::CompType{V}, B::CompType{V})
-        vertical_guard(A, B, vertical_conflict(err))
-        # Same logic as above.
-        current = conflicts_(A)
-        if isempty(current)
-            eval(quote
-                conflicts_(::Type{$A}) = $current
-            end)
-        end
-        haskey(current, B) || (current[B] = nothing)
-    end
-
-    # Triangular-iterate to guard against redundant items.
-    for (i, a) in enumerate(components)
-        for b in components[1:(i-1)]
-            process_pair(a, b)
-            process_pair(b, a)
-        end
-    end
-
 end

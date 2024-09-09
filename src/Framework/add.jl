@@ -111,7 +111,7 @@ function check(
     node::Node,
     system::System,
     brought::BroughtList,
-    checked::OrderedSet{<:CompType},
+    checked::OrderedDict{<:CompType,Node},
 )
 
     # Recursively check children first.
@@ -128,18 +128,42 @@ function check(
                 # Check against the current system value.
                 has_component(system, R) && continue
                 # Check against other components about to be brought.
-                any(C -> R <: C, checked) ||
+                any(C -> R <: C, keys(checked)) ||
                     throw(MissingRequiredComponent(requirer, R, node, reason))
             end
         end
 
         # Guard against conflicts.
-        for (F, reason) in conflicts_(C)
-            has_component(system, F) &&
-                throw(ConflictWithSystemComponent(C, node, F, reason))
-            for Chk in checked
-                F <: typeof(Chk) &&
-                    throw(ConflictWithBroughtComponent(C, node, brought[F], reason))
+        for (C_as, Other, reason) in all_conflicts(C)
+            if has_component(system, Other)
+                (Other, Other_abstract) =
+                    isabstracttype(Other) ? (first(system._abstract[Other]), Other) :
+                    (Other, nothing)
+                throw(
+                    ConflictWithSystemComponent(
+                        C,
+                        C_as === C ? nothing : C_as,
+                        node,
+                        Other,
+                        Other_abstract,
+                        reason,
+                    ),
+                )
+            end
+            for Chk in keys(checked)
+                if Chk <: Other
+                    throw(
+                        ConflictWithBroughtComponent(
+                            C,
+                            C_as === C ? nothing : C_as,
+                            node,
+                            Chk,
+                            Chk === Other ? nothing : Other,
+                            checked[Chk],
+                            reason,
+                        ),
+                    )
+                end
             end
         end
 
@@ -154,7 +178,7 @@ function check(
             end
         end
 
-        push!(checked, C)
+        checked[C] = node
     end
 
 end
@@ -169,7 +193,7 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
 
     forest = Node[]
     brought = BroughtList{V}() # Populated during pre-order traversal.
-    checked = OrderedSet{CompType{V}}() # Populated during first post-order traversal.
+    checked = OrderedDict{CompType{V},Node}() # Populated during first post-order traversal.
 
     #---------------------------------------------------------------------------------------
     # Read-only preliminary checking.
@@ -212,7 +236,7 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
     try
 
         # Second post-order visit: expand the blueprints.
-        for Chk in checked
+        for Chk in keys(checked)
             node = first(brought[Chk])
             blueprint = node.blueprint
 
@@ -325,15 +349,20 @@ end
 
 struct ConflictWithSystemComponent <: AddException
     comp::CompType
+    comp_abstract::Option{CompType} # Fill if 'comp' conflicts as this abstract type.
     node::Node
     other::CompType
+    other_abstract::Option{CompType} # Fill if 'other' conflicts as this abstract type.
     reason::Reason
 end
 
 struct ConflictWithBroughtComponent <: AddException
     comp::CompType
+    comp_abstract::Option{CompType}
     node::Node
-    other::Node
+    other::CompType
+    other_abstract::Option{CompType}
+    other_node::Node
     reason::Reason
 end
 
@@ -470,14 +499,33 @@ function Base.showerror(io::IO, e::UnexpectedHookFailure)
 end
 
 function Base.showerror(io::IO, e::ConflictWithSystemComponent)
-    (; comp, node, other, reason) = e
+    (; comp, comp_abstract, node, other, other_abstract, reason) = e
     path = render_path(node)
-    header = "Blueprint would expand into $(typeof(comp)), \
-              which conflicts with $other already in the system"
+    comp_as = isnothing(comp_abstract) ? "" : " (as a $comp_abstract)"
+    other_as = isnothing(other_abstract) ? "" : " (as a $other_abstract)"
+    header = "Blueprint would expand into $comp, \
+              which$comp_as conflicts with $other$other_as already in the system"
     if isnothing(reason)
         body = "."
     else
         body = ":\n  $reason"
     end
     print(io, "$header$body\n$path")
+end
+
+function Base.showerror(io::IO, e::ConflictWithBroughtComponent)
+    (; comp, comp_abstract, node, other, other_abstract, other_node, reason) = e
+    path = render_path(node)
+    other_path = render_path(other_node)
+    comp_as = isnothing(comp_abstract) ? "" : " (as a $comp_abstract)"
+    other_as = isnothing(other_abstract) ? "" : " (as a $other_abstract)"
+    header = "Blueprint would expand into $comp, \
+              which$comp_as would conflict with $other$other_as \
+              already brought by the same blueprint"
+    if isnothing(reason)
+        body = "."
+    else
+        body = ":\n  $reason"
+    end
+    print(io, "$header$body\nAlready brought: $other_path---\n$path")
 end
