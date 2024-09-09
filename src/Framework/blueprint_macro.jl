@@ -45,7 +45,7 @@
 
 # Dedicated field type to be automatically detected as brought blueprints.
 struct BroughtField{C,V} # where C<:CompType{V} (enforce)
-    value::Union{Nothing,Blueprint{V},Type{C}}
+    value::Union{Nothing,Blueprint{V},Type{<:C}}
 end
 Brought(C::CompType{V}) where {V} = BroughtField{C,V}
 Brought(c::Component) = Brought(typeof(c))
@@ -130,6 +130,7 @@ function blueprint_macro(__module__, __source__, input...)
             # are automatically inferred from the struct fields.
             broughts = OrderedDict{Symbol,CompType{ValueType}}()
             convenience_methods = Bool[]
+            abstract_implied = Bool[]
             for (name, fieldtype) in zip(fieldnames(NewBlueprint), NewBlueprint.types)
 
                 fieldtype <: BroughtField || continue
@@ -147,6 +148,13 @@ function blueprint_macro(__module__, __source__, input...)
                           $implied_blueprint_for(::$NewBlueprint, ::$Type{$C})\n\
                           Consider removing either one.")
 
+                # The above does *not* check that the method
+                # has been specialized for every possible component type subtyping C.
+                # This will need to be checked at runtime,
+                # but raise this flag if C is abstract
+                # to define a neat error fallback in case it's not.
+                abs = isabstracttype(C)
+
                 # Triangular-check against redundancies.
                 for (a, Already) in broughts
                     vertical_guard(
@@ -162,6 +170,7 @@ function blueprint_macro(__module__, __source__, input...)
 
                 broughts[name] = C
                 push!(convenience_methods, conv)
+                push!(abstract_implied, abs)
             end
         end,
     )
@@ -174,14 +183,28 @@ function blueprint_macro(__module__, __source__, input...)
     # The only remaining code to generate work is just the code required
     # for the system to work correctly.
 
-    # In case the convenience `implied_blueprint_for` has been defined,
-    # forward the proper calls to it.
     push_res!(
         quote
-            for (C, conv) in zip(values(broughts), convenience_methods)
+            for (C, conv, abs) in
+                zip(values(broughts), convenience_methods, abstract_implied)
+                # In case the convenience `implied_blueprint_for` has been defined,
+                # forward the proper calls to it.
                 if conv
                     Framework.implied_blueprint_for(b::NewBlueprint, C::Type{C}) =
                         implied_blueprint_for(b, singleton_instance(C))
+                end
+                # In case the brought component type is abstract,
+                # define a falllback method in case the components lib
+                # provided no way of implying a particular subtype of it.
+                # TODO: find a way to raise this error earlier
+                # during field assignment or construction.
+                if abs
+                    function Framework.implied_blueprint_for(
+                        ::NewBlueprint,
+                        Sub::Type{<:C},
+                    )
+                        throw(UnimplementedImpliedMethod{ValueType}(NewBlueprint, C, Sub))
+                    end
                 end
             end
         end,
@@ -206,66 +229,14 @@ function blueprint_macro(__module__, __source__, input...)
         quote
             function Base.setproperty!(b::NewBlueprint, prop::Symbol, rhs)
                 prop in keys(broughts) || setfield!(b, prop, rhs)
-                expected_C = broughts[prop]
-                ferr(m) = throw(
-                    BroughtAssignFailure{ValueType}(
-                        NewBlueprint,
-                        prop,
-                        BroughtConvertFailure(expected_C, m, rhs),
-                    ),
-                )
-                BF = BroughtField{expected_C,ValueType}
-                bf = if rhs isa Blueprint
-                    V = system_value_type(rhs)
-                    V == ValueType || ferr("Expected a RHS blueprint for $ValueType.\n\
-                                            Got instead a blueprint for: $V.")
-                    comps = componentsof(rhs)
-                    length(comps) == 1 ||
-                        ferr("Blueprint would instead expand into $comps.")
-                    C = first(comps)
-                    C <: expected_C || ferr("Blueprint would instead expand into $C.")
-                    BF(rhs)
-                elseif rhs isa Component || rhs isa CompType
-                    C = rhs isa Component ? typeof(rhs) : rhs
-                    V = system_value_type(C)
-                    V == ValueType || ferr("Expected a RHS component for $ValueType.\n\
-                                            Got instead a component for: $V.")
-                    if C !== expected_C
-                        blue, it, res = crayon"blue", crayon"italics", crayon"reset"
-                        # Should we not fail in the following case,
-                        # then we would either need to enforce
-                        # that every future component subtyping `expected_C`
-                        # has the correct default `implied_blueprint_for` method defined
-                        # (which is impossible)
-                        # or we should define it on-the-fly during this call (smelly).
-                        # Choose *not* to feature yet.
-                        # Reconsider if neeeded and meaningful.
-                        C <: expected_C && ferr(
-                            "RHS would instead imply another component \
-                             subtying $expected_C: $C.\n\
-                             This has no semantic yet and is therefore forbidden.\n\
-                             Consider $(it)embedding$(res) instead \
-                             with an actual blueprint $(it)value$res \
-                             that would expand into $C, $(it)e.g.$res:\n  \
-                               $(blue)host.$prop = $(strip_compname(V, C))(...)$res \
-                               # (or alike)",
-                        )
-                        ferr("RHS would instead imply: $C.")
-                    end
-                    BF(expected_C)
-                elseif isnothing(rhs)
-                    BF(nothing)
-                else
-                    # In any other case, forward to an underlying blueprint constructor.
-                    # (happens via conversion so the same logic
-                    #  applies to host blueprint constructor arguments)
-                    try
-                        Base.convert(BF, rhs)
-                    catch e
-                        e isa BroughtConvertFailure &&
-                            rethrow(BroughtAssignFailure(NewBlueprint, prop, e))
-                        rethrow(e)
-                    end
+                C = broughts[prop]
+                # Defer all checking to conversion methods.
+                bf = try
+                    Base.convert(BroughtField{C,ValueType}, rhs)
+                catch e
+                    e isa BroughtConvertFailure && # Additional context available.
+                        rethrow(BroughtAssignFailure(NewBlueprint, prop, e))
+                    rethrow(e)
                 end
                 setfield!(b, prop, bf)
             end
@@ -350,6 +321,67 @@ function provided_comps_display(bp::Blueprint)
     end
 end
 
+# ==========================================================================================
+# Protect against constructing invalid brought fields.
+# These checks are either run when doing `host.field = ..` or `Host(..)`.
+
+# From nothing to not bring anything.
+Base.convert(::Type{BroughtField{C,V}}, ::Nothing) where {C,V} = BroughtField{C,V}(nothing)
+
+#-------------------------------------------------------------------------------------------
+# From a component type to imply it.
+
+function Base.convert(
+    ::Type{BroughtField{eC,eV}}, # ('expected C', 'expected V')
+    aC::CompType{aV}; # ('actual C', 'actual V')
+    input = aC,
+) where {eV,eC,aV}
+    err(m) = throw(BroughtConvertFailure(eC, m, input))
+    aV === eV || err("The input would not imply a component for '$eV', but for '$aV'.")
+    aC <: eC || err("The input would instead imply $aC.")
+    # TODO: How to check whether `implied_blueprint_for` has been defined for aC here?
+    # Context is missing because 'NewBlueprintType' is unknown.
+    BroughtField{eC,eV}(aC)
+end
+
+# From a component value for convenience.
+Base.convert(::Type{BroughtField{C,V}}, c::Component) where {V,C} =
+    Base.convert(BroughtField{C,V}, typeof(c); input = c)
+
+#-------------------------------------------------------------------------------------------
+# From a blueprint to embed it.
+
+function Base.convert(::Type{BroughtField{eC,eV}}, bp::Blueprint{aV}) where {eC,eV,aV}
+    err(m) = throw(BroughtConvertFailure(eC, m, bp))
+    aV === eV || err("The input does not embed a blueprint for '$eV', but for '$aV'.")
+    comps = componentsof(bp)
+    length(comps) == 1 || err("Blueprint would instead expand into [$(join(comps, ", "))].")
+    aC = first(comps)
+    aC <: eC || err("Blueprint would instead expand into $aC.")
+    BroughtField{eC,eV}(bp)
+end
+
+#-------------------------------------------------------------------------------------------
+# From arguments to embed with a call to implicit constructor.
+
+function Base.convert(BF::Type{BroughtField{C,V}}, input::Any) where {C,V}
+    BF(implicit_constructor_for(C, V, (input,), (;), input))
+end
+
+function Base.convert(BF::Type{BroughtField{C,V}}, args::Tuple) where {C,V}
+    BF(implicit_constructor_for(C, V, args, (;), args))
+end
+
+function Base.convert(BF::Type{BroughtField{C,V}}, kwargs::NamedTuple) where {C,V}
+    BF(implicit_constructor_for(C, V, (), kwargs, kwargs))
+end
+
+function Base.convert(BF::Type{BroughtField{C,V}}, akw::Tuple{Tuple,NamedTuple}) where {C,V}
+    args, kwargs = akw
+    BF(implicit_constructor_for(C, V, args, kwargs, akw))
+end
+
+#-------------------------------------------------------------------------------------------
 # Checked call to implicit constructor, supposed to yield a consistent blueprint.
 function implicit_constructor_for(
     expected_C::CompType,
@@ -387,6 +419,7 @@ function implicit_constructor_for(
         end
         rethrow(e)
     end
+
     # It is a bug in the component library (introduced by framework users)
     # if the implicit constructor yields a wrong value.
     function bug(m)
@@ -399,11 +432,14 @@ function implicit_constructor_for(
     V = system_value_type(bp)
     V == ValueType || bug("did not yield a blueprint for '$ValueType', but for '$V': $bp.")
     comps = componentsof(bp)
-    length(comps) == 1 || bug("yielded instead a blueprint for: $comps.")
+    length(comps) == 1 || bug("yielded instead a blueprint for: [$(join(comps, ", "))].")
     C = first(comps)
     C <: expected_C || bug("yielded instead a blueprint for: $C.")
     bp
 end
+
+#-------------------------------------------------------------------------------------------
+# Errors associated to the above checks.
 
 # Error when implicitly using default constructor
 # to convert arbitrary input to a brought field.
@@ -419,6 +455,12 @@ struct BroughtAssignFailure{V}
     HostBlueprint::Type{<:Blueprint{V}}
     fieldname::Symbol
     fail::BroughtConvertFailure{V}
+end
+
+struct UnimplementedImpliedMethod{V}
+    HostBlueprint::Type{<:Blueprint{V}}
+    BroughtSuperType::CompType{V}
+    ImpliedSubType::CompType{V} # Subtypes the above.
 end
 
 function Base.showerror(io::IO, e::BroughtConvertFailure)
@@ -442,74 +484,21 @@ function Base.showerror(io::IO, e::BroughtAssignFailure)
     )
 end
 
-#-------------------------------------------------------------------------------------------
-# Protect against constructing invalid brought fields.
-
-# From nothing to not bring anything.
-Base.convert(::Type{BroughtField{C,V}}, ::Nothing) where {C,V} = BroughtField{C,V}(nothing)
-
-# From a component type to imply it.
-function Base.convert(::Type{BroughtField{C,V}}, ::Type{T}) where {V,C,T}
-    T <: C || throw(InvalidImpliedComponent{V}(T, C))
-    BroughtField{C,V}(T)
-end
-# From a component value for convenience.
-Base.convert(::Type{BroughtField{C,V}}, c::Component) where {V,C} =
-    Base.convert(BroughtField{C,V}, typeof(c))
-
-# From a blueprint to embed it.
-function Base.convert(::Type{BroughtField{C,V}}, bp::Blueprint{V}) where {C,V}
-    comps = componentsof(bp)
-    length(comps) > 1 && throw(InvalidBroughtBlueprint{V}(bp, C))
-    first(comps) <: C || throw(InvalidBroughtBlueprint{V}(bp, C))
-    BroughtField{C,V}(bp)
-end
-
-# From arguments to embed with a call to implicit constructor.
-function Base.convert(BF::Type{BroughtField{C,V}}, input::Any) where {C,V}
-    BF(implicit_constructor_for(C, V, (input,), (;), input))
-end
-
-function Base.convert(BF::Type{BroughtField{C,V}}, args::Tuple) where {C,V}
-    BF(implicit_constructor_for(C, V, args, (;), args))
-end
-function Base.convert(BF::Type{BroughtField{C,V}}, kwargs::NamedTuple) where {C,V}
-    BF(implicit_constructor_for(C, V, (), kwargs, kwargs))
-end
-function Base.convert(BF::Type{BroughtField{C,V}}, akw::Tuple{Tuple,NamedTuple}) where {C,V}
-    args, kwargs = akw
-    BF(implicit_constructor_for(C, V, args, kwargs, akw))
-end
-
-struct InvalidImpliedComponent{V}
-    T::Type
-    C::CompType{V}
-end
-
-struct InvalidBroughtBlueprint{V}
-    b::Blueprint{V}
-    C::CompType{V}
-end
-
-function Base.showerror(io::IO, e::InvalidImpliedComponent{V}) where {V}
-    (; T, C) = e
+function Base.showerror(io::IO, e::UnimplementedImpliedMethod{V}) where {V}
+    red = crayon"red"
+    res = crayon"reset"
+    (; HostBlueprint, BroughtSuperType, ImpliedSubType) = e
     print(
         io,
-        "The field should bring $C, \
-         but this component would imply $T instead.",
+        "A method has been specified to implicitly bring component $BroughtSuperType \
+         from '$HostBlueprint' blueprints, \
+         but no method is specialized to implicitly bring its subtype $ImpliedSubType.\n\
+         $(red)This is a bug in the components library.$res",
     )
 end
 
-function Base.showerror(io::IO, e::InvalidBroughtBlueprint{V}) where {V}
-    (; b, C) = e
-    print(
-        io,
-        "The field should bring $C, \
-         but this blueprint would expand into $(provided_comps_display(b)) instead: $b.",
-    )
-end
-
-#-------------------------------------------------------------------------------------------
+# ==========================================================================================
+#  Display.
 
 function Base.show(io::IO, ::Type{<:BroughtField{C,V}}) where {C,V}
     grey = crayon"black"

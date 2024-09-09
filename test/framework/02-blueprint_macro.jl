@@ -336,7 +336,6 @@ end
     #---------------------------------------------------------------------------------------
     # Implicit brought blueprints constructor.
 
-    # Can't call if undefined.
     struct Opv_b <: Blueprint{Value} end
     @blueprint Opv_b
     @component Opv{Value} blueprints(b::Opv_b)
@@ -349,16 +348,19 @@ end
     twt = Twt_b(nothing)
 
     # Check both failure on constructor and on field assignment.
-    bcf(m, rhs) = F.BroughtConvertFailure(_Opv, m, rhs)
-    baf(m, rhs) = F.BroughtAssignFailure(Twt_b, :opv, bcf(m, rhs))
+    input = () # (rebind to not trigger the 'WARNING: Method definition overwritten')
+    constructed = nothing # (same)
+    erm = nothing # (same)
+    bcf() = F.BroughtConvertFailure(_Opv, erm, input)
+    baf() = F.BroughtAssignFailure(Twt_b, :opv, bcf())
+
+    # Can't call if undefined.
     erm = "'$Opv' is not (yet?) callable. \
            Consider providing a blueprint value instead."
-    @failswith(Twt_b(()), bcf(erm, ()))
-    @failswith((twt.opv = ()), baf(erm, ()))
+    @failswith(Twt_b(()), bcf())
+    @failswith((twt.opv = ()), baf())
 
     # Must construct a consistent blueprint.
-    constructed = nothing
-    # (change ↑ freely to test without triggering 'WARNING: Method definition overwritten')
     (::typeof(Opv))() = constructed
     red, res = (crayon"bold red", crayon"reset")
     bug = "\n$(red)This is a bug in the components library.$res"
@@ -366,16 +368,16 @@ end
     # Not a blueprint.
     constructed = 5
     erm = "Implicit blueprint constructor did not yield a blueprint, but: 5 ::$Int.$bug"
-    @failswith(Twt_b(()), bcf(erm, ()))
-    @failswith((twt.opv = ()), baf(erm, ()))
+    @failswith(Twt_b(()), bcf())
+    @failswith((twt.opv = ()), baf())
 
     # Not for the right value type.
     struct Yfi_b <: Blueprint{Int} end
     constructed = Yfi_b()
     erm = "Implicit blueprint constructor did not yield a blueprint for '$Value', \
            but for '$Int': $Yfi_b().$bug"
-    @failswith(Twt_b(()), bcf(erm, ()))
-    @failswith((twt.opv = ()), baf(erm, ()))
+    @failswith(Twt_b(()), bcf())
+    @failswith((twt.opv = ()), baf())
 
     # Not for the right component*s.
     struct Sxo_b <: Blueprint{Value} end
@@ -385,9 +387,9 @@ end
     F.componentsof(::Sxo_b) = [Iej, Axl]
     constructed = Sxo_b()
     erm = "Implicit blueprint constructor yielded instead \
-           a blueprint for: $([Iej, Axl]).$bug"
-    @failswith(Twt_b(()), bcf(erm, ()))
-    @failswith((twt.opv = ()), baf(erm, ()))
+           a blueprint for: [$Iej, $Axl].$bug"
+    @failswith(Twt_b(()), bcf())
+    @failswith((twt.opv = ()), baf())
 
     # Not for the right component.
     struct Dpt_b <: Blueprint{Value} end
@@ -395,29 +397,29 @@ end
     @component Dpt{Value} blueprints(b::Dpt_b)
     constructed = Dpt_b()
     erm = "Implicit blueprint constructor yielded instead a blueprint for: <Dpt>.$bug"
-    @failswith(Twt_b(()), bcf(erm, ()))
-    @failswith((twt.opv = ()), baf(erm, ()))
+    @failswith(Twt_b(()), bcf())
+    @failswith((twt.opv = ()), baf())
 
     # No corresponding method for the constructor.
-    i = 5
+    input = 5
     erm = "No method matching $Opv(5). (See further down the stacktrace.)"
-    @failswith(Twt_b(i), bcf(erm, i))
-    @failswith((twt.opv = i), baf(erm, i))
+    @failswith(Twt_b(input), bcf())
+    @failswith((twt.opv = input), baf())
 
-    i = (5, 8)
+    input = (5, 8)
     erm = "No method matching $Opv(5, 8). (See further down the stacktrace.)"
-    @failswith(Twt_b(i), bcf(erm, i))
-    @failswith((twt.opv = i), baf(erm, i))
+    @failswith(Twt_b(input), bcf())
+    @failswith((twt.opv = input), baf())
 
-    i = (; c = 13)
+    input = (; c = 13)
     erm = "No method matching $Opv(; c = 13). (See further down the stacktrace.)"
-    @failswith(Twt_b(i), bcf(erm, i))
-    @failswith((twt.opv = i), baf(erm, i))
+    @failswith(Twt_b(input), bcf())
+    @failswith((twt.opv = input), baf())
 
-    i = ((5, 8), (; c = 13))
+    input = ((5, 8), (; c = 13))
     erm = "No method matching $Opv(5, 8; c = 13). (See further down the stacktrace.)"
-    @failswith(Twt_b(i), bcf(erm, i))
-    @failswith((twt.opv = i), baf(erm, i))
+    @failswith(Twt_b(input), bcf())
+    @failswith((twt.opv = input), baf())
 
 end
 end
@@ -456,42 +458,7 @@ comps(s) = sort(collect(components(s)); by = repr)
     # ======================================================================================
     # Invalid uses.
 
-    # Attempt to bring another component.
-    struct Gdg_b <: Blueprint{Value}
-        a::Brought(A)
-    end
-    F.implied_blueprint_for(::Gdg_b, ::Type{A}) = B.b()
-    @blueprint Gdg_b
-    @component Gdg{Value} blueprints(b::Gdg_b)
-    gdg = Gdg.b(nothing)
-
-    struct Ejj_b <: Blueprint{Value} end
-    @blueprint Ejj_b
-    @component Ejj{Value} blueprints(b::Ejj_b)
-
-    @failswith(
-        (gdg.a = Ejj.b()),
-        F.BroughtAssignFailure(
-            Gdg_b,
-            :a,
-            F.BroughtConvertFailure(
-                A,
-                "Blueprint would instead expand into <Ejj>.",
-                Ejj.b(),
-            ),
-        )
-    )
-    @failswith(
-        (gdg.a = Ejj),
-        F.BroughtAssignFailure(
-            Gdg_b,
-            :a,
-            F.BroughtConvertFailure(A, "RHS would instead imply: <Ejj>.", Ejj),
-        )
-    )
-
-    # Abstract component has not yet been turned into a constructor.
-    struct Pmi_b <: Blueprint{Value}
+    mutable struct Pmi_b <: Blueprint{Value}
         a::Brought(A)
     end
     F.implied_blueprint_for(::Pmi_b, ::Type{A}) = B.b()
@@ -499,56 +466,94 @@ comps(s) = sort(collect(components(s)); by = repr)
     @component Pmi{Value} blueprints(b::Pmi_b)
     pmi = Pmi.b(nothing)
 
-    # Check both failure on constructor and on field assignment.
-    bcf(m, rhs) = F.BroughtConvertFailure(A, m, rhs)
-    baf(m, rhs) = F.BroughtAssignFailure(Pmi_b, :a, bcf(m, rhs))
-
-    erm = "'$A' is not (yet?) callable. \
-           Consider providing a blueprint value instead."
-    @failswith(Pmi_b(()), bcf(erm, ()))
-    @failswith((pmi.a = ()), baf(erm, ()))
-
-    # Must construct a consistent blueprint.
-    constructed = nothing
-    # (change ↑ freely to test without triggering 'WARNING: Method definition overwritten')
-    A() = constructed
+    # Consistent values must be given to brought fields.
+    #   - Either during blueprint construction.
+    #   - Or during field assignments.
+    #   - Or as the result of calls to implicit brought constructor.
+    input = nothing
+    erm = nothing
+    bcf() = F.BroughtConvertFailure(A, erm, input)
+    baf() = F.BroughtAssignFailure(Pmi.b, :a, bcf())
     red, res = (crayon"bold red", crayon"reset")
     bug = "\n$(red)This is a bug in the components library.$res"
 
+    # Abstract component has not yet been turned into a constructor.
+    input = ()
+    erm = "'$A' is not (yet?) callable. \
+           Consider providing a blueprint value instead."
+    @failswith(Pmi.b(), MethodError)
+    @failswith(Pmi.b(input), bcf())
+    @failswith((pmi.a = input), baf())
+
+    # Now defined.
+    A() = input
+
     # Not a blueprint.
-    constructed = 5
-    erm = "Implicit blueprint constructor did not yield a blueprint, but: 5 ::$Int.$bug"
-    @failswith(Pmi_b(()), bcf(erm, ()))
-    @failswith((pmi.a = ()), baf(erm, ()))
+    input = 5
+    erm = "No method matching <A>(5). (See further down the stacktrace.)"
+    @failswith(Pmi.b(input), bcf())
+    @failswith((pmi.a = input), baf())
 
-    # Not for the right value type.
+    # Not a blueprint for the right value type.
     struct Tcv_b <: Blueprint{Int} end
-    constructed = Tcv_b()
-    erm = "Implicit blueprint constructor did not yield a blueprint for '$Value', \
-           but for '$Int': $Tcv_b().$bug"
-    @failswith(Pmi_b(()), bcf(erm, ()))
-    @failswith((pmi.a = ()), baf(erm, ()))
+    @blueprint Tcv_b
+    @component Tcv{Int} blueprints(b::Tcv_b)
+    input = Tcv.b()
+    erm = "The input does not embed a blueprint for 'Value', but for '$Int'."
+    @failswith(Pmi.b(input), bcf())
+    @failswith((pmi.a = input), baf())
 
-    # Not for the right component*s.
+    # Not a blueprint for the right component*s.
     struct Trl_b <: Blueprint{Value} end
     @blueprint Trl_b
+    @component Trl{Value} blueprints(b::Trl_b)
     @component Oyt{Value}
     @component Yxt{Value}
     F.componentsof(::Trl_b) = [Oyt, Yxt]
-    constructed = Trl_b()
-    erm = "Implicit blueprint constructor yielded instead \
-           a blueprint for: $([Oyt, Yxt]).$bug"
-    @failswith(Pmi_b(()), bcf(erm, ()))
-    @failswith((pmi.a = ()), baf(erm, ()))
+    input = Trl.b()
+    erm = "Blueprint would instead expand into [$Oyt, $Yxt]."
+    @failswith(Pmi.b(input), bcf())
+    @failswith((pmi.a = input), baf())
 
-    # Not for a component subtyping A.
+    # Not a blueprint for a component subtyping A.
     struct Mjv_b <: Blueprint{Value} end
     @blueprint Mjv_b
     @component Mjv{Value} blueprints(b::Mjv_b)
-    constructed = Mjv_b()
+    input = Mjv.b()
+    erm = "Blueprint would instead expand into <Mjv>."
+    @failswith(Pmi.b(input), bcf())
+    @failswith((pmi.a = input), baf())
     erm = "Implicit blueprint constructor yielded instead a blueprint for: <Mjv>.$bug"
-    @failswith(Pmi_b(()), bcf(erm, ()))
-    @failswith((pmi.a = ()), baf(erm, ()))
+    err = F.BroughtConvertFailure(A, erm, ())
+    @failswith(Pmi.b(()), err)
+    @failswith((pmi.a = ()), F.BroughtAssignFailure(Pmi_b, :a, err))
+
+    # Not an implied component for the right value type.
+    @component Mbl{Int}
+    input = Mbl
+    erm = "The input would not imply a component for '$Value', but for '$Int'."
+    @failswith(Pmi.b(input), bcf())
+    @failswith((pmi.a = input), baf())
+    input = _Mbl # (same with actual component type)
+    @failswith(Pmi.b(input), bcf())
+    @failswith((pmi.a = input), baf())
+
+    # Not an implied component subtyping A.
+    @component Cif{Value}
+    input = Cif
+    erm = "The input would instead imply <Cif>."
+    @failswith(Pmi.b(input), bcf())
+    @failswith((pmi.a = input), baf())
+    input = _Cif
+    @failswith(Pmi.b(input), bcf())
+    @failswith((pmi.a = input), baf())
+
+    # An implied component subtyping A,
+    # but with no implicit constructor defined.
+    input = B
+    Pmi.b(input) # TODO: find a way to error at this point..
+    pmi.a = input # .. or this point..
+    @failswith(S(pmi), F.UnimplementedImpliedMethod(Pmi_b, A, _B)) # .. rather than then.
 
     # HERE: the failing versions.
 
@@ -580,7 +585,6 @@ comps(s) = sort(collect(components(s)); by = repr)
 
     # Implicit blueprint constructor can bring any sub-component.
     A() = C.b() # Say.
-    # /!\ HERE: the above line enables Wmu_b() althought only Wmu_b(()) should work!
     s = S(Wmu.b(()))
     @test comps(s) == [C, Wmu]
     @test has_component(s, A)
@@ -589,7 +593,7 @@ comps(s) = sort(collect(components(s)); by = repr)
     wmu = Wmu.b(nothing)
     wmu.a = A
     @test comps(S(wmu)) == [B, Wmu] # Get the default.
-    # HERE: this shouldn't actually work for now and should be moved to failures tests.
+    # HERE: keep fixing tests.
     wmu.a = B
     @test comps(S(wmu)) == [B, Wmu]
     wmu.a = C

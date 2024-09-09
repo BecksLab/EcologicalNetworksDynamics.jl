@@ -23,6 +23,8 @@
 #     are already in the system.
 #     A blueprint does not 'imply' another specific blueprint,
 #     but it 'implies' *some* blueprint bringing the other specific components.
+#     Implying an abstract component means implying any blueprint
+#     bringing a concrete subtype of this component.
 #
 # Whether a brought blueprint is embedded or implied
 # depends on the bringer value.
