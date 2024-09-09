@@ -404,4 +404,3 @@ function declare_conflicts_clique(err, components::Vector{<:CompType{V}}) where 
     end
 
 end
-

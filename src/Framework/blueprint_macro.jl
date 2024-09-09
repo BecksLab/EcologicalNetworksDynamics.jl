@@ -200,10 +200,18 @@ function blueprint_macro(__module__, __source__, input...)
                 # during field assignment or construction.
                 if abs
                     function Framework.implied_blueprint_for(
-                        ::NewBlueprint,
+                        b::NewBlueprint,
                         Sub::Type{<:C},
                     )
-                        throw(UnimplementedImpliedMethod{ValueType}(NewBlueprint, C, Sub))
+                        err() = UnimplementedImpliedMethod{ValueType}(NewBlueprint, C, Sub)
+                        isabstracttype(Sub) && throw(err())
+                        try
+                            # The convenience method may have been implemented instead.
+                            implied_blueprint_for(b, singleton_instance(Sub))
+                        catch e
+                            e isa Base.MethodError && rethrow(err())
+                            rethrow(e)
+                        end
                     end
                 end
             end

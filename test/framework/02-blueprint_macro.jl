@@ -127,6 +127,8 @@ end
 
 end
 
+using Logging
+
 @testset "Brought fields: valid uses." begin
 
     #---------------------------------------------------------------------------------------
@@ -214,7 +216,7 @@ end
     @test (s.u, s.v) == (15, 30)
 
     # Embed using implicit blueprint construction.
-    (::typeof(Ejp))(u, v) = Ejp.b(u, v)
+    (::typeof(Ejp))(u, v; shift = 0) = Ejp.b(u + shift, v + shift)
 
     # As field assignments.
     bdz.ejp = (15, 30)
@@ -229,9 +231,6 @@ end
     @test (s.u, s.v) == (15, 30)
 
     # Constructors accept keyword arguments.
-    # TODO: remove redefinition warning.
-    (::typeof(Ejp))(u, v; shift = 1) = Ejp.b(u + shift, v + shift)
-
     bdz = Bdz_b(1, 2, nothing, ((15, 30), (; shift = 2))) # ← The way to use it.
     s = S(bdz)
     @test comps(s) == [Ejp, Bdz]
@@ -301,7 +300,7 @@ end
     )
 
     #---------------------------------------------------------------------------------------
-    # Guard against redundant blueprints.
+    # Guard against redundant brought blueprints.
     struct Qev_b <: Blueprint{Value}
         data::Brought(Ejp)
         other::Brought(Ejp)
@@ -499,18 +498,18 @@ comps(s) = sort(collect(components(s)); by = repr)
     @blueprint Tcv_b
     @component Tcv{Int} blueprints(b::Tcv_b)
     input = Tcv.b()
-    erm = "The input does not embed a blueprint for 'Value', but for '$Int'."
+    erm = "The input does not embed a blueprint for '$Value', but for '$Int'."
     @failswith(Pmi.b(input), bcf())
     @failswith((pmi.a = input), baf())
 
     # Not a blueprint for the right component*s.
     struct Trl_b <: Blueprint{Value} end
     @blueprint Trl_b
-    @component Trl{Value} blueprints(b::Trl_b)
+    @component Trl{Value}
     @component Oyt{Value}
     @component Yxt{Value}
     F.componentsof(::Trl_b) = [Oyt, Yxt]
-    input = Trl.b()
+    input = Trl_b()
     erm = "Blueprint would instead expand into [$Oyt, $Yxt]."
     @failswith(Pmi.b(input), bcf())
     @failswith((pmi.a = input), baf())
@@ -555,8 +554,6 @@ comps(s) = sort(collect(components(s)); by = repr)
     pmi.a = input # .. or this point..
     @failswith(S(pmi), F.UnimplementedImpliedMethod(Pmi_b, A, _B)) # .. rather than then.
 
-    # HERE: the failing versions.
-
     # ======================================================================================
     # Valid uses.
 
@@ -584,164 +581,46 @@ comps(s) = sort(collect(components(s)); by = repr)
     @test comps(s) == [D, Wmu] # D is actually brought.
 
     # Implicit blueprint constructor can bring any sub-component.
-    A() = C.b() # Say.
+    input = C.b() # Say (defined output of `A()` constructor (see tests above))
     s = S(Wmu.b(()))
     @test comps(s) == [C, Wmu]
     @test has_component(s, A)
 
-    # Accept any sub-component as brought.
+    # Accept any sub-component as implied.
+    F.implied_blueprint_for(::Wmu_b, ::_B) = B.b() # (convenience form)
+    F.implied_blueprint_for(::Wmu_b, ::Type{_C}) = C.b() # (longer explicit form)
+    F.implied_blueprint_for(::Wmu_b, ::_D) = D.b()
+
     wmu = Wmu.b(nothing)
     wmu.a = A
     @test comps(S(wmu)) == [B, Wmu] # Get the default.
-    # HERE: keep fixing tests.
     wmu.a = B
-    @test comps(S(wmu)) == [B, Wmu]
+    @test comps(S(wmu)) == [B, Wmu] # Get the implied one, but explicitly.
     wmu.a = C
     @test comps(S(wmu)) == [C, Wmu]
+    wmu.a = D
+    @test comps(S(wmu)) == [D, Wmu]
+
+    # Accept any sub-component as embedded.
     wmu.a = B.b()
+    @test comps(S(wmu)) == [B, Wmu]
     wmu.a = C.b()
+    @test comps(S(wmu)) == [C, Wmu]
+    wmu.a = D.b()
+    @test comps(S(wmu)) == [D, Wmu]
 
-    # HERE: the working versions.
-
-    #  # Don't forget to specify default implied constructor.
-    #  struct Ipq_b <: Blueprint{Value}
-    #  a::Brought(A)
-    #  end
-    #  @xbluefails(
-    #  (@blueprint Ipq_b),
-    #  Ipq_b,
-    #  "Method implied_blueprint_for($Ipq_b, <A>) unspecified \
-    #  to implicitly bring <A> from $Ipq_b blueprints.",
-    #  )
-
-    #  # Expanding from an abstract component.
-    #  struct Som_b <: Blueprint{Value} end
-    #  F.expands_from(::Som_b) = A
-    #  @blueprint Som_b
-    #  @component Som{Value} blueprints(b::Som_b)
-    #  @test isempty(F.requires(Som)) # The component requires nothing..
-    #  # .. but expansion of this blueprint does.
-    #  @sysfails(S(Som_b()), Add(MissingRequiredComponent, nothing, A, [Som_b], nothing))
-    #  # Any concrete component A enables expansion.
-    #  s = S(Bb(), Som_b())
-    #  @test has_component(s, B) # The prerequisite added: B.
-    #  @test has_component(s, A) # Same B but as an abstract A.
-    #  @test has_component(s, Som) # Thus the expansion success.
-
-    #---------------------------------------------------------------------------------------
-    # Invocation failures.
-
-    #  # Implicit redundant requires.
-    #  struct Hxl <: Blueprint{Value} end
-    #  @xcompfails(
-    #  (@component Hxl requires(A, B)),
-    #  Hxl,
-    #  "Requirement '$B' is also specified as '$A'."
-    #  )
-
-    #  struct Ppo <: Blueprint{Value} end
-    #  @xcompfails(
-    #  (@component Ppo requires(B, A)),
-    #  Ppo,
-    #  "Requirement '$B' is also specified as '$A'."
-    #  )
-
-    #  # Implicit redundant implies.
-    #  struct Zrm <: Blueprint{Value} end
-    #  @xcompfails(
-    #  (@component Zrm implies(A(), B())),
-    #  Zrm,
-    #  "Implied blueprint '$B' is also specified as '$A'."
-    #  )
-
-    #  struct Vxp <: Blueprint{Value} end
-    #  @xcompfails(
-    #  (@component Vxp implies(B(), A())),
-    #  Vxp,
-    #  "Implied blueprint '$B' is also specified as '$A'."
-    #  )
-
-    #  struct Ixh <: Blueprint{Value} end
-    #  B(::Ixh) = B()
-    #  @xcompfails(
-    #  (@component Ixh implies(A(), B)),
-    #  Ixh,
-    #  "Implied blueprint '$B' is also specified as '$A'."
-    #  )
-
-    #  struct Jxi <: Blueprint{Value} end
-    #  A(::Jxi) = B()
-    #  @xcompfails(
-    #  (@component Jxi implies(B(), A)),
-    #  Jxi,
-    #  "Implied blueprint '$B' is also specified as '$A'."
-    #  )
-
-    #  # Implicit redundant brings.
-    #  struct Ssn <: Blueprint{Value}
-    #  b1::B
-    #  b2::B
-    #  end
-    #  @xcompfails((@component Ssn), Ssn, "Both fields :b1 and :b2 bring component '$B'.")
-
-    #  struct Qhg <: Blueprint{Value}
-    #  a::A
-    #  b::B
-    #  end
-    #  @xcompfails(
-    #  (@component Qhg),
-    #  Qhg,
-    #  "Fields :b and :a: brought component '$B' is also specified as '$A'."
-    #  )
-
-    #  # Implicit cross-section redundancy.
-    #  struct Jto <: Blueprint{Value} end
-    #  @xcompfails(
-    #  (@component Jto requires(A) implies(B())),
-    #  Jto,
-    #  "Component is both a requirement (as '$A') and implied: '$B'."
-    #  )
-
-    #  struct Evt <: Blueprint{Value} end
-    #  @xcompfails(
-    #  (@component Evt requires(B) implies(A())),
-    #  Evt,
-    #  "Component is both a requirement (as '$B') and implied: '$A'."
-    #  )
-
-    #  struct Qii <: Blueprint{Value} end
-    #  B(::Qii) = B()
-    #  @xcompfails(
-    #  (@component Qii requires(A) implies(B)),
-    #  Qii,
-    #  "Component is both a requirement (as '$A') and implied: '$B'."
-    #  )
-
-    #  struct Ymy <: Blueprint{Value} end
-    #  A(::Ymy) = B()
-    #  @xcompfails(
-    #  (@component Ymy requires(B) implies(A)),
-    #  Ymy,
-    #  "Component is both a requirement (as '$B') and implied: '$A'."
-    #  )
-
-    #  struct Web <: Blueprint{Value}
-    #  b::B
-    #  end
-    #  @xcompfails(
-    #  (@component Web requires(A)),
-    #  Web,
-    #  "Component is both a requirement (as '$A') and brought: '$B'."
-    #  )
-
-    #  struct Spn <: Blueprint{Value}
-    #  a::A
-    #  end
-    #  @xcompfails(
-    #  (@component Spn implies(B())),
-    #  Spn,
-    #  "Component is both implied (as '$B') and brought: '$A'."
-    #  )
+    # Expanding from an abstract component.
+    struct Som_b <: Blueprint{Value} end
+    @blueprint Som_b
+    F.expands_from(::Som_b) = A
+    @component Som{Value} blueprints(b::Som_b)
+    @test isempty(F.requires(Som)) # The component requires nothing..
+    # .. but expansion of this blueprint does.
+    @sysfails(S(Som.b()), Add(MissingRequiredComponent, nothing, A, [Som.b], nothing))
+    # Any concrete component A enables expansion.
+    s = S(B.b(), Som.b())
+    @test comps(s) == [B, Som]
+    @test has_component(s, A) # Same B but as an abstract A.
 
 end
 end
