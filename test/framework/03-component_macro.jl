@@ -238,8 +238,9 @@ end
     @xcompfails(
         (@component Uvv{Value} blueprints(b::(4 + 5))),
         :Uvv,
-        "Blueprint: expression does not evaluate to a DataType: :(4 + 5), \
-         but to a Int64: 9.",
+        "Blueprint: expression does not evaluate to a 'DataType':\n\
+         Expression: :(4 + 5)\n\
+         Result: 9 ::$Int",
     )
 
     @xcompfails(

@@ -5,9 +5,6 @@
 #
 #   f(v::Value, ...) = <invoker code>
 #
-# If no explicit receiver is found,
-# then first argument is assumed to be the receiver provided it is untyped or `::Any`.
-#
 # Then, the macro invokation goes like:
 #
 #   @method f depends(components...) read_as(names...) # or write_as(names...)
@@ -96,7 +93,7 @@ function method_macro(__module__, __source__, input...)
     # unless there is another programmatic way to add a method to a function in Julia?
     xp = input[1]
     fn_xp, ValueType_xp = nothing, nothing # (hepl JuliaLS)
-    @capture(xp, fn_xp_{ValueTypeXp_} | fn_xp_)
+    @capture(xp, fn_xp_{ValueType_xp_} | fn_xp_)
     fn_xp isa Symbol ||
         fn_xp isa Expr && fn_xp.head == :. ||
         perr("Not a method identifier or path: $(repr(fn_xp)).")
@@ -105,7 +102,7 @@ function method_macro(__module__, __source__, input...)
         tovalue(ValueType_xp, "System value type", Type)
     push_res!(quote
 
-        ValueType = $ValueType_xp # Explicit or uninferred.
+        ValueType = $ValueType_xp # Explicit or inferred.
         fn = $(tovalue(fn_xp, "System method", Function))
 
     end)
@@ -135,11 +132,11 @@ function method_macro(__module__, __source__, input...)
                             ValueType = system_value_type(C)
                         else
                             if !(C <: Component{ValueType})
-                                actual_V = system_value_type(C)
+                                C_V = system_value_type(C)
                                 xerr("Depends section: system value type
                                       is supposed to be '$ValueType' \
                                       based on the first macro argument, \
-                                      but '$C' subtypes '$(Component{actual_V})' \
+                                      but '$C' subtypes '$(Component{C_V})' \
                                       and not '$(Component{ValueType})'.")
                             end
                         end
@@ -161,11 +158,11 @@ function method_macro(__module__, __source__, input...)
             if Base.isidentifier(kw)
                 if !(kw in (read_kw, write_kw))
                     perr("Invalid section keyword: $(repr(kw)). \
-                          Expected `$read_kw` or `$write_kw` or `depends`.")
+                          Expected :$read_kw or :$write_kw or :depends.")
                 end
                 if !isnothing(proptype)
-                    proptype == kw && perr("The `$kw` section is specified twice.")
-                    perr("Cannot specify both `$proptype` section and `$kw`.")
+                    proptype == kw && perr("The :$kw section is specified twice.")
+                    perr("Cannot specify both :$proptype section and :$kw.")
                 end
                 for pname in propnames
                     pname isa Symbol ||
@@ -179,7 +176,7 @@ function method_macro(__module__, __source__, input...)
 
         perr("Unexpected @method section. \
               Expected `depends(..)`, `$read_kw(..)` or `$write_kw(..)`. \
-              Got: $(repr(i)).")
+              Got instead: $(repr(i)).")
 
     end
 
@@ -191,7 +188,7 @@ function method_macro(__module__, __source__, input...)
         push_res!(
             quote
                 isnothing(ValueType) && xerr("The system value type cannot be inferred \
-                                              when no dependencies are given.
+                                              when no dependencies are given.\n\
                                               Consider making it explicit \
                                               with the first macro argument: \
                                               `$fn{MyValueType}`.")
@@ -224,8 +221,14 @@ function method_macro(__module__, __source__, input...)
                 values = Set()
                 system_values = Set()
                 systems_only = Set()
-                for (p, n) in zip(parms, names)
+                for (i, (p, n)) in enumerate(zip(parms, names))
                     p isa Core.TypeofVararg && continue
+                    if n == Symbol("#unused#")
+                        # May become used in the generated method
+                        # if it turns out to be a receiver: needs a name to refer to.
+                        n = Symbol('#', i)
+                        names[i] = n
+                    end
                     p <: ValueType && push!(values, n)
                     p <: System{ValueType} && push!(system_values, n)
                     p === System && push!(systems_only, n)
@@ -234,15 +237,11 @@ function method_macro(__module__, __source__, input...)
                     (what, set, type) ->
                         xerr("Receiving several (possibly different) $what \
                               is not yet supported by the framework. \
-                              Here both :$(pop!(set)) and :$(pop!(set)) \
+                              Here both parameters :$(pop!(set)) and :$(pop!(set)) \
                               are of type $type.")
-                length(values) > 1 && xerr("system/values parameters", values, ValueType)
-                receiver = if isempty(values)
-                    parms[1] === Any || continue
-                    names[1]
-                else
-                    pop!(values)
-                end
+                length(values) > 1 && severr("system/values parameters", values, ValueType)
+                isempty(values) && continue
+                receiver = pop!(values)
                 sv = system_values
                 length(sv) > 1 && severr("system hooks", sv, System{ValueType})
                 hook = if isempty(system_values)
@@ -259,8 +258,7 @@ function method_macro(__module__, __source__, input...)
             isempty(to_wrap) &&
                 xerr("No suitable method has been found to mark $fn as a system method. \
                       Valid methods must have at least \
-                      one 'receiver' argument of type ::$ValueType \
-                      or a first ::Any argument to be implicitly considered as such.")
+                      one 'receiver' argument of type ::$ValueType.")
         end,
     )
 
@@ -294,7 +292,7 @@ function method_macro(__module__, __source__, input...)
             try
                 which(fn, Tuple{ValueType})
             catch
-                xerr("The function '$fn' cannot be called \
+                xerr("The function cannot be called \
                       with exactly 1 argument of type '$ValueType' \
                       as required to be set as a 'read' property.")
             end
@@ -302,26 +300,24 @@ function method_macro(__module__, __source__, input...)
     end
 
     if kw == write_kw
-        push_res!(
-            quote
-                # The assessment is trickier here
-                # since there may be a constraint on the second argument,
-                # although there is no restriction which constraint,
-                # so which(fn, Tuple{ValueType,Any}) would incorrectly fail.
-                # The best I've found then is to scroll all methods
-                # until we find a match for the desired signature.
-                # Maybe there is a better way to do this in julia?
-                match = any(Iterators.map(methods(fn)) do m
-                    parms = m.sig.parameters
-                    length(parms) == 3 && ValueType <: parms[2]
-                end)
-                if !match
-                    xerr("The function '$fn' cannot be called with exactly 2 arguments, \
-                          the first one being of type '$ValueType', \
-                          as required to be set as a 'write' property.")
-                end
-            end,
-        )
+        push_res!(quote
+            # The assessment is trickier here
+            # since there may be a constraint on the second argument,
+            # although there is no restriction which constraint,
+            # so which(fn, Tuple{ValueType,Any}) would incorrectly fail.
+            # The best I've found then is to scroll all methods
+            # until we find a match for the desired signature.
+            # Maybe there is a better way to do this in julia?
+            match = any(Iterators.map(methods(fn)) do m
+                parms = m.sig.parameters
+                length(parms) == 3 && ValueType <: parms[2]
+            end)
+            if !match
+                xerr("The function cannot be called with exactly 2 arguments, \
+                      the first one being of type '$ValueType', \
+                      as required to be set as a 'write' property.")
+            end
+        end)
     end
 
     # Check properties availability.
@@ -331,7 +327,7 @@ function method_macro(__module__, __source__, input...)
             quote
                 for psymbol in $[propsymbols...]
                     has_read_property(ValueType, Val(psymbol)) &&
-                        xerr("The property $psymbol is already defined \
+                        xerr("The property :$psymbol is already defined \
                               for $($System){$ValueType}.")
                 end
             end
@@ -339,11 +335,11 @@ function method_macro(__module__, __source__, input...)
             quote
                 for psymbol in $[propsymbols...]
                     has_read_property(ValueType, Val(psymbol)) ||
-                        xerr("The property $psymbol cannot be marked 'write' \
+                        xerr("The property :$psymbol cannot be marked 'write' \
                               without having first been marked 'read' \
                               for $($System){$ValueType}.")
                     has_write_property(ValueType, Val(psymbol)) &&
-                        xerr("The property $psymbol is already marked 'write' \
+                        xerr("The property :$psymbol is already marked 'write' \
                               for $($System){$ValueType}.")
                 end
             end
@@ -379,7 +375,7 @@ function method_macro(__module__, __source__, input...)
                         #  when the macro is called within @testset blocks
                         #  with LOCAL_MACROCALLS = true:
                         #  https://stackoverflow.com/a/55292662/3719101)
-                        $dep = missing_dependency_for($($efn), $receiver)
+                        $dep = first_missing_dependency_for($($efn), $receiver)
                         if !isnothing($dep)
                             $a = isabstracttype($dep) ? " a" : ""
                             throw(
@@ -433,9 +429,11 @@ function method_macro(__module__, __source__, input...)
     end
 
     # Record as specified to avoid it being recorded again.
-    push_res!(quote
-        Framework.specified_as_method(::Type{ValueType}, ::typeof(fn)) = true
-    end)
+    push_res!(
+        quote
+            Framework.specified_as_method(::Type{ValueType}, ::Type{typeof(fn)}) = true
+        end,
+    )
 
     # Avoid confusing/leaky return type from macro invocation.
     push_res!(quote

@@ -90,15 +90,17 @@ end
     @xbluefails(
         (@blueprint Zmw_b),
         nothing,
-        "Blueprint type: expression does not evaluate to a DataType: :Zmw_b, \
-         but to a $Int: 5."
+        "Blueprint type: expression does not evaluate to a 'DataType':\n\
+         Expression: :Zmw_b\n\
+         Result: 5 ::$Int"
     )
 
     @xbluefails(
         (@blueprint 4 + 5),
         nothing,
-        "Blueprint type: expression does not evaluate to a DataType: :(4 + 5), \
-         but to a $Int: 9.",
+        "Blueprint type: expression does not evaluate to a 'DataType':\n\
+         Expression: :(4 + 5)\n\
+         Result: 9 ::$Int"
     )
 
     @xbluefails(

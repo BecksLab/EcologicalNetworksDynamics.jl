@@ -72,7 +72,7 @@ function Base.getproperty(system::System{V}, p::Symbol) where {V}
     # Search property method.
     fn = read_property(V, Val(p))
     # Check for required components availability.
-    miss = missing_dependency_for(fn, system)
+    miss = first_missing_dependency_for(fn, system)
     if !isnothing(miss)
         comp = isabstracttype(miss) ? "A component $miss" : "Component $miss"
         properr(V, p, "$comp is required to read this property.")
@@ -87,7 +87,7 @@ function Base.setproperty!(system::System{V}, p::Symbol, rhs) where {V}
     # Search property method.
     fn = readwrite_property(V, Val(p))
     # Check for required components availability.
-    miss = missing_dependency_for(fn, system)
+    miss = first_missing_dependency_for(fn, system)
     if !isnothing(miss)
         comp = isabstracttype(miss) ? "A component $miss" : "Component $miss"
         properr(V, p, "$comp is required to write to this property.")
@@ -166,7 +166,7 @@ export properties
 # Yields (:propname, read, Option{write})
 function properties(s::System{V}) where {V}
     imap(ifilter(properties(V)) do (_, read, _, _)
-        isnothing(missing_dependency_for(read, s))
+        isnothing(first_missing_dependency_for(read, s))
     end) do (name, read, write, _)
         (name, read, write)
     end
@@ -177,7 +177,7 @@ end
 # Yields (:propname, read, Option{write}, iterator{missing_dependencies...})
 function latent_properties(s::System{V}) where {V}
     imap(ifilter(properties(V)) do (_, read, _, _)
-        !isnothing(missing_dependency_for(read, s))
+        !isnothing(first_missing_dependency_for(read, s))
     end) do (name, read, write, deps)
         (name, read, write, ifilter(d -> !has_component(s, d), deps))
     end

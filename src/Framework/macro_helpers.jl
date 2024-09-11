@@ -67,8 +67,9 @@ function to_value(mod, expression, context, error_out, type = nothing)
         ev = quote
             val = $ev
             val isa $type || $error_out(
-                "$($context): expression does not evaluate to a $($type): \
-                 $($(repr(expression))), but to a $(typeof(val)): $val.",
+                "$($context): expression does not evaluate to a '$($type)':\n\
+                 Expression: $($(repr(expression)))\n\
+                 Result: $val ::$(typeof(val))",
             )
             val
         end

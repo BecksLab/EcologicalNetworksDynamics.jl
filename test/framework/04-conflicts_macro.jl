@@ -24,7 +24,7 @@ for letter in 'A':'Z'
     end)
 end
 
-@testset "Invalid @conflicts macro invocations." begin
+@testset "Declaring components @conflicts." begin
 
     #---------------------------------------------------------------------------------------
     # Provide enough data for the declaration to be meaningful.
@@ -158,8 +158,9 @@ end
 
     @xconffails(
         (@conflicts(E, F => (E => 4 + 5))),
-        "Reason message: expression does not evaluate to a String: :(4 + 5), \
-         but to a Int64: 9."
+        "Reason message: expression does not evaluate to a 'String':\n\
+         Expression: :(4 + 5)\n\
+         Result: 9 ::$Int"
     )
 
     @xconffails(
@@ -195,8 +196,9 @@ end
     # Same, but with a list of reasons.
     @xconffails(
         (@conflicts(E, F, G => (F => "ok", E => 4 + 5))),
-        "Reason message: expression does not evaluate to a String: :(4 + 5), \
-         but to a Int64: 9."
+        "Reason message: expression does not evaluate to a 'String':\n\
+         Expression: :(4 + 5)\n\
+         Result: 9 ::$Int"
     )
 
     @xconffails(
@@ -275,7 +277,7 @@ using Test
 const S = System{Value}
 comps(s) = collect(components(s))
 
-@testset "Abstract component types conflicts." begin
+@testset "Abstract component conflicts semantics." begin
 
     # Component type hierachy.
     #

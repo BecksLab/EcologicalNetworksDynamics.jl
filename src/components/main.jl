@@ -61,6 +61,54 @@
 # to each of its fields.
 include("./args_to_fields.jl")
 
+# HERE: Now that the framework has been refactored,
+# change all the following components with the following design:
+## Components are identified by nodes in a type hierarchy,
+## and exposed as singleton instances of concrete types in this hierarchy.
+## A component may not be a plain marker types,
+## and its fields may contain blueprint types for various blueprint providing it.
+##
+##    abstract type Component end
+##
+##    struct _Omega <: Component
+##       Raw::Type{Blueprint}
+##       Random::Type{Blueprint}
+##       Allometry::Type{Blueprint}
+##       Temperature::Type{Blueprint}
+##    end
+##
+##    module OmegaBlueprints
+##       # /!\ many redundant imports to factorize here.
+##       struct Raw <: Blueprint ... end
+##       struct Random <: Blueprint ... end
+##       ...
+##    end
+##
+##    const Omega = _Omega(
+##       OmegaBlueprints.Raw,
+##       OmegaBlueprints.Random,
+##       ...
+##    )
+##    export Omega
+##
+##    function (C::_Omega)(args...; kwargs...)
+##       if ..
+##           C.Raw(...)
+##       elseif ...
+##           C.Random(...)
+##       else ...
+##       end
+##    end
+##
+##    # Use as a blueprint constructor, but also as a blueprint namespace.
+##    Omega(...)
+##    Omega.Random(...)
+##    Omega.Raw(...)
+##
+## Components require each other or conflict with each other.
+## Blueprints bring each other.
+## Blueprints are trees of sub-blueprints and must be treated as such.
+
 # Central in the model nodes.
 include("./species.jl")
 

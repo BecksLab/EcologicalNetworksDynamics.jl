@@ -17,7 +17,7 @@
 #   - method!(v::Value, rhs)
 #
 # .. can optionally become properties of the system/value,
-# in the sense of julia's `getproperty/set_property`.
+# in the sense of julia's `getproperty/set_property!`.
 #
 # The properties also come in two styles:
 #
@@ -33,7 +33,7 @@ missing_dependencies_for(fn::Type{<:Function}, s::System{V}) where {V} =
         !has_component(s, dep)
     end
 # Just pick the first one. Return nothing if dependencies are met.
-function missing_dependency_for(fn::Type{<:Function}, s::System)
+function first_missing_dependency_for(fn::Type{<:Function}, s::System)
     for dep in missing_dependencies_for(fn, s)
         return dep
     end
@@ -43,7 +43,8 @@ end
 # Direct call with the functions themselves.
 depends(::Type{V}, fn::Function) where {V} = depends(V, typeof(fn))
 missing_dependencies_for(fn::Function, s::System) = missing_dependencies_for(typeof(fn), s)
-missing_dependency_for(fn::Function, s::System) = missing_dependency_for(typeof(fn), s)
+first_missing_dependency_for(fn::Function, s::System) =
+    first_missing_dependency_for(typeof(fn), s)
 
 # Map wrapped system value and property name to the corresponding function.
 read_property(V::Type, ::Val{name}) where {name} =
@@ -137,6 +138,6 @@ struct PropertyError{V} <: SystemException
     PropertyError(::Type{V}, s, m) where {V} = new{V}(s, m, PhantomData{V}())
 end
 function Base.showerror(io::IO, e::PropertyError{V}) where {V}
-    println(io, "In property '$(e.name)' of '$V': $(e.message)")
+    println(io, "In property :$(e.name) of '$V': $(e.message)")
 end
 properr(V, n, m) = throw(PropertyError(V, n, m))

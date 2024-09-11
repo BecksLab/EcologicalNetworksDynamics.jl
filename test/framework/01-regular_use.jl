@@ -40,7 +40,7 @@ F.expand!(v, nl::NLines) = (v._n = nl.n)
 @component Size{Value} blueprints(N::NLines)
 export NLines, Size, _Size
 
-get_n(v) = v._n
+get_n(v::Value) = v._n
 @method get_n depends(Size) read_as(n)
 
 #-------------------------------------------------------------------------------------------
@@ -80,7 +80,7 @@ end # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     requires(Size)
     blueprints(Uniform::ABlueprints.Uniform, Raw::ABlueprints.Raw)
 end
-get_a(v) = v._dict[:a]
+get_a(v::Value) = v._dict[:a]
 @method get_a depends(A) read_as(a)
 
 #-------------------------------------------------------------------------------------------
@@ -123,11 +123,11 @@ end # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     requires(Size, A)
     blueprints(Uniform::BBlueprints.Uniform, Raw::BBlueprints.Raw)
 end
-get_b(v) = v._dict[:b]
+get_b(v::Value) = v._dict[:b]
 @method get_b depends(B) read_as(b)
 
 # One method that uses both components.
-get_sum(v) = v.a .+ v.b
+get_sum(v::Value) = v.a .+ v.b
 @method get_sum depends(A, B) read_as(sum)
 
 #-------------------------------------------------------------------------------------------
@@ -177,7 +177,7 @@ end
 end
 
 # Read property with aliases.
-get_reflection(v) = v._dict[:reflection]
+get_reflection(v::Value) = v._dict[:reflection]
 @method get_reflection depends(Reflection) read_as(reflection, ref)
 
 # One writeable property.

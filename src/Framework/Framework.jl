@@ -80,68 +80,21 @@
 # This *may* make it useless to ever feature component removal.
 module Framework
 
-# TODO: Improve ergonomics:
+# HERE: Improve ergonomics:
 #   - [x] Flesh early documentation.
 #   - [x] Encourage moving sophisticated function definitions outside macro calls
 #     to ease burden on `Revise`.
 #   - [x] blueprints *optionnaly* bring other blueprints.
-#   - [!] Components are not blueprint types, but an autonomous hierachy of singleton types.
-#   - [.] "*blueprints* imply/bring *blueprints*", not "components imply/bring components"
-#   - [.] Blueprints 'history' become meaningless if methods can mutate the internal state.
-#   - [.] Recurring pattern: various blueprints types provide 'the same component': reify.
+#   - [x] Components are not blueprint types, but an autonomous hierachy of singleton types.
+#   - [x] "*blueprints* imply/bring *blueprints*", not "components imply/bring components"
+#   - [x] Blueprints 'history' become meaningless if methods can mutate the internal state.
+#   - [x] Recurring pattern: various blueprints types provide 'the same component': reify.
 #   - [ ] `depends(other_method_name)` to inherit all dependent components.
 #   - [ ] Namespace properties into like system.namespace.namespace.property.
 #   - [ ] Hooks need to trigger when special components combination become available.
 #         See for instance the expansion of `Nutrients.Nodes`
 #         which should trigger the creation of links if there is already `Species`.. or vice
 #         versa.
-
-## HERE: Refactoring design.
-## Components are identified by nodes in a type hierarchy,
-## and exposed as singleton instances of concrete types in this hierarchy.
-## A component may not be a plain marker types,
-## and its fields may contain blueprint types for various blueprint providing it.
-##
-##    abstract type Component end
-##
-##    struct _Omega <: Component
-##       Raw::Type{Blueprint}
-##       Random::Type{Blueprint}
-##       Allometry::Type{Blueprint}
-##       Temperature::Type{Blueprint}
-##    end
-##
-##    module OmegaBlueprints
-##       # /!\ many redundant imports to factorize here.
-##       struct Raw <: Blueprint ... end
-##       struct Random <: Blueprint ... end
-##       ...
-##    end
-##
-##    const Omega = _Omega(
-##       OmegaBlueprints.Raw,
-##       OmegaBlueprints.Random,
-##       ...
-##    )
-##    export Omega
-##
-##    function (C::_Omega)(args...; kwargs...)
-##       if ..
-##           C.Raw(...)
-##       elseif ...
-##           C.Random(...)
-##       else ...
-##       end
-##    end
-##
-##    # Use as a blueprint constructor, but also as a blueprint namespace.
-##    Omega(...)
-##    Omega.Random(...)
-##    Omega.Raw(...)
-##
-## Components require each other or conflict with each other.
-## Blueprints bring each other.
-## Blueprints are trees of sub-blueprints and must be treated as such.
 
 using Crayons
 using MacroTools
