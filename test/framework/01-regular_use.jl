@@ -204,15 +204,15 @@ end
     @test s.n == 3
 
     # Forbid unexistent properties.
-    @sysfails(s.x, Property(x), "Unknown property.")
+    @sysfails(s.x, Property(x, "Unknown property."))
     # Forbid existent properties without appropriate component.
-    @sysfails(s.b, Property(b), "Component $_B is required to read this property.")
+    @sysfails(s.b, Property(b, "Component $_B is required to read this property."))
     # Same with methods.
     @test_throws UndefVarError get_x(s)
-    @sysfails(get_b(s), Method(get_b), "Requires component $_B.")
+    @sysfails(get_b(s), Method(get_b, "Requires component $_B."))
 
     # Forbid write.
-    @sysfails((s.n = 4), Property(n), "This property is read-only.")
+    @sysfails((s.n = 4), Property(n, "This property is read-only."))
 
     # Cannot add component twice.
     @sysfails(add!(s, NLines(5)), Add(BroughtAlreadyInValue, Size, [NLines]))
@@ -405,8 +405,8 @@ end
     # Check that the original system is always empty.
     function test_empty(i)
         @test isempty(collect(components(i)))
-        @sysfails(get_a(i), Method(get_a), "Requires component $_A.")
-        @sysfails(i.a, Property(a), "Component $_A is required to read this property.")
+        @sysfails(get_a(i), Method(get_a, "Requires component $_A."))
+        @sysfails(i.a, Property(a, "Component $_A is required to read this property."))
     end
     test_empty(init)
 

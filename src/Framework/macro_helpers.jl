@@ -152,9 +152,9 @@ end
 
 
 # Check whether the expression is a `raw.identifier.path`.
-# If so, then we assume it produces no side effect
+# (If so, then we assume it produces no side effect
 # so it is okay to have it evaluated multiple times
-# within the generated code.
+# within the generated code.)
 function is_identifier_path(xp)
     xp isa Symbol && return true
     if xp isa Expr
@@ -165,6 +165,25 @@ function is_identifier_path(xp)
     else
         false
     end
+end
+
+# Collect path the 'forward' way: :(a.b.c.d) -> [:a, :b, :c, :d].
+# (assuming it has been checked by the above function)
+function collect_path(path; res = [])
+    if path isa Symbol
+        push!(res, path)
+    else
+        prefix, last = path.args
+        collect_path(prefix; res)
+        collect_path(last.value; res)
+    end
+    res
+end
+
+# Again, assuming the expression has been checked for being a path.
+function last_in_path(path)
+    path isa Symbol && return path
+    path.args[2].value
 end
 
 # Append path to a module,

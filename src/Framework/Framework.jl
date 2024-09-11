@@ -90,7 +90,7 @@ module Framework
 #   - [x] Blueprints 'history' become meaningless if methods can mutate the internal state.
 #   - [x] Recurring pattern: various blueprints types provide 'the same component': reify.
 #   - [x] `depends(other_method_name)` to inherit all dependent components.
-#   - [ ] Namespace properties into like system.namespace.namespace.property.
+#   - [x] Namespace properties into like system.namespace.namespace.property.
 #   - [ ] Hooks need to trigger when special components combination become available.
 #         See for instance the expansion of `Nutrients.Nodes`
 #         which should trigger the creation of links if there is already `Species`.. or vice
@@ -133,6 +133,7 @@ include("./system.jl") #  <- Defines the 'System' type used in the next files..
 include("./component.jl") # <- But better start reading from this file.
 include("./blueprints.jl")
 include("./methods.jl")
+include("./properties.jl")
 include("./add.jl")
 include("./plus_operator.jl")
 

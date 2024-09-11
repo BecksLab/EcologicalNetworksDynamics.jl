@@ -51,7 +51,9 @@ struct System{V}
 end
 export System
 
-valuetype(::System{V}) where {V} = V
+system_value_type(::Type{System{V}}) where {V} = V
+system_value_type(::System{V}) where {V} = V
+value(s::System) = getfield(s, :_value) # Bypass properties checks.
 
 #-------------------------------------------------------------------------------------------
 # Fork the system, recursively copying the wrapped value and every component.
@@ -60,58 +62,6 @@ function Base.copy(s::System{V}) where {V}
     concrete = copy(s._concrete)
     abstracts = Dict(A => Set(concretes) for (A, concretes) in s._abstract)
     System{V}(RawConstruct, value, concrete, abstracts)
-end
-
-#-------------------------------------------------------------------------------------------
-# The system fields are considered private, and the wrapped value in particular,
-# but they can be accessed via a set of properties enabled by the components/methods.
-
-function Base.getproperty(system::System{V}, p::Symbol) where {V}
-    # Authorize direct accesses to private fields.
-    p in fieldnames(System) && return getfield(system, p)
-    # Search property method.
-    fn = read_property(V, Val(p))
-    # Check for required components availability.
-    miss = first_missing_dependency_for(fn, system)
-    if !isnothing(miss)
-        comp = isabstracttype(miss) ? "A component $miss" : "Component $miss"
-        properr(V, p, "$comp is required to read this property.")
-    end
-    # Forward to method.
-    fn(system)
-end
-
-function Base.setproperty!(system::System{V}, p::Symbol, rhs) where {V}
-    # Authorize direct accesses to private fields.
-    p in fieldnames(System) && return setfield!(system, p, rhs)
-    # Search property method.
-    fn = readwrite_property(V, Val(p))
-    # Check for required components availability.
-    miss = first_missing_dependency_for(fn, system)
-    if !isnothing(miss)
-        comp = isabstracttype(miss) ? "A component $miss" : "Component $miss"
-        properr(V, p, "$comp is required to write to this property.")
-    end
-    # Invoke property method.
-    fn(system, rhs)
-end
-
-# In case the framework user agrees,
-# also forward the properties to the wrapped value.
-# Note that this happens without checking dependent components,
-# and that the `; _system` hook cannot be provided then in this context.
-# Still, a lot of things *are* checked, so this 'unchecked' does *not* mean 'performant'.
-function unchecked_getproperty(value::V, p::Symbol) where {V}
-    p in fieldnames(V) && return getfield(value, p)
-    fn = read_property(V, Val(p))
-    fn(value)
-end
-
-function unchecked_setproperty!(value::V, p::Symbol, rhs) where {V}
-    perr(mess) = properr(V, p, mess)
-    p in fieldnames(V) && return setfield!(value, p, rhs)
-    fn = readwrite_property(V, Val(p))
-    fn(value, rhs)
 end
 
 #-------------------------------------------------------------------------------------------
@@ -138,54 +88,6 @@ has_component(s::System{V}, C::Type{<:Component{V}}) where {V} = !isempty(compon
 has_component(s::System{V}, c::Component{V}) where {V} = has_component(s, typeof(c))
 has_concrete_component(s::System{V}, c::Component{V}) where {V} = typeof(c) in s._concrete
 export has_component, has_concrete_component
-
-# List all properties and associated functions for this type.
-# Yields (property_name, fn_read, Option{fn_write}, iterator{dependencies...}).
-function properties(::Type{V}) where {V}
-    imap(
-        ifilter(methods(read_property, Tuple{Type{V},Val}, Framework)) do mth
-            mth.sig isa UnionAll && return false # Only consider concrete implementations.
-            val = mth.sig.types[end]
-            val <: Val ||
-                throw("Unexpected method signature for $read_property: $(mth.sig)")
-            val !== Val # Omit generic implementation.
-        end,
-    ) do mth
-        val = mth.sig.types[end]
-        name = first(val.parameters)
-        read_fn = read_property(V, Val(name))
-        write_fn = possible_write_property(V, Val(name))
-        (name, read_fn, write_fn, imap(identity, depends(V, read_fn)))
-    end
-end
-# Also feature for system type directly.
-properties(::Type{System{V}}) where {V} = properties(V)
-export properties
-
-# List properties available for *this* particular instance.
-# Yields (:propname, read, Option{write})
-function properties(s::System{V}) where {V}
-    imap(ifilter(properties(V)) do (_, read, _, _)
-        isnothing(first_missing_dependency_for(read, s))
-    end) do (name, read, write, _)
-        (name, read, write)
-    end
-end
-
-# List *unavailable* properties for this instance
-# along with the components missing to support them.
-# Yields (:propname, read, Option{write}, iterator{missing_dependencies...})
-function latent_properties(s::System{V}) where {V}
-    imap(ifilter(properties(V)) do (_, read, _, _)
-        !isnothing(first_missing_dependency_for(read, s))
-    end) do (name, read, write, deps)
-        (name, read, write, ifilter(d -> !has_component(s, d), deps))
-    end
-end
-export latent_properties
-
-# Consistency + REPL completion.
-Base.propertynames(s::System) = imap(first, properties(s))
 
 #-------------------------------------------------------------------------------------------
 

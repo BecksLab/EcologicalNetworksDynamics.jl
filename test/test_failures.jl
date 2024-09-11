@@ -97,7 +97,7 @@ function _check_exception(exception_pattern, e)
 end
 
 # Common exception checker: only the type (like @test_throws).
-function _check_unwrapped_exception(ExceptionType::DataType, e)
+function _check_unwrapped_exception(ExceptionType::Type, e)
     e isa ExceptionType || error("Expected error type:\n  $ExceptionType\n\
                                   got instead:\n  $(typeof(e))")
 end
@@ -114,7 +114,7 @@ end
 
 # To check more than the type, provide args under the form ExceptionType => (args,..)
 # and implementation for what they mean to the type.
-function _check_unwrapped_exception(pair::Pair{DataType,T}, e) where {T<:Tuple}
+function _check_unwrapped_exception(pair::Pair, e)
     ExceptionType, args = pair
     _check_unwrapped_exception(ExceptionType, e) # Type is checked anyway.
     check_exception(e, args...)
@@ -128,9 +128,10 @@ function _check_unwrapped_exception(thrown, actual)
 end
 
 # Open end for user extension.
-check_exception(e::Exception, args...) =
-    error("Unimplemented exception checking: $(typeof(e)) => $args ::$(typeof(args)). \
+function check_exception(e::Exception, args...)
+    error("Unimplemented exception checking:\n  $(typeof(e)) => $args ::$(typeof(args))\n\
            Received exception $e.")
+end
 
 #-------------------------------------------------------------------------------------------
 # Module-dedicated error.

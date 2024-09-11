@@ -116,9 +116,9 @@ function method_macro(__module__, __source__, input...)
     # Next come other optional specifications in any order.
     deps_xp = nothing # Evaluates to [components...]
     proptype = nothing
-    propsymbols = []
+    prop_paths = []
     read_kw, write_kw = (:read_as, :write_as)
-    kw = nothing
+    prop_kw = nothing
 
     for i in input[2:end]
 
@@ -182,24 +182,24 @@ function method_macro(__module__, __source__, input...)
         end
 
         # Property section: specify whether the code can be accessed as a property.
-        kw, propnames = nothing, nothing # (help JuliaLS)
-        @capture(i, kw_(propnames__))
-        if !isnothing(kw)
-            if Base.isidentifier(kw)
-                if !(kw in (read_kw, write_kw))
-                    perr("Invalid section keyword: $(repr(kw)). \
+        prop_kw, paths = nothing, nothing # (help JuliaLS)
+        @capture(i, prop_kw_(paths__))
+        if !isnothing(prop_kw)
+            if Base.isidentifier(prop_kw)
+                if !(prop_kw in (read_kw, write_kw))
+                    perr("Invalid section keyword: $(repr(prop_kw)). \
                           Expected :$read_kw or :$write_kw or :depends.")
                 end
                 if !isnothing(proptype)
-                    proptype == kw && perr("The :$kw section is specified twice.")
-                    perr("Cannot specify both :$proptype section and :$kw.")
+                    proptype == prop_kw && perr("The :$prop_kw section is specified twice.")
+                    perr("Cannot specify both :$proptype section and :$prop_kw.")
                 end
-                for pname in propnames
-                    pname isa Symbol ||
-                        perr("Property name is not a simple identifier: $(repr(pname)).")
+                for path in paths
+                    is_identifier_path(path) || perr("Property name is not a simple \
+                                                       identifier path: $(repr(path)).")
                 end
-                propsymbols = Meta.quot.(propnames)
-                proptype = kw
+                prop_paths = paths
+                proptype = prop_kw
                 continue
             end
         end
@@ -226,16 +226,39 @@ function method_macro(__module__, __source__, input...)
         )
     end
 
+    # Collect the dependencies now as it enables inferring the system value type.
     push_res!(quote
-        # Collect the dependencies now as it enables inferring the system value type.
         raw_deps = $deps_xp
+    end)
+
+    # Split paths into (path, target, property_name)
+    push_res!(quote
+        prop_paths = map($[prop_paths...]) do path
+            P = super(property_space_type(path, ValueType))
+            last = last_in_path(path)
+            (path, P, last)
+        end
     end)
 
     # Scroll existing methods to find the ones to wrap
     # with methods receiving 'System' values as parameters.
     push_res!(
         quote
+            # Collect information regarding every method to wrap: [(
+            #   method: to be wrapped in a new checked method receiving `System`,
+            #   types: list of positional parameters types,
+            #   names: list of positional parameters names,
+            #   receiver: the receiver parameter name,
+            #   targets: receiver parameter types in the generated wrapper methods
+            #            (either `System` or `PropertySpace`s,
+            #             there may be several if invoker has specified
+            #             several property paths)
+            #   hook: the receiver parameter name,
+            # )]
             to_wrap = []
+            can_be_read_property = [false] # (wrap scalar to access from within the loop..
+            can_be_write_property = [false] # .. without triggering global variable warnings)
+            all_targets = OrderedSet() # Gather all possible target receivers.
             for mth in methods(fn)
 
                 # Retrieve fixed-parameters types for the method.
@@ -259,7 +282,11 @@ function method_macro(__module__, __source__, input...)
                         n = Symbol('#', i)
                         names[i] = n
                     end
-                    p <: ValueType && push!(values, n)
+                    if p <: ValueType
+                        push!(values, n)
+                    elseif p <: PropertySpace
+                        system_value_type(p) === ValueType && push!(values, n)
+                    end
                     p <: System{ValueType} && push!(system_values, n)
                     p === System && push!(systems_only, n)
                 end
@@ -282,8 +309,40 @@ function method_macro(__module__, __source__, input...)
                     pop!(system_values)
                 end
 
+                n_parms_for_user = length(parms) - !isnothing(hook)
+                targets = $(
+                    if isnothing(prop_kw)
+                        quote
+                            [System{ValueType}]
+                        end
+                    else
+                        quote
+                            maybe_propspaces = if n_parms_for_user == 1
+                                can_be_read_property[1] = true
+                            elseif n_parms_for_user == 2 && (
+                                parms[1] <: ValueType ||
+                                hook == first(names) && parms[2] <: ValueType
+                            )
+                                can_be_write_property[1] = true
+                            else
+                                false
+                            end
+                            if maybe_propspaces && !isempty(prop_paths)
+                                OrderedSet(map(prop_paths) do (path, P, pname)
+                                    P
+                                end) # (avoid duplicate methods defs for properties aliases)
+                            else
+                                [System{ValueType}]
+                            end
+                        end
+                    end
+                )
+                for P in targets
+                    push!(all_targets, P)
+                end
+
                 # Record for wrapping.
-                push!(to_wrap, (mth, parms, names, receiver, hook))
+                push!(to_wrap, (mth, parms, names, receiver, targets, hook))
             end
             isempty(to_wrap) &&
                 xerr("No suitable method has been found to mark $fn as a system method. \
@@ -311,7 +370,7 @@ function method_macro(__module__, __source__, input...)
 
         for rdep in raw_deps
             subdeps = if dep isa Function
-                depends(ValueType, typeof(rdep))
+                depends(System{ValueType}, typeof(rdep))
             else
                 [rdep]
             end
@@ -337,60 +396,48 @@ function method_macro(__module__, __source__, input...)
         end
     end)
 
-    if kw == read_kw
-        push_res!(quote
-            try
-                which(fn, Tuple{ValueType})
-            catch
-                xerr("The function cannot be called \
-                      with exactly 1 argument of type '$ValueType' \
-                      as required to be set as a 'read' property.")
-            end
-        end)
+    if prop_kw == read_kw
+        push_res!(
+            quote
+                can_be_read_property[1] ||
+                    xerr("The function cannot be called with exactly \
+                          1 argument of type '$ValueType' \
+                          as required to be set as a 'read' property.")
+            end,
+        )
     end
 
-    if kw == write_kw
-        push_res!(quote
-            # The assessment is trickier here
-            # since there may be a constraint on the second argument,
-            # although there is no restriction which constraint,
-            # so which(fn, Tuple{ValueType,Any}) would incorrectly fail.
-            # The best I've found then is to scroll all methods
-            # until we find a match for the desired signature.
-            # Maybe there is a better way to do this in julia?
-            match = any(Iterators.map(methods(fn)) do m
-                parms = m.sig.parameters
-                length(parms) == 3 && ValueType <: parms[2]
-            end)
-            if !match
-                xerr("The function cannot be called with exactly 2 arguments, \
-                      the first one being of type '$ValueType', \
-                      as required to be set as a 'write' property.")
-            end
-        end)
+    if prop_kw == write_kw
+        push_res!(
+            quote
+                can_be_write_property[1] ||
+                    xerr("The function cannot be called with exactly 2 arguments, \
+                          the first one being of type '$ValueType', \
+                          as required to be set as a 'write' property.")
+            end,
+        )
     end
 
     # Check properties availability.
-    propsymbols = map(s -> first(s.args), propsymbols)
     push_res!(
-        if kw == read_kw
+        if prop_kw == read_kw
             quote
-                for psymbol in $[propsymbols...]
-                    has_read_property(ValueType, Val(psymbol)) &&
-                        xerr("The property :$psymbol is already defined \
-                              for systems of '$ValueType'.")
+                for (path, P, pname) in prop_paths
+                    has_read_property(P, Val(pname)) && xerr(
+                        "The property $(repr(path)) is already defined for target '$P'.",
+                    )
                 end
             end
         else
             quote
-                for psymbol in $[propsymbols...]
-                    has_read_property(ValueType, Val(psymbol)) ||
-                        xerr("The property :$psymbol cannot be marked 'write' \
+                for (path, P, pname) in prop_paths
+                    has_read_property(P, Val(pname)) ||
+                        xerr("The property $(repr(path)) cannot be marked 'write' \
                               without having first been marked 'read' \
-                              for systems of '$ValueType'.")
-                    has_write_property(ValueType, Val(psymbol)) &&
-                        xerr("The property :$psymbol is already marked 'write' \
-                              for systems of '$ValueType'.")
+                              for target '$P'.")
+                    has_write_property(P, Val(pname)) &&
+                        xerr("The property $(repr(path)) is already marked 'write' \
+                              for target '$P'.")
                 end
             end
         end,
@@ -406,7 +453,9 @@ function method_macro(__module__, __source__, input...)
 
     # Generate dependencies method.
     push_res!(quote
-        Framework.depends(::Type{ValueType}, ::Type{typeof(fn)}) = deps
+        for P in all_targets
+            Framework.depends(::Type{P}, ::Type{typeof(fn)}) = deps
+        end
     end)
 
     # Wrap the detected methods within checked methods receiving 'System' values.
@@ -414,55 +463,57 @@ function method_macro(__module__, __source__, input...)
     fn_path = Meta.quot(Meta.quot(fn_xp))
     push_res!(
         quote
-            for (mth, parms, pnames, receiver, hook) in to_wrap
-                # Start from dummy (; kwargs...) signature/forward call..
-                # (hygienic temporary variables, generated for the target module)
-                local dep, a = Core.eval($__module__, :(gensym.([:dep, :a])))
-                xp = quote
-                    function (::typeof($($efn)))(; kwargs...)
-                        #    ^^^^^^^^^^-------^^
-                        # (useful to get it working
-                        #  when the macro is called within @testset blocks
-                        #  with LOCAL_MACROCALLS = true:
-                        #  https://stackoverflow.com/a/55292662/3719101)
-                        $dep = first_missing_dependency_for($($efn), $receiver)
-                        if !isnothing($dep)
-                            $a = isabstracttype($dep) ? " a" : ""
-                            throw(
-                                MethodError(
-                                    $ValueType,
-                                    $($fn_path),
-                                    "Requires$($a) component $($dep).",
-                                ),
-                            )
+            for (mth, parms, pnames, receiver, targets, hook) in to_wrap
+                for P in targets
+                    # Start from dummy (; kwargs...) signature/forward call..
+                    # (hygienic temporary variables, generated for the target module)
+                    local dep, a = Core.eval($__module__, :(gensym.([:dep, :a])))
+                    xp = quote
+                        function (::typeof($($efn)))(; kwargs...)
+                            #    ^^^^^^^^^^-------^^
+                            # (useful to get it working
+                            #  when the macro is called within @testset blocks
+                            #  with LOCAL_MACROCALLS = true:
+                            #  https://stackoverflow.com/a/55292662/3719101)
+                            $dep = first_missing_dependency_for($($efn), $receiver)
+                            if !isnothing($dep)
+                                $a = isabstracttype($dep) ? " a" : ""
+                                throw(
+                                    MethodError(
+                                        $ValueType,
+                                        $($fn_path),
+                                        "Requires$($a) component $($dep).",
+                                    ),
+                                )
+                            end
+                            $($efn)(; kwargs...)
                         end
-                        $($efn)(; kwargs...)
                     end
-                end
-                # .. then fill them up from the collected names/parameters.
-                parms_xp = xp.args[2].args[1].args #  (fetch the `(; kwargs)` in signature)
-                args_xp = xp.args[2].args[2].args[end].args # (fetch the same in the call)
-                for (name, type) in zip(pnames, parms)
-                    parm, arg = if type isa Core.TypeofVararg
-                        # Forward variadics as-is.
-                        (:($name::$(type.T)...), :($name...))
-                    else
-                        if name == receiver
-                            # Dispatch signature on the system to transmit the inner value
-                            # to the call.
-                            (:($name::System{$ValueType}), :($name._value))
-                        elseif name == hook
-                            # Don't receive at all, but transmit from the receiver.
-                            (nothing, receiver)
+                    # .. then fill them up from the collected names/parameters.
+                    parms_xp = xp.args[2].args[1].args #  (the `(; kwargs)` in signature)
+                    args_xp = xp.args[2].args[2].args[end].args # (the same in the call)
+                    for (name, type) in zip(pnames, parms)
+                        parm, arg = if type isa Core.TypeofVararg
+                            # Forward variadics as-is.
+                            (:($name::$(type.T)...), :($name...))
                         else
-                            # All other arguments are forwarded as-is.
-                            (:($name::$type), name)
+                            if name == receiver
+                                # Dispatch signature on the target
+                                # to transmit the inner value to the call.
+                                (:($name::$P), :(value($name)))
+                            elseif name == hook
+                                # Don't receive at all, but transmit from the receiver.
+                                (nothing, :(system($receiver)))
+                            else
+                                # All other arguments are forwarded as-is.
+                                (:($name::$type), name)
+                            end
                         end
+                        isnothing(parm) || push!(parms_xp, parm)
+                        push!(args_xp, arg)
                     end
-                    isnothing(parm) || push!(parms_xp, parm)
-                    push!(args_xp, arg)
+                    eval(xp)
                 end
-                eval(xp)
             end
         end,
     )
@@ -472,8 +523,8 @@ function method_macro(__module__, __source__, input...)
     if !isnothing(proptype)
         set = (proptype == read_kw) ? :set_read_property! : :set_write_property!
         push_res!(quote
-            for psymbol in $[propsymbols...]
-                $set(ValueType, psymbol, fn)
+            for (_, P, pname) in prop_paths
+                $set(P, pname, fn)
             end
         end)
     end
