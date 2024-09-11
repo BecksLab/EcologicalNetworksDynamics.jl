@@ -151,51 +151,6 @@ using Test
     )
 
     #---------------------------------------------------------------------------------------
-
-    # Guard against double specifications.
-    Framework.REVISING = false
-    yqp(v::Value) = v.m
-    @method yqp depends(Unf) read_as(yqp)
-    @xmethfails(
-        (@method yqp depends(Unf)),
-        yqp,
-        "Function '$yqp' already marked as a method for '$System{$Value}'."
-    )
-    Framework.REVISING = true
-
-    # Disallow write-only properties.
-    tlc(v::Value, rhs) = (v.m = rhs)
-    @xmethfails(
-        (@method tlc depends(Unf) write_as(tlc)),
-        tlc,
-        "The property :tlc cannot be marked 'write' \
-         without having first been marked 'read' for $System{$Value}.",
-    )
-
-    # Guard against properties overrides.
-    # (read)
-    fhh(v::Value) = v.m
-    @xmethfails(
-        (@method fhh depends(Unf) read_as(yqp)),
-        fhh,
-        "The property :yqp is already defined for $System{$Value}."
-    )
-
-    # (write)
-    phs(v::Value) = v.m
-    cll(v::Value) = v.m
-    phs!(v::Value, rhs) = (v.m = rhs)
-    cll!(v::Value, rhs) = (v.m = rhs)
-    @method phs depends(Unf) read_as(phs)
-    @method phs! depends(Unf) write_as(phs)
-    @method cll depends(Unf) read_as(cll)
-    @xmethfails(
-        (@method cll! depends(Unf) write_as(phs)),
-        cll!,
-        "The property :phs is already marked 'write' for $System{$Value}.",
-    )
-
-    #---------------------------------------------------------------------------------------
     # Basic input checks.
 
     # Macro input evaluation.
@@ -267,11 +222,11 @@ using Test
     #---------------------------------------------------------------------------------------
     # Depends section.
 
+    # Inconsistent system values.
     struct Rle_b <: Blueprint{Int} end
     @blueprint Rle_b
     @component Rle{Int} blueprints(b::Rle_b)
     hjc(v::Value) = v.m
-
     @xmethfails(
         (@method hjc depends(Unf, Rle)),
         hjc,
@@ -280,6 +235,55 @@ using Test
          Expression: :Rle\n\
          Result: Rle ::<Rle>",
     )
+
+    @xmethfails(
+        (@method hjc{Int} depends(Unf)),
+        hjc,
+        "Depends section: system value type is supposed to be '$Int' \
+         based on the first macro argument, \
+         but $_Unf subtypes '<Component{$Value}>' and not '<Component{$Int}>'.",
+    )
+
+    # Dependency not recorded as a method.
+    dbm(v::Int) = v
+    @xmethfails(
+        (@method hjc depends(dbm)),
+        hjc,
+        "First dependency: the function specified as a dependency \
+         has not been recorded as a system method:\n\
+         Expression: :dbm\n\
+         Result: dbm ::$(typeof(dbm))"
+    )
+
+    # Dependency not recorded as a method for this system value.
+    exu(v::Int) = v
+    @method exu{Int}
+    @xmethfails(
+        (@method hjc{Value} depends(exu)),
+        hjc,
+        "Depends section: system value type is supposed to be '$Value' \
+         based on the first macro argument, \
+         but '$exu' has not been recorded as a system method for this type."
+    )
+
+    # Ambiguous dependency.
+    luu(i::Int) = i
+    luu(v::Value) = v.m
+    @method luu{Int}
+    @method luu{Value} depends(Unf)
+    txc(v::Value) = v.m + 1
+    @xmethfails(
+        (@method txc depends(luu)),
+        txc,
+        "First dependency: the function specified has been recorded \
+         as a method for [$Int, $Value]. \
+         It is ambiguous which one the focal method is being defined for."
+    )
+
+    # Disambiguate.
+    @method txc{Value} depends(luu)
+    @test txc(s) == 8 + 1
+    @sysfails(txc(e), Method(txc), "Requires component <Unf>.") # Correctly inherited.
 
     #---------------------------------------------------------------------------------------
     # Properties.
@@ -304,6 +308,40 @@ using Test
          as required to be set as a 'write' property.",
     )
 
+    # Disallow write-only properties.
+    tlc(v::Value, rhs) = (v.m = rhs)
+    @xmethfails(
+        (@method tlc depends(Unf) write_as(tlc)),
+        tlc,
+        "The property :tlc cannot be marked 'write' \
+         without having first been marked 'read' for systems of '$Value'.",
+    )
+
+    # Guard against properties overrides.
+    # (read)
+    vnq(v::Value) = v.m
+    @method vnq depends(Unf) read_as(vnq)
+    fhh(v::Value) = v.m
+    @xmethfails(
+        (@method fhh depends(Unf) read_as(vnq)),
+        fhh,
+        "The property :vnq is already defined for systems of '$Value'."
+    )
+
+    # (write)
+    phs(v::Value) = v.m
+    cll(v::Value) = v.m
+    phs!(v::Value, rhs) = (v.m = rhs)
+    cll!(v::Value, rhs) = (v.m = rhs)
+    @method phs depends(Unf) read_as(phs)
+    @method phs! depends(Unf) write_as(phs)
+    @method cll depends(Unf) read_as(cll)
+    @xmethfails(
+        (@method cll! depends(Unf) write_as(phs)),
+        cll!,
+        "The property :phs is already marked 'write' for systems of '$Value'.",
+    )
+
     #---------------------------------------------------------------------------------------
     # Guard against redundant sections.
 
@@ -326,6 +364,17 @@ using Test
         (@method S.redundant write_as(A) read_as(B)),
         "Cannot specify both :write_as section and :read_as.",
     )
+
+    # Guard against double specifications.
+    Framework.REVISING = false
+    yqp(v::Value) = v.m
+    @method yqp depends(Unf) read_as(yqp)
+    @xmethfails(
+        (@method yqp depends(Unf)),
+        yqp,
+        "Function '$yqp' already marked as a method for systems of '$Value'."
+    )
+    Framework.REVISING = true
 
 end
 end
@@ -379,6 +428,18 @@ using Test
     @test s.prop == 1
     s.prop = 5
     @test s.prop == 5
+
+    # Inheriting redundant dependencies from various methods is ok.
+    tai(v::Value) = v.m
+    trt(v::Value) = v.m
+    rrk(v::Value) = v.m
+    dgw(v::Value) = v.m
+    @method tai depends(B) # Concrete.
+    @method trt depends(A) # Abstract.
+    @method rrk depends(tai, trt)
+    @method dgw depends(trt, tai) # Order does not matter.
+    @test collect(Framework.depends(Value, rrk)) == [A] # Only.
+    @test collect(Framework.depends(Value, dgw)) == [A] # Only.
 
 end
 end

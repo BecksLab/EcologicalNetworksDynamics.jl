@@ -124,7 +124,7 @@ end
     @xbluefails(
         (@blueprint Eap),
         Eap,
-        "Type '$Eap' already marked as a blueprint for '$System{$Value}'."
+        "Type '$Eap' already marked as a blueprint for systems of '$Value'."
     )
 
 end

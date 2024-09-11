@@ -96,11 +96,17 @@ xpres(xp, v) = "\nExpression: $(repr(xp))\nResult: $v ::$(typeof(v))"
 
 # Same for a component type, but a singleton *instance* can be given instead.
 function to_component(mod, xp, value_type_var, ctx, xerr)
-    qxp = Meta.quot(xp)
     quote
         C = $(to_value(mod, xp, ctx, xerr, Any))
-        # A particular system value type is already expected: check it against input.
-        Sup = Component{$value_type_var}
+        $(check_component_type_or_instance(xp, :C, value_type_var, ctx, xerr))
+    end
+end
+# Factorize away for reuse within `to_dependency` in @method macro.
+function check_component_type_or_instance(xp, C::Symbol, V::Symbol, ctx, xerr)
+    qxp = Meta.quot(xp)
+    quote
+        C = $C
+        Sup = Component{$V}
         if C isa Type
             if !(C <: Sup)
                 but = C <: Component ? ", but '$(Component{system_value_type(C)})'" : ""
@@ -113,7 +119,7 @@ function to_component(mod, xp, value_type_var, ctx, xerr)
             if !(c isa Sup)
                 but = c isa Component ? ", but for '$(system_value_type(c))'" : ""
                 $xerr("$($ctx): expression does not evaluate \
-                       to a component for '$($value_type_var)'$but:$(xpres($qxp, c))")
+                       to a component for '$($V)'$but:$(xpres($qxp, c))")
             end
             typeof(c)
         end
@@ -122,10 +128,15 @@ end
 
 # Same, but without checking against a prior expectation for the system value type.
 function to_component(mod, xp, ctx, xerr)
-    qxp = Meta.quot(xp)
     quote
         C = $(to_value(mod, xp, ctx, xerr, Any))
-        # Don't check the system value type, but infer it.
+        $(check_component_type_or_instance(xp, :C, ctx, xerr))
+    end
+end
+function check_component_type_or_instance(xp, C::Symbol, ctx, xerr)
+    qxp = Meta.quot(xp)
+    quote
+        C = $C
         if C isa Type
             C <: Component || $xerr("$($ctx): expression does not evaluate \
                                      to a subtype of $Component:$(xpres($qxp, C))")

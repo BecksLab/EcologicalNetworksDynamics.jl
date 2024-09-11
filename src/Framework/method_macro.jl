@@ -38,6 +38,12 @@
 #
 #   f(v::System{ValueType}, a, b) = f(v._value, a, b, v) # (generated)
 #
+# Two types of items can be listed in the 'depends' section:
+#  - Component: means that the generated methods
+#    will guard against use with system missing it.
+#  - Another method: means that the generated methods
+#    will guard against use with systems failing to meet requirements for this other method.
+
 macro method(input...)
     method_macro(__module__, __source__, input...)
 end
@@ -63,8 +69,8 @@ function method_macro(__module__, __source__, input...)
 
     # Convenience wrap.
     tovalue(xp, ctx, type) = to_value(__module__, xp, ctx, :xerr, type)
-    tocomp_novaluetype(xp, ctx) = to_component(__module__, xp, ctx, :xerr)
-    tocomp(xp, ctx) = to_component(__module__, xp, :ValueType, ctx, :xerr)
+    todep_infer(xp, ctx) = to_dependency(__module__, xp, ctx, :xerr)
+    todep(xp, ctx) = to_dependency(__module__, xp, :ValueType, ctx, :xerr)
 
     #---------------------------------------------------------------------------------------
     # Parse macro input,
@@ -124,27 +130,51 @@ function method_macro(__module__, __source__, input...)
             deps_xp = :([])
             first = true
             for dep in list
-                if first
+                xp = if first
+                    first = false
                     # Infer the value type from the first dep if possible.
-                    xp = quote
-                        C = $(tocomp_novaluetype(dep, "First dependency"))
+                    quote
+                        dep = $(todep_infer(dep, "First dependency"))
                         if isnothing(ValueType)
-                            ValueType = system_value_type(C)
+                            # Need to infer.
+                            ValueType = if dep isa Function
+                                vals = method_for_values(typeof(dep))
+                                length(vals) == 1 || xerr(
+                                    "First dependency: the function specified \
+                                     has been recorded as a method for \
+                                     [$(join(vals, ", "))]. \
+                                     It is ambiguous which one the focal method \
+                                     is being defined for.",
+                                )
+                                first(vals)
+                            else
+                                C = dep # Then it must be a component.
+                                system_value_type(C)
+                            end
                         else
-                            if !(C <: Component{ValueType})
-                                C_V = system_value_type(C)
-                                xerr("Depends section: system value type
-                                      is supposed to be '$ValueType' \
-                                      based on the first macro argument, \
-                                      but '$C' subtypes '$(Component{C_V})' \
-                                      and not '$(Component{ValueType})'.")
+                            if dep isa Function
+                                specified_as_method(ValueType, typeof(dep)) ||
+                                    xerr("Depends section: system value type \
+                                          is supposed to be '$ValueType' \
+                                          based on the first macro argument, \
+                                          but '$dep' has not been recorded \
+                                          as a system method for this type.")
+                            else
+                                C = dep
+                                if !(C <: Component{ValueType})
+                                    C_V = system_value_type(C)
+                                    xerr("Depends section: system value type \
+                                          is supposed to be '$ValueType' \
+                                          based on the first macro argument, \
+                                          but $C subtypes '$(Component{C_V})' \
+                                          and not '$(Component{ValueType})'.")
+                                end
                             end
                         end
-                        C
+                        dep
                     end
-                    first = false
                 else
-                    xp = tocomp(dep, "Depends section")
+                    todep(dep, "Depends section")
                 end
                 push!(deps_xp.args, xp)
             end
@@ -262,30 +292,50 @@ function method_macro(__module__, __source__, input...)
         end,
     )
 
-    # Check that consistent 'depends' component types have been specified.
     push_res!(
         quote
-            deps = OrderedSet{CompType{ValueType}}()
-
             # Now that we have a guarantee that 'ValueType' has been completely inferred,
             # use it to guard against redundant method specifications.
             (specified_as_method(ValueType, typeof(fn)) && !REVISING) &&
                 xerr("Function '$fn' already marked as a method \
-                      for '$(System{ValueType})'.")
-
-            for Dep in raw_deps
-                for Already in deps
-                    vertical_guard(
-                        Dep,
-                        Already,
-                        () -> xerr("Dependency '$Dep' is specified twice."),
-                        (Sub, Sup) -> xerr("Dependency $Sub is also specified as $Sup."),
-                    )
-                end
-                push!(deps, Dep)
-            end
+                      for systems of '$ValueType'.")
         end,
     )
+
+    # Check that consistent 'depends' component types have been specified.
+    push_res!(quote
+        # Expand method dependencies into the corresponding components.
+        # Redundancy (including vertical ones)
+        # are allowed in this context.
+        deps = OrderedSet{CompType{ValueType}}()
+
+        for rdep in raw_deps
+            subdeps = if dep isa Function
+                depends(ValueType, typeof(rdep))
+            else
+                [rdep]
+            end
+            for newdep in subdeps
+                # Don't add to dependencies if an abstract supercomponent
+                # is already listed, and remove dependencies
+                # as more abstract supercomponents are found.
+                has_sup = false
+                for already in deps
+                    if newdep <: already
+                        has_sup = true
+                        break
+                    end
+                    if already <: newdep
+                        pop!(deps, already)
+                        break
+                    end
+                end
+                if !has_sup
+                    push!(deps, newdep)
+                end
+            end
+        end
+    end)
 
     if kw == read_kw
         push_res!(quote
@@ -328,7 +378,7 @@ function method_macro(__module__, __source__, input...)
                 for psymbol in $[propsymbols...]
                     has_read_property(ValueType, Val(psymbol)) &&
                         xerr("The property :$psymbol is already defined \
-                              for $($System){$ValueType}.")
+                              for systems of '$ValueType'.")
                 end
             end
         else
@@ -337,10 +387,10 @@ function method_macro(__module__, __source__, input...)
                     has_read_property(ValueType, Val(psymbol)) ||
                         xerr("The property :$psymbol cannot be marked 'write' \
                               without having first been marked 'read' \
-                              for $($System){$ValueType}.")
+                              for systems of '$ValueType'.")
                     has_write_property(ValueType, Val(psymbol)) &&
                         xerr("The property :$psymbol is already marked 'write' \
-                              for $($System){$ValueType}.")
+                              for systems of '$ValueType'.")
                 end
             end
         end,
@@ -432,6 +482,12 @@ function method_macro(__module__, __source__, input...)
     push_res!(
         quote
             Framework.specified_as_method(::Type{ValueType}, ::Type{typeof(fn)}) = true
+            vals = method_for_values(typeof(fn))
+            if isempty(vals)
+                # Specialize for this freshly created value.
+                Framework.method_for_values(::Type{typeof(fn)}) = vals
+            end
+            push!(vals, ValueType) # Append the new one in any case.
         end,
     )
 
@@ -443,5 +499,42 @@ function method_macro(__module__, __source__, input...)
     res
 end
 
-# Check whether the function has already been specified as a @method.
+# Check whether the function has already been specified as a @method
+# for this system value type.
 specified_as_method(::Type, ::Type{<:Function}) = false
+# Reverse-map.
+method_for_values(::Type{<:Function}) = DataType[]
+
+# Check for either a component or an alternate method.
+function to_dependency(mod, xp, V, ctx, xerr)
+    qxp = Meta.quot(xp)
+    quote
+        dep = $(to_value(mod, xp, ctx, xerr, Any))
+        if dep isa Function
+            specified_as_method($V, typeof(dep)) || $xerr(
+                "$($ctx): the function specified as a dependency \
+                 has not been recorded as a system method for '$V':$(xpres($qxp, dep))",
+            )
+            dep
+        else
+            $(check_component_type_or_instance(xp, :dep, V, ctx, xerr))
+        end
+    end
+end
+
+# Version without an expected value type.
+function to_dependency(mod, xp, ctx, xerr)
+    qxp = Meta.quot(xp)
+    quote
+        dep = $(to_value(mod, xp, ctx, xerr, Any))
+        if dep isa Function
+            vals = method_for_values(typeof(dep))
+            isempty(vals) &&
+                $xerr("$($ctx): the function specified as a dependency has not \
+                       been recorded as a system method:$(xpres($qxp, dep))")
+            dep
+        else
+            $(check_component_type_or_instance(xp, :dep, ctx, xerr))
+        end
+    end
+end

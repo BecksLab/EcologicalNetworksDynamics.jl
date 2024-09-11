@@ -89,7 +89,7 @@ module Framework
 #   - [x] "*blueprints* imply/bring *blueprints*", not "components imply/bring components"
 #   - [x] Blueprints 'history' become meaningless if methods can mutate the internal state.
 #   - [x] Recurring pattern: various blueprints types provide 'the same component': reify.
-#   - [ ] `depends(other_method_name)` to inherit all dependent components.
+#   - [x] `depends(other_method_name)` to inherit all dependent components.
 #   - [ ] Namespace properties into like system.namespace.namespace.property.
 #   - [ ] Hooks need to trigger when special components combination become available.
 #         See for instance the expansion of `Nutrients.Nodes`

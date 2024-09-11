@@ -115,7 +115,7 @@ function blueprint_macro(__module__, __source__, input...)
             ValueType = system_value_type(NewBlueprint)
             specified_as_blueprint(NewBlueprint) &&
                 xerr("Type '$NewBlueprint' already marked \
-                      as a blueprint for '$(System{ValueType})'.")
+                      as a blueprint for systems of '$ValueType'.")
             serr(mess) = syserr(ValueType, mess)
         end,
     )
