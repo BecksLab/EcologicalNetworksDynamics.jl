@@ -5,7 +5,7 @@
 # and associated late_check/expand!/etc. methods the way they wish,
 # and then calls:
 #
-#   @blueprint Name
+#   @blueprint Name "short string answering 'expandable from'"
 #
 # to record their type as a blueprint.
 #
@@ -94,14 +94,14 @@ function blueprint_macro(__module__, __source__, input...)
     end
 
     li = length(input)
-    if li == 0 || li > 1
+    if li == 0 || li > 2
         perr(
             "$(li == 0 ? "Not enough" : "Too much") macro input provided. Example usage:\n\
-             | @blueprint Name\n",
+             | @blueprint Name \"short description\"\n",
         )
     end
 
-    # The first (and only) section needs to be a concrete blueprint type.
+    # The first section needs to be a concrete blueprint type.
     # Use it to extract the associated underlying expected system value type,
     # checked for consistency against upcoming other (implicitly) specified blueprints.
     blueprint_xp = input[1]
@@ -120,7 +120,22 @@ function blueprint_macro(__module__, __source__, input...)
         end,
     )
 
-    # No more optional sections then.
+    # Extract possible short description line.
+    # TODO: test.
+    if length(input) > 1
+        shortline_xp = input[2]
+        push_res!(
+            quote
+                shortline = $(tovalue(shortline_xp, "Blueprint short description", String))
+            end,
+        )
+    else
+        push_res!(quote
+            shortline = nothing
+        end)
+    end
+
+    # No more sophisticated sections then.
     # Should they be needed once again, inspire from @component macro to restore them.
 
     # Check that consistent brought blueprints types have been specified.
@@ -292,6 +307,13 @@ function blueprint_macro(__module__, __source__, input...)
 
         end,
     )
+
+    # Record to avoid multiple calls to `@blueprint A`.
+    push_res!(quote
+        if !isnothing(shortline)
+            Framework.shortline(io, ::Type{NewBlueprint}) = print(io, shortline)
+        end
+    end)
 
     # Record to avoid multiple calls to `@blueprint A`.
     push_res!(quote

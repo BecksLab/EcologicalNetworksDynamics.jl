@@ -103,25 +103,6 @@ Base.:(==)(a::System{U}, b::System{V}) where {U,V} = U == V && equal_fields(a, b
 Base.:(==)(a::Blueprint{U}, b::Blueprint{V}) where {U,V} =
     U == V && typeof(a) == typeof(b) && equal_fields(a, b)
 
-#-------------------------------------------------------------------------------------------
-# Display.
-function Base.show(io::IO, sys::System)
-    n = length(sys._concrete)
-    print(io, "$(typeof(sys)) with $n component$(s(n)).")
-end
-
-function Base.show(io::IO, ::MIME"text/plain", sys::System)
-    n = length(sys._concrete)
-    S = typeof(sys)
-    rs = repr(MIME("text/plain"), S)
-    print(io, "$rs with $n component$(eol(n))")
-    for C in sys._concrete
-        print(io, "\n  - $C")
-    end
-end
-s(n) = (n > 1) ? "s" : ""
-eol(n) = s(n) * (n == 0 ? "." : ":")
-
 # ==========================================================================================
 # Dedicated exceptions.
 
@@ -136,3 +117,27 @@ function Base.showerror(io::IO, e::SystemError{V}) where {V}
 end
 
 syserr(V, m) = throw(SystemError(V, m))
+
+# ==========================================================================================
+# Display.
+function Base.show(io::IO, sys::System)
+    n = length(sys._concrete)
+    print(io, "$(typeof(sys)) with $n component$(s(n)).")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", sys::System)
+    n = length(sys._concrete)
+    S = typeof(sys)
+    rs = repr(MIME("text/plain"), S)
+    print(io, "$rs with $n component$(eol(n))")
+    for C in sys._concrete
+        print(io, "\n  - ")
+        shortline(io, sys, singleton_instance(C))
+    end
+end
+s(n) = (n > 1) ? "s" : ""
+eol(n) = s(n) * (n == 0 ? "." : ":")
+
+# For specialization by framework users.
+shortline(io::IO, ::System, C::CompType) = @invoke show(io, C::CompType)
+shortline(io::IO, s::System, c::Component) = shortline(io, s, component_type(c))

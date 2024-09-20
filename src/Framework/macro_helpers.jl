@@ -106,12 +106,17 @@ function check_component_type_or_instance(xp, C::Symbol, V::Symbol, ctx, xerr)
     qxp = Meta.quot(xp)
     quote
         C = $C
-        Sup = Component{$V}
+        V = $V
+        Sup = Component{V}
         if C isa Type
             if !(C <: Sup)
-                but = C <: Component ? ", but '$(Component{system_value_type(C)})'" : ""
+                comp = if C <: Component
+                    "'$Component{$V}', but of '$Component{$(system_value_type(C))}'"
+                else
+                    "'$Component'"
+                end
                 $xerr("$($ctx): expression does not evaluate \
-                       to a subtype of $Sup$but:$(xpres($qxp, C))")
+                       to a subtype of $comp:$(xpres($qxp, C))")
             end
             C
         else
@@ -119,7 +124,7 @@ function check_component_type_or_instance(xp, C::Symbol, V::Symbol, ctx, xerr)
             if !(c isa Sup)
                 but = c isa Component ? ", but for '$(system_value_type(c))'" : ""
                 $xerr("$($ctx): expression does not evaluate \
-                       to a component for '$($V)'$but:$(xpres($qxp, c))")
+                       to a component for '$V'$but:$(xpres($qxp, c))")
             end
             typeof(c)
         end

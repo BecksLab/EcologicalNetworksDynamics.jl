@@ -1,6 +1,17 @@
 # The main value, wrapped into a System, is what we hand out to user as "the model".
 
-const InnerParms = Internals.ModelParameters # <- TODO: rename when refactoring Internals.
+# Fine-grained namespace control.
+import .Framework
+const F = Framework # Convenience alias for the whole components library.
+import .F: add!, blueprints, components, has_component, @method, @component, System
+
+# Direct re-exports from the framework module.
+export add!, properties, blueprints, components, has_component
+
+const Internal = Internals.ModelParameters # <- TODO: rename when refactoring Internals.
+const Blueprint = F.Blueprint{Internal}
+const BlueprintSum = F.BlueprintSum{Internal}
+const Component = F.Component{Internal}
 
 """
 Model is the main object that we hand out to user
@@ -76,22 +87,12 @@ For instance, many parameters are derived from species body masses,
 therefore changing body masses would make the model inconsistent.
 However, terminal properties can be re-written, as the species metabolic rate.
 """
-const Model = System{InnerParms}
-
-const ModelBlueprint = Blueprint{InnerParms}
-const ModelBlueprintSum = Framework.BlueprintSum{InnerParms}
-const ModelComponent = Component{InnerParms}
+const Model = F.System{Internal}
 export Model
-export has_component
-
-# Short alias to make it easier to add methods as F.expand!(..)
-# rather than Framework.expand!(..).
-const F = Framework
 
 # Willing to make use of "properties" even for the wrapped value.
-Base.getproperty(v::InnerParms, p::Symbol) = Framework.unchecked_getproperty(v, p)
-Base.setproperty!(v::InnerParms, p::Symbol, rhs) =
-    Framework.unchecked_setproperty!(v, p, rhs)
+Base.getproperty(v::Internal, p::Symbol) = F.unchecked_getproperty(v, p)
+Base.setproperty!(v::Internal, p::Symbol, rhs) = F.unchecked_setproperty!(v, p, rhs)
 
 # Skip _-prefixed properties.
 function properties(s::Model)
@@ -103,67 +104,13 @@ function properties(s::Model)
     sort!(res)
     res
 end
+export properties
 
 # ==========================================================================================
 # Display.
-Base.show(io::IO, ::Type{InnerParms}) = print(io, "<inner parms>") # Shorten and opacify.
+Base.show(io::IO, ::Type{Internal}) = print(io, "<internals>") # Shorten and opacify.
 Base.show(io::IO, ::Type{Model}) = print(io, "Model")
 
-Base.show(io::IO, ::MIME"text/plain", I::Type{InnerParms}) = Base.show(io, I)
+Base.show(io::IO, ::MIME"text/plain", I::Type{Internal}) = Base.show(io, I)
 Base.show(io::IO, ::MIME"text/plain", ::Type{Model}) =
-    print(io, "Model $(crayon"dark_gray")(alias for $System{$InnerParms})$(crayon"reset")")
-
-# Useful to override in the case "different blueprints provide the same component"?
-function display_short(b::ModelBlueprint, C::Component = typeof(b))
-    res = "blueprint for $C("
-    res *= join(Iterators.map(fieldnames(typeof(b))) do name
-        value = getfield(b, name)
-        # Special-case types that would clutter output.
-        res = "$name: "
-        res *= if value isa AliasingDicts.AliasingDict
-            AliasingDicts.display_short(value)
-        elseif value isa Union{Map,Adjacency,BinMap,BinAdjacency}
-            t = if value isa Union{Map,BinMap}
-                "map"
-            else
-                "adjacency"
-            end
-            t * GraphDataInputs.display_short(value)
-        else
-            repr(value)
-        end
-    end, ", ")
-    res * ")"
-end
-
-function display_long(b::ModelBlueprint, c::Component = typeof(b); level = 0)
-    res = "blueprint for $c:"
-    level += 1
-    for name in fieldnames(typeof(b))
-        value = getfield(b, name)
-        res *= "\n" * repeat("  ", level) * "$name: "
-        # Special-case types that need proper indenting
-        if value isa AliasingDicts.AliasingDict
-            res *= AliasingDicts.display_long(value; level)
-        elseif value isa GraphDataInputs.UList
-            t = if value isa GraphDataInputs.UMap
-                "map"
-            else
-                "adjacency"
-            end
-            res *= t * GraphDataInputs.display_long(value; level)
-        elseif value isa ModelBlueprint
-            res *= display_long(value; level)
-        else
-            res *= repr(
-                MIME("text/plain"),
-                value;
-                context = IOContext(IOBuffer(), :color => true),
-            )
-        end
-    end
-    res
-end
-
-Base.show(io::IO, b::ModelBlueprint) = print(io, display_short(b))
-Base.show(io::IO, ::MIME"text/plain", b::ModelBlueprint) = print(io, display_long(b))
+    print(io, "Model $(crayon"dark_gray")(alias for $System{$Internal})$(crayon"reset")")

@@ -35,7 +35,7 @@
 
 module GraphViews
 
-import ..InnerParms
+import ..Internal
 
 using SparseArrays
 
@@ -84,8 +84,8 @@ export EdgesWriteView
 
 # Assuming the cache has already been updated,
 # update the rest of the wrapped _graph.
-write!(::InnerParms, ::Type{<:NodesWriteView}, rhs, i) = nothing
-write!(::InnerParms, ::Type{<:EdgesWriteView}, rhs, i, j) = nothing
+write!(::Internal, ::Type{<:NodesWriteView}, rhs, i) = nothing
+write!(::Internal, ::Type{<:EdgesWriteView}, rhs, i, j) = nothing
 
 # ==========================================================================================
 # Defer base implementation to the ._ref field.

@@ -345,9 +345,19 @@ end
         (@component Kpr{Value} requires(Int)),
         :Kpr,
         "Required component: expression does not evaluate \
-         to a subtype of <Component{$Value}>:\n\
+         to a subtype of '$Component':\n\
          Expression: :Int\n\
          Result: $Int ::DataType"
+    )
+
+    abstract type Ayz <: Component{Int} end
+    @xcompfails(
+        (@component Kpr{Value} requires(Ayz)),
+        :Kpr,
+        "Required component: expression does not evaluate \
+         to a subtype of '$Component{$Value}', but of '$Component{$Int}':\n\
+         Expression: :Ayz\n\
+         Result: $Ayz ::DataType"
     )
 
     @component Wdj{Int}
@@ -361,7 +371,7 @@ end
     )
 
     # Guard against redundancies.
-    abstract type Lpx <: Component{Value} end # (including vertical hierachy checks)
+    abstract type Lpx <: Component{Value} end # (including vertical hierarchy checks)
     @component Rhr <: Lpx
     @component Crq{Value}
 

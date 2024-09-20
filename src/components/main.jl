@@ -63,101 +63,97 @@ include("./args_to_fields.jl")
 
 # HERE: Now that the framework has been refactored,
 # change all the following components with the following design:
-## Components are identified by nodes in a type hierarchy,
-## and exposed as singleton instances of concrete types in this hierarchy.
-## A component may not be a plain marker types,
-## and its fields may contain blueprint types for various blueprint providing it.
-##
-##    abstract type Component end
-##
-##    struct _Omega <: Component
-##       Raw::Type{Blueprint}
-##       Random::Type{Blueprint}
-##       Allometry::Type{Blueprint}
-##       Temperature::Type{Blueprint}
-##    end
-##
-##    module OmegaBlueprints
-##       # /!\ many redundant imports to factorize here.
-##       struct Raw <: Blueprint ... end
-##       struct Random <: Blueprint ... end
-##       ...
-##    end
-##
-##    const Omega = _Omega(
-##       OmegaBlueprints.Raw,
-##       OmegaBlueprints.Random,
-##       ...
-##    )
-##    export Omega
-##
-##    function (C::_Omega)(args...; kwargs...)
-##       if ..
-##           C.Raw(...)
-##       elseif ...
-##           C.Random(...)
-##       else ...
-##       end
-##    end
-##
-##    # Use as a blueprint constructor, but also as a blueprint namespace.
-##    Omega(...)
-##    Omega.Random(...)
-##    Omega.Raw(...)
-##
-## Components require each other or conflict with each other.
-## Blueprints bring each other.
-## Blueprints are trees of sub-blueprints and must be treated as such.
+#
+#   module OmegaBlueprints
+#      # /!\ many redundant imports to factorize here.
+#      struct Raw <: Blueprint ... end
+#      struct Random <: Blueprint ... end
+#      @blueprint Raw
+#      @blueprint Random
+#      ...
+#   end
+#
+#   @component Omega blueprints(Raw::OmegaBlueprints.Raw, Random::OmegaBlueprints.Random, ..)
+#
+#   function (C::_Omega)(args...; kwargs...)
+#      if ..
+#          C.Raw(...)
+#      elseif ...
+#          C.Random(...)
+#      else ...
+#      end
+#   end
+#
+#   # Use as a blueprint constructor, but also as a blueprint namespace.
+#   Omega(...)
+#   Omega.Random(...)
+#   Omega.Raw(...)
+#
+
+# Factorize numerous imports
+# useful within the blueprint submodules.
+# TODO: craft some `@reexport` ?
+module BlueprintModule
+import EcologicalNetworksDynamics: Blueprint, Internals, Internal, F, Topologies
+import .F: checkfails, @blueprint
+export Blueprint, Internal, F, checkfails, Internals, Topologies, @blueprint
+end
+
+# Reassure JuliaLS: these are keywords for the macros.
+#  https://github.com/julia-vscode/StaticLint.jl/issues/381#issuecomment-2361743645
+if (false)
+    local graph, property, get, depends, nodes, ref_cache, E, V
+end
 
 # Central in the model nodes.
 include("./species.jl")
 
-# Trophic links, structuring the whole network.
-include("./foodweb.jl")
+#  # Trophic links, structuring the whole network.
+#  include("./foodweb.jl")
 
-# Biorates and other values parametring the ODE.
-include("./body_mass.jl")
-include("./metabolic_class.jl")
+#  # Biorates and other values parametring the ODE.
+#  include("./body_mass.jl")
+#  include("./metabolic_class.jl")
 
-# Useful temporary values to calculate other biorates.
-include("./temperature.jl")
+#  # Useful temporary values to calculate other biorates.
+#  include("./temperature.jl")
 
-include("./allometry.jl")
+#  include("./allometry.jl")
 
-# Models (with comments etc.)
-include("./hill_exponent.jl") # Example graph-level data.
-include("./growth_rate.jl") # Example nodes-level data.
-include("./efficiency.jl") # Example edges-level data.
+#  # Models (with comments etc.)
+#  include("./hill_exponent.jl") # Example graph-level data.
+#  include("./growth_rate.jl") # Example nodes-level data.
+#  include("./efficiency.jl") # Example edges-level data.
 
-# Replicated/adapted from the above.
-include("./carrying_capacity.jl")
-include("./mortality.jl")
-include("./metabolism.jl")
-include("./maximum_consumption.jl")
-include("./producers_competition.jl")
-include("./consumers_preferences.jl")
-include("./handling_time.jl")
-include("./attack_rate.jl")
-include("./half_saturation_density.jl")
-include("./intraspecific_interference.jl")
-include("./consumption_rate.jl")
+#  # Replicated/adapted from the above.
+#  include("./carrying_capacity.jl")
+#  include("./mortality.jl")
+#  include("./metabolism.jl")
+#  include("./maximum_consumption.jl")
+#  include("./producers_competition.jl")
+#  include("./consumers_preferences.jl")
+#  include("./handling_time.jl")
+#  include("./attack_rate.jl")
+#  include("./half_saturation_density.jl")
+#  include("./intraspecific_interference.jl")
+#  include("./consumption_rate.jl")
 
-# Namespace nutrients data.
-include("./nutrients/main.jl")
-export Nutrients
+#  # Namespace nutrients data.
+#  include("./nutrients/main.jl")
+#  export Nutrients
 
-include("./nontrophic_layers/main.jl")
-using .NontrophicInteractions
-export NontrophicInteractions
-export CompetitionLayer
-export FacilitationLayer
-export RefugeLayer
-export InterferenceLayer
+#  include("./nontrophic_layers/main.jl")
+#  using .NontrophicInteractions
+#  export NontrophicInteractions
+#  export CompetitionLayer
+#  export FacilitationLayer
+#  export RefugeLayer
+#  export InterferenceLayer
 
-# The above components mostly setup *data* within the model.
-# In the nex they mostly specify the *code* needed to simulate it.
-include("./producer_growth.jl")
-include("./functional_responses.jl")
-# Metabolism and Mortality are also code components,
-# but they are not reified yet and only reduce
-# to the single data component they each bring.
+#  # The above components mostly setup *data* within the model.
+#  # In the nex they mostly specify the *code* needed to simulate it.
+#  include("./producer_growth.jl")
+#  include("./functional_responses.jl")
+#  # Metabolism and Mortality are also code components,
+#  # but they are not reified yet and only reduce
+#  # to the single data component they each bring.

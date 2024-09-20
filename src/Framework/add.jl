@@ -516,8 +516,7 @@ end
 
 late_fail_warn(path) = "Not all blueprints have been expanded.\n\
                         The system consistency is still guaranteed, \
-                        but some components asked for \
-                        have not been added to it.\n\
+                        but some components have not been added.\n\
                         $path"
 
 function Base.showerror(io::IO, e::HookCheckFailure)

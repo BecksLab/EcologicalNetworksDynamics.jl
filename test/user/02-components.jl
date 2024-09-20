@@ -11,15 +11,14 @@ using OrderedCollections
 using Random
 using Test
 
-Value = EcologicalNetworksDynamics.InnerParms # To make @sysfails work.
-import ..Main: @viewfails, @sysfails, @argfails
+using ..TestUser
 
 const EN = EcologicalNetworksDynamics
 
 # Many small similar components tests files, although they easily diverge.
-only = [] # Only run these if specified.
-for subfolder in ["./data_components", "./code_components"]
-    if isempty(only)
+only = ["./data_components/species.jl"] # Only run these if specified.
+if isempty(only)
+    for subfolder in ["./data_components", "./code_components"]
         for (folder, _, files) in walkdir(joinpath(dirname(@__FILE__), subfolder))
             for file in files
                 path = joinpath(folder, file)
@@ -29,10 +28,10 @@ for subfolder in ["./data_components", "./code_components"]
                 include(path)
             end
         end
-    else
-        for file in only
-            include(joinpath(subfolder, file))
-        end
+    end
+else
+    for file in only
+        include(file)
     end
 end
 

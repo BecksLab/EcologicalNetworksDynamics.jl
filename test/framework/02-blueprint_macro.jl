@@ -70,13 +70,13 @@ end
     @pbluefails(
         (@blueprint),
         "Not enough macro input provided. Example usage:\n\
-         | @blueprint Name\n"
+         | @blueprint Name \"short description\"\n"
     )
 
     @pbluefails(
-        (@blueprint a b),
+        (@blueprint a b c),
         "Too much macro input provided. Example usage:\n\
-         | @blueprint Name\n"
+         | @blueprint Name \"short description\"\n"
     )
 
     @xbluefails(

@@ -15,12 +15,11 @@
     @test lab.([1, 2, 3]) == [:a, :b, :c]
 
     # Default names.
-    @test Species(3).names == [:s1, :s2, :s3]
+    @test Model(Species(3)).species_names == [:s1, :s2, :s3]
 
     @sysfails(
         Model(Species([:a, :b, :a])),
-        Check(Species),
-        "Species 1 and 3 are both named :a."
+        Check(late, [Species.Names], "Species 1 and 3 are both named :a."),
     )
 
     @argfails(
@@ -31,8 +30,7 @@
     # Cannot query without the component.
     @sysfails(
         Model().richness,
-        Property(richness),
-        "Component '$Species' is required to read this property."
+        Property(richness, "Component $(EN._Species) is required to read this property."),
     )
 
 end

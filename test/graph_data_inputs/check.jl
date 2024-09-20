@@ -21,12 +21,12 @@
     @failswith(
         (@check_symbol input (x, y, z)),
         BlueprintCheckFailure("Invalid symbol received for 'input': :a. \
-                             Expected either :x, :y or :z instead."),
+                               Expected either :x, :y or :z instead."),
     )
     @failswith(
         (@check_symbol input x),
         BlueprintCheckFailure("Invalid symbol received for 'input': :a. \
-                             Expected :x instead.")
+                               Expected :x instead.")
     )
 
     # Incorrect use.

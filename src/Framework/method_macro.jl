@@ -166,8 +166,8 @@ function method_macro(__module__, __source__, input...)
                                     xerr("Depends section: system value type \
                                           is supposed to be '$ValueType' \
                                           based on the first macro argument, \
-                                          but $C subtypes '$(Component{C_V})' \
-                                          and not '$(Component{ValueType})'.")
+                                          but $C subtypes '$Component{$C_V}' \
+                                          and not '$Component{$ValueType}'.")
                                 end
                             end
                         end

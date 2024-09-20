@@ -40,8 +40,6 @@
 # without a considerable amount of preliminary setup.
 # So have it covered with user-facing tests its features.
 
-import ..@method
-
 macro expose_data(
     level::Symbol, # (:graph, :nodes or :edges)
     input::Expr...,
@@ -348,12 +346,12 @@ macro expose_data(
         if cached
             push_res!(
                 quote
-                    $ref_prop(model::InnerParms) = get_cached(model, $spropname, $ref_fn)
+                    $ref_prop(model::Internal) = get_cached(model, $spropname, $ref_fn)
                 end,
             )
         else
             push_res!(quote
-                $ref_prop(model::InnerParms) = $ref_fn(model)
+                $ref_prop(model::Internal) = $ref_fn(model)
             end)
         end
 
@@ -420,7 +418,7 @@ macro expose_data(
 
         fields = quote
             _ref::$Ref
-            _graph::InnerParms
+            _graph::Internal
         end
         add_fields!(q) = append!(fields.args, q.args)
 
@@ -455,7 +453,7 @@ macro expose_data(
 
         View = esc(View)
         constructor = quote
-            function $View(model::InnerParms)
+            function $View(model::Internal)
                 ref = $ref_prop(model)
                 new(ref, model)
             end
@@ -568,14 +566,14 @@ macro expose_data(
             if nodes
                 push_res!(
                     quote
-                        GraphViews.write!(model::InnerParms, ::Type{$View}, rhs, i) =
+                        GraphViews.write!(model::Internal, ::Type{$View}, rhs, i) =
                             $w(model, rhs, i)
                     end,
                 )
             else
                 push_res!(
                     quote
-                        GraphViews.write!(model::InnerParms, ::Type{$View}, rhs, i, j) =
+                        GraphViews.write!(model::Internal, ::Type{$View}, rhs, i, j) =
                             $w(model, rhs, i, j)
                     end,
                 )
@@ -595,11 +593,11 @@ macro expose_data(
 
     if generate_view
         push_res!(quote
-            $get_prop(model::InnerParms) = $View(model)
+            $get_prop(model::Internal) = $View(model)
         end)
     else
         push_res!(quote
-            $get_prop(model::InnerParms) = $get_fn(model)
+            $get_prop(model::Internal) = $get_fn(model)
         end)
     end
     push_res!(quote

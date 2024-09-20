@@ -154,6 +154,7 @@ function sysfails(__source__, __module__, xp, input)
     @capture(
         input,
         Add(AddName_, fields__) |
+        Check(late_check_, fields__) |
         Property(PropertyPath_, message_) |
         ErrName_(name_, message_) |
         CatchAll_
@@ -173,12 +174,27 @@ function sysfails(__source__, __module__, xp, input)
         args = :($ExceptionType, $fields)
         (E, args)
 
+    elseif !isnothing(late_check)
+        # Sugar for @sysfails(xp, Add(HookCheckFailure, node, message, late)).
+        # Use instead: @sysfails(xp, Check(late, node, message))
+
+        keywords = [:early, :late]
+        late_check in keywords ||
+            throw("Expected keyword in $keyword, got instead: $late_check.")
+        push!(fields, late_check == keywords[2] ? :true : :false)
+
+        ExceptionType = HookCheckFailure
+        fields = Expr(:vect, fields...)
+
+        E = :($AddError{Value})
+        args = :($HookCheckFailure, $fields)
+        (E, args)
+
     elseif !isnothing(PropertyPath)
 
         (PropertyError, :($__module__, $(Meta.quot(PropertyPath)), $message))
 
     elseif !isnothing(ErrName)
-        # @sysfails(xp, ErrName(symbol))
         assert_symbol(ErrName)
         isnothing(name) || assert_symbol(name)
         errparms = [:Value]

@@ -321,18 +321,23 @@ function component_macro(__module__, __source__, input...)
     # Helpful display resuming base blueprint types for this component.
     push_res!(quote
         function Base.show(io::IO, ::MIME"text/plain", C::$ety)
-            print(io, "$C $(crayon"black")(component for $ValueType")
+            black = crayon"black"
+            it = crayon"italics"
+            reset = crayon"reset"
+            print(io, "$C $black(component for $ValueType")
             names = fieldnames(typeof(C))
             if isempty(names)
                 print(io, " with no base blueprint")
             else
                 println(io, ", expandable from:")
                 for name in fieldnames(typeof(C))
-                    bp = getfield(C, name)
-                    println(io, "  $name: $bp,")
+                    B = getfield(C, name)
+                    print(io, "  $name: $it")
+                    shortline(io, B)
+                    println(io, "$reset$black,")
                 end
             end
-            print(io, ")$(crayon"reset")")
+            print(io, ")$reset")
         end
     end)
 
@@ -343,3 +348,6 @@ function component_macro(__module__, __source__, input...)
 
     res
 end
+
+# For specification by framework users.
+shortline(io, B::Type{<:Blueprint}) = @invoke show(io, B::DataType)

@@ -110,7 +110,7 @@ end
     @xconffails(
         (@conflicts(A, Float64)), # 'Value' inferred from the first entry.
         "Conflicting entry: expression does not evaluate \
-         to a subtype of <Component{$Value}>:\n\
+         to a subtype of '$Component':\n\
          Expression: :Float64\n\
          Result: $Float64 ::DataType",
     )

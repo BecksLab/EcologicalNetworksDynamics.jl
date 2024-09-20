@@ -240,7 +240,7 @@ using Test
         hjc,
         "Depends section: system value type is supposed to be '$Int' \
          based on the first macro argument, \
-         but $_Unf subtypes '<Component{$Value}>' and not '<Component{$Int}>'.",
+         but $_Unf subtypes '$Component{$Value}' and not '$Component{$Int}'.",
     )
 
     # Dependency not recorded as a method.

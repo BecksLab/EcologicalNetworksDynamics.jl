@@ -3,7 +3,90 @@
 # which cannot be changed later, or the number of species,
 # because too many things depend on these.
 
-"""
+# (reassure JuliaLS)
+(false) && (local Species, _Species)
+
+# ==========================================================================================
+# Blueprints.
+
+module SpeciesBlueprints
+using ..BlueprintModule
+
+#-------------------------------------------------------------------------------------------
+# Construct from a plain number and generate dummy names.
+
+mutable struct Number <: Blueprint
+    n::UInt
+end
+@blueprint Number "number of species"
+export Number
+
+F.expand!(m, bp::Number) = expand!(m, [Symbol(:s, i) for i in 1:bp.n])
+
+#-------------------------------------------------------------------------------------------
+# Construct from a given set of names.
+
+mutable struct Names <: Blueprint
+    names::Vector{Symbol}
+
+    # Convert anything to symbols.
+    Names(names) = new(Symbol.(names))
+    Names(names...) = new(Symbol.(collect(names)))
+
+    # Don't own data if useful to user.
+    Names(names::Vector{Symbol}) = new(names)
+end
+@blueprint Names "raw species names"
+export Names
+
+# Forbid duplicates (triangular check).
+function F.late_check(_, bp::Names)
+    (; names) = bp
+    for (i, a) in enumerate(names)
+        for j in (i+1):length(names)
+            b = names[j]
+            a == b && checkfails("Species $i and $j are both named $(repr(a)).")
+        end
+    end
+end
+
+F.expand!(m, bp::Names) = expand!(m, bp.names)
+
+#-------------------------------------------------------------------------------------------
+# Common expansion logic.
+
+function expand!(model, names)
+    # Species are still internally stored within a value named "Foodweb",
+    # but this will be refactored.
+    fw = Internals.FoodWeb(names)
+    model.network = fw
+    Topologies.add_nodes!(model._topology, names, :species)
+    # Keep reference safe in case we later switch to a multiplex network,
+    # and want to add the layers one by one.
+    model._foodweb = fw
+end
+
+end
+
+# ==========================================================================================
+# Component and generic constructor.
+
+@component Species{Internal} blueprints(SpeciesBlueprints)
+
+# Build from a number or default to names.
+(::_Species)(n::Integer) = Species.Number(n)
+(::_Species)(names) = Species.Names(names)
+
+export Species
+
+# Display.
+function F.shortline(io::IO, model::Model, ::_Species)
+    (; S) = model
+    names = model.species_names
+    print(io, "Species: $S ($(join_elided(names, ", ")))")
+end
+
+@doc """
 The Species component adds the most basic nodes compartment into the model: species.
 There is one node per species, and every species is given a unique name and index.
 The species ordering specified in this compartment is the reference species ordering.
@@ -62,43 +145,10 @@ OrderedCollections.OrderedDict{Symbol, Int64} with 3 entries:
   :fox   => 2
   :snake => 3
 ```
-"""
-mutable struct Species <: ModelBlueprint
-    names::Vector{Symbol}
-    # Generate dummy names if not provided.
-    # Don't own data if useful to user.
-    Species(names) = new(Symbol.(names))
-    Species(n::Integer) = new([Symbol(:s, i) for i in 1:n])
-    Species(names::Vector{Symbol}) = new(names)
-end
-
-function F.check(model, bp::Species)
-    (; names) = bp
-    # Forbid duplicates (triangular check).
-    for (i, a) in enumerate(names)
-        for j in (i+1):length(names)
-            b = names[j]
-            a == b && checkfails("Species $i and $j are both named $(repr(a)).")
-        end
-    end
-end
-
-function F.expand!(model, bp::Species)
-    # Species are still internally stored within a value named "Foodweb",
-    # but this will be refactored.
-    fw = Internals.FoodWeb(bp.names)
-    model.network = fw
-    add_nodes!(model._topology, bp.names, :species)
-    # Keep reference safe in case we later switch to a multiplex network,
-    # and want to add the layers one by one.
-    model._foodweb = fw
-end
-
-@component Species
-export Species
+""" Species
 
 # ==========================================================================================
-# Basic queries
+# Basic associated methods.
 
 # Number of species aka. "richness".
 @expose_data graph begin
@@ -148,17 +198,7 @@ end
     depends(Species)
 end
 
-# ==========================================================================================
 # Numerous views into species nodes will make use of this index.
 macro species_index()
     esc(:(index(m -> m._species_index)))
-end
-
-# ==========================================================================================
-# Display.
-
-function F.display(model, ::Type{Species})
-    (; S) = model
-    names = model.species_names
-    "Species: $S ($(join_elided(names, ", ")))"
 end
