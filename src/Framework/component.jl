@@ -26,12 +26,18 @@
 # This might be implemented in the future for a convincingly motivated need,
 # at the cost of extending @component macro to produce abstract types.
 
+# Retrieve type from either instance or the type itself.
+component_type(C::CompType) = C
+component_type(c::Component) = typeof(c)
+component_type(x::Any) =
+    argerr("Not a component or a component type: $(repr(x)) ::$(typeof(x))")
+
 # Component types being singleton, we *can* infer the value from the type at runtime.
+singleton_instance(c::Component) = c
 singleton_instance(C::CompType) = throw("No concrete singleton instance of '$C'.")
 
 # Extract underlying system wrapped value type from a component.
-system_value_type(::CompType{V}) where {V} = V
-system_value_type(::Component{V}) where {V} = V
+system_value_type(::CompRef{V}) where {V} = V
 
 #-------------------------------------------------------------------------------------------
 # Requirements.
@@ -51,7 +57,7 @@ requires(c::Component) = requires(typeof(c))
 blueprints(C::CompType{V}) where {V} = throw("No blueprint type specified for $C.")
 blueprints(c::Component{V}) where {V} = throw("No blueprint type specified for $c.")
 
-#-------------------------------------------------------------------------------------------
+# ==========================================================================================
 # Conflicts.
 
 # Components that contradict each other can be grouped into mutually exclusive clusters.
@@ -108,6 +114,86 @@ function all_conflicts(C::CompType)
         end
     end)
 end
+
+# ==========================================================================================
+# Triggers.
+
+# Associate particular components combinations
+# with callbacks that will be called immediately after these combinations become available.
+# {ValueType => {Component combination => [triggered functions]}}
+triggers_(::Type{V}) where {V} = OrderedDict{Set{CompType{V}},OrderedSet{Function}}()
+# (same reference/specialization logic as `conflicts_`)
+
+# Setup a trigger.
+# The trigger callback signature is either
+#   trig(::V)
+#   trig(::V, ::System{V}) # (created if missing)
+# and is guaranteed to be called as soon as the given combination of components
+# becomes available in the system.
+function add_trigger!(components, fn::Function)
+    V = nothing
+    first = nothing
+    set = Set()
+    for comp in components
+        C = component_type(comp)
+
+        # Guard against inconsistent target values.
+        if isnothing(V)
+            V = system_value_type(C)
+            first = comp
+        else
+            aV = system_value_type(C)
+            aV == V || argerr("Both components for '$V' and '$aV' \
+                               provided within the same trigger: $first and $comp.")
+        end
+
+        # Triangular-check against redundancies.
+        for already in set
+            vertical_guard(
+                C,
+                already,
+                () -> argerr("Component $comp specified twice in the same trigger."),
+                (sub, sup) -> argerr("Both component $sub and its supertype $sup \
+                                      specified in the same trigger."),
+            )
+        end
+
+        push!(set, C)
+    end
+
+    # Guard against inconsistent signatures.
+    if !hasmethod(fn, Tuple{V,System{V}})
+        if hasmethod(fn, Tuple{V})
+            # Append method for consistency.
+            eval(quote
+                (::typeof($fn))(v::$V, ::System{$V}) = $fn(v)
+            end)
+        else
+            argerr("Missing expected method on the given trigger function: $fn(::$V).")
+        end
+    end
+
+    current = triggers_(V) # Creates a new empty value if falling back on default impl.
+    if isempty(current)
+        # Specialize to always yield the right reference.
+        eval(quote
+            triggers_(::Type{$V}) = $current
+        end)
+    end
+
+    # Append trigger to this particular combination.
+    fns = if haskey(current, set)
+        current[set]
+    else
+        current[set] = OrderedSet{Function}()
+    end
+    fn in fns && argerr("Function '$fn' already added to triggers for combination \
+                         {$(join(sort(collect(set); by=T->T.name.name), ", "))}.")
+    push!(fns, fn)
+
+    nothing
+end
+export add_trigger! # Expose directly..
 
 # ==========================================================================================
 # Display.

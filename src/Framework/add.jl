@@ -16,6 +16,7 @@
 #   - Visit post-order again to:
 #     - Run the late `check`.
 #     - Expand the blueprint into a component.
+#     - Execute possible triggers.
 #
 # TODO: Exposing the first analysis steps of the above will be useful
 # to implement default_model.
@@ -34,7 +35,7 @@
 # by the blueprints given.
 # Reify the underlying 'forest' structure.
 struct Node
-    blueprint::Blueprint # Owned copy, so it cannot be changed by add! caller afterwards.
+    blueprint::Blueprint # Owned copy, so it doesn't leave refs to add! caller.
     parent::Option{Node}
     implied::Bool # Raise if 'implied' by the parent and not 'embedded'.
     children::Vector{Node}
@@ -235,6 +236,29 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
 
     try
 
+        # Construct a copy all possible triggers,
+        # pruned from components already in-place.
+        # Triggers execute whenever a newly added component
+        # makes one of them empty.
+        # TODO: should this sophisticated 'decreasing counter'
+        # rather belong to the system itself?
+        # Pros: alleviate calculations during `add!`
+        # Cons: clutters `System` fields instead:
+        #       every system would starts 'full' with all potential future triggers.
+        triggers = OrderedDict()
+        current_components = Set()
+        for C in component_types(system)
+            push!(current_components, C)
+            for sup in supertypes(C)
+                push!(current_components, sup)
+            end
+        end
+        for (combination, fns) in triggers_(V)
+            consumed = setdiff(combination, current_components)
+            isempty(consumed) && continue
+            triggers[combination] = (consumed, fns)
+        end
+
         # Second post-order visit: expand the blueprints.
         for Chk in keys(checked)
             node = first(brought[Chk])
@@ -257,24 +281,43 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
                 end
             end
 
-            # Record.
-            for C in componentsof(blueprint)
-                crt, abs = system._concrete, system._abstract
-                push!(crt, C)
-                for sup in supertypes(C)
-                    sup === C && continue
-                    sup === Component{V} && break
-                    sub = haskey(abs, sup) ? abs[sup] : (abs[sup] = Set{CompType{V}}())
-                    push!(sub, C)
-                end
-            end
-
             # Expand.
             try
                 expand!(system._value, blueprint, system)
             catch _
                 throw(ExpansionAborted(node))
             end
+
+            # Record.
+            just_added = Set()
+            for C in componentsof(blueprint)
+                crt, abs = system._concrete, system._abstract
+                push!(crt, C)
+                push!(just_added, C)
+                for sup in supertypes(C)
+                    sup === C && continue
+                    sup === Component{V} && break
+                    sub = haskey(abs, sup) ? abs[sup] : (abs[sup] = Set{CompType{V}}())
+                    push!(sub, C)
+                    push!(just_added, C)
+                end
+            end
+
+            # Execute possible triggers.
+            for (combination, (remaining, trigs)) in triggers
+                setdiff!(remaining, just_added)
+                if isempty(remaining)
+                    for trig in trigs
+                        try
+                            trig(system._value, system)
+                        catch _
+                            throw(TriggerAborted(node, combination))
+                        end
+                    end
+                    pop!(triggers, combination)
+                end
+            end
+
 
         end
 
@@ -291,23 +334,31 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
         else
             # This is unexpected and it may have occured during expansion.
             # The underlying system state consistency is no longuer guaranteed.
-            if e isa ExpansionAborted
+            raise = if e isa ExpansionAborted
                 title = "Failure during blueprint expansion."
                 subtitle = "This is a bug in the components library."
                 epilog = render_path(e.node)
+                rethrow
+            elseif e isa TriggerAborted
+                title = "Failure during trigger execution \
+                         for the combination of components \
+                         {$(join(sort(collect(e.combination); by=T->T.name.name), ", "))}."
+                subtitle = "This is a bug in the components library."
+                epilog = render_path(e.node)
+                rethrow
             else
                 title = "Failure during blueprint addition."
-                subtitle = "This is a bug in the internal addition procedure.\n"
+                subtitle = "This is a bug in the internal addition procedure."
                 epilog = ""
+                throw
             end
-            throw(ErrorException("\n$(crayon"red")\
+            raise(ErrorException("\n$(crayon"red")\
                    ⚠ ⚠ ⚠ $title ⚠ ⚠ ⚠\
                    $(crayon"reset")\n\
-                   $subtitle\
+                   $subtitle\n\
                    This system state consistency \
                    is no longer guaranteed by the program. \
-                   This should not happen and must be considered a bug \
-                   within the components library. \
+                   This should not happen and must be considered a bug. \
                    Consider reporting if you can reproduce \
                    with a minimal working example. \
                    In any case, please drop the current system value \
@@ -379,6 +430,11 @@ end
 
 struct ExpansionAborted <: AddException
     node::Node
+end
+
+struct TriggerAborted <: AddException
+    node::Node
+    combination::Set
 end
 
 # Once the above have been processed,

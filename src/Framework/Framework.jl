@@ -91,7 +91,7 @@ module Framework
 #   - [x] Recurring pattern: various blueprints types provide 'the same component': reify.
 #   - [x] `depends(other_method_name)` to inherit all dependent components.
 #   - [x] Namespace properties into like system.namespace.namespace.property.
-#   - [ ] Hooks need to trigger when special components combination become available.
+#   - [x] Hooks need to trigger when special components combination become available.
 #         See for instance the expansion of `Nutrients.Nodes`
 #         which should trigger the creation of links if there is already `Species`.. or vice
 #         versa.
@@ -125,6 +125,8 @@ export Blueprint
 # because they can be abstract,
 # most exposed methods work with concrete singleton instance.
 const CompType{V} = Type{<:Component{V}}
+# Abstract over either for exposed inputs.
+const CompRef{V} = Union{Component{V},CompType{V}}
 
 # ==========================================================================================
 

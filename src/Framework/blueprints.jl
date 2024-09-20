@@ -75,9 +75,9 @@ function checked_expands_from(bp::Blueprint{V}) where {V}
                 err()
             end
             if req isa Component{V}
-                (typeof(x), reason)
-            elseif x isa CompType{V}
-                (x, reason)
+                (typeof(req), reason)
+            elseif req isa CompType{V}
+                (req, reason)
             else
                 err()
             end
@@ -143,8 +143,7 @@ early_check(::Blueprint) = nothing # No particular constraint to enforce by defa
 # to feature the provided components.
 # This is only called if all component addition conditions are met
 # and the above check passed.
-# This function must not fail,
-# otherwise the system ends up in a bad state.
+# This function must not fail or the system may end up in a corrupt state.
 # TODO: must it also be deterministic?
 #       Or can a random component expansion happen
 #       if infallible and based on consistent blueprint input.
