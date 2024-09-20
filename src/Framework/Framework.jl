@@ -80,22 +80,6 @@
 # This *may* make it useless to ever feature component removal.
 module Framework
 
-# HERE: Improve ergonomics:
-#   - [x] Flesh early documentation.
-#   - [x] Encourage moving sophisticated function definitions outside macro calls
-#     to ease burden on `Revise`.
-#   - [x] blueprints *optionnaly* bring other blueprints.
-#   - [x] Components are not blueprint types, but an autonomous hierachy of singleton types.
-#   - [x] "*blueprints* imply/bring *blueprints*", not "components imply/bring components"
-#   - [x] Blueprints 'history' become meaningless if methods can mutate the internal state.
-#   - [x] Recurring pattern: various blueprints types provide 'the same component': reify.
-#   - [x] `depends(other_method_name)` to inherit all dependent components.
-#   - [x] Namespace properties into like system.namespace.namespace.property.
-#   - [x] Hooks need to trigger when special components combination become available.
-#         See for instance the expansion of `Nutrients.Nodes`
-#         which should trigger the creation of links if there is already `Species`.. or vice
-#         versa.
-
 using Crayons
 using MacroTools
 using OrderedCollections
