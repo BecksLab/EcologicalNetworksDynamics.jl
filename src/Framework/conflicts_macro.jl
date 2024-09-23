@@ -59,7 +59,7 @@ function conflicts_macro(__module__, __source__, input...)
     entries = :([])
     for entry in input
 
-        comp, conf, invalid, reasons, mess = repeat([nothing], 5) # (help JuliaLS)
+        (false) && (local comp, conf, invalid, reasons, mess) # (reassure JuliaLS)
         #! format: off
         @capture(entry,
             (comp_ => (reasons__,)) |

@@ -98,7 +98,7 @@ function method_macro(__module__, __source__, input...)
     # then the input expression must be a plain symbol or Path.To.symbol..
     # unless there is another programmatic way to add a method to a function in Julia?
     xp = input[1]
-    fn_xp, ValueType_xp = nothing, nothing # (hepl JuliaLS)
+    (false) && (local fn_xp, ValueType_xp) # (reassure JuliaLS)
     @capture(xp, fn_xp_{ValueType_xp_} | fn_xp_)
     fn_xp isa Symbol ||
         fn_xp isa Expr && fn_xp.head == :. ||

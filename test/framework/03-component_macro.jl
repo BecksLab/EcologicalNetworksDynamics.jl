@@ -26,6 +26,28 @@ using Test
 const S = System{Value}
 comps(s) = collect(components(s))
 
+# Testing blueprint collectiong from module.
+# (must be declared at toplevel)
+module Plv_b
+using ..F
+using ..Invocations: Value
+struct Ibh_b <: Blueprint{Value} end # Collected.
+struct Fek_b <: Blueprint{Value} end # Collected.
+struct Zpp_b <: Blueprint{Value} end # Not collected (not exported)
+struct Qqu_b <: Blueprint{Int} end # Not collected (not for 'Value').
+@blueprint Ibh_b
+@blueprint Fek_b
+@blueprint Zpp_b
+@blueprint Qqu_b
+# Not collected.
+a = 5
+const b = 8
+struct Wec end
+export Ibh_b, Fek_b, Qqu_b, a, b, Wec
+end
+
+module Zru end # Test empty module.
+
 @testset "Invocation variations of @component macro." begin
 
     #---------------------------------------------------------------------------------------
@@ -232,7 +254,8 @@ end
 
     @pcompfails(
         (@component Uvv{Value} blueprints(4 + 5)),
-        "Expected `name::Type` to specify blueprint, found instead: :(4 + 5).",
+        "Expected `name::Type` or `ModuleName` to specify blueprint, \
+         found instead: :(4 + 5).",
     )
 
     @xcompfails(
@@ -264,7 +287,7 @@ end
     @xcompfails(
         (@component Uvv{Value} blueprints(b::Uvv_b, c::Uvv_b)),
         :Uvv,
-        "Base blueprint $Uvv_b bound to both names :b and :c.",
+        "Base blueprint '$Uvv_b' bound to both names :b and :c.",
     )
 
     struct Uvv_c <: Blueprint{Value} end
@@ -272,8 +295,32 @@ end
     @xcompfails(
         (@component Uvv{Value} blueprints(b::Uvv_b, b::Uvv_c)),
         :Uvv,
-        "Base blueprint :b both refers to $Uvv_b and to $Uvv_c.",
+        "Base blueprint :b both refers to '$Uvv_b' and to '$Uvv_c'.",
     )
+
+    # Collect blueprints from exporte module identifiers.
+    struct Yrv_b <: Blueprint{Value} end
+    @blueprint Yrv_b
+    @component Plv{Value} blueprints(b::Yrv_b, Plv_b)
+
+    # Those exported from the module have been added.
+    @test fieldnames(_Plv) == (:b, :Fek_b, :Ibh_b)
+    @test Plv.b == Yrv_b
+    @test Plv.Fek_b == Plv_b.Fek_b
+    @test Plv.Fek_b == Plv_b.Fek_b
+
+    @xcompfails(
+        (@component Fyi{Value} blueprints(Plv_b, dupe::Plv_b.Fek_b)),
+        :Fyi,
+        "Base blueprint '$(Plv_b.Fek_b)' bound to both names :Fek_b and :dupe."
+    )
+
+    @xcompfails(
+        (@component Kxi{Value} blueprints(Zru)),
+        :Kxi,
+        "Module '$Zru' exports no blueprint for '$Value'."
+    )
+
 
     #---------------------------------------------------------------------------------------
     # Requires section.

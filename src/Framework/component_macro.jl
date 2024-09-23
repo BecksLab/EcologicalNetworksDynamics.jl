@@ -16,7 +16,7 @@
 #       Name{ValueType}
 #  (or) Name <: SuperComponentType
 #       requires(components...)
-#       blueprints(name::Type, ...)
+#       blueprints(name::Type, ModuleName, ...) # (all @blueprints exported from module)
 #   end
 #
 # Consistency checks are run by the macro then by the generated code.
@@ -101,7 +101,7 @@ function component_macro(__module__, __source__, input...)
 
     # Extract component name, value type and supercomponent from the first section.
     component_xp = input[1]
-    name, value_type, super = nothing, nothing, nothing # (to help JuliaLS)
+    (false) && (local name, value_type, super) # (reassure JuliaLS)
     @capture(component_xp, name_{value_type_} | (name_ <: super_))
     isnothing(name) &&
         perr("Expected component `Name{ValueType}` or `Name <: SuperComponent`, \
@@ -142,19 +142,19 @@ function component_macro(__module__, __source__, input...)
 
     # Next come other optional sections in any order.
     requires_xp = nothing # Evaluates to [(component => reason), ...]
-    blueprints_xp = nothing # Evaluates to [(identifier, paths), ...]
+    blueprints_xp = nothing # Evaluates to [(identifier, path), ...]
 
     for i in input[2:end]
 
         # Require section: specify necessary components.
-        reqs = nothing # (help JuliaLS)
+        (false) && (local reqs) # (reassure JuliaLS)
         @capture(i, requires(reqs__))
         if !isnothing(reqs)
             isnothing(requires_xp) || perr("The `requires` section is specified twice.")
             requires_xp = :([])
             for req in reqs
                 # Set requirement reason to 'nothing' if unspecified.
-                comp, reason = nothing, nothing # (help JuliaLS)
+                (false) && (local comp, reason) # (reassure JuliaLS)
                 @capture(req, comp_ => reason_)
                 if isnothing(reason)
                     comp = req
@@ -169,18 +169,23 @@ function component_macro(__module__, __source__, input...)
         end
 
         # Blueprints section: specify blueprints providing the new component.
-        bps = nothing # (help JuliaLS)
+        (false) && (local bps) # (reassure JuliaLS)
         @capture(i, blueprints(bps__))
         if !isnothing(bps)
             isnothing(blueprints_xp) || perr("The `blueprints` section is specified twice.")
             blueprints_xp = :([])
             for bp in bps
-                bpname, B = nothing, nothing # (help JuliaLS)
+                (false) && (local bpname, B, modname) # (reassure JuliaLS)
                 @capture(bp, bpname_::B_)
-                isnothing(bpname) && perr("Expected `name::Type` to specify blueprint, \
-                                           found instead: $(repr(bp)).")
-                xp = tobptype(B, "Blueprint")
-                push!(blueprints_xp.args, :($(Meta.quot(bpname)), $xp))
+                if isnothing(bpname)
+                    is_identifier_path(bp) ||
+                        perr("Expected `name::Type` or `ModuleName` to specify blueprint, \
+                              found instead: $(repr(bp)).")
+                    push!(blueprints_xp.args, tovalue(bp, "Blueprints list", Module))
+                else
+                    xp = tobptype(B, "Blueprint")
+                    push!(blueprints_xp.args, :($(Meta.quot(bpname)), $xp))
+                end
             end
             continue
         end
@@ -219,15 +224,35 @@ function component_macro(__module__, __source__, input...)
     push_res!(
         quote
             base_blueprints = []
-            for (name, B) in $blueprints_xp
-                # Triangular-check.
-                for (other, Other) in base_blueprints
-                    other == name && xerr("Base blueprint $(repr(other)) \
-                                           both refers to $Other and to $B.")
-                    Other == B && xerr("Base blueprint $B bound to \
-                                        both names $(repr(other)) and $(repr(name)).")
+            for spec in $blueprints_xp
+                # [(blueprint name as component field, blueprint type)]
+                blueprints = if spec isa Module
+                    # Collect all blueprints within the given module
+                    # and use their type names as component fields names.
+                    bps = []
+                    for name in names(spec)
+                        local B = getfield(spec, name)
+                        B isa DataType && B <: Blueprint{ValueType} || continue
+                        push!(bps, (name, B))
+                    end
+                    isempty(bps) && xerr("Module '$spec' \
+                                          exports no blueprint for '$ValueType'.")
+                    bps
+                else
+                    # Only one pair has been explicitly provided.
+                    local name, B = spec
+                    [(name, B)]
                 end
-                push!(base_blueprints, (name, B))
+                for (name, B) in blueprints
+                    # Triangular-check.
+                    for (other, Other) in base_blueprints
+                        other == name && xerr("Base blueprint $(repr(other)) \
+                                               both refers to '$Other' and to '$B'.")
+                        Other == B && xerr("Base blueprint '$B' bound to \
+                                            both names $(repr(other)) and $(repr(name)).")
+                    end
+                    push!(base_blueprints, (name, B))
+                end
             end
         end,
     )
