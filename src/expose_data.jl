@@ -170,6 +170,7 @@ macro expose_data(
             section = Core.eval(__module__, :(@macroexpand $section))
         end
 
+        (false) && (local secname, arg, args)
         @capture(section, secname_(arg_) | secname_(args__))
         isnothing(secname) && perr("Could not parse section: $(repr(section)).")
 
@@ -219,6 +220,7 @@ macro expose_data(
             if isnothing(args)
                 # Simple function given, extract rhs type from second argument.
                 fn = check_fn(:set!, arg, 2)
+                (false) && (local name, type)
                 @capture(arg.args[1].args[2], name_::type_)
                 isnothing(type) && perr("Missing RHS type to guard set! method.")
                 kwargs[:set!] = fn
@@ -670,7 +672,7 @@ end
 # Exceptions inspired from framework macro exceptions.
 
 struct ExposeDataMacroError <: Exception
-    name::Symbol
+    name::Union{Symbol,Expr} # (property path)
     src::LineNumberNode
     message::String
 end

@@ -86,7 +86,6 @@ function F.shortline(io::IO, model::Model, ::_Species)
     print(io, "Species: $S ($(join_elided(names, ", ")))")
 end
 
-
 # ==========================================================================================
 # Basic associated methods.
 
@@ -149,7 +148,6 @@ macro species_index()
 end
 
 # ==========================================================================================
-# Doc/tests.
 
 @doc """
 The Species component adds the most basic nodes compartment into the model: species.

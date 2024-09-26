@@ -32,6 +32,15 @@ julia> m.species.names == [:s1, :s2, :s3]
 true
 ```
 
+- Some property names have changed. The following list is not exhaustive,
+  but new names can easily be discovered using REPL autocompletion
+  or the `properties(m)` and `properties(m.prop)` methods:
+  - `model.trophic_links` becomes `model.trophic.matrix`,
+    because it does yield a matrix and not some collection of "links".
+    The alias `model.A` is still available.
+  - Likewise,
+    `model.herbivorous_links` becomes `model.trophic.herbivory_matrix` *etc.*
+
 ## New features
 
 - Model properties available with `<tab>`-completion within the REPL.

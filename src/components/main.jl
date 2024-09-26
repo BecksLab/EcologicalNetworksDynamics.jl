@@ -94,7 +94,7 @@ include("./args_to_fields.jl")
 # Reassure JuliaLS: these are keywords for the macros.
 #  https://github.com/julia-vscode/StaticLint.jl/issues/381#issuecomment-2361743645
 if (false)
-    local graph, property, get, depends, nodes, ref_cached, E, V
+    local graph, property, get, depends, nodes, edges, ref_cached, requires, E, V
 end
 
 # Factorize numerous imports
@@ -140,8 +140,8 @@ end
 # Central in the model nodes.
 include("./species.jl")
 
-#  # Trophic links, structuring the whole network.
-#  include("./foodweb.jl")
+# Trophic links, structuring the whole network.
+include("./foodweb.jl")
 
 #  # Biorates and other values parametring the ODE.
 #  include("./body_mass.jl")
