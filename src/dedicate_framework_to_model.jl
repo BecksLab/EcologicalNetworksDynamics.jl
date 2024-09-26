@@ -13,7 +13,68 @@ const Blueprint = F.Blueprint{Internal}
 const BlueprintSum = F.BlueprintSum{Internal}
 const Component = F.Component{Internal}
 
-"""
+const Model = F.System{Internal}
+export Model
+
+# Skip _-prefixed properties.
+function properties(m::Model)
+    res = []
+    for (name, _) in F.properties(m)
+        startswith(String(name), '_') && continue
+        push!(res, name)
+    end
+    sort!(res)
+    res
+end
+properties(p::F.PropertySpace) = collect(imap(first, ifilter(F.properties(p)) do (name, _)
+    !startswith(String(name), '_')
+end))
+export properties
+Base.propertynames(m::Model) = properties(m)
+Base.propertynames(p::F.PropertySpace{name,P,Internal}) where {name,P} = properties(p)
+
+# Convenience macro to define property space.
+macro propspace(path)
+    get = Symbol(:get_, path)
+    eget = esc(get)
+    quote
+        $eget(::Internal, s::Model) = F.@PropertySpace($path, $Internal)(s)
+        F.@method $get{$Internal} read_as($path)
+    end
+end
+
+# The above defines var"get_a.b" method names for nested properties
+# to avoid possible ambiguity with `get_a_b`.
+# Use this pattern for all propsace uses
+# and these convenience macro to call these methods on raw values.
+macro get(raw, path)
+    quote
+        $(Symbol(:get_, path))($raw)
+    end |> esc
+end
+macro ref(raw, path)
+    quote
+        $(Symbol(:ref_, path))($raw)
+    end |> esc
+end
+macro set!(raw, path, rhs)
+    quote
+        $(Symbol(:set_, path, :!))($raw, $rhs)
+    end |> esc
+end
+
+# ==========================================================================================
+# Display.
+Base.show(io::IO, ::Type{Internal}) = print(io, "<internals>") # Shorten and opacify.
+Base.show(io::IO, ::Type{Model}) = print(io, "Model")
+
+Base.show(io::IO, ::MIME"text/plain", I::Type{Internal}) = Base.show(io, I)
+Base.show(io::IO, ::MIME"text/plain", ::Type{Model}) =
+    print(io, "Model $(crayon"dark_gray")(alias for $System{$Internal})$(crayon"reset")")
+
+# ==========================================================================================
+
+@doc """
 Model is the main object that we hand out to user
 which contains all the information about the underlying ecological model.
 
@@ -86,31 +147,4 @@ because some of them are derived from the others.
 For instance, many parameters are derived from species body masses,
 therefore changing body masses would make the model inconsistent.
 However, terminal properties can be re-written, as the species metabolic rate.
-"""
-const Model = F.System{Internal}
-export Model
-
-# Willing to make use of "properties" even for the wrapped value.
-Base.getproperty(v::Internal, p::Symbol) = F.unchecked_getproperty(v, p)
-Base.setproperty!(v::Internal, p::Symbol, rhs) = F.unchecked_setproperty!(v, p, rhs)
-
-# Skip _-prefixed properties.
-function properties(s::Model)
-    res = []
-    for (name, _) in F.properties(s)
-        startswith(String(name), '_') && continue
-        push!(res, name)
-    end
-    sort!(res)
-    res
-end
-export properties
-
-# ==========================================================================================
-# Display.
-Base.show(io::IO, ::Type{Internal}) = print(io, "<internals>") # Shorten and opacify.
-Base.show(io::IO, ::Type{Model}) = print(io, "Model")
-
-Base.show(io::IO, ::MIME"text/plain", I::Type{Internal}) = Base.show(io, I)
-Base.show(io::IO, ::MIME"text/plain", ::Type{Model}) =
-    print(io, "Model $(crayon"dark_gray")(alias for $System{$Internal})$(crayon"reset")")
+""" Model

@@ -59,9 +59,14 @@ als = repr(MIME("text/plain"), aliases) # (to include in error messages)
 #   @macro ... {Symbol, Scal} # (shortened names)
 #   @macro ... YSN            # (single letters)
 #   @macro ... {YSN}          # (convenience twist)
+#   @macro ... Symbol         # (convenience twist if it matches a full name)
 function parse_types(loc, input)
     if input isa Symbol
-        specs = Symbol.(collect(String(input)))
+        if haskey(rev_aliases, input)
+            specs = [input]
+        else
+            specs = Symbol.(collect(String(input)))
+        end
     elseif input.head == :braces
         specs = Symbol.(input.args)
     else

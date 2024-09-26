@@ -1,6 +1,7 @@
 # Since we haven't refactored the internals yet,
-# the components described here are just a raw embedding of the former interface.
-# Take this opportunity to pick stable names and encapsulate the whole Internal module,
+# the components described here are just a raw embedding of the former 'Internal' interface,
+# nicknamed 'raw' in components code.
+# Take this opportunity to pick stable names and encapsulate the whole 'Internals' module,
 # so we can refactor it later, *deeply*,
 # hopefully without needing to change any exposed component/method.
 
@@ -90,19 +91,50 @@ include("./args_to_fields.jl")
 #   Omega.Raw(...)
 #
 
-# Factorize numerous imports
-# useful within the blueprint submodules.
-# TODO: craft some `@reexport` ?
-module BlueprintModule
-import EcologicalNetworksDynamics: Blueprint, Internals, Internal, F, Topologies
-import .F: checkfails, @blueprint
-export Blueprint, Internal, F, checkfails, Internals, Topologies, @blueprint
-end
-
 # Reassure JuliaLS: these are keywords for the macros.
 #  https://github.com/julia-vscode/StaticLint.jl/issues/381#issuecomment-2361743645
 if (false)
-    local graph, property, get, depends, nodes, ref_cache, E, V
+    local graph, property, get, depends, nodes, ref_cached, E, V
+end
+
+# Factorize numerous imports
+# useful within the blueprint submodules.
+# TODO: craft some `@reexport` macro ? But this would confuse JuliaLS again :\
+module BlueprintModule
+import EcologicalNetworksDynamics:
+    BinAdjacency,
+    Blueprint,
+    EcologicalNetworksDynamics,
+    F,
+    Internal,
+    Internals,
+    SparseMatrix,
+    Topologies,
+    refs,
+    refspace,
+    to_sparse_matrix,
+    @GraphData,
+    @check_list_refs,
+    @check_size,
+    @tographdata
+import .F: checkfails, @blueprint
+export Blueprint,
+    BinAdjacency,
+    EcologicalNetworksDynamics,
+    F,
+    Internal,
+    Internals,
+    SparseMatrix,
+    Topologies,
+    checkfails,
+    refs,
+    refspace,
+    to_sparse_matrix,
+    @GraphData,
+    @blueprint,
+    @check_list_refs,
+    @check_size,
+    @tographdata
 end
 
 # Central in the model nodes.

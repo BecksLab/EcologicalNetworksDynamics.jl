@@ -38,14 +38,14 @@
 #
 # This macro cannot be formally tested
 # without a considerable amount of preliminary setup.
-# So have it covered with user-facing tests its features.
+# So have it covered with user-facing tests.
 
 macro expose_data(
     level::Symbol, # (:graph, :nodes or :edges)
     input::Expr...,
     # Unordered list of optional `key(value)` pairs:
     #
-    #   get(function) or get(model -> <body>)
+    #   get(function) or get(row -> <body>)
     #     Generate exposed function to return a value to user,
     #     which is *not* an aliased reference to mutable underlying data.
     #     Required.
@@ -54,24 +54,24 @@ macro expose_data(
     #     The components required for the methods to be called.
     #     May be elided or empty.
     #
-    #   property(name) or property(names...)
+    #   property(path) or property(paths...)
     #     The first name is used for generating
     #     the ref_<prop>/get_<prop>/set_<prop>! methods.
     #     All names are used as read_as(prop), write_as(prop) properties.
     #     At least one name is required.
     #
-    #   ref(function) or ref(model -> <body>)
+    #   ref(function) or ref(raw -> <body>)
     #     Generated unexposed ref_<prop> function
     #     to get a reference alias to underlying data.
     #     Required for :nodes and :edges levels,
-    #     unless replaced by `ref_cache` (below),
+    #     unless replaced by `ref_cached` (below),
     #
-    #   ref_cache(function) or ref_cache(model -> <body>)
+    #   ref_cached(function) or ref_cached(raw -> <body>)
     #     Special form of `ref` where the calculation result
-    #     is memoized in the model `._cache`, using <prop> name as a key.
+    #     is memoized in the raw value's `._cache`, using <prop> path as a key.
     #     The returned reference aliases the cached value then.
     #
-    #   set!(rhs_type, function) or set!((m, rhs::<rhs_type>) -> <body>)
+    #   set!(rhs_type, function) or set!((raw, rhs::<rhs_type>) -> <body>)
     #     Generate exposed function to replace the value within the model.
     #     Forbidden if a 'View' is defined, for it's a pandora box:
     #     references leaks, other views invalidations, cache corruption etc.
@@ -81,18 +81,18 @@ macro expose_data(
     #
     #   get(View{K}, "item name") or get(View{K}, sparse, "item name")
     #     Generate a `struct View <: Abstact<level>DataView{K}`.
-    #     The `._ref` field is setup to `ref_<prop>(model)`
-    #     and the `._graph` field to `model`.
-    #     Then generate a `get_<prop>(m) = View(m)` method.
+    #     The `._ref` field is setup to `ref_<prop>(raw)`
+    #     and the `._graph` field to `raw`.
+    #     Then generate a `get_<prop>(raw) = View(raw)` method.
     #
-    #   write!(function) or write!((m, rhs, i<, j>) -> <body>)
+    #   write!(function) or write!((raw, rhs, i<, j>) -> <body>)
     #     Enable setindex! method for the generated view.
     #
-    #   template(function) or template(m -> <body>)
+    #   template(function) or template(raw -> <body>)
     #     Generates a `._template` method for the view if sparse,
     #     initialized with the given function and useful to check the setindex! accesses.
     #
-    #   index(function) or index(m -> <body>)
+    #   index(function) or index(raw -> <body>)
     #     Generates a `._index` method for the view, initialized with this function,
     #     and enabling label-based indexing.
     #     For :edges level, if the two dimensions use different indexes,
@@ -104,7 +104,7 @@ macro expose_data(
     push_res!(xp) = xp.head == :block ? append!(res.args, xp.args) : push!(res.args, xp)
 
     # Raise *during expansion* if parsing fails.
-    errname = [:?] # Update as soon as possible to improve errors.
+    errname = Union{Symbol,Expr}[:?] # Update as soon as possible to improve errors.
     perr(mess) = throw(ExposeDataMacroError(errname[1], __source__, mess))
 
     # ======================================================================================
@@ -117,21 +117,21 @@ macro expose_data(
 
     # Quick first pass through the input just to retrieve property name
     # and improve further errors.
-    propname = nothing
+    proppath = nothing
     aliases = []
     for section in input
         @capture(section, property(name_) | property(names__))
         isnothing(name) && isnothing(names) && continue
         isnothing(name) && length(names) == 0 && perr("No property names given.")
-        propname = isnothing(names) ? name : names[1]
+        proppath = isnothing(names) ? name : names[1]
         aliases = isnothing(names) ? [name] : names
-        propname isa Symbol || perr("Not a property name: $(repr(propname)).")
+        F.is_identifier_path(proppath) || perr("Not a property path: $(repr(proppath)).")
         break
     end
-    isnothing(propname) && perr("Miss required 'property' section.")
-    errname[1] = propname
+    isnothing(proppath) && perr("Miss required 'property' section.")
+    errname[1] = proppath
     for alias in aliases
-        alias isa Symbol || perr("Not a property alias: $(repr(alias)).")
+        F.is_identifier_path(alias) || perr("Not a property alias: $(repr(alias)).")
     end
 
     # Check level
@@ -144,8 +144,7 @@ macro expose_data(
 
     # Some inputs are either a method path or lambda expressions.
     function check_fn(name, xp, n_parms = 1)
-        err() = perr("Not a function for extracting reference: \
-                              $name = $(repr(xp)).")
+        err() = perr("Not a function for extracting reference: $name = $(repr(xp)).")
         xp isa Symbol && return xp
         xp isa Expr || err()
         xp.head == :. && return xp
@@ -236,7 +235,7 @@ macro expose_data(
         found = false
         for (key, n_args) in [
             (:ref, 1),
-            (:ref_cache, 1),
+            (:ref_cached, 1),
             (:set!, 2),
             (:write!, (3, 4)),
             (:template, 1),
@@ -265,11 +264,11 @@ macro expose_data(
     given(:get) || perr("Miss required 'get' section.")
 
     if level != :graph
-        (!given(:ref) && !given(:ref_cache)) &&
-            perr("Miss either 'ref' or 'ref_cache' section.")
+        (!given(:ref) && !given(:ref_cached)) &&
+            perr("Miss either 'ref' or 'ref_cached' section.")
     end
-    (given(:ref) && given(:ref_cache)) &&
-        perr("Cannot specify both 'ref' and 'ref_cache' sections.")
+    (given(:ref) && given(:ref_cached)) &&
+        perr("Cannot specify both 'ref' and 'ref_cached' sections.")
 
     (given(:index) && (given(:row_index) || given(:col_index))) &&
         perr("Don't provide both 'index' and 'col_index' or 'row_index'.")
@@ -333,20 +332,20 @@ macro expose_data(
     #---------------------------------------------------------------------------------------
     # `Ref` method.
 
-    ref = given(:ref) || given(:ref_cache)
-    cached = given(:ref_cache)
-    spropname = Meta.quot(propname)
+    ref = given(:ref) || given(:ref_cached)
+    cached = given(:ref_cached)
+    sproppath = Meta.quot(proppath)
 
     if ref
 
-        ref_fn = esc(cached ? take!(:ref_cache) : take!(:ref))
-        ref_prop_name = Symbol(:ref_, propname)
-        ref_prop = esc(ref_prop_name)
+        ref_fn = esc(cached ? take!(:ref_cached) : take!(:ref))
+        ref_prop_path = Symbol(:ref_, proppath)
+        ref_prop = esc(ref_prop_path)
 
         if cached
             push_res!(
                 quote
-                    $ref_prop(model::Internal) = get_cached(model, $spropname, $ref_fn)
+                    $ref_prop(model::Internal) = get_cached(model, $sproppath, $ref_fn)
                 end,
             )
         else
@@ -358,7 +357,7 @@ macro expose_data(
         # Generates:
         #   @methods ref_prop depends(deps...) read_as(_props..)
         props = Expr(:call, :read_as, Symbol.(:_, aliases)...)
-        invoke = Expr(:macrocall, Symbol("@method"), __source__, ref_prop_name, deps, props)
+        invoke = Expr(:macrocall, Symbol("@method"), __source__, ref_prop_path, deps, props)
         push_res!(quote
             $invoke
         end)
@@ -588,7 +587,7 @@ macro expose_data(
     #---------------------------------------------------------------------------------------
     # `Get` method.
 
-    get_prop_name = Symbol(:get_, propname)
+    get_prop_name = Symbol(:get_, proppath)
     get_prop = esc(get_prop_name)
 
     if generate_view
@@ -617,7 +616,7 @@ macro expose_data(
     if given(:set!)
         set!_fn = esc(take!(:set!))
         rhs_type = esc(take!(:set!_rhs_type))
-        set_prop!_name = Symbol(:set_, propname, :!)
+        set_prop!_name = Symbol(:set_, proppath, :!)
         set_prop! = esc(set_prop!_name)
         push_res!(
             quote
@@ -631,7 +630,7 @@ macro expose_data(
                     catch
                         Framework.properr(
                             typeof(model),
-                            $spropname,
+                            $sproppath,
                             "Cannot set with a value of type $(typeof(rhs)): $(repr(rhs)).",
                         )
                     end

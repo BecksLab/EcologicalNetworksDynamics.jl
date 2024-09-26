@@ -4,18 +4,18 @@
 
     @test m.richness == 3
     @test m.S == 3
-    @test m.species_richness == 3
-    @test m.n_species == 3
-    @test m.species_index == Dict(:a => 1, :b => 2, :c => 3)
-    @test m.species_names == [:a, :b, :c]
+    @test m.species.richness == 3
+    @test m.species.number == 3
+    @test m.species.index == Dict(:a => 1, :b => 2, :c => 3)
+    @test m.species.names == [:a, :b, :c]
 
     # Get a closure to convert index to label.
-    lab = m.species_label
+    lab = m.species.label
     @test lab(1) == :a
     @test lab.([1, 2, 3]) == [:a, :b, :c]
 
     # Default names.
-    @test Model(Species(3)).species_names == [:s1, :s2, :s3]
+    @test Model(Species(3)).species.names == [:s1, :s2, :s3]
 
     @sysfails(
         Model(Species([:a, :b, :a])),
@@ -23,7 +23,7 @@
     )
 
     @argfails(
-        Model(Species([:a, :b])).species_label(3),
+        Model(Species([:a, :b])).species.label(3),
         "Invalid index (3) when there are 2 species names."
     )
 

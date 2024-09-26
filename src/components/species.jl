@@ -4,7 +4,7 @@
 # because too many things depend on these.
 
 # (reassure JuliaLS)
-(false) && (local Species, _Species)
+(false) && (local Species, _Species, species)
 
 # ==========================================================================================
 # Blueprints.
@@ -21,7 +21,7 @@ end
 @blueprint Number "number of species"
 export Number
 
-F.expand!(m, bp::Number) = expand!(m, [Symbol(:s, i) for i in 1:bp.n])
+F.expand!(raw, bp::Number) = expand!(raw, [Symbol(:s, i) for i in 1:bp.n])
 
 #-------------------------------------------------------------------------------------------
 # Construct from a given set of names.
@@ -50,20 +50,20 @@ function F.late_check(_, bp::Names)
     end
 end
 
-F.expand!(m, bp::Names) = expand!(m, bp.names)
+F.expand!(raw, bp::Names) = expand!(raw, bp.names)
 
 #-------------------------------------------------------------------------------------------
 # Common expansion logic.
 
-function expand!(model, names)
+function expand!(raw, names)
     # Species are still internally stored within a value named "Foodweb",
     # but this will be refactored.
     fw = Internals.FoodWeb(names)
-    model.network = fw
-    Topologies.add_nodes!(model._topology, names, :species)
+    raw.network = fw
+    Topologies.add_nodes!(raw._topology, names, :species)
     # Keep reference safe in case we later switch to a multiplex network,
     # and want to add the layers one by one.
-    model._foodweb = fw
+    raw._foodweb = fw
 end
 
 end
@@ -82,9 +82,74 @@ export Species
 # Display.
 function F.shortline(io::IO, model::Model, ::_Species)
     (; S) = model
-    names = model.species_names
+    names = model.species.names
     print(io, "Species: $S ($(join_elided(names, ", ")))")
 end
+
+
+# ==========================================================================================
+# Basic associated methods.
+
+# Dedicated property space.
+@propspace species
+
+# View into species names.
+@expose_data nodes begin
+    property(species.names)
+    get(SpeciesNames{Symbol}, "species")
+    # Need to convert from internal legacy strings.
+    ref_cached(raw -> Symbol.(raw._foodweb.species))
+    depends(Species)
+end
+
+# Number of species aka. "richness".
+@expose_data graph begin
+    property(S, richness, species.richness, species.number)
+    get(raw -> length(@ref(raw, species.names)))
+    depends(Species)
+end
+
+# Get (ordered) species index.
+@expose_data graph begin
+    property(species.index)
+    ref_cached(
+        raw -> OrderedDict(name => i for (i, name) in enumerate(@ref(raw, species.names))),
+    )
+    get(raw -> deepcopy(@ref(raw, species.index)))
+    depends(Species)
+end
+
+# Get a closure able to convert species indices into the corresponding labels
+# defined within the model.
+@expose_data graph begin
+    property(species.label)
+    ref_cached(
+        raw ->
+            (i) -> begin
+                names = @ref(raw, species.names)
+                n = length(names)
+                if 1 <= i <= length(names)
+                    names[i]
+                else
+                    (are, s) = n > 1 ? ("are", "s") : ("is", "")
+                    argerr("Invalid index ($(i)) when there $are $n species name$s.")
+                end
+            end,
+    )
+    # This technically leaks a reference to the inner model as `m.species.label.raw`,
+    # but closure captures being accessible as fields is an implementation detail
+    # and no one should rely on it.
+    get(raw -> @ref(raw, species.label))
+    depends(Species)
+end
+
+# Numerous views into species nodes will make use of this index.
+macro species_index()
+    esc(:(index(raw -> @ref(raw, species.index))))
+end
+
+# ==========================================================================================
+# Doc/tests.
 
 @doc """
 The Species component adds the most basic nodes compartment into the model: species.
@@ -146,59 +211,3 @@ OrderedCollections.OrderedDict{Symbol, Int64} with 3 entries:
   :snake => 3
 ```
 """ Species
-
-# ==========================================================================================
-# Basic associated methods.
-
-# Number of species aka. "richness".
-@expose_data graph begin
-    property(richness, species_richness, n_species, S)
-    get(m -> length(m._species_index))
-    depends(Species)
-end
-
-# View into species names.
-@expose_data nodes begin
-    property(species_names)
-    get(SpeciesNames{Symbol}, "species")
-    # Need to convert from internal legacy strings.
-    ref_cache(m -> Symbol.(m._foodweb.species))
-    depends(Species)
-end
-
-# Get (ordered) species index.
-@expose_data graph begin
-    property(species_index)
-    ref_cache(m -> OrderedDict(name => i for (i, name) in enumerate(m._species_names)))
-    get(m -> deepcopy(m._species_index))
-    depends(Species)
-end
-
-# Get a closure able to convert species indices into the corresponding labels
-# defined within the model.
-@expose_data graph begin
-    property(species_label)
-    ref_cache(
-        m ->
-            (i) -> begin
-                names = m._species_names
-                n = length(names)
-                if 1 <= i <= length(names)
-                    names[i]
-                else
-                    (are, s) = n > 1 ? ("are", "s") : ("is", "")
-                    argerr("Invalid index ($(i)) when there $are $n species name$s.")
-                end
-            end,
-    )
-    # This technically leaks a reference to the inner model as `m.species_label.m`,
-    # but closure captures being accessible as fields is an implementation detail
-    # and no one should rely on it.
-    get(m -> m._species_label)
-    depends(Species)
-end
-
-# Numerous views into species nodes will make use of this index.
-macro species_index()
-    esc(:(index(m -> m._species_index)))
-end

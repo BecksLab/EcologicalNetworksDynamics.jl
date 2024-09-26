@@ -6,6 +6,10 @@ using OrderedCollections
 using SparseArrays
 using Graphs
 
+imap = Iterators.map
+ifilter = Iterators.filter
+iid(it) = imap(identity, it) # Useful to not leak refs.
+
 #-------------------------------------------------------------------------------------------
 # Shared API internals.
 # Most of these should move to the dedicated components files
