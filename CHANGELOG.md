@@ -26,7 +26,7 @@ true
   but they are no longer exposed or recommended.
 ```jl
 julia> m = Model(Species(3))
-julia> m.species.number
+julia> m.species.number # (no more .n_species)
 3
 julia> m.species.names == [:s1, :s2, :s3]
 true

@@ -105,7 +105,7 @@ end
 # Number of species aka. "richness".
 @expose_data graph begin
     property(S, richness, species.richness, species.number)
-    get(raw -> length(@ref(raw, species.names)))
+    get(raw -> length(@ref raw.species.names))
     depends(Species)
 end
 
@@ -113,9 +113,9 @@ end
 @expose_data graph begin
     property(species.index)
     ref_cached(
-        raw -> OrderedDict(name => i for (i, name) in enumerate(@ref(raw, species.names))),
+        raw -> OrderedDict(name => i for (i, name) in enumerate(@ref raw.species.names)),
     )
-    get(raw -> deepcopy(@ref(raw, species.index)))
+    get(raw -> deepcopy(@ref raw.species.index))
     depends(Species)
 end
 
@@ -126,7 +126,7 @@ end
     ref_cached(
         raw ->
             (i) -> begin
-                names = @ref(raw, species.names)
+                names = @ref raw.species.names
                 n = length(names)
                 if 1 <= i <= length(names)
                     names[i]
@@ -139,13 +139,13 @@ end
     # This technically leaks a reference to the inner model as `m.species.label.raw`,
     # but closure captures being accessible as fields is an implementation detail
     # and no one should rely on it.
-    get(raw -> @ref(raw, species.label))
+    get(raw -> @ref raw.species.label)
     depends(Species)
 end
 
 # Numerous views into species nodes will make use of this index.
 macro species_index()
-    esc(:(index(raw -> @ref(raw, species.index))))
+    esc(:(index(raw -> @ref raw.species.index)))
 end
 
 # ==========================================================================================

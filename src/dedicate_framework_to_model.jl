@@ -43,24 +43,79 @@ macro propspace(path)
     end
 end
 
+# ==========================================================================================
 # The above defines var"get_a.b" method names for nested properties
 # to avoid possible ambiguity with `get_a_b`.
 # Use this pattern for all propsace uses
 # and these convenience macro to call these methods on raw values.
+
 macro get(raw, path)
-    quote
-        $(Symbol(:get_, path))($raw)
-    end |> esc
+    read(:get, raw, path)
 end
+
 macro ref(raw, path)
-    quote
-        $(Symbol(:ref_, path))($raw)
-    end |> esc
+    read(:ref, raw, path)
 end
+
 macro set!(raw, path, rhs)
-    quote
-        $(Symbol(:set_, path, :!))($raw, $rhs)
-    end |> esc
+    write(raw, path, rhs)
+end
+
+# Convenience idiomatic syntax:
+# @get var.path.to.prop
+macro get(path)
+    convenience_read(__source__, :get, path)
+end
+macro ref(path)
+    convenience_read(__source__, :ref, path)
+end
+function convenience_read(src, kw, path)
+    err(m) = throw(AccessError(kw, m, src))
+    F.is_identifier_path(path) || err("Not an access path: $(repr(path)).")
+    var, path... = F.collect_path(path)
+    read(kw, var, join_path(path))
+end
+
+# @set var.path.to.prop = rhs
+macro set(input)
+    err(m) = throw(AccessError(:set, m, __source__))
+    (false) && (local path, rhs)
+    @capture(input, path_ = rhs_)
+    isnothing(path_) && err("Not a `path = rhs` expression: $(repr(input))")
+    F.is_identifier_path(path) || err("Not an access path: $(repr(path)).")
+    var, path... = reverse(F.collect_path(path))
+    write(var, join_path(path), rhs)
+end
+
+function join_path(v)
+    prop = last(v)
+    if length(v) == 1
+        prop
+    else
+        head = join_path(v[1:end-1])
+        :($head.$prop)
+    end
+end
+
+# Actual code generation.
+read(kw, raw, path) = quote
+    $(Symbol(kw, :_, path))($raw)
+end |> esc
+
+write(raw, path, rhs) = quote
+    $(Symbol(:set_, path, :!))($raw, $rhs)
+end |> esc
+
+# Dedicated errors.
+struct AccessError
+    type::Symbol
+    message::String
+    src::LineNumberNode
+end
+function Base.showerror(io::IO, e::AccessError)
+    print(io, "In @$(e.type) access: ")
+    println(io, crayon"blue", "$(e.src.file):$(e.src.line)", crayon"reset")
+    println(io, e.message)
 end
 
 # ==========================================================================================
