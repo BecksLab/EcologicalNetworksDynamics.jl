@@ -91,55 +91,8 @@ include("./args_to_fields.jl")
 #   Omega.Raw(...)
 #
 
-# Reassure JuliaLS: these are keywords for the macros.
-#  https://github.com/julia-vscode/StaticLint.jl/issues/381#issuecomment-2361743645
-if (false)
-    local graph, property, get, depends, nodes, edges, ref_cached, requires, E, V
-end
-
-# Factorize numerous imports
-# useful within the blueprint submodules.
-# TODO: craft some `@reexport` macro ? But this would confuse JuliaLS again :\
-module BlueprintModule
-import EcologicalNetworksDynamics:
-    BinAdjacency,
-    Blueprint,
-    Brought,
-    EcologicalNetworksDynamics,
-    F,
-    Internal,
-    Internals,
-    SparseMatrix,
-    Topologies,
-    imap,
-    refs,
-    refspace,
-    to_sparse_matrix,
-    @GraphData,
-    @check_list_refs,
-    @check_size,
-    @tographdata
-import .F: checkfails, @blueprint
-export Blueprint,
-    BinAdjacency,
-    Brought,
-    EcologicalNetworksDynamics,
-    F,
-    Internal,
-    Internals,
-    SparseMatrix,
-    Topologies,
-    checkfails,
-    imap,
-    refs,
-    refspace,
-    to_sparse_matrix,
-    @GraphData,
-    @blueprint,
-    @check_list_refs,
-    @check_size,
-    @tographdata
-end
+# Ease further code by grouping useful imports and re-exports within the same module.
+include("blueprint_modules.jl")
 
 # Central in the model nodes.
 include("./species.jl")
@@ -147,8 +100,8 @@ include("./species.jl")
 # Trophic links, structuring the whole network.
 include("./foodweb.jl")
 
-#  # Biorates and other values parametring the ODE.
-#  include("./body_mass.jl")
+# Biorates and other values parametring the ODE.
+include("./body_mass.jl")
 #  include("./metabolic_class.jl")
 
 #  # Useful temporary values to calculate other biorates.

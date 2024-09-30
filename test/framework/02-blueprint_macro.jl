@@ -63,6 +63,42 @@ comps(s) = collect(components(s))
     # Only evaluated once.
     @test ev_count == [1]
 
+    # Add a short descriptive string.
+    struct Fjr_b <: Blueprint{Value} end
+    @blueprint Fjr_b "description for Fjr_b"
+    @component Fjr{Value} blueprints(b::Fjr_b)
+    @test sprint(F.shortline, Fjr_b) == "description for Fjr_b"
+
+    # Add a expansion-time dependency.
+    struct Vkl_b <: Blueprint{Value} end
+    @blueprint Vkl_b
+    @component Vkl{Value} blueprints(b::Vkl_b)
+
+    struct Zav_b <: Blueprint{Value} end
+    @blueprint Zav_b "" depends(Vkl => "Zav likes Vkl") # Same syntax/logic as @component.
+    @component Zav{Value} blueprints(b::Zav_b)
+
+
+    s = System{Value}()
+    @sysfails(
+        (s + Zav.b()),
+        Add(MissingRequiredComponent, nothing, Vkl, [Zav.b], "Zav likes Vkl")
+    )
+    s += Vkl.b()
+    # Now it's okay.
+    s += Zav.b()
+    @test has_component(s, Vkl)
+    @test has_component(s, Zav)
+
+    # Elide reason.
+    struct Ovm_b <: Blueprint{Value} end
+    @blueprint Ovm_b "" depends(Vkl)
+    @component Ovm{Value} blueprints(b::Ovm_b)
+    @sysfails(
+        (System{Value}(Ovm.b())),
+        Add(MissingRequiredComponent, nothing, Vkl, [Ovm.b], nothing)
+    )
+
 end
 
 @testset "Invalid @blueprint macro invocations." begin
@@ -70,13 +106,13 @@ end
     @pbluefails(
         (@blueprint),
         "Not enough macro input provided. Example usage:\n\
-         | @blueprint Name \"short description\"\n"
+         | @blueprint Name \"short description\" depends(Components...)\n"
     )
 
     @pbluefails(
-        (@blueprint a b c),
+        (@blueprint a b c d),
         "Too much macro input provided. Example usage:\n\
-         | @blueprint Name \"short description\"\n"
+         | @blueprint Name \"short description\" depends(Components...)\n"
     )
 
     @xbluefails(
@@ -613,8 +649,7 @@ comps(s) = sort(collect(components(s)); by = repr)
 
     # Expanding from an abstract component.
     struct Som_b <: Blueprint{Value} end
-    @blueprint Som_b
-    F.expands_from(::Som_b) = A
+    @blueprint Som_b "" depends(A)
     @component Som{Value} blueprints(b::Som_b)
     @test isempty(F.requires(Som)) # The component requires nothing..
     # .. but expansion of this blueprint does.

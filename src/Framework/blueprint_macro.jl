@@ -5,7 +5,7 @@
 # and associated late_check/expand!/etc. methods the way they wish,
 # and then calls:
 #
-#   @blueprint Name "short string answering 'expandable from'"
+#   @blueprint Name "short string answering 'expandable from'" depends(components...)
 #
 # to record their type as a blueprint.
 #
@@ -82,6 +82,7 @@ function blueprint_macro(__module__, __source__, input...)
 
     # Convenience wrap.
     tovalue(xp, ctx, type) = to_value(__module__, xp, ctx, :xerr, type)
+    tocomp(xp, ctx) = to_component(__module__, xp, :ValueType, ctx, :xerr)
 
     #---------------------------------------------------------------------------------------
     # Macro input has become very simple now,
@@ -94,10 +95,10 @@ function blueprint_macro(__module__, __source__, input...)
     end
 
     li = length(input)
-    if li == 0 || li > 2
+    if li == 0 || li > 3
         perr(
             "$(li == 0 ? "Not enough" : "Too much") macro input provided. Example usage:\n\
-             | @blueprint Name \"short description\"\n",
+             | @blueprint Name \"short description\" depends(Components...)\n",
         )
     end
 
@@ -135,6 +136,17 @@ function blueprint_macro(__module__, __source__, input...)
         end)
     end
 
+    # Extract possible required components.
+    deps = if length(input) > 2
+        depends = input[3]
+        (false) && (local comps) # (reassure JuliaLS)
+        @capture(depends, depends(comps__))
+        isnothing(comps) && (comps = [])
+        to_comp_reasons(__module__, comps, :ValueType, "Required component", :xerr)
+    else
+        :([])
+    end
+
     # No more sophisticated sections then.
     # Should they be needed once again, inspire from @component macro to restore them.
 
@@ -149,7 +161,7 @@ function blueprint_macro(__module__, __source__, input...)
             for (name, fieldtype) in zip(fieldnames(NewBlueprint), NewBlueprint.types)
 
                 fieldtype <: BroughtField || continue
-                C = componentof(fieldtype)
+                local C = componentof(fieldtype)
                 # Check whether either the specialized method XOR its convenience alias
                 # have been defined.
                 sp = hasmethod(implied_blueprint_for, Tuple{NewBlueprint,Type{C}})
@@ -189,6 +201,13 @@ function blueprint_macro(__module__, __source__, input...)
             end
         end,
     )
+
+    #---------------------------------------------------------------------------------------
+    # Guard against dependency redundancies.
+    push_res!(quote
+        deps = $deps
+        checked_deps = triangular_vertical_guard(deps, ValueType, xerr)
+    end)
 
     #---------------------------------------------------------------------------------------
     # At this point, all necessary information should have been parsed and checked,
@@ -232,6 +251,11 @@ function blueprint_macro(__module__, __source__, input...)
             end
         end,
     )
+
+    # Setup expansion dependencies.
+    push_res!(quote
+        Framework.expands_from(::NewBlueprint) = checked_deps
+    end)
 
     # Setup the blueprints brought.
     push_res!(

@@ -155,6 +155,44 @@ function check_component_type_or_instance(xp, C::Symbol, ctx, xerr)
     end
 end
 
+# Collect 'component => reason' pairs (as checked expressions again).
+function to_comp_reasons(mod, xps, V, ctx, xerr)
+    res = :([])
+    for req in xps
+        # Set requirement reason to 'nothing' if unspecified.
+        (false) && (local comp, reason) # (reassure JuliaLS)
+        @capture(req, comp_ => reason_)
+        if isnothing(reason)
+            comp = req
+        else
+            reason = to_value(mod, reason, "$ctx reason", xerr, String)
+        end
+        comp = to_component(mod, comp, V, "$ctx", xerr)
+        req = :($comp => $reason)
+        push!(res.args, req)
+    end
+    res
+end
+
+# Guard against redundancy in a list like collected above.
+function triangular_vertical_guard(comp_reasons, V, xerr)
+    reqs = CompsReasons{V}()
+    for (Req, reason) in comp_reasons
+        # Triangular-check against redundancies,
+        # checking through abstract types.
+        for (Already, _) in reqs
+            vertical_guard(
+                Req,
+                Already,
+                () -> xerr("Requirement $Req is specified twice."),
+                (Sub, Sup) -> xerr("Requirement $Sub is also specified as $Sup."),
+            )
+        end
+        reqs[Req] = reason
+    end
+    reqs
+end
+
 
 # Check whether the expression is a `raw.identifier.path`.
 # (If so, then we assume it produces no side effect

@@ -165,11 +165,10 @@ end
 # so it does not *require* A,
 # but it needs A to expand.
 struct ReflectFromB <: Blueprint{Value} end
-F.expands_from(::ReflectFromB) = A
 function F.expand!(v, ::ReflectFromB)
     v._dict[:reflection] = collect(first.(repr.(Iterators.take(Iterators.cycle(v.a), v.n))))
 end
-@blueprint ReflectFromB
+@blueprint ReflectFromB "" depends(A)
 @component begin
     Reflection{Value}
     requires(Size)

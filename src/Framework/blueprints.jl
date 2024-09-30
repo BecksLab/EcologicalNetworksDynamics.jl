@@ -59,9 +59,10 @@ expands_from(::Blueprint{V}) where {V} = () # Require nothing by default.
 # so make its return type flexible,
 # guarded by the below.
 function checked_expands_from(bp::Blueprint{V}) where {V}
-    err(x) = "Invalid expansion requirement. \
-              Expected either a component for $V or (component, reason::String), \
-              got instead: $(repr(x)) ::$(typeof(x))."
+    err(x) = throw(InvalidBlueprintDependency("Invalid expansion requirement. \
+                                               Expected either a component for $V \
+                                               or (component, reason::String), \
+                                               got instead: $(repr(x)) ::$(typeof(x))."))
     to_reqreason(x) =
         if x isa Component{V}
             (typeof(x), nothing)
@@ -70,16 +71,16 @@ function checked_expands_from(bp::Blueprint{V}) where {V}
         else
             req, reason = try
                 q, r = x
-                q, String(r)
+                q, (isnothing(r) ? r : String(r))
             catch
-                err()
+                err(x)
             end
             if req isa Component{V}
                 (typeof(req), reason)
             elseif req isa CompType{V}
                 (req, reason)
             else
-                err()
+                err(x)
             end
         end
     x = expands_from(bp)
@@ -88,6 +89,9 @@ function checked_expands_from(bp::Blueprint{V}) where {V}
     catch
         Iterators.map(to_reqreason, x)
     end
+end
+struct InvalidBlueprintDependency
+    message::String
 end
 
 # List brought blueprints.

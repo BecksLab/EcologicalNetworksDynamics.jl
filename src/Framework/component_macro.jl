@@ -151,20 +151,8 @@ function component_macro(__module__, __source__, input...)
         @capture(i, requires(reqs__))
         if !isnothing(reqs)
             isnothing(requires_xp) || perr("The `requires` section is specified twice.")
-            requires_xp = :([])
-            for req in reqs
-                # Set requirement reason to 'nothing' if unspecified.
-                (false) && (local comp, reason) # (reassure JuliaLS)
-                @capture(req, comp_ => reason_)
-                if isnothing(reason)
-                    comp = req
-                else
-                    reason = tovalue(reason, "Requirement reason", String)
-                end
-                comp = tocomp(comp, "Required component")
-                req = :($comp => $reason)
-                push!(requires_xp.args, req)
-            end
+            requires_xp =
+                to_comp_reasons(__module__, reqs, :ValueType, "Required component", :xerr)
             continue
         end
 
@@ -199,26 +187,11 @@ function component_macro(__module__, __source__, input...)
     isnothing(blueprints_xp) && (blueprints_xp = :([]))
 
     # Check that consistent required component types have been specified.
-    push_res!(
-        quote
-
-            # Required components.
-            reqs = CompsReasons{ValueType}()
-            for (Req, reason) in $requires_xp
-                # Triangular-check against redundancies,
-                # checking through abstract types.
-                for (Already, _) in reqs
-                    vertical_guard(
-                        Req,
-                        Already,
-                        () -> xerr("Requirement $Req is specified twice."),
-                        (Sub, Sup) -> xerr("Requirement $Sub is also specified as $Sup."),
-                    )
-                end
-                reqs[Req] = reason
-            end
-        end,
-    )
+    push_res!(quote
+        # Required components.
+        reqs = $requires_xp
+        reqs = triangular_vertical_guard(reqs, ValueType, xerr)
+    end)
 
     # Guard against redundancies / collisions among base blueprints.
     push_res!(

@@ -1,5 +1,90 @@
 # Set or generate body masses for every species in the model.
 
+# (reassure JuliaLS)
+(false) && (local BodyMass, _BodyMass)
+
+# ==========================================================================================
+# Blueprints.
+
+module BodyMassBlueprints
+using ..BlueprintModule
+import .EcologicalNetworksDynamics: _Species, Species, _Foodweb, Foodweb
+
+#-------------------------------------------------------------------------------------------
+# Calculate from trophic levels with a Z-value.
+
+mutable struct Z <: Blueprint
+    z::Float64
+end
+@blueprint Z "trophic levels" depends(Foodweb)
+export Z
+
+function F.late_check(_, bp::Z)
+    (; z) = bp
+    z >= 0 || checkfails("Cannot calculate body masses from trophic levels \
+                          with a negative value of Z: $z.")
+end
+
+function F.expand!(raw, bp::Z)
+    (; z) = bp
+    A = @ref raw.A
+    M = Internals.compute_mass(A, z)
+    raw._foodweb.M = M
+end
+
+#-------------------------------------------------------------------------------------------
+# From a species-indexed map.
+
+mutable struct Map <: Blueprint
+    M::@GraphData Map{Float64}
+    species::Brought(Species)
+    BodyMassFromRawValues(M, sp = _Species) = new(@tographdata Map{Float64}, sp)
+end
+F.implied_blueprint_for(bp::Map, ::_Species) = Species(refs(bp.M))
+@blueprint Map "{species ↦ mass} map"
+export Map
+
+
+function F.late_check(raw, bp::Map)
+    (; M) = bp
+    index = @ref raw.species.index
+    @check_list_refs M :species index dense
+end
+
+function F.expand!(raw, bp::Map)
+    (; M) = bp
+    index = @ref raw.species.index
+    M = to_dense_vector(M, index)
+    raw._foodweb.M = M
+end
+
+#-------------------------------------------------------------------------------------------
+# From raw values.
+
+mutable struct Raw <: Blueprint
+    M::Vector{Float64} # HERE: also accept scalar.
+    species::Brought(Species)
+    BodyMassFromRawValues(M, sp = _Species) = new(Float64.(M), sp)
+end
+F.implied_blueprint_for(bp::Raw, ::_Species) = Species(length(bp.M))
+@blueprint Raw "masses values"
+export Raw
+
+function F.late_check(raw, bp::Map)
+    (; M) = bp
+    S = @get raw.S
+    @check_size M S
+end
+
+function F.expand!(model, bp::BodyMassFromRawValues)
+    (; M) = bp
+    S = @get raw.S
+    @to_size_if_scalar Real M S
+    model._foodweb.M = M
+end
+
+end
+
 # Body mass are either given as-is by user
 # or they are calculated from the foodweb with a Z-value.
 # As a consequence, component expansion only requires `Foodweb`
@@ -35,66 +120,6 @@ function BodyMass(raw = nothing; Z = nothing, M = nothing)
 end
 
 export BodyMass
-
-#-------------------------------------------------------------------------------------------
-# First variant: user provides raw body masses.
-
-mutable struct BodyMassFromRawValues <: BodyMass
-    M::@GraphData {Scalar, Vector, Map}{Float64}
-    BodyMassFromRawValues(M) = new(@tographdata M SVK{Float64})
-end
-
-# Infer species compartment from body mass vector if given.
-F.can_imply(bp::BodyMassFromRawValues, ::Type{Species}) = !(bp.M isa Real)
-Species(bp::BodyMassFromRawValues) =
-    if bp.M isa Vector
-        Species(length(bp.M))
-    else
-        Species(refs(bp.M))
-    end
-
-function F.check(model, bp::BodyMassFromRawValues)
-    (; S, _species_index) = model
-    (; M) = bp
-    @check_refs_if_list M :species _species_index dense
-    @check_size_if_vector M S
-end
-
-function F.expand!(model, bp::BodyMassFromRawValues)
-    (; S, _species_index) = model
-    (; M) = bp
-    @to_dense_vector_if_map M _species_index
-    @to_size_if_scalar Real M S
-    model._foodweb.M = M
-end
-
-@component BodyMassFromRawValues implies(Species)
-export BodyMassFromRawValues
-
-#-------------------------------------------------------------------------------------------
-# Second variant: body masses are calculated from trophic levels.
-
-mutable struct BodyMassFromZ <: BodyMass
-    Z::@GraphData {Scalar}{Float64}
-    BodyMassFromZ(Z) = new(@tographdata Z S{Float64})
-end
-
-function F.check(_, bp::BodyMassFromZ)
-    (; Z) = bp
-    Z >= 0 || checkfails(
-        "Cannot calculate body masses from trophic levels with a negative value of Z: $Z.",
-    )
-end
-
-function F.expand!(model, bp::BodyMassFromZ)
-    (; Z) = bp
-    A = model._foodweb.A
-    M = Internals.compute_mass(A, Z)
-    model._foodweb.M = M
-end
-
-@component BodyMassFromZ requires(Foodweb)
-export BodyMassFromZ
 
 #-------------------------------------------------------------------------------------------
 # Don't specify both ways.
