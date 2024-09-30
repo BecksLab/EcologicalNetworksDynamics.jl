@@ -270,7 +270,7 @@ function blueprint_macro(__module__, __source__, input...)
     push_res!(
         quote
             Base.show(io::IO, b::NewBlueprint) = display_short(io, b)
-            Base.show(io::IO, ::MIME"text/plain", b::NewBlueprint) = display_long(io, b)
+            Base.show(io::IO, ::MIME"text/plain", b::NewBlueprint) = display_long(io, b, 0)
 
             function Framework.display_short(io::IO, bp::NewBlueprint)
                 comps = provided_comps_display(bp)
@@ -278,14 +278,12 @@ function blueprint_macro(__module__, __source__, input...)
                 for (i, name) in enumerate(fieldnames(NewBlueprint))
                     i > 1 && print(io, ", ")
                     print(io, "$name: ")
-                    field = getfield(bp, name)
-                    # Special-case brought fields.
-                    display_blueprint_field_short(io, field)
+                    display_blueprint_field_short(io, bp, Val(name))
                 end
                 print(io, ")")
             end
 
-            function Framework.display_long(io::IO, bp::NewBlueprint; level = 0)
+            function Framework.display_long(io::IO, bp::NewBlueprint, level)
                 comps = provided_comps_display(bp)
                 print(io, "blueprint for $comps: $(nameof(NewBlueprint)) {")
                 preindent = repeat("  ", level)
@@ -293,10 +291,8 @@ function blueprint_macro(__module__, __source__, input...)
                 indent = repeat("  ", level)
                 names = fieldnames(NewBlueprint)
                 for name in names
-                    field = getfield(bp, name)
                     print(io, "\n$indent$name: ")
-                    # Special-case brought fields.
-                    display_blueprint_field_long(io, field; level)
+                    display_blueprint_field_long(io, bp, Val(name), level)
                     print(io, ",")
                 end
                 if !isempty(names)
@@ -336,10 +332,6 @@ specified_as_blueprint(B::Type{<:Blueprint}) = false
 # Stubs for display methods.
 function display_short end
 function display_long end
-
-# Escape hatch to override in case blueprint field values need special display.
-display_blueprint_field_short(io::IO, val) = print(io, val)
-display_blueprint_field_long(io::IO, val; level = 0) = print(io, val)
 
 # Special-case the single-provided-component case.
 function provided_comps_display(bp::Blueprint)
@@ -530,6 +522,27 @@ end
 # ==========================================================================================
 #  Display.
 
+# Escape hatches to override in case blueprint field values need special display.
+function display_blueprint_field_short(io::IO, bp::Blueprint, ::Val{name}) where {name}
+    show(io, getfield(bp, name))
+end
+
+function display_blueprint_field_long(
+    io::IO,
+    bp::Blueprint,
+    ::Val{name},
+    level,
+) where {name}
+    display_blueprint_field_long(io, bp, Val(name))
+end
+
+# Ignore level by default,
+# in a way that makes it possible to also specialize ignoring level.
+function display_blueprint_field_long(io::IO, bp::Blueprint, ::Val{name}) where {name}
+    show(io, MIME("text/plain"), getfield(bp, name))
+end
+
+# Special-casing brought fields.
 function Base.show(io::IO, ::Type{<:BroughtField{C,V}}) where {C,V}
     grey = crayon"black"
     reset = crayon"reset"
@@ -557,7 +570,7 @@ function display_blueprint_field_short(io::IO, bf::BroughtField)
     end
 end
 
-function display_blueprint_field_long(io::IO, bf::BroughtField; level = 0)
+function display_blueprint_field_long(io::IO, bf::BroughtField, level)
     grey = crayon"black"
     reset = crayon"reset"
     (; value) = bf
@@ -567,7 +580,7 @@ function display_blueprint_field_long(io::IO, bf::BroughtField; level = 0)
         print(io, "$grey<implied blueprint for $reset$value$grey>$reset")
     elseif value isa Blueprint
         print(io, "$grey<embedded $reset")
-        display_long(io, value; level)
+        display_long(io, value, level)
         print(io, "$grey>$reset")
     else
         throw("unreachable: invalid brought blueprint field value: \

@@ -5,8 +5,6 @@
 # Typically, many default values are calculated from this layer,
 # and values checks are performed against this layer.
 
-# HERE: file upgraded, test.
-
 # (reassure JuliaLS)
 (false) && (local Foodweb, _Foodweb, trophic)
 
@@ -44,37 +42,22 @@ F.implied_blueprint_for(bp::Matrix, ::_Species) = Species(size(bp.A, 1))
 
 F.expand!(raw, bp::Matrix) = expand_from_matrix!(raw, bp.A)
 
-#  # Blueprint.
-#  function Base.show(io::IO, fw::Foodweb)
-    #  (; A) = fw
-    #  L = if A isa AbstractMatrix
-        #  sum(A)
-    #  else
-        #  sum(length.(values(A)))
-    #  end
-    #  print(io, "blueprint for Foodweb with $L trophic link$(L == 1 ? "" : "s")")
-#  end
+function F.display_blueprint_field_short(io::IO, bp::Matrix, ::Val{:A})
+    n = sum(bp.A)
+    print(io, "$n link$(n > 1 ? "s" : "")")
+end
 
-#  function Base.show(io::IO, ::MIME"text/plain", fw::Foodweb)
-    #  (; A) = fw
-    #  print(io, "$fw:\n  A:")
-    #  if A isa AbstractMatrix
-        #  println(io, " " * repr(MIME("text/plain"), A))
-    #  else
-        #  for (pred, preys) in A
-            #  preys =
-                #  isempty(preys) ? "nothing" : join((repr(p) for p in preys), ", ", " and ")
-            #  print(io, "\n  $(repr(pred)) eats $preys")
-        #  end
-    #  end
-#  end
+function F.display_blueprint_field_long(io::IO, bp::Matrix, ::Val{:A})
+    n = sum(bp.A)
+    print(io, "$n trophic link$(n > 1 ? "s" : "")")
+end
 
 #-------------------------------------------------------------------------------------------
 # From ajacency list.
 
 mutable struct Adjacency <: Blueprint
     A::@GraphData {Adjacency}{:bin} # (refs are either numbers or names)
-    Matrix(A) = new(@tographdata A {Adjacency}{:bin})
+    Adjacency(A) = new(@tographdata A {Adjacency}{:bin})
 end
 @blueprint Adjacency "adjacency list of trophic links"
 export Adjacency
@@ -103,6 +86,16 @@ function F.expand!(raw, bp::Adjacency)
     index = raw._foodweb._species_index
     A = to_sparse_matrix(bp.A, index, index)
     expand_from_matrix!(raw, A)
+end
+
+function F.display_blueprint_field_short(io::IO, bp::Adjacency, ::Val{:A})
+    n = sum(length.(imap(last, bp.A)))
+    print(io, "$n link$(n > 1 ? "s" : "")")
+end
+
+function F.display_blueprint_field_long(io::IO, bp::Adjacency, ::Val{:A})
+    n = sum(length.(imap(last, bp.A)))
+    print(io, "$n trophic link$(n > 1 ? "s" : "")")
 end
 
 #-------------------------------------------------------------------------------------------

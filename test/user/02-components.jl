@@ -16,7 +16,10 @@ using ..TestUser
 const EN = EcologicalNetworksDynamics
 
 # Many small similar components tests files, although they easily diverge.
-only = ["./data_components/species.jl"] # Only run these if specified.
+only = [
+    "./data_components/species.jl"
+    "./data_components/foodweb.jl"
+] # Only run these if specified.
 if isempty(only)
     for subfolder in ["./data_components", "./code_components"]
         for (folder, _, files) in walkdir(joinpath(dirname(@__FILE__), subfolder))

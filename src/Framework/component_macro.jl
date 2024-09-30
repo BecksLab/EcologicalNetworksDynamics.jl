@@ -230,7 +230,11 @@ function component_macro(__module__, __source__, input...)
                     # Collect all blueprints within the given module
                     # and use their type names as component fields names.
                     bps = []
-                    for name in names(spec)
+                    # /!\ Use unexposed Julia API here: unsorted_names,
+                    # so that the order of base blueprints within the components
+                    # match their order of definition within the lib.
+                    # If this ever becomes unavailable, just switch back to `names`.
+                    for name in Base.unsorted_names(spec)
                         local B = getfield(spec, name)
                         B isa DataType && B <: Blueprint{ValueType} || continue
                         push!(bps, (name, B))
