@@ -20,8 +20,11 @@ import .EcologicalNetworksDynamics: _Species, Species
 
 mutable struct Matrix <: Blueprint
     A::SparseMatrix
-    Matrix(A) = new(@tographdata A {SparseMatrix}{:bin})
+    species::Brought(Species)
+    Matrix(A, sp = Species) = new((@tographdata A {SparseMatrix}{:bin}), sp)
 end
+# Infer number of species from matrix size.
+F.implied_blueprint_for(bp::Matrix, ::_Species) = Species(size(bp.A, 1))
 @blueprint Matrix "boolean matrix of trophic links"
 export Matrix
 
@@ -37,18 +40,16 @@ function F.check(raw, bp::Matrix)
     @check_size A (S, S)
 end
 
-# Infer number of species from matrix size.
-F.implied_blueprint_for(bp::Matrix, ::_Species) = Species(size(bp.A, 1))
 
 F.expand!(raw, bp::Matrix) = expand_from_matrix!(raw, bp.A)
 
-function F.display_blueprint_field_short(io::IO, bp::Matrix, ::Val{:A})
-    n = sum(bp.A)
+function F.display_blueprint_field_short(io::IO, A, ::Matrix, ::Val{:A})
+    n = sum(A)
     print(io, "$n link$(n > 1 ? "s" : "")")
 end
 
-function F.display_blueprint_field_long(io::IO, bp::Matrix, ::Val{:A})
-    n = sum(bp.A)
+function F.display_blueprint_field_long(io::IO, A, ::Matrix, ::Val{:A})
+    n = sum(A)
     print(io, "$n trophic link$(n > 1 ? "s" : "")")
 end
 
@@ -57,15 +58,8 @@ end
 
 mutable struct Adjacency <: Blueprint
     A::@GraphData {Adjacency}{:bin} # (refs are either numbers or names)
-    Adjacency(A) = new(@tographdata A {Adjacency}{:bin})
-end
-@blueprint Adjacency "adjacency list of trophic links"
-export Adjacency
-
-function F.check(raw, bp::Adjacency)
-    (; A) = bp
-    index = raw._foodweb._species_index
-    @check_list_refs A :species index
+    species::Brought(Species)
+    Adjacency(A, sp = Species) = new((@tographdata A {Adjacency}{:bin}), sp)
 end
 
 # Infer number or names of species from the lists.
@@ -82,19 +76,28 @@ function F.implied_blueprint_for(bp::Adjacency, ::_Species)
     end
 end
 
+@blueprint Adjacency "adjacency list of trophic links"
+export Adjacency
+
+function F.check(raw, bp::Adjacency)
+    (; A) = bp
+    index = raw._foodweb._species_index
+    @check_list_refs A :species index
+end
+
 function F.expand!(raw, bp::Adjacency)
     index = raw._foodweb._species_index
     A = to_sparse_matrix(bp.A, index, index)
     expand_from_matrix!(raw, A)
 end
 
-function F.display_blueprint_field_short(io::IO, bp::Adjacency, ::Val{:A})
-    n = sum(length.(imap(last, bp.A)))
+function F.display_blueprint_field_short(io::IO, A, ::Adjacency)
+    n = sum(length.(imap(last, A)))
     print(io, "$n link$(n > 1 ? "s" : "")")
 end
 
-function F.display_blueprint_field_long(io::IO, bp::Adjacency, ::Val{:A})
-    n = sum(length.(imap(last, bp.A)))
+function F.display_blueprint_field_long(io::IO, A, ::Adjacency)
+    n = sum(length.(imap(last, A)))
     print(io, "$n trophic link$(n > 1 ? "s" : "")")
 end
 

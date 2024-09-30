@@ -278,7 +278,10 @@ function blueprint_macro(__module__, __source__, input...)
                 for (i, name) in enumerate(fieldnames(NewBlueprint))
                     i > 1 && print(io, ", ")
                     print(io, "$name: ")
-                    display_blueprint_field_short(io, bp, Val(name))
+                    # Dispatch on both (bp, name) and field value to allow
+                    # either kind of specialization.
+                    value = getfield(bp, name)
+                    display_blueprint_field_short(io, value, bp, Val(name))
                 end
                 print(io, ")")
             end
@@ -292,7 +295,8 @@ function blueprint_macro(__module__, __source__, input...)
                 names = fieldnames(NewBlueprint)
                 for name in names
                     print(io, "\n$indent$name: ")
-                    display_blueprint_field_long(io, bp, Val(name), level)
+                    value = getfield(bp, name)
+                    display_blueprint_field_long(io, value, bp, Val(name), level)
                     print(io, ",")
                 end
                 if !isempty(names)
@@ -522,25 +526,26 @@ end
 # ==========================================================================================
 #  Display.
 
-# Escape hatches to override in case blueprint field values need special display.
-function display_blueprint_field_short(io::IO, bp::Blueprint, ::Val{name}) where {name}
-    show(io, getfield(bp, name))
-end
+# Hooks to specialize in case blueprint field values need special display.
+display_blueprint_field_short(io::IO, value, bp::Blueprint, ::Val) =
+    display_blueprint_field_short(io, value, bp)
+# Ignore field name by default.
+display_blueprint_field_short(io::IO, value, ::Blueprint) = print(io, value)
 
 function display_blueprint_field_long(
     io::IO,
+    value,
     bp::Blueprint,
     ::Val{name},
     level,
 ) where {name}
-    display_blueprint_field_long(io, bp, Val(name))
+    display_blueprint_field_long(io, value, bp, Val(name))
 end
 
-# Ignore level by default,
-# in a way that makes it possible to also specialize ignoring level.
-function display_blueprint_field_long(io::IO, bp::Blueprint, ::Val{name}) where {name}
-    show(io, MIME("text/plain"), getfield(bp, name))
-end
+# Ignore level by default, then field name.
+display_blueprint_field_long(io::IO, value, bp::Blueprint, ::Val) =
+    display_blueprint_field_long(io, value, bp)
+display_blueprint_field_long(io::IO, value, ::Blueprint) = print(io, value)
 
 # Special-casing brought fields.
 function Base.show(io::IO, ::Type{<:BroughtField{C,V}}) where {C,V}
@@ -550,7 +555,11 @@ function Base.show(io::IO, ::Type{<:BroughtField{C,V}}) where {C,V}
 end
 Base.show(io::IO, bf::BroughtField) = display_blueprint_field_short(io, bf)
 Base.show(io::IO, ::MIME"text/plain", bf::BroughtField) =
-    display_blueprint_field_long(io, bf)
+    display_blueprint_field_long(io, bf, 0)
+
+# Default display is the same regardless of surrounding blueprint / field name.
+display_blueprint_field_short(io::IO, bf::BroughtField, ::Blueprint, ::Val) =
+    display_blueprint_field_short(io::IO, bf::BroughtField)
 
 function display_blueprint_field_short(io::IO, bf::BroughtField)
     grey = crayon"black"
@@ -561,14 +570,15 @@ function display_blueprint_field_short(io::IO, bf::BroughtField)
     elseif value isa CompType
         print(io, value)
     elseif value isa Blueprint
-        print(io, "<")
         display_short(io, value)
-        print(io, ">")
     else
         throw("unreachable: invalid brought blueprint field value: \
                $(repr(value)) ::$(typeof(value))")
     end
 end
+
+display_blueprint_field_long(io::IO, bf::BroughtField, ::Blueprint, ::Val, level) =
+    display_blueprint_field_long(io, bf, level)
 
 function display_blueprint_field_long(io::IO, bf::BroughtField, level)
     grey = crayon"black"

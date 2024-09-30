@@ -3,7 +3,7 @@
 # Fine-grained namespace control.
 import .Framework
 const F = Framework # Convenience alias for the whole components library.
-import .F: add!, blueprints, components, has_component, @method, @component, System
+import .F: add!, blueprints, components, has_component, @method, @component, System, Brought
 
 # Direct re-exports from the framework module.
 export add!, properties, blueprints, components, has_component
@@ -120,12 +120,18 @@ end
 
 # ==========================================================================================
 # Display.
+
 Base.show(io::IO, ::Type{Internal}) = print(io, "<internals>") # Shorten and opacify.
 Base.show(io::IO, ::Type{Model}) = print(io, "Model")
 
 Base.show(io::IO, ::MIME"text/plain", I::Type{Internal}) = Base.show(io, I)
 Base.show(io::IO, ::MIME"text/plain", ::Type{Model}) =
     print(io, "Model $(crayon"dark_gray")(alias for $System{$Internal})$(crayon"reset")")
+
+# Default display for blueprint fields.
+function F.display_blueprint_field_long(io::IO, v::Vector, ::Blueprint)
+    print(io, "[$(join_elided(v, ", "))]")
+end
 
 # ==========================================================================================
 

@@ -44,3 +44,27 @@ true
 ## New features
 
 - Model properties available with `<tab>`-completion within the REPL.
+
+- Every blueprint *brought* by another is available as a brought field
+  to be either *embedded*, *implied* or *unbrought*:
+```jl
+julia> fw = Foodweb.Matrix([0 0; 1 0]) # Implied (brought if missing).
+blueprint for <Foodweb>: Matrix {
+  A: 1 trophic link,
+  species: <implied blueprint for <Species>>,
+}
+julia> fw.species = [:a, :b]; # Embedded (brought, erroring if already present).
+       fw
+blueprint for <Foodweb>: Matrix {
+  A: 1 trophic link,
+  species: <embedded blueprint for <Species>: Names {
+    names: [:a, :b],
+  }>,
+}
+julia> fw.species = nothing; # Unbrought (error if missing).
+       fw
+blueprint for <Foodweb>: Matrix {
+  A: 1 trophic link,
+  species: <no blueprint brought>,
+}
+```

@@ -104,6 +104,7 @@ module BlueprintModule
 import EcologicalNetworksDynamics:
     BinAdjacency,
     Blueprint,
+    Brought,
     EcologicalNetworksDynamics,
     F,
     Internal,
@@ -121,6 +122,7 @@ import EcologicalNetworksDynamics:
 import .F: checkfails, @blueprint
 export Blueprint,
     BinAdjacency,
+    Brought,
     EcologicalNetworksDynamics,
     F,
     Internal,
