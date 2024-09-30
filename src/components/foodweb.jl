@@ -274,8 +274,8 @@ include("./preys-tops.jl")
 # Get a sparse matrix highlighting only the producer-to-producer links.
 
 function calculate_producers_matrix(raw)
-    S = @ref raw.S
-    prods = @ref raw.producers.indices
+    S = @get raw.S
+    prods = @get raw.producers.indices
     res = spzeros(Bool, S, S)
     for i in prods, j in prods
         res[i, j] = true
@@ -296,7 +296,7 @@ end
 #                                    or 'carnivorous' trophic links: consumers-to-consumers.
 
 function calculate_herbivory_matrix(raw)
-    S = @ref raw.S
+    S = @get raw.S
     A = @ref raw.A
     res = spzeros(Bool, S, S)
     preds, preys, _ = findnz(A)
@@ -307,7 +307,7 @@ function calculate_herbivory_matrix(raw)
 end
 
 function calculate_carnivory_matrix(raw)
-    S = @ref raw.S
+    S = @get raw.S
     A = @ref raw.A
     res = spzeros(Bool, S, S)
     preds, preys, _ = findnz(A)

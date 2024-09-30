@@ -304,9 +304,9 @@ end
     @component Plv{Value} blueprints(b::Yrv_b, Plv_b)
 
     # Those exported from the module have been added.
-    @test fieldnames(_Plv) == (:b, :Fek_b, :Ibh_b)
+    @test fieldnames(_Plv) == (:b, :Ibh_b, :Fek_b)
     @test Plv.b == Yrv_b
-    @test Plv.Fek_b == Plv_b.Fek_b
+    @test Plv.Ibh_b == Plv_b.Ibh_b
     @test Plv.Fek_b == Plv_b.Fek_b
 
     @xcompfails(
