@@ -2,6 +2,14 @@ module MethodMacro
 
 using EcologicalNetworksDynamics.Framework
 
+# Use submodules to not clash component names.
+# ==========================================================================================
+module Invocations
+using ..MethodMacro
+using EcologicalNetworksDynamics.Framework
+using Main: @failswith, @sysfails, @pmethfails, @xmethfails
+using Test
+
 # The plain value to wrap in a "system" in subsequent tests.
 mutable struct Value
     _member::Union{Nothing,Int64}
@@ -12,14 +20,6 @@ Base.copy(v::Value) = deepcopy(v)
 Base.getproperty(v::Value, p::Symbol) = Framework.unchecked_getproperty(v, p)
 Base.setproperty!(v::Value, p::Symbol, rhs) = Framework.unchecked_setproperty!(v, p, rhs)
 export Value
-
-# Use submodules to not clash component names.
-# ==========================================================================================
-module Invocations
-using ..MethodMacro
-using EcologicalNetworksDynamics.Framework
-using Main: @failswith, @sysfails, @pmethfails, @xmethfails
-using Test
 
 @testset "Invocation variations for @method macro." begin
 
@@ -385,6 +385,17 @@ using EcologicalNetworksDynamics.Framework
 using Main: @sysfails, @pmethfails, @xmethfails
 using Test
 
+# The plain value to wrap in a "system" in subsequent tests.
+mutable struct Value
+    _member::Union{Nothing,Int64}
+    Value() = new(nothing)
+end
+Base.copy(v::Value) = deepcopy(v)
+# Willing to enjoy wrapped value properties.
+Base.getproperty(v::Value, p::Symbol) = Framework.unchecked_getproperty(v, p)
+Base.setproperty!(v::Value, p::Symbol, rhs) = Framework.unchecked_setproperty!(v, p, rhs)
+export Value
+
 @testset "Abstract component semantics for @method." begin
 
     # Component type hierachy.
@@ -449,6 +460,17 @@ using EcologicalNetworksDynamics.Framework
 using Main: @sysfails, @pmethfails, @xmethfails
 using Test
 const F = Framework
+
+# The plain value to wrap in a "system" in subsequent tests.
+mutable struct Value
+    _member::Union{Nothing,Int64}
+    Value() = new(nothing)
+end
+Base.copy(v::Value) = deepcopy(v)
+# Willing to enjoy wrapped value properties.
+Base.getproperty(v::Value, p::Symbol) = Framework.unchecked_getproperty(v, p)
+Base.setproperty!(v::Value, p::Symbol, rhs) = Framework.unchecked_setproperty!(v, p, rhs)
+export Value
 
 @testset "Property spaces." begin
 
