@@ -34,7 +34,7 @@ function F.early_check(_, bp::Matrix)
     n == m || checkfails("The adjacency matrix of size $((m, n)) is not squared.")
 end
 
-function F.check(raw, bp::Matrix)
+function F.late_check(raw, bp::Matrix)
     (; A) = bp
     (; S) = raw
     @check_size A (S, S)
@@ -79,7 +79,7 @@ end
 @blueprint Adjacency "adjacency list of trophic links"
 export Adjacency
 
-function F.check(raw, bp::Adjacency)
+function F.late_check(raw, bp::Adjacency)
     (; A) = bp
     index = raw._foodweb._species_index
     @check_list_refs A :species index
@@ -240,7 +240,7 @@ end
 
 # Topology as a matrix.
 @expose_data edges begin
-    property(A, trophic.matrix)
+    property(A, trophic.A, trophic.matrix)
     get(TrophicMatrix{Bool}, sparse, "trophic link")
     ref(raw -> raw._foodweb.A)
     @species_index

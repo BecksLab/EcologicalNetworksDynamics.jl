@@ -302,7 +302,10 @@ function Base.show(io::IO, P::Type{<:PropertySpace})
     print(io, ">, $V}")
 end
 
-function Base.show(io::IO, p::PropertySpace)
+
+# Extension point: provide custom property list to possibly filter among them.
+Base.show(io::IO, p::PropertySpace) = display_long(io, p, properties)
+function display_long(io::IO, p::PropertySpace, properties::Function)
     V = system_value_type(p)
     print(io, "Property space for '$(V)': ", crayon"black bold")
     for name in reverse(names_sequence(p))

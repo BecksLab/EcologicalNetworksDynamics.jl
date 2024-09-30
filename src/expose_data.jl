@@ -68,7 +68,7 @@ macro expose_data(
     #
     #   ref_cached(function) or ref_cached(raw -> <body>)
     #     Special form of `ref` where the calculation result
-    #     is memoized in the raw value's `._cache`, using <prop> path as a key.
+    #     is memoized in the raw value's `._cache`, using the first <prop> path as a key.
     #     The returned reference aliases the cached value then.
     #
     #   set!(rhs_type, function) or set!((raw, rhs::<rhs_type>) -> <body>)
@@ -115,24 +115,22 @@ macro expose_data(
         input = rmlines(input[1]).args
     end
 
-    # Quick first pass through the input just to retrieve property name
+    # Quick first pass through the input just to retrieve properties paths
     # and improve further errors.
-    proppath = nothing
-    aliases = []
+    proppaths = nothing
     for section in input
-        @capture(section, property(name_) | property(names__))
-        isnothing(name) && isnothing(names) && continue
-        isnothing(name) && length(names) == 0 && perr("No property names given.")
-        proppath = isnothing(names) ? name : names[1]
-        aliases = isnothing(names) ? [name] : names
-        F.is_identifier_path(proppath) || perr("Not a property path: $(repr(proppath)).")
+        (false) && (local paths) # (reassure JuliaLS)
+        @capture(section, property(paths__))
+        isnothing(paths) && isnothing(names) && continue
+        length(paths) == 0 && perr("No property path given.")
+        for path in paths
+            F.is_identifier_path(path) || perr("Not a property path: $(repr(path)).")
+        end
+        proppaths = paths
         break
     end
-    isnothing(proppath) && perr("Miss required 'property' section.")
-    errname[1] = proppath
-    for alias in aliases
-        F.is_identifier_path(alias) || perr("Not a property alias: $(repr(alias)).")
-    end
+    isnothing(proppaths) && perr("Miss required 'property' section.")
+    errname[1] = first(proppaths)
 
     # Check level
     level in (:graph, :nodes, :edges) ||
@@ -336,18 +334,21 @@ macro expose_data(
 
     ref = given(:ref) || given(:ref_cached)
     cached = given(:ref_cached)
-    sproppath = Meta.quot(proppath)
+    # Only define one method for the first path,
+    # then bind subsequent aliases to it.
+    first_path = first(proppaths)
+    sfirst_path = Meta.quot(first_path)
 
     if ref
 
         ref_fn = esc(cached ? take!(:ref_cached) : take!(:ref))
-        ref_prop_path = Symbol(:ref_, proppath)
+        ref_prop_path = Symbol(:ref_, first_path)
         ref_prop = esc(ref_prop_path)
 
         if cached
             push_res!(
                 quote
-                    $ref_prop(model::Internal) = get_cached(model, $sproppath, $ref_fn)
+                    $ref_prop(model::Internal) = get_cached(model, $sfirst_path, $ref_fn)
                 end,
             )
         else
@@ -357,8 +358,17 @@ macro expose_data(
         end
 
         # Generates:
-        #   @methods ref_prop depends(deps...) read_as(_props..)
-        props = Expr(:call, :read_as, Symbol.(:_, aliases)...)
+        #   @methods ref_prop depends(deps...) read_as(_paths..)
+        underscore_paths = map(proppaths) do path
+            a, b = split_last(path)
+            if isnothing(a)
+                Symbol(:_, path)
+            else
+                :($a.$(Symbol(:_, b)))
+            end
+        end
+
+        props = Expr(:call, :read_as, underscore_paths...)
         invoke = Expr(:macrocall, Symbol("@method"), __source__, ref_prop_path, deps, props)
         push_res!(quote
             $invoke
@@ -589,7 +599,7 @@ macro expose_data(
     #---------------------------------------------------------------------------------------
     # `Get` method.
 
-    get_prop_name = Symbol(:get_, proppath)
+    get_prop_name = Symbol(:get_, first_path)
     get_prop = esc(get_prop_name)
 
     if generate_view
@@ -601,12 +611,9 @@ macro expose_data(
             $get_prop(model::Internal) = $get_fn(model)
         end)
     end
-    push_res!(quote
-        export $get_prop # And not the `ref` version.
-    end)
 
     # @methods get_prop depends(deps...) read_as(props..)
-    props = Expr(:call, :read_as, aliases...)
+    props = Expr(:call, :read_as, proppaths...)
     invoke = Expr(:macrocall, Symbol("@method"), __source__, get_prop_name, deps, props)
     push_res!(quote
         $invoke
@@ -618,7 +625,7 @@ macro expose_data(
     if given(:set!)
         set!_fn = esc(take!(:set!))
         rhs_type = esc(take!(:set!_rhs_type))
-        set_prop!_name = Symbol(:set_, proppath, :!)
+        set_prop!_name = Symbol(:set_, first_path, :!)
         set_prop! = esc(set_prop!_name)
         push_res!(
             quote
@@ -632,19 +639,18 @@ macro expose_data(
                     catch
                         Framework.properr(
                             typeof(model),
-                            $sproppath,
+                            $sfirst_path,
                             "Cannot set with a value of type $(typeof(rhs)): $(repr(rhs)).",
                         )
                     end
                     $set!_fn(model, rhs)
                 end
-                export $set_prop!
             end,
         )
 
         # Generates:
         #   @methods set_prop! depends(deps...) write_as(props..)
-        props = Expr(:call, :write_as, aliases...)
+        props = Expr(:call, :write_as, proppaths...)
         invoke =
             Expr(:macrocall, Symbol("@method"), __source__, set_prop!_name, deps, props)
         push_res!(quote

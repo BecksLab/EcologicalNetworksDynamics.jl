@@ -23,10 +23,11 @@ true
 
 - Model properties are now typically namespaced to ease future extensions.
 - Equivalent `get_*` and `set_*!` methods may still exist
-  but they are no longer exposed or recommended.
+  but they are no longer exposed or recommended:
+  use direct property accesses instead.
 ```jl
 julia> m = Model(Species(3))
-julia> m.species.number # (no more .n_species)
+julia> m.species.number # (no more `.n_species` or `get_n_species(m)`)
 3
 julia> m.species.names == [:s1, :s2, :s3]
 true

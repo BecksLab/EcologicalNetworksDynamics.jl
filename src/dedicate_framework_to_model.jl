@@ -26,9 +26,11 @@ function properties(m::Model)
     sort!(res)
     res
 end
-properties(p::F.PropertySpace) = collect(imap(first, ifilter(F.properties(p)) do (name, _)
-    !startswith(String(name), '_')
-end))
+non_underscore(p::F.PropertySpace) =
+    ifilter(F.properties(p)) do (name, _)
+        !startswith(String(name), '_')
+    end
+properties(p::F.PropertySpace) = collect(imap(first, non_underscore(p)))
 export properties
 Base.propertynames(m::Model) = properties(m)
 Base.propertynames(p::F.PropertySpace{name,P,Internal}) where {name,P} = properties(p)
@@ -46,15 +48,15 @@ end
 # ==========================================================================================
 # The above defines var"get_a.b" method names for nested properties
 # to avoid possible ambiguity with `get_a_b`.
-# Use this pattern for all propsace uses
+# Use this pattern for all propspace uses
 # and these convenience macro to call these methods on raw values.
-
-macro get(raw, path)
-    read(:get, raw, path)
-end
 
 macro ref(raw, path)
     read(:ref, raw, path)
+end
+
+macro get(raw, path)
+    read(:get, raw, path)
 end
 
 macro set!(raw, path, rhs)
@@ -62,12 +64,13 @@ macro set!(raw, path, rhs)
 end
 
 # Convenience idiomatic syntax:
+# @ref var.path.to.prop
 # @get var.path.to.prop
-macro get(path)
-    convenience_read(__source__, :get, path)
-end
 macro ref(path)
     convenience_read(__source__, :ref, path)
+end
+macro get(path)
+    convenience_read(__source__, :get, path)
 end
 function convenience_read(src, kw, path)
     err(m) = throw(AccessError(kw, m, src))
@@ -81,10 +84,44 @@ macro set(input)
     err(m) = throw(AccessError(:set, m, __source__))
     (false) && (local path, rhs)
     @capture(input, path_ = rhs_)
-    isnothing(path_) && err("Not a `path = rhs` expression: $(repr(input))")
+    isnothing(path) && err("Not a `path = rhs` expression: $(repr(input))")
     F.is_identifier_path(path) || err("Not an access path: $(repr(path)).")
-    var, path... = reverse(F.collect_path(path))
+    var, path... = F.collect_path(path)
     write(var, join_path(path), rhs)
+end
+
+# Actual code generation.
+function read(kw, raw, path)
+    target, name = to_target_name(path, kw == :ref)
+    raw = esc(raw)
+    quote
+        F.read_property($target, Val($name))($raw)
+    end
+end
+
+function write(raw, path, rhs)
+    target, name = to_target_name(path, false)
+    raw, rhs = esc.((raw, rhs))
+    quote
+        F.readwrite_property($target, Val($name))($raw, $rhs)
+    end
+end
+
+function to_target_name(path, is_ref)
+    target, name = split_last(path)
+    target = isnothing(target) ? Model : F.property_space_type(target, Internal)
+    if is_ref  # Standard in the next: `_`-prefixed are ref propnames.
+        name = Symbol(:_, name)
+    end
+    name = Meta.quot(name)
+    (target, name)
+end
+
+# Assuming path is checked: :(a.b.c) -> (:(a.b), :c)
+function split_last(path)
+    path isa Symbol && return (nothing, path)
+    @capture(path, a_.b_)
+    (a, b)
 end
 
 function join_path(v)
@@ -96,15 +133,6 @@ function join_path(v)
         :($head.$prop)
     end
 end
-
-# Actual code generation.
-read(kw, raw, path) = quote
-    $(Symbol(kw, :_, path))($raw)
-end |> esc
-
-write(raw, path, rhs) = quote
-    $(Symbol(:set_, path, :!))($raw, $rhs)
-end |> esc
 
 # Dedicated errors.
 struct AccessError
@@ -127,6 +155,10 @@ Base.show(io::IO, ::Type{Model}) = print(io, "Model")
 Base.show(io::IO, ::MIME"text/plain", I::Type{Internal}) = Base.show(io, I)
 Base.show(io::IO, ::MIME"text/plain", ::Type{Model}) =
     print(io, "Model $(crayon"dark_gray")(alias for $System{$Internal})$(crayon"reset")")
+
+# Filter out _-prefixed names.
+Base.show(io::IO, p::F.PropertySpace{name,P,Internal}) where {name,P} =
+    F.display_long(io, p, non_underscore)
 
 # Default display for blueprint fields.
 function F.display_blueprint_field_long(io::IO, v::Vector, ::Blueprint)
