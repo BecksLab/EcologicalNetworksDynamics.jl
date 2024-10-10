@@ -1,7 +1,7 @@
 # Set or generate body masses for every species in the model.
 
 # (reassure JuliaLS)
-(false) && (local BodyMass, _BodyMass)
+(false) && (local BodyMass)
 
 # ==========================================================================================
 # Blueprints.
@@ -38,7 +38,7 @@ end
 mutable struct Map <: Blueprint
     M::@GraphData Map{Float64}
     species::Brought(Species)
-    BodyMassFromRawValues(M, sp = _Species) = new(@tographdata Map{Float64}, sp)
+    Map(M, sp = _Species) = new(@tographdata(M, Map{Float64}), sp)
 end
 F.implied_blueprint_for(bp::Map, ::_Species) = Species(refs(bp.M))
 @blueprint Map "{species ↦ mass} map"
@@ -62,9 +62,9 @@ end
 # From raw values.
 
 mutable struct Raw <: Blueprint
-    M::Vector{Float64} # HERE: also accept scalar.
+    M::Vector{Float64}
     species::Brought(Species)
-    BodyMassFromRawValues(M, sp = _Species) = new(Float64.(M), sp)
+    Raw(M, sp = _Species) = new(Float64.(M), sp)
 end
 F.implied_blueprint_for(bp::Raw, ::_Species) = Species(length(bp.M))
 @blueprint Raw "masses values"
@@ -76,75 +76,42 @@ function F.late_check(raw, bp::Map)
     @check_size M S
 end
 
-function F.expand!(model, bp::BodyMassFromRawValues)
-    (; M) = bp
-    S = @get raw.S
-    @to_size_if_scalar Real M S
-    model._foodweb.M = M
-end
-
-end
-
-# Body mass are either given as-is by user
-# or they are calculated from the foodweb with a Z-value.
-# As a consequence, component expansion only requires `Foodweb`
-# in the second case.
-# In spirit, this leads to the definition
-# of "two different blueprints for the same component".
-
-# ==========================================================================================
-# Emulate this with an abstract blueprint type.
-
-abstract type BodyMass <: ModelBlueprint end
-# All subtypes must require(Species).
-
-# Construct either variant based on user input.
-function BodyMass(raw = nothing; Z = nothing, M = nothing)
-
-    (!isnothing(raw) && !isnothing(M)) && argerr("Body masses 'M' specified twice:\n\
-                                                  once as     : $(repr(raw))\n\
-                                                  and once as : $(repr(M))")
-    israw = !isnothing(raw) || !isnothing(M)
-    isZ = !isnothing(Z)
-    M = israw ? (isnothing(raw) ? M : raw) : nothing
-
-    (!israw && !isZ) && argerr("Either 'M' or 'Z' must be provided to define body masses.")
-
-    (israw && isZ) && argerr("Cannot provide both 'M' and 'Z' to specify body masses. \n\
-                              Received M: $(repr(M))\n     \
-                                   and Z: $(repr(Z)).")
-
-    israw && return BodyMassFromRawValues(M)
-
-    BodyMassFromZ(Z)
-end
-
-export BodyMass
+F.expand!(model, bp::Raw) = model._foodweb.M = bp.M
 
 #-------------------------------------------------------------------------------------------
-# Don't specify both ways.
-@conflicts(BodyMassFromRawValues, BodyMassFromZ)
-# Temporary semantic fix before framework refactoring.
-F.componentof(::Type{<:BodyMass}) = BodyMass
+# From a scalar broadcasted to all species.
+
+mutable struct Broadcast <: Blueprint
+    M::Float64
+end
+@blueprint Broadcast "homogeneous mass value" depends(Species)
+export Broadcast
+
+F.expand!(model, bp::Raw) = model._noodweb.M = to_size(bp.M, @get raw.S)
+
+end
 
 # ==========================================================================================
-# Basic query.
+# Component and generic constructor.
 
+@component BodyMass{Internal} requires(Species) blueprints(BodyMassBlueprints)
+export BodyMass
+
+_BodyMass(M) = BodyMass.Raw(M)
+_BodyMass(M::Number) = BodyMass.Broadcast(M)
+_BodyMass(; Z = nothing) = isnothing(Z) && argerr("Either 'M' or 'Z' must be provided \
+                                                   to define body masses.")
+
+# Basic query.
 @expose_data nodes begin
     property(body_masses, M)
     get(BodyMasses{Float64}, "species")
-    ref(m -> m._foodweb.M)
+    ref(raw -> raw._foodweb.M)
     @species_index
     depends(BodyMass)
 end
 
-# ==========================================================================================
 # Display.
-
-# Highjack display to make it like both blueprints provide the same component.
-display_short(bp::BodyMass; kwargs...) = display_short(bp, BodyMass; kwargs...)
-display_long(bp::BodyMass; kwargs...) = display_long(bp, BodyMass; kwargs...)
-
-function F.display(model, ::Type{<:BodyMass})
-    "Body masses: [$(join_elided(model._body_masses, ", "))]"
+function F.shortline(io::IO, model::Model, ::_BodyMass)
+    print(io, "BodyMass: [$(join_elided(model.body_masses, ", "))]")
 end

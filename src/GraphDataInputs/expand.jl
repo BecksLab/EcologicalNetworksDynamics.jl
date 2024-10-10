@@ -54,7 +54,8 @@ export @build_from_symbol
 # ==========================================================================================
 # Assuming the input is a scalar, expand to the desired size.
 
-to_size(scalar, s) = fill(scalar, s isa Integer ? (s,) : s)
+to_size(scalar, s) = fill(scalar, s)
+to_size(scalar, s::Integer) = fill(scalar, (s,))
 export to_size
 
 #-------------------------------------------------------------------------------------------

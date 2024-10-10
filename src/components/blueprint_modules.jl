@@ -4,7 +4,26 @@
 # Take this opportunity to reassure JuliaLS: these are keywords for the macros.
 #  https://github.com/julia-vscode/StaticLint.jl/issues/381#issuecomment-2361743645
 if (false)
-    local graph, property, get, depends, nodes, edges, ref_cached, requires, E, V, Map, dense
+    #! format: off
+    (
+    local
+        E,
+        Map,
+        V,
+        dense,
+        depends,
+        edges,
+        get,
+        graph,
+        nodes,
+        property,
+        ref,
+        ref_cached,
+        requires,
+
+        var""
+    )
+    #! format: on
 end
 
 module BlueprintModule
@@ -25,6 +44,7 @@ import EcologicalNetworksDynamics:
     refs,
     refspace,
     to_dense_vector,
+    to_size,
     to_sparse_matrix,
     @GraphData,
     @check_list_refs,
@@ -51,6 +71,7 @@ export Blueprint,
     refs,
     refspace,
     to_dense_vector,
+    to_size,
     to_sparse_matrix,
     @GraphData,
     @blueprint,

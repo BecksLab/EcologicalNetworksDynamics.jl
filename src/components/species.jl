@@ -4,7 +4,7 @@
 # because too many things depend on these.
 
 # (reassure JuliaLS)
-(false) && (local Species, _Species, species)
+(false) && (local Species, species)
 
 # ==========================================================================================
 # Blueprints.
@@ -72,12 +72,12 @@ end
 # Component and generic constructor.
 
 @component Species{Internal} blueprints(SpeciesBlueprints)
+export Species
 
 # Build from a number or default to names.
-(::_Species)(n::Integer) = Species.Number(n)
-(::_Species)(names) = Species.Names(names)
+_Species(n::Integer) = Species.Number(n)
+_Species(names) = Species.Names(names)
 
-export Species
 
 # Display.
 function F.shortline(io::IO, model::Model, ::_Species)
