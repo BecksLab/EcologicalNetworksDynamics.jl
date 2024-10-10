@@ -4,13 +4,13 @@
 # because too many things depend on these.
 
 # (reassure JuliaLS)
-(false) && (local Species, species)
+(false) && (local Species, _Species, species)
 
 # ==========================================================================================
 # Blueprints.
 
 module SpeciesBlueprints
-using ..BlueprintModule
+include("blueprint_modules.jl")
 
 #-------------------------------------------------------------------------------------------
 # Construct from a plain number and generate dummy names.
@@ -69,14 +69,14 @@ end
 end
 
 # ==========================================================================================
-# Component and generic constructor.
+# Component and generic constructors.
 
 @component Species{Internal} blueprints(SpeciesBlueprints)
 export Species
 
 # Build from a number or default to names.
-_Species(n::Integer) = Species.Number(n)
-_Species(names) = Species.Names(names)
+(::_Species)(n::Integer) = Species.Number(n)
+(::_Species)(names) = Species.Names(names)
 
 
 # Display.

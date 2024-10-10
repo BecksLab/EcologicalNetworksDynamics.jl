@@ -6,10 +6,10 @@ using Test
 using ..TestFailures
 
 Value = EcologicalNetworksDynamics.Internal # To make @sysfails work.
-import ..Main: @viewfails, @sysfails, @argfails
+import ..Main: @viewfails, @sysfails, @argfails, @failswith
 
 # Expose to further test submodules.
-export Value, @viewfails, @sysfails, @argfails
+export Value, @viewfails, @sysfails, @argfails, @failswith
 
 # Run all .jl files we can find except the current one (and without recursing).
 only = ["./02-components.jl"] # Unless some files are specified here, in which case only run these.

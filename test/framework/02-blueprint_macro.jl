@@ -80,10 +80,7 @@ comps(s) = collect(components(s))
 
 
     s = System{Value}()
-    @sysfails(
-        (s + Zav.b()),
-        Add(MissingRequiredComponent, nothing, Vkl, [Zav.b], "Zav likes Vkl")
-    )
+    @sysfails((s + Zav.b()), Missing(Vkl, nothing, [Zav.b], "Zav likes Vkl"))
     s += Vkl.b()
     # Now it's okay.
     s += Zav.b()
@@ -94,10 +91,7 @@ comps(s) = collect(components(s))
     struct Ovm_b <: Blueprint{Value} end
     @blueprint Ovm_b "" depends(Vkl)
     @component Ovm{Value} blueprints(b::Ovm_b)
-    @sysfails(
-        (System{Value}(Ovm.b())),
-        Add(MissingRequiredComponent, nothing, Vkl, [Ovm.b], nothing)
-    )
+    @sysfails((System{Value}(Ovm.b())), Missing(Vkl, nothing, [Ovm.b], nothing))
 
 end
 
@@ -653,7 +647,7 @@ comps(s) = sort(collect(components(s)); by = repr)
     @component Som{Value} blueprints(b::Som_b)
     @test isempty(F.requires(Som)) # The component requires nothing..
     # .. but expansion of this blueprint does.
-    @sysfails(S(Som.b()), Add(MissingRequiredComponent, nothing, A, [Som.b], nothing))
+    @sysfails(S(Som.b()), Missing(A, nothing, [Som.b], nothing))
     # Any concrete component A enables expansion.
     s = S(B.b(), Som.b())
     @test comps(s) == [B, Som]

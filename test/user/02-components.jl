@@ -19,6 +19,7 @@ const EN = EcologicalNetworksDynamics
 only = [
     "./data_components/species.jl"
     "./data_components/foodweb.jl"
+    "./data_components/body_mass.jl"
 ] # Only run these if specified.
 if isempty(only)
     for subfolder in ["./data_components", "./code_components"]

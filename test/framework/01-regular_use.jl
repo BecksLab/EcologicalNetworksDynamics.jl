@@ -230,7 +230,7 @@ end
     e = System{Value}() # Empty.
     @sysfails(
         e + B.Raw([8, 8, 8]), # Size is brought, but not A.
-        Add(MissingRequiredComponent, B, A, [B.Raw], nothing),
+        Missing(A, B, [B.Raw], nothing),
     )
 
     # Chain summations.
@@ -280,7 +280,7 @@ end
     # without its component itself requiring them.
     @sysfails(
         s + ReflectFromB(), # .. although reflection does not require B in general.
-        Add(MissingRequiredComponent, nothing, A, [ReflectFromB], nothing),
+        Missing(A, nothing, [ReflectFromB], nothing),
     )
     sa = s + A.Raw([1, 2, 3, 2, 1])
     sr = sa + ReflectFromB()
@@ -389,7 +389,7 @@ end
     a.size = nothing
 
     # The component is not brought then.
-    @sysfails(e + a, Add(MissingRequiredComponent, A, Size, [A.Raw], nothing))
+    @sysfails(e + a, Missing(Size, A, [A.Raw], nothing))
 
 end
 

@@ -117,7 +117,7 @@ module Zru end # Test empty module.
 
     s = System{Value}()
     # Cannot add Zjz without Cvh.
-    @sysfails((s + Zjz.b()), Add(MissingRequiredComponent, _Zjz, Cvh, [Zjz_b], nothing))
+    @sysfails((s + Zjz.b()), Missing(Cvh, _Zjz, [Zjz_b], nothing))
     s += Cvh.b() # Meet the requirement.
     s += Zjz.b() # Now it's okay.
     @test collect(components(s)) == [Cvh, Zjz]
@@ -142,7 +142,7 @@ module Zru end # Test empty module.
     @test collect(F.requires(Lev)) == [_Dsy => nothing]
 
     s = System{Value}()
-    @sysfails((s + Lev.b()), Add(MissingRequiredComponent, _Lev, Dsy, [Lev_b], nothing))
+    @sysfails((s + Lev.b()), Missing(Dsy, _Lev, [Lev_b], nothing))
     s += Dsy.b() + Lev.b()
     @test collect(components(s)) == [Dsy, Lev]
 
@@ -186,7 +186,7 @@ module Zru end # Test empty module.
 
     # The requirement works..
     s = System{Value}()
-    @sysfails((s + Dsn.b()), Add(MissingRequiredComponent, _Dsn, Tap, [Dsn_b], nothing))
+    @sysfails((s + Dsn.b()), Missing(Tap, _Dsn, [Dsn_b], nothing))
     s += Tap.b() + Dsn.b()
     @test collect(components(s)) == [Tap, Dsn]
     # .. and the expressions have only been evaluated once to this end.
@@ -430,7 +430,7 @@ struct D_b <: Blueprint{Value} end
     @blueprint Ahv_b
     @component Ahv{Value} blueprints(b::Ahv_b) requires(A)
     # It is an error to attempt to expand with no 'A' component.
-    @sysfails(S(Ahv_b()), Add(MissingRequiredComponent, Ahv, A, [Ahv_b], nothing))
+    @sysfails(S(Ahv_b()), Missing(A, Ahv, [Ahv_b], nothing))
     # But any concrete component is good.
     sb = S(B.b(), Ahv_b())
     sc = S(C.b(), Ahv_b())

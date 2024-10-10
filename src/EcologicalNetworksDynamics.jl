@@ -72,7 +72,6 @@ export niche_model, cascade_model # Or the least.
 # The System/Components framework code used for the API is there.
 # This module is needed for package component developers.
 include("./Framework/Framework.jl")
-include("./dedicate_framework_to_model.jl")
 
 #-------------------------------------------------------------------------------------------
 # "Outer" parts: develop user-facing stuff here.
@@ -86,6 +85,7 @@ include("./GraphDataInputs/GraphDataInputs.jl")
 using .GraphDataInputs
 
 # Encapsulated views into internal arrays or pseudo-arrays.
+include("./dedicate_framework_to_model.jl")
 include("./graph_views.jl")
 using .GraphViews
 

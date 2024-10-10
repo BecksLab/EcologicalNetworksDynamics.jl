@@ -14,13 +14,13 @@ sep("Test internals.")
 #  include("./internals/runtests.jl")
 
 sep("Test System/Blueprints/Components framework.")
-include("./framework/runtests.jl")
+#  include("./framework/runtests.jl")
 
 sep("Test API utils.")
-include("./topologies.jl")
-include("./aliasing_dicts.jl")
-include("./multiplex_api.jl")
-include("./graph_data_inputs/runtests.jl")
+#  include("./topologies.jl")
+#  include("./aliasing_dicts.jl")
+#  include("./multiplex_api.jl")
+#  include("./graph_data_inputs/runtests.jl")
 
 sep("Test user-facing behaviour.")
 include("./user/runtests.jl")

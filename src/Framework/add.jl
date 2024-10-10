@@ -130,7 +130,7 @@ function check(
                 has_component(system, R) && continue
                 # Check against other components about to be brought.
                 any(C -> R <: C, keys(checked)) ||
-                    throw(MissingRequiredComponent(requirer, R, node, reason))
+                    throw(MissingRequiredComponent(R, requirer, node, reason))
             end
         end
 
@@ -392,8 +392,8 @@ struct InconsistentForSameComponent <: AddException
 end
 
 struct MissingRequiredComponent <: AddException
-    comp::Option{CompType} # Set if the *component* requires, none if the *blueprint* does.
     miss::CompType
+    comp::Option{CompType} # Set if the *component* requires, none if the *blueprint* does.
     node::Node
     reason::Reason
 end
@@ -496,13 +496,13 @@ function Base.showerror(io::IO, e::BroughtAlreadyInValue)
 end
 
 function Base.showerror(io::IO, e::MissingRequiredComponent)
-    (; comp, miss, node, reason) = e
+    (; miss, comp, node, reason) = e
     path = render_path(node)
     if isnothing(comp)
         header = "Blueprint cannot expand without component $miss"
     else
         header = "Component $comp requires $miss, neither found in the system \
-                  nor brought by the blueprints."
+                  nor brought by the blueprints"
     end
     if isnothing(reason)
         body = "."

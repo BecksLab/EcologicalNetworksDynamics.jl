@@ -6,13 +6,13 @@
 # and values checks are performed against this layer.
 
 # (reassure JuliaLS)
-(false) && (local Foodweb, trophic)
+(false) && (local Foodweb, _Foodweb, trophic)
 
 # ==========================================================================================
 # Blueprints.
 
 module FoodwebBlueprints
-using ..BlueprintModule
+include("blueprint_modules.jl")
 import .EcologicalNetworksDynamics: _Species, Species
 
 #-------------------------------------------------------------------------------------------
@@ -127,7 +127,7 @@ end
 end
 
 # ==========================================================================================
-# Component and generic constructor.
+# Component and generic constructors.
 
 @component Foodweb{Internal} requires(Species) blueprints(FoodwebBlueprints)
 # Consistency alias.
@@ -135,7 +135,7 @@ const (TrophicLayer, _TrophicLayer) = (Foodweb, _Foodweb)
 export Foodweb, TrophicLayer
 
 # Precise edges specifications.
-function _Foodweb(A)
+function (::_Foodweb)(A)
     A = @tographdata A {SparseMatrix, Adjacency}{:bin}
     if A isa AbstractMatrix
         Foodweb.Matrix(A)
@@ -145,7 +145,7 @@ function _Foodweb(A)
 end
 
 # Construct blueprint from a random model.
-function _Foodweb(model::Union{Symbol,AbstractString}; kwargs...)
+function (::_Foodweb)(model::Union{Symbol,AbstractString}; kwargs...)
     model = @tographdata model Y{}
     @kwargs_helpers kwargs
 

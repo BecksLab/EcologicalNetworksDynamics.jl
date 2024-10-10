@@ -157,15 +157,14 @@ function sysfails(__source__, __module__, xp, input)
         Check(late_check_, fields__) |
         Property(PropertyPath_, message_) |
         ErrName_(name_, message_) |
+        Alias_(fields__) |
         CatchAll_
     )
     #! format: on
 
-    (E, args) = if !isnothing(AddName)
-        # @sysfails(xp, Add(ErrName, ...))
-
+    function yield(errname::Symbol, fields)
         # Evaluate expected error type here in macro definition context.
-        ExceptionType = eval(AddName)
+        ExceptionType = eval(errname)
         # Evaluate expected fields later within macro invocation context.
         fields = Expr(:vect, fields...)
 
@@ -173,9 +172,15 @@ function sysfails(__source__, __module__, xp, input)
         E = :($AddError{Value})
         args = :($ExceptionType, $fields)
         (E, args)
+    end
+
+    (E, args) = if !isnothing(AddName)
+        # General case: @sysfails(xp, Add(ErrName, ...))
+
+        yield(AddName, fields)
 
     elseif !isnothing(late_check)
-        # Sugar for @sysfails(xp, Add(HookCheckFailure, node, message, late)).
+        # Sugar for    @sysfails(xp, Add(HookCheckFailure, node, message, late)).
         # Use instead: @sysfails(xp, Check(late, node, message))
 
         keywords = [:early, :late]
@@ -183,18 +188,25 @@ function sysfails(__source__, __module__, xp, input)
             throw("Expected keyword in $keyword, got instead: $late_check.")
         push!(fields, late_check == keywords[2] ? :true : :false)
 
-        ExceptionType = HookCheckFailure
-        fields = Expr(:vect, fields...)
+        yield(:HookCheckFailure, fields)
 
-        E = :($AddError{Value})
-        args = :($HookCheckFailure, $fields)
-        (E, args)
+    elseif !isnothing(Alias)
+        # Sugar for e.g. @sysfails(xp, Add(MissingRequiredComponent, ...))
+        # Use instead:   @sysfails(xp, Missing(...))
+
+        errname = if Alias == :Missing
+            :MissingRequiredComponent
+        else
+            throw("Unknown AddError alias: $(repr(errname)).")
+        end
+        yield(errname, fields)
 
     elseif !isnothing(PropertyPath)
 
         (PropertyError, :($__module__, $(Meta.quot(PropertyPath)), $message))
 
     elseif !isnothing(ErrName)
+        # TODO: is this actually useful now?
         assert_symbol(ErrName)
         isnothing(name) || assert_symbol(name)
         errparms = [:Value]

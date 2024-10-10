@@ -1,34 +1,34 @@
 # Set or generate body masses for every species in the model.
 
 # (reassure JuliaLS)
-(false) && (local BodyMass)
+(false) && (local BodyMass, _BodyMass)
 
 # ==========================================================================================
 # Blueprints.
 
 module BodyMassBlueprints
-using ..BlueprintModule
+include("blueprint_modules.jl")
 import .EcologicalNetworksDynamics: _Species, Species, _Foodweb, Foodweb
 
 #-------------------------------------------------------------------------------------------
 # Calculate from trophic levels with a Z-value.
 
 mutable struct Z <: Blueprint
-    z::Float64
+    Z::Float64
 end
 @blueprint Z "trophic levels" depends(Foodweb)
 export Z
 
 function F.late_check(_, bp::Z)
-    (; z) = bp
-    z >= 0 || checkfails("Cannot calculate body masses from trophic levels \
-                          with a negative value of Z: $z.")
+    (; Z) = bp
+    Z >= 0 || checkfails("Cannot calculate body masses from trophic levels \
+                          with a negative value of Z: $Z.")
 end
 
 function F.expand!(raw, bp::Z)
-    (; z) = bp
+    (; Z) = bp
     A = @ref raw.A
-    M = Internals.compute_mass(A, z)
+    M = Internals.compute_mass(A, Z)
     raw._foodweb.M = M
 end
 
@@ -70,37 +70,48 @@ F.implied_blueprint_for(bp::Raw, ::_Species) = Species(length(bp.M))
 @blueprint Raw "masses values"
 export Raw
 
-function F.late_check(raw, bp::Map)
+function F.late_check(raw, bp::Raw)
     (; M) = bp
     S = @get raw.S
     @check_size M S
 end
 
-F.expand!(model, bp::Raw) = model._foodweb.M = bp.M
+F.expand!(raw, bp::Raw) = raw._foodweb.M = bp.M
 
 #-------------------------------------------------------------------------------------------
 # From a scalar broadcasted to all species.
 
-mutable struct Broadcast <: Blueprint
+mutable struct Flat <: Blueprint
     M::Float64
 end
-@blueprint Broadcast "homogeneous mass value" depends(Species)
-export Broadcast
+@blueprint Flat "homogeneous mass value" depends(Species)
+export Flat
 
-F.expand!(model, bp::Raw) = model._noodweb.M = to_size(bp.M, @get raw.S)
+F.expand!(raw, bp::Flat) = raw._foodweb.M = to_size(bp.M, @get raw.S)
 
 end
 
 # ==========================================================================================
-# Component and generic constructor.
+# Component and generic constructors.
 
 @component BodyMass{Internal} requires(Species) blueprints(BodyMassBlueprints)
 export BodyMass
 
-_BodyMass(M) = BodyMass.Raw(M)
-_BodyMass(M::Number) = BodyMass.Broadcast(M)
-_BodyMass(; Z = nothing) = isnothing(Z) && argerr("Either 'M' or 'Z' must be provided \
-                                                   to define body masses.")
+(::_BodyMass)(M::Number) = BodyMass.Flat(M)
+
+function (::_BodyMass)(; Z = nothing)
+    isnothing(Z) && argerr("Either 'M' or 'Z' must be provided to define body masses.")
+    BodyMass.Z(Z)
+end
+
+function (::_BodyMass)(M)
+    M = @tographdata M {Vector, Map}{Float64}
+    if M isa Vector
+        BodyMass.Raw(M)
+    else
+        BodyMass.Map(M)
+    end
+end
 
 # Basic query.
 @expose_data nodes begin

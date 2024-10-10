@@ -161,9 +161,22 @@ Base.show(io::IO, p::F.PropertySpace{name,P,Internal}) where {name,P} =
     F.display_long(io, p, non_underscore)
 
 # Default display for blueprint fields.
-function F.display_blueprint_field_long(io::IO, v::Vector, ::Blueprint)
+function F.display_blueprint_field_short(io::IO, v::Vector, ::Blueprint)
     print(io, "[$(join_elided(v, ", "))]")
 end
+function F.display_blueprint_field_short(
+    io::IO,
+    map::@GraphData(Map{T}),
+    ::Blueprint,
+) where {T}
+    it = imap(map) do (k, v)
+        "$k: $v"
+    end
+    print(io, "{$(join_elided(it, ", "; repr = false))}")
+end
+
+F.display_blueprint_field_long(io::IO, v, bp::Blueprint) =
+    F.display_blueprint_field_short(io, v, bp)
 
 # ==========================================================================================
 

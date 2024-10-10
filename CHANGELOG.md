@@ -9,17 +9,24 @@
   to transfer input to correct blueprint constructors
 - Blueprints typically have different types based on their inputs.
 
-```jl
-julia> Species
-Species (component for <internals>, expandable from:
-  Names: raw species names,
-  Number: number of species,
-)
-julia> Species(5) isa Species.Number
-true
-julia> Species(["a", "b", "c"]) isa Species.Names
-true
-```
+  ```jl
+  julia> Species
+  Species (component for <internals>, expandable from:
+    Names: raw species names,
+    Number: number of species,
+  )
+  julia> Species(5) isa Species.Number
+  true
+  julia> Species(["a", "b", "c"]) isa Species.Names
+  true
+  ```
+
+  This comes with minor incompatible changes
+  to the available set of blueprint constructor methods.
+  For instance the redundant form
+  `BodyMass(M = [1, 2])` is not supported anymore,
+  but `BodyMass([1, 2])` does the same
+  and `BodyMass(Z = 1.5)` still works as expected.
 
 - Model properties are now typically namespaced to ease future extensions.
 - Equivalent `get_*` and `set_*!` methods may still exist
