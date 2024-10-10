@@ -4,14 +4,14 @@
 # ==========================================================================================
 # Assuming the input is an *expected* symbol,
 # Expand symbol into a full-fledged value.
-macro build_from_symbol(var::Symbol, pairs::Expr...)
+macro expand_symbol(var::Symbol, pairs::Expr...)
     @defloc
-    build_from_symbol(loc, var, pairs)
+    expand_symbol(loc, var, pairs)
 end
-function build_from_symbol(loc, var, pairs)
+function expand_symbol(loc, var, pairs)
     symbols = []
     exprs = []
-    err(p) = argerr("Invalid @build_from_symbol macro use at $loc.\n\
+    err(p) = argerr("Invalid @expand_symbol macro use at $loc.\n\
                      Expected `symbol => expression` pairs. \
                      Got $(repr(p)).")
     for p in pairs
@@ -49,7 +49,7 @@ function build_from_symbol(loc, var, pairs)
     end
     res
 end
-export @build_from_symbol
+export @expand_symbol
 
 # ==========================================================================================
 # Assuming the input is a scalar, expand to the desired size.
@@ -256,10 +256,10 @@ to_sparse_matrix(map::BinAdjacency{Int64}, i_index, j_index) =
 # Ease use.
 
 # Sugar for this awkward pattern:
-#   var isa Symbol && (var = @build_from_symbol(var, ...))
+#   var isa Symbol && (var = @expand_symbol(var, ...))
 macro expand_if_symbol(var::Symbol, pairs::Expr...)
     @defloc
-    build = build_from_symbol(loc, var, pairs)
+    build = expand_symbol(loc, var, pairs)
     var = esc(var)
     quote
         $var isa Symbol && ($var = $build)

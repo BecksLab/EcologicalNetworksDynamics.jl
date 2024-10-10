@@ -13,17 +13,6 @@ module SpeciesBlueprints
 include("blueprint_modules.jl")
 
 #-------------------------------------------------------------------------------------------
-# Construct from a plain number and generate dummy names.
-
-mutable struct Number <: Blueprint
-    n::UInt
-end
-@blueprint Number "number of species"
-export Number
-
-F.expand!(raw, bp::Number) = expand!(raw, [Symbol(:s, i) for i in 1:bp.n])
-
-#-------------------------------------------------------------------------------------------
 # Construct from a given set of names.
 
 mutable struct Names <: Blueprint
@@ -51,10 +40,6 @@ function F.late_check(_, bp::Names)
 end
 
 F.expand!(raw, bp::Names) = expand!(raw, bp.names)
-
-#-------------------------------------------------------------------------------------------
-# Common expansion logic.
-
 function expand!(raw, names)
     # Species are still internally stored within a value named "Foodweb",
     # but this will be refactored.
@@ -65,6 +50,17 @@ function expand!(raw, names)
     # and want to add the layers one by one.
     raw._foodweb = fw
 end
+
+#-------------------------------------------------------------------------------------------
+# Construct from a plain number and generate dummy names.
+
+mutable struct Number <: Blueprint
+    n::UInt
+end
+@blueprint Number "number of species"
+export Number
+
+F.expand!(raw, bp::Number) = expand!(raw, [Symbol(:s, i) for i in 1:bp.n])
 
 end
 

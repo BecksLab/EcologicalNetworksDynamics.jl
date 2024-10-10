@@ -14,6 +14,22 @@ module AllometryApi
 
 using ..AliasingDicts
 
+# (reassure JuliaLS)
+#! format: off
+if (false)
+    (local
+         AllometricParametersDict,
+         Allometry,
+         AllometryDict,
+         MetabolicClassDict,
+         parse_allometric_parameter_for_metabolic_class,
+         parse_allometry_arguments,
+         parse_metabolic_class_for_allometric_parameter,
+
+         var"")
+end
+#! format: on
+
 # Convenience shorter aliases.
 @aliasing_dict(
     MetabolicClassDict,

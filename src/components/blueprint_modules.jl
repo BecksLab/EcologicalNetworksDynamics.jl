@@ -3,7 +3,23 @@
 
 include("./macros_keywords.jl")
 
+# Reassure JuliaLS.
+#! format: off
+if (false)
+    (local
+        Species, _Species,
+        Foodweb, _Foodweb,
+
+        # Not found for some reason?
+        MetabolicClassDict,
+        AliasingError,
+
+    var"")
+end
+#! format: on
+
 import EcologicalNetworksDynamics:
+    AliasingDicts,
     BinAdjacency,
     Blueprint,
     Brought,
@@ -11,6 +27,7 @@ import EcologicalNetworksDynamics:
     F,
     Internal,
     Internals,
+    MetabolicClassDict,
     SparseMatrix,
     Topologies,
     imap,
@@ -22,8 +39,11 @@ import EcologicalNetworksDynamics:
     @GraphData,
     @check_list_refs,
     @check_size,
+    @check_symbol,
+    @expand_symbol,
     @get,
     @ref,
     @set,
     @tographdata
-import .F: checkfails, @blueprint
+import .F: checkfails, checkrefails, @blueprint
+import .AliasingDicts: AliasingError

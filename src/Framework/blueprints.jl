@@ -181,7 +181,8 @@ struct BlueprintCheckFailure <: Exception
     message::String
 end
 checkfails(m) = throw(BlueprintCheckFailure(m))
-export BlueprintCheckFailure, checkfails
+checkrefails(m) = rethrow(BlueprintCheckFailure(m))
+export BlueprintCheckFailure, checkfails, checkrefails
 
 # ==========================================================================================
 # Explicit terminal display.

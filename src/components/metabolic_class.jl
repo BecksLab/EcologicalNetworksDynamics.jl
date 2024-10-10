@@ -5,79 +5,154 @@
 #
 # These are either manually set (then checked against a foodweb for consistency)
 # or automatically set in favour of invertebrate or consumers, based on a foodweb.
-# In any case, a foodweb value must be present.
+# In any case, a foodweb component is required.
 
-mutable struct MetabolicClass <: ModelBlueprint
-    classes::@GraphData {Symbol, Vector}{Symbol}
-    function MetabolicClass(classes)
-        classes = @tographdata classes YV{Symbol}
-        # Check that aliases are valid.
-        classes isa Vector && AliasingDicts.standardize.(classes, MetabolicClassDict)
-        # Redundant with later, proper check, but this doesn't hurt.
-        @check_if_symbol classes (:all_invertebrates, :all_ectotherms)
-        new(classes)
-    end
+# (reassure JuliaLS)
+(false) && (local MetabolicClass, _MetabolicClass)
+
+# ==========================================================================================
+# Blueprints.
+
+module MetabolicClassBlueprints
+include("blueprint_modules.jl")
+import .EcologicalNetworksDynamics: Species, _Species, Foodweb, _Foodweb
+
+#-------------------------------------------------------------------------------------------
+# From raw values.
+
+mutable struct Raw <: Blueprint
+    classes::Vector{Symbol}
+    species::Brought(Species)
+    Raw(classes, sp = _Species) = new(Symbol.(classes), sp)
 end
+F.implied_blueprint_for(bp::Raw, ::_Species) = Species(length(bp.classes))
+@blueprint Raw "metabolic classes" depends(Foodweb)
+export Raw
 
-function F.check(model, bp::MetabolicClass)
-    (; classes) = bp
-
-    @check_if_symbol classes (:all_invertebrates, :all_ectotherms)
-
-    if classes isa Vector
-        names = model.species_names
-        prods = model.producers_mask
-        for (cls, prod_sp, sp) in zip(bp.classes, prods, names)
-            prod_class = AliasingDicts.is(cls, :producer, MetabolicClassDict)
-            if prod_sp && !prod_class
-                checkfails("Metabolic class for species $(repr(sp)) \
-                            cannot be '$cls' since it is a producer.")
-            elseif prod_class && !prod_sp
-                checkfails("Metabolic class for species $(repr(sp)) \
-                            cannot be '$cls' since it is a consumer.")
+F.early_check(bp::Raw) = early_check(bp.classes)
+early_check(classes) =
+    for (i, c) in enumerate(classes)
+        try
+            AliasingDicts.standardize(c, MetabolicClassDict)
+        catch e
+            if e isa AliasingError
+                mess = sprint(showerror, e)
+                checkrefails("Failed check on class input $i: $mess")
             end
+            rethrow(e)
         end
     end
 
-end
+F.late_check(raw, bp::Raw) = late_check(raw, bp.classes)
+function late_check(raw, classes)
+    S = @get raw.S
+    names = @ref raw.species.names
+    prods = @ref raw.producers.mask
 
-function F.expand!(model, bp::MetabolicClass)
-    (; classes) = bp
+    @check_size classes S
 
-    # Get rid of aliases and standardize classes symbols.
-    if classes isa Vector
-        classes = AliasingDicts.standardize.(classes, MetabolicClassDict)
+    for (cls, prod_sp, sp) in zip(classes, prods, names)
+        prod_class = AliasingDicts.is(cls, :producer, MetabolicClassDict)
+        if prod_sp && !prod_class
+            checkfails("Metabolic class for species $(repr(sp)) \
+                        cannot be '$cls' since it is a producer.")
+        elseif prod_class && !prod_sp
+            checkfails("Metabolic class for species $(repr(sp)) \
+                        cannot be '$cls' since it is a consumer.")
+        end
     end
-
-    # Or Automatically set classes based on the foodweb.
-    @expand_if_symbol(
-        classes,
-        :all_invertebrates =>
-            [is_prod ? :producer : :invertebrate for is_prod in model.producers_mask],
-        :all_ectotherms =>
-            [is_prod ? :producer : :ectotherm for is_prod in model.producers_mask],
-    )
-
-    model._foodweb.metabolic_class = String.(classes) # Legacy conversion.
 end
 
-@component MetabolicClass requires(Foodweb)
-export MetabolicClass
+
+function F.expand!(raw, bp::Raw)
+    # Get rid of aliases and standardize classes symbols.
+    classes = AliasingDicts.standardize.(bp.classes, MetabolicClassDict)
+    expand!(raw, classes)
+end
+# Legacy conversion.
+expand!(raw, classes) = raw._foodweb.metabolic_class = String.(classes)
+
+#-------------------------------------------------------------------------------------------
+# From a species-indexed map.
+
+mutable struct Map <: Blueprint
+    classes::@GraphData Map{Symbol}
+    species::Brought(Species)
+    Map(M, sp = _Species) = new(@tographdata(M, Map{Symbol}), sp)
+end
+F.implied_blueprint_for(bp::Map, ::_Species) = Species(refs(bp.classes))
+@blueprint Map "{species ↦ class} map" depends(Foodweb)
+export Map
+
+F.early_check(bp::Map) = early_check(values(bp.classes))
+
+function F.late_check(raw, bp::Map)
+    (; classes) = bp
+    index = @ref raw.species.index
+    @check_list_refs classes :species index dense
+    late_check(raw, values(classes))
+end
+
+function F.expand!(raw, bp::Map)
+    index = @ref raw.species.index
+    c = to_dense_vector(bp.classes, index)
+    expand!(raw, c)
+end
+
+#-------------------------------------------------------------------------------------------
+# From the foodweb itself, favouring either consumer class.
+
+mutable struct Favor <: Blueprint
+    favourite::Symbol
+end
+@blueprint Favor "favourite consumer class" depends(Foodweb)
+export Favor
+
+function F.early_check(bp::Favor)
+    (; favourite) = bp
+    @check_symbol favourite (:all_invertebrates, :all_ectotherms)
+end
+
+function F.expand!(raw, bp::Favor)
+    (; favourite) = bp
+    f = @expand_symbol(
+        favourite,
+        :all_invertebrates => :invertebrate,
+        :all_ectotherms => :ectotherm,
+    )
+    classes = [is_prod ? :producer : f for is_prod in @ref raw.producers.mask]
+    expand!(raw, classes)
+end
+
+end
 
 # ==========================================================================================
-# Basic query.
+# Component and generic constructors.
 
+@component MetabolicClass{Internal} requires(Foodweb) blueprints(MetabolicClassBlueprints)
+export MetabolicClass
+
+(::_MetabolicClass)(favourite::Symbol) = MetabolicClass.Favor(favourite)
+(::_MetabolicClass)(favourite::AbstractString) = MetabolicClass.Favor(Symbol(favourite))
+function (::_MetabolicClass)(classes)
+    c = @tographdata classes {Vector, Map}{Symbol}
+    if c isa Vector
+        MetabolicClass.Raw(c)
+    else
+        MetabolicClass.Map(c)
+    end
+end
+
+# Basic query.
 @expose_data nodes begin
     property(metabolic_classes)
     get(MetabolicClasses{Symbol}, "species")
-    ref_cache(m -> Symbol.(m._foodweb.metabolic_class)) # Legacy reverse conversion.
+    ref_cached(raw -> Symbol.(raw._foodweb.metabolic_class)) # Legacy reverse conversion.
     @species_index
     depends(MetabolicClass)
 end
 
-# ==========================================================================================
 # Display.
-
-function F.display(model, ::Type{<:MetabolicClass})
-    "Metabolic classes: [$(join_elided(model.metabolic_classes, ", "))]"
+function F.shortline(io::IO, model::Model, ::_MetabolicClass)
+    print(io, "Metabolic classes: [$(join_elided(model.metabolic_classes, ", "))]")
 end

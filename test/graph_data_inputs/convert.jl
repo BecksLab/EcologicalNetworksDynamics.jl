@@ -395,7 +395,7 @@
     # Invalid uses.
 
     @failswith((@tographdata 4 + 5 YSV{Bool}), MethodError, expansion)
-    @failswith((@tographdata nope YSV{Bool}), UndefVarError(:nope))
+    @failswith((@tographdata nope YSV{Bool}), UndefVarError(:nope, TestGraphDataInputs))
     @xargfails(
         (@tographdata input NOPE),
         [

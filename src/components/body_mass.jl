@@ -11,26 +11,36 @@ include("blueprint_modules.jl")
 import .EcologicalNetworksDynamics: _Species, Species, _Foodweb, Foodweb
 
 #-------------------------------------------------------------------------------------------
-# Calculate from trophic levels with a Z-value.
+# From raw values.
 
-mutable struct Z <: Blueprint
-    Z::Float64
+mutable struct Raw <: Blueprint
+    M::Vector{Float64}
+    species::Brought(Species)
+    Raw(M, sp = _Species) = new(Float64.(M), sp)
 end
-@blueprint Z "trophic levels" depends(Foodweb)
-export Z
+F.implied_blueprint_for(bp::Raw, ::_Species) = Species(length(bp.M))
+@blueprint Raw "masses values"
+export Raw
 
-function F.late_check(_, bp::Z)
-    (; Z) = bp
-    Z >= 0 || checkfails("Cannot calculate body masses from trophic levels \
-                          with a negative value of Z: $Z.")
+function F.late_check(raw, bp::Raw)
+    (; M) = bp
+    S = @get raw.S
+    @check_size M S
 end
 
-function F.expand!(raw, bp::Z)
-    (; Z) = bp
-    A = @ref raw.A
-    M = Internals.compute_mass(A, Z)
-    raw._foodweb.M = M
+F.expand!(raw, bp::Raw) = expand!(raw, bp.M)
+expand!(raw, M) = raw._foodweb.M = M
+
+#-------------------------------------------------------------------------------------------
+# From a scalar broadcasted to all species.
+
+mutable struct Flat <: Blueprint
+    M::Float64
 end
+@blueprint Flat "homogeneous mass value" depends(Species)
+export Flat
+
+F.expand!(raw, bp::Flat) = expand!(raw, to_size(bp.M, @get raw.S))
 
 #-------------------------------------------------------------------------------------------
 # From a species-indexed map.
@@ -52,42 +62,31 @@ function F.late_check(raw, bp::Map)
 end
 
 function F.expand!(raw, bp::Map)
-    (; M) = bp
     index = @ref raw.species.index
-    M = to_dense_vector(M, index)
-    raw._foodweb.M = M
+    M = to_dense_vector(bp.M, index)
+    expand!(raw, M)
 end
 
 #-------------------------------------------------------------------------------------------
-# From raw values.
+# From trophic levels with a Z-value.
 
-mutable struct Raw <: Blueprint
-    M::Vector{Float64}
-    species::Brought(Species)
-    Raw(M, sp = _Species) = new(Float64.(M), sp)
+mutable struct Z <: Blueprint
+    Z::Float64
 end
-F.implied_blueprint_for(bp::Raw, ::_Species) = Species(length(bp.M))
-@blueprint Raw "masses values"
-export Raw
+@blueprint Z "trophic levels" depends(Foodweb)
+export Z
 
-function F.late_check(raw, bp::Raw)
-    (; M) = bp
-    S = @get raw.S
-    @check_size M S
+function F.late_check(_, bp::Z)
+    (; Z) = bp
+    Z >= 0 || checkfails("Cannot calculate body masses from trophic levels \
+                          with a negative value of Z: $Z.")
 end
 
-F.expand!(raw, bp::Raw) = raw._foodweb.M = bp.M
-
-#-------------------------------------------------------------------------------------------
-# From a scalar broadcasted to all species.
-
-mutable struct Flat <: Blueprint
-    M::Float64
+function F.expand!(raw, bp::Z)
+    A = @ref raw.A
+    M = Internals.compute_mass(A, bp.Z)
+    expand!(raw, M)
 end
-@blueprint Flat "homogeneous mass value" depends(Species)
-export Flat
-
-F.expand!(raw, bp::Flat) = raw._foodweb.M = to_size(bp.M, @get raw.S)
 
 end
 

@@ -42,6 +42,26 @@ end
 
 
 F.expand!(raw, bp::Matrix) = expand_from_matrix!(raw, bp.A)
+function expand_from_matrix!(raw, A)
+
+    # Internal network is guaranteed to be an 'Internals.FoodWeb'
+    # because NTI components cannot be set before 'Foodweb' component.
+    fw = raw.network
+    fw.A = A
+    fw.method = "from component" # (internals legacy)
+
+    # Add trophic edges to the topology.
+    top = raw._topology
+    Topologies.add_edge_type!(top, :trophic)
+    Topologies.add_edges_within_node_type!(top, :species, :trophic, A)
+
+    # TODO: this should happen with components-combinations-triggered-hooks
+    # (see Nutrient.Nodes expansion)
+    #  Topologies.has_node_type(top, :nutrients) && Nutrients.connect_producers_to_nutrients(m)
+    # HERE: restore once Nutrients have been rewritten.
+
+end
+
 
 function F.display_blueprint_field_short(io::IO, A, ::Matrix, ::Val{:A})
     n = sum(A)
@@ -101,29 +121,6 @@ function F.display_blueprint_field_long(io::IO, A, ::Adjacency)
     print(io, "$n trophic link$(n > 1 ? "s" : "")")
 end
 
-#-------------------------------------------------------------------------------------------
-# Common expansion logic.
-
-function expand_from_matrix!(raw, A)
-
-    # Internal network is guaranteed to be an 'Internals.FoodWeb'
-    # because NTI components cannot be set before 'Foodweb' component.
-    fw = raw.network
-    fw.A = A
-    fw.method = "from component" # (internals legacy)
-
-    # Add trophic edges to the topology.
-    top = raw._topology
-    Topologies.add_edge_type!(top, :trophic)
-    Topologies.add_edges_within_node_type!(top, :species, :trophic, A)
-
-    # TODO: this should happen with components-combinations-triggered-hooks
-    # (see Nutrient.Nodes expansion)
-    #  Topologies.has_node_type(top, :nutrients) && Nutrients.connect_producers_to_nutrients(m)
-    # HERE: restore once Nutrients have been rewritten.
-
-end
-
 end
 
 # ==========================================================================================
@@ -157,7 +154,7 @@ function (::_Foodweb)(model::Union{Symbol,AbstractString}; kwargs...)
     rd = take_or!(:reject_if_disconnected, true)
     max = take_or!(:max_iterations, 10^5)
 
-    A = @build_from_symbol(
+    A = @expand_symbol(
         model,
 
         #-----------------------------------------------------------------------------------

@@ -4,12 +4,12 @@
     # Symbols.
 
     input = :a
-    res = @build_from_symbol(input, a => 4 + 5, b => "nope", c => unevaluated)
-    res = @build_from_symbol(input, :a => 4 + 5, :b => "nope", :c => unevaluated)
+    res = @expand_symbol(input, a => 4 + 5, b => "nope", c => unevaluated)
+    res = @expand_symbol(input, :a => 4 + 5, :b => "nope", :c => unevaluated)
     @test res == 9
 
     # Use sophisticated expressions if needed.
-    res = @build_from_symbol(
+    res = @expand_symbol(
         input,
         a => begin
             temp = 5
@@ -24,24 +24,24 @@
     @test !(@isdefined temp)
 
     # Incorrect uses.
-    @failswith(@build_from_symbol(input, a), MethodError, expansion)
+    @failswith(@expand_symbol(input, a), MethodError, expansion)
     @xargfails(
-        @build_from_symbol(input, 4 + 5),
+        @expand_symbol(input, 4 + 5),
         [
-            "Invalid @build_from_symbol macro use at",
+            "Invalid @expand_symbol macro use at",
             "Expected `symbol => expression` pairs. Got :(4 + 5).",
         ]
     )
     @xargfails(
-        @build_from_symbol(input, (4 + 5) => 8),
+        @expand_symbol(input, (4 + 5) => 8),
         [
-            "Invalid @build_from_symbol macro use at",
+            "Invalid @expand_symbol macro use at",
             "Expected `symbol => expression` pairs. Got :(4 + 5 => 8).",
         ]
     )
     input = :wrong
     @argfails( # Invoker failed to meet assumptions.
-        @build_from_symbol(input, a => 5),
+        @expand_symbol(input, a => 5),
         "⚠ Incorrectly checked symbol for input: :wrong. \
          This is a bug in the package. \
          Consider reporting if you can reproduce with a minimal example."

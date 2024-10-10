@@ -91,7 +91,9 @@ include("./args_to_fields.jl")
 #   Omega.Raw(...)
 #
 
+# Helpers.
 include("./macros_keywords.jl")
+include("./allometry.jl")
 
 # Central in the model nodes.
 include("./species.jl")
@@ -99,14 +101,12 @@ include("./species.jl")
 # Trophic links, structuring the whole network.
 include("./foodweb.jl")
 
-# Biorates and other values parametring the ODE.
+# Biorates and other values parametrizing the ODE.
 include("./body_mass.jl")
-#  include("./metabolic_class.jl")
+include("./metabolic_class.jl")
 
 #  # Useful temporary values to calculate other biorates.
 #  include("./temperature.jl")
-
-#  include("./allometry.jl")
 
 #  # Models (with comments etc.)
 #  include("./hill_exponent.jl") # Example graph-level data.
