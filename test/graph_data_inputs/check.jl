@@ -30,7 +30,10 @@
     )
 
     # Incorrect use.
-    @failswith((@check_symbol nope (a, b, c)), UndefVarError(:nope, TestGraphDataInputs))
+    @failswith(
+        (@check_symbol nope (a, b, c)),
+        UndefVarError => (:nope, TestGraphDataInputs),
+    )
     @failswith((@check_symbol 4 + 5 (a, b, c)), MethodError, expansion)
     @xargfails(
         (@check_symbol input (4 + 5)),
@@ -89,8 +92,8 @@
     )
 
     # Invalid uses.
-    @failswith((@check_size nope (Any, 3)), UndefVarError(:nope, TestGraphDataInputs))
-    @failswith((@check_size input nope), UndefVarError(:nope, TestGraphDataInputs))
+    @failswith((@check_size nope (Any, 3)), UndefVarError => (:nope, TestGraphDataInputs))
+    @failswith((@check_size input nope), UndefVarError => (:nope, TestGraphDataInputs))
     @failswith(
         (@check_size input "nope"), # TODO: not a super-satifsying error, but good enough.
         BlueprintCheckFailure("Invalid size for parameter 'input': \
@@ -196,9 +199,12 @@
 
     @failswith(
         (@check_template nope template :item),
-        UndefVarError(:nope, TestGraphDataInputs)
+        UndefVarError => (:nope, TestGraphDataInputs),
     )
-    @failswith((@check_template a nope :item), UndefVarError(:nope, TestGraphDataInputs))
+    @failswith(
+        (@check_template a nope :item),
+        UndefVarError => (:nope, TestGraphDataInputs),
+    )
     # TODO: improve the following errors?
     @failswith((@check_template a 4 + 5 :item), MethodError)
     @failswith((@check_template 4 + 5 template :item), MethodError, expansion)

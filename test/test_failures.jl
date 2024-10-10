@@ -165,7 +165,7 @@ end
 # Common expected errors.
 
 # ArgumentError.
-function TestFailures.check_exception(e::ArgumentError, message_pattern)
+function check_exception(e::ArgumentError, message_pattern)
     TestFailures.check_message(message_pattern, eval(e.msg))
 end
 # Expect failure during expansion.
@@ -177,5 +177,16 @@ macro argfails(xp, mess)
     TestFailures.failswith(__source__, __module__, xp, :(ArgumentError => ($mess,)), false)
 end
 export @xargfails, @argfails
+
+# UndefVarError.
+function check_exception(e::UndefVarError, var, scope)
+    e.var == var ||
+        error("Expected undefined symbol: $(repr(var)), got instead: $(repr(e.var))")
+    # This appeared and broke the tests.
+    if VERSION >= v"1.11"
+        e.scope === scope ||
+            error("Expected undefined scope: $(repr(scope)), got instead: $(repr(e.scope))")
+    end
+end
 
 end

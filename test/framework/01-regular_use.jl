@@ -207,7 +207,7 @@ end
     # Forbid existent properties without appropriate component.
     @sysfails(s.b, Property(b, "Component $_B is required to read this property."))
     # Same with methods.
-    @test_throws UndefVarError get_x(s)
+    @failswith(get_x(s), UndefVarError => (:get_x, Basics))
     @sysfails(get_b(s), Method(get_b, "Requires component $_B."))
 
     # Forbid write.
