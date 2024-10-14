@@ -11,7 +11,7 @@ macro check_symbol(var::Symbol, list)
 end
 function _check_symbol(loc, var, list)
     symbols = []
-    inputerr() = argerr("Invalid @build_from_symbol macro use at $loc.\n\
+    inputerr() = argerr("Invalid @check_symbol macro use at $loc.\n\
                          Expected a list of symbols. \
                          Got $(repr(list)).")
     list isa Expr || (list = :(($list,)))

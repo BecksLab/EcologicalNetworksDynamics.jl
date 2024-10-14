@@ -21,28 +21,28 @@
     @failswith(
         (@check_symbol input (x, y, z)),
         BlueprintCheckFailure("Invalid symbol received for 'input': :a. \
-                             Expected either :x, :y or :z instead."),
+                               Expected either :x, :y or :z instead."),
     )
     @failswith(
         (@check_symbol input x),
         BlueprintCheckFailure("Invalid symbol received for 'input': :a. \
-                             Expected :x instead.")
+                               Expected :x instead.")
     )
 
     # Incorrect use.
-    @failswith((@check_symbol nope (a, b, c)), UndefVarError(:nope))
+    @failswith(
+        (@check_symbol nope (a, b, c)),
+        UndefVarError => (:nope, TestGraphDataInputs),
+    )
     @failswith((@check_symbol 4 + 5 (a, b, c)), MethodError, expansion)
     @xargfails(
         (@check_symbol input (4 + 5)),
-        [
-            "Invalid @build_from_symbol macro use at",
-            "Expected a list of symbols. Got :(4 + 5).",
-        ]
+        ["Invalid @check_symbol macro use at", "Expected a list of symbols. Got :(4 + 5)."]
     )
     @xargfails(
         (@check_symbol input (a, 4 + 5, c)),
         [
-            "Invalid @build_from_symbol macro use at",
+            "Invalid @check_symbol macro use at",
             "Expected a list of symbols. Got :((a, 4 + 5, c)).",
         ]
     )
@@ -92,8 +92,8 @@
     )
 
     # Invalid uses.
-    @failswith((@check_size nope (Any, 3)), UndefVarError(:nope))
-    @failswith((@check_size input nope), UndefVarError(:nope))
+    @failswith((@check_size nope (Any, 3)), UndefVarError => (:nope, TestGraphDataInputs))
+    @failswith((@check_size input nope), UndefVarError => (:nope, TestGraphDataInputs))
     @failswith(
         (@check_size input "nope"), # TODO: not a super-satifsying error, but good enough.
         BlueprintCheckFailure("Invalid size for parameter 'input': \
@@ -197,8 +197,14 @@
     #---------------------------------------------------------------------------------------
     # Invalid uses.
 
-    @failswith((@check_template nope template :item), UndefVarError(:nope))
-    @failswith((@check_template a nope :item), UndefVarError(:nope))
+    @failswith(
+        (@check_template nope template :item),
+        UndefVarError => (:nope, TestGraphDataInputs),
+    )
+    @failswith(
+        (@check_template a nope :item),
+        UndefVarError => (:nope, TestGraphDataInputs),
+    )
     # TODO: improve the following errors?
     @failswith((@check_template a 4 + 5 :item), MethodError)
     @failswith((@check_template 4 + 5 template :item), MethodError, expansion)

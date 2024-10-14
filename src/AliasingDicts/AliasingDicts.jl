@@ -161,6 +161,7 @@ macro aliasing_dict(DictName, system_name, shortname, raw_refs)
     revmap = OrderedDict()
     err(mess) = throw(AliasingError(system_name, mess))
     for arg in raw_refs.args
+        (false) && (local std, refs) # (reassure JuliaLS)
         @capture(arg, std_ => refs_)
         isnothing(std) &&
             argerr("Not a pair of `standard => [references..]`: $(repr(arg)).")
