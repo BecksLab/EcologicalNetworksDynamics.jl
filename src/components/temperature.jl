@@ -1,8 +1,5 @@
 # Temperature is a single graph-level scalar
 # useful to calculate allometric values for various biorates.
-#
-# TODO: as model data, temperature gets invalidated as soon as a biorate is edited.
-#       Is this a problem, and if yes, how to solve it?
 
 mutable struct Temperature <: ModelBlueprint
     T::Float64 # (Kelvin)

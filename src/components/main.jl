@@ -57,11 +57,6 @@
 #   - Sparse (templated) edges data.
 #   - Behaviour (graph data that actually represents *code* to run the model).
 
-# Behaviour blueprints typically "optionally bring" other blueprints.
-# This utils factorizes how args/kwargs are passed from its inner constructor
-# to each of its fields.
-include("./args_to_fields.jl")
-
 # HERE: Now that the framework has been refactored,
 # change all the following components with the following design:
 #
@@ -94,6 +89,10 @@ include("./args_to_fields.jl")
 # Helpers.
 include("./macros_keywords.jl")
 include("./allometry.jl")
+# Behaviour blueprints typically "optionally bring" other blueprints.
+# This utils factorizes how args/kwargs are passed from its inner constructor
+# to each of its fields.
+include("./args_to_fields.jl")
 
 # Central in the model nodes.
 include("./species.jl")
@@ -105,7 +104,7 @@ include("./foodweb.jl")
 include("./body_mass.jl")
 include("./metabolic_class.jl")
 
-#  # Useful temporary values to calculate other biorates.
+# Useful temporary values to calculate other biorates.
 #  include("./temperature.jl")
 
 #  # Models (with comments etc.)

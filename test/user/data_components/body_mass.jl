@@ -12,11 +12,17 @@
     @test m.species.names == [:s1, :s2, :s3]
     @test m.body_masses == [1, 2, 3] == m.M
 
+    # Mapped input.
     bm = BodyMass([:a => 1, :b => 2, :c => 3])
     m = base + bm
     @test m.richness == 3
     @test m.species.names == [:a, :b, :c]
     @test m.body_masses == [1, 2, 3] == m.M
+
+    # Editable property.
+    m.body_masses[1] = 2
+    m.body_masses[2:3] *= 10
+    @test m.body_masses == [2, 20, 30] == m.M
 
     # All the same mass.
     @test (Model(Species(3)) + BodyMass(2)).body_masses == [2, 2, 2]
@@ -61,5 +67,10 @@
 
     @argfails(BodyMass(), "Either 'M' or 'Z' must be provided to define body masses.")
     @failswith(BodyMass([1, 2], Z = 3.4), MethodError)
+    @failswith((m.M[1] = 'a'), WriteError("not a real number", :body_masses, (1,), 'a'))
+    @failswith(
+        (m.M[2:3] *= -10),
+        WriteError("not a positive value", :body_masses, (2,), -28.0)
+    )
 
 end

@@ -9,7 +9,7 @@
 # ..based on the following allometry API.
 include("./allometry_api.jl")
 using .AllometryApi
-export Allometry
+(false) && (local MetabolicClassDict, AliasingError) # (reassure JuliaLS)
 
 # Check the given parameters against a template (typically a default value)
 # so as to reject missing or unexpected values.

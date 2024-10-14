@@ -11,6 +11,12 @@
     m = base + MetabolicClass(:all_invertebrates)
     @test m.metabolic_classes == [:invertebrate, :invertebrate, :producer]
 
+    # Editable property.
+    m.metabolic_classes[2] = "e" # Conversion on.
+    @test m.metabolic_classes == [:invertebrate, :ectotherm, :producer]
+    m.metabolic_classes[1:2] .= :inv
+    @test m.metabolic_classes == [:invertebrate, :invertebrate, :producer]
+
     # Consistency checks.
     @sysfails(
         base + MetabolicClass(:invalid_favor),
@@ -56,6 +62,16 @@
     @sysfails(
         Model(MetabolicClass([:i, :e, :p])),
         Missing(Foodweb, MetabolicClass, [MetabolicClass.Raw], nothing),
+    )
+
+    # Edition guards.
+    @failswith(
+        (m.metabolic_classes[2] = :p),
+        WriteError("consumers cannot be :producer", :metabolic_classes, (2,), :p),
+    )
+    @failswith(
+        (m.metabolic_classes[3] = :i),
+        WriteError("producers cannot be :invertebrate", :metabolic_classes, (3,), :i),
     )
 
 end

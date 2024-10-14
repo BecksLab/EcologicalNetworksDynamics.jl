@@ -8,7 +8,7 @@
 # In any case, a foodweb component is required.
 
 # (reassure JuliaLS)
-(false) && (local MetabolicClass, _MetabolicClass)
+(false) && (local MetabolicClass, _MetabolicClass, MetabolicClassDict)
 
 # ==========================================================================================
 # Blueprints.
@@ -146,10 +146,25 @@ end
 # Basic query.
 @expose_data nodes begin
     property(metabolic_classes)
-    get(MetabolicClasses{Symbol}, "species")
-    ref_cached(raw -> Symbol.(raw._foodweb.metabolic_class)) # Legacy reverse conversion.
-    @species_index
     depends(MetabolicClass)
+    @species_index
+    ref_cached(raw -> Symbol.(raw._foodweb.metabolic_class)) # Legacy reverse conversion.
+    get(MetabolicClasses{Symbol}, "species")
+    write!(
+        (raw, rhs, i) -> begin
+            rhs = try
+                AliasingDicts.standardize(rhs, MetabolicClassDict)
+            catch e
+                e isa AliasingError && writerefails(sprint(showerror, e))
+                rethrow(e)
+            end
+            is_prod = is_producer(raw, i)
+            rhs == :producer && !is_prod && writefails("consumers cannot be $(repr(rhs))")
+            rhs != :producers && is_prod && writefails("producers cannot be $(repr(rhs))")
+            raw._foodweb.metabolic_class[i...] = String(rhs)
+            rhs
+        end,
+    )
 end
 
 # Display.

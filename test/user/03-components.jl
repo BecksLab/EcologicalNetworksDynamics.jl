@@ -14,6 +14,7 @@ using Test
 using ..TestUser
 
 const EN = EcologicalNetworksDynamics
+import .EN: WriteError
 
 # Many small similar components tests files, although they easily diverge.
 only = [

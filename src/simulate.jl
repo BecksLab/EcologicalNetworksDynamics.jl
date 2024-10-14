@@ -8,7 +8,7 @@ const Solution = AbstractODESolution
 # because a reference to the original model needs to be forwarded down to the internals
 # to save a copy next to the results,
 # and the @method macro misses the feature of providing this reference yet.
-function _simulate(model::InnerParms, u0, tmax::Number; kwargs...)
+function _simulate(model::InnerParms, u0, tmax::Real; kwargs...)
     # Depart from the legacy Internal defaults.
     @kwargs_helpers kwargs
 
@@ -52,7 +52,7 @@ end
 @method _simulate depends(FunctionalResponse, ProducerGrowth, Metabolism, Mortality)
 
 """
-    simulate(model::Model, u0, tmax::Number; kwargs...)
+    simulate(model::Model, u0, tmax::Real; kwargs...)
 
 The major feature of the ecological model:
 transform the model value into a set of ODEs
@@ -71,7 +71,7 @@ produced by the underlying `DifferentialEquations` package.
 This object contains an inner copy of the simulated model,
 which may then be retrieved with `get_model()`.
 """
-simulate(model::Model, u0, tmax::Number; kwargs...) =
+simulate(model::Model, u0, tmax::Real; kwargs...) =
     _simulate(model, u0, tmax; model, kwargs...)
 # .. so that we *can* retrieve the original model from the simulation result.
 export simulate

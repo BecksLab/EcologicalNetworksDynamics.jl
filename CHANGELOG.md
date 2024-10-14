@@ -76,3 +76,7 @@ blueprint for <Foodweb>: Matrix {
   species: <no blueprint brought>,
 }
 ```
+
+- Every "leaf" "geometrical" model property *i.e.* a property whose futher
+  model topology does not depend on or is not planned to depend on
+  is now writeable.

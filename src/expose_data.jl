@@ -76,6 +76,7 @@ macro expose_data(
     #     Forbidden if a 'View' is defined, for it's a pandora box:
     #     references leaks, other views invalidations, cache corruption etc.
     #     Type the rhs for safety guards before the actual body is run.
+    #     Fail with `setfails` in case the rhs value is found to be invalid.
     #
     # Special 'View' refinments for :nodes and :edges levels (disallowed for :graph):
     #
@@ -87,6 +88,7 @@ macro expose_data(
     #
     #   write!(function) or write!((raw, rhs, i<, j>) -> <body>)
     #     Enable setindex! method for the generated view.
+    #     Fail with `writefails` in case the rhs value is found to be invalid.
     #
     #   template(function) or template(raw -> <body>)
     #     Generates a `._template` method for the view if sparse,
@@ -526,69 +528,39 @@ macro expose_data(
 
         mutable = false
         str = Expr(:struct, mutable, :($View <: $Sup), fields)
+        item_name = kwargs[:item]
         push_res!(quote
             $str
+            ViewType = $View
+            GraphViews.item_name(::Type{ViewType}) = $item_name
         end)
 
         #-----------------------------------------------------------------------------------
         # Wire checked index access as required.
 
-        item = kwargs[:item]
-        if nodes
-            check = sparse ? :check_index_sparse_nodes : :check_index_dense_nodes
-            label = indexed ? :check_label_nodes : :no_labels_nodes
-        else
-            check = sparse ? :check_index_sparse_edges : :check_index_dense_edges
-            label = indexed ? :check_label_edges : :no_labels_edges
-        end
+        check = sparse ? :check_sparse_index : :check_dense_index
+        label = indexed ? :to_index : :no_labels
         (check, label) = (:(GraphViews.$check), :(GraphViews.$label))
-        if nodes
-            push_res!(
-                quote
-                    GraphViews.check_index(i, v::$View; kwargs...) =
-                        $check(i, v, $item; kwargs...)
-                    GraphViews.check_label(s, v::$View) = $label(s, v, $item)
-                    # Always dense-check to make error messages consistent.
-                    function Base.getindex(v::$View, i::Int)
-                        i = GraphViews.check_index_dense_nodes(i, v, $item)
-                        getindex(v._ref, i)
-                    end
-                end,
-            )
-        else
-            push_res!(
-                quote
-                    GraphViews.check_index(i, j, v::$View; kwargs...) =
-                        $check(i, j, v, $item; kwargs...)
-                    GraphViews.check_label(s, t, v::$View) = $label(s, t, v, $item)
-                    function Base.getindex(v::$View, i::Int, j::Int)
-                        i, j = GraphViews.check_index_dense_edges(i, j, v, $item)
-                        getindex(v._ref, i, j)
-                    end
-                end,
-            )
-        end
+        push_res!(quote
+            GraphViews.check_index(v::ViewType, args...) = $check(v, args...)
+            GraphViews.check_label(v::ViewType, args...) = $label(v, args...)
+        end)
 
         #-----------------------------------------------------------------------------------
         # Generate the write! method.
 
         if write
             w = esc(take!(:write!))
-            if nodes
-                push_res!(
-                    quote
-                        GraphViews.write!(model::Internal, ::Type{$View}, rhs, i) =
-                            $w(model, rhs, i)
-                    end,
-                )
-            else
-                push_res!(
-                    quote
-                        GraphViews.write!(model::Internal, ::Type{$View}, rhs, i, j) =
-                            $w(model, rhs, i, j)
-                    end,
-                )
-            end
+            push_res!(
+                quote
+                    GraphViews.write!(model::Internal, ::Type{ViewType}, rhs, i) =
+                        try
+                            $w(model, rhs, i...)
+                        catch e
+                            rethrow(e, $sfirst_path, i, rhs)
+                        end
+                end,
+            )
         end
 
     else
@@ -604,7 +576,7 @@ macro expose_data(
 
     if generate_view
         push_res!(quote
-            $get_prop(model::Internal) = $View(model)
+            $get_prop(model::Internal) = ViewType(model)
         end)
     else
         push_res!(quote
@@ -643,7 +615,11 @@ macro expose_data(
                             "Cannot set with a value of type $(typeof(rhs)): $(repr(rhs)).",
                         )
                     end
-                    $set!_fn(model, rhs)
+                    try
+                        $set!_fn(model, rhs)
+                    catch e
+                        rethrow(e, $sfirst_path, nothing, rhs)
+                    end
                 end
             end,
         )
@@ -675,8 +651,9 @@ function get_cached(model, key, ref)
 end
 
 # ==========================================================================================
-# Exceptions inspired from framework macro exceptions.
+# Exceptions.
 
+# Inspired from framework macro exceptions.
 struct ExposeDataMacroError <: Exception
     name::Union{Symbol,Expr} # (property path)
     src::LineNumberNode
@@ -686,4 +663,55 @@ function Base.showerror(io::IO, e::ExposeDataMacroError)
     print(io, "In @expose_data macro for '$(e.name)': ")
     println(io, crayon"blue", "$(e.src.file):$(e.src.line)", crayon"reset")
     println(io, e.message)
+end
+
+# To be thrown from either `set!` or `write!` by framework user.
+struct BaseWriteError <: Exception
+    mess::String
+end
+# Aliases for now, but possibly not in the future..?
+setfails(m) = throw(BaseWriteError(m))
+setrefails(m) = rethrow(BaseWriteError(m))
+writefails(m) = setfails(m)
+writerefails(m) = setrefails(m)
+
+# Upgrade when received from the framework user.
+rethrow(e::BaseWriteError, path, index, rhs) =
+    Base.rethrow(WriteError(e.mess, path, index, rhs))
+struct WriteError <: Exception
+    mess::String
+    path::Union{Expr,Symbol} # Property trying to be written to.
+    index::Option{Tuple{Vararg{Int}}} # None for `set!`, some for `write!`.
+    rhs::Any
+end
+function Base.showerror(io::IO, e::WriteError)
+    (; mess, path, index, rhs) = e
+    print(
+        io,
+        "Cannot set property '.$path$(display_index(index))': $mess.\n\
+         Received value: $(repr(rhs)) ::$(typeof(rhs))",
+    )
+end
+display_index(::Nothing) = ""
+display_index((i,)::Tuple) = "[$(join(repr.(i), ", "))]"
+
+# To be throw in case of unexpected exception.
+struct UnexpectedException <: Exception
+    path::Union{Expr,Symbol}
+    index::Option{Tuple{Vararg{Int}}}
+    rhs::Any
+end
+rethrow(_, path, index, rhs) = throw(UnexpectedException(path, index, rhs))
+function Base.showerror(io::IO, e::UnexpectedException)
+    (; path, index, rhs) = e
+    index = display_index(index)
+    red, reset = crayon"red bold", crayon"reset"
+    print(
+        io,
+        "Error while setting property '$path$index' \
+         (see error further down the stacktrace). \n\
+         Received value: $(repr(rhs)) ::$(typeof(rhs))\n\
+         $(red)This is a bug in the components library.$reset \
+         Please report if you can reproduce with a minimal example.",
+    )
 end
