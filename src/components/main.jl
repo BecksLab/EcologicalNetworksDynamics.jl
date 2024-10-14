@@ -105,7 +105,7 @@ include("./foodweb.jl")
 include("./body_mass.jl")
 include("./metabolic_class.jl")
 
-#  # Useful temporary values to calculate other biorates.
+# Useful temporary values to calculate other biorates.
 #  include("./temperature.jl")
 
 #  # Models (with comments etc.)

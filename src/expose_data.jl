@@ -526,69 +526,35 @@ macro expose_data(
 
         mutable = false
         str = Expr(:struct, mutable, :($View <: $Sup), fields)
+        item_name = kwargs[:item]
         push_res!(quote
             $str
+            ViewType = $View
+            GraphViews.item_name(::Type{ViewType}) = $item_name
         end)
 
         #-----------------------------------------------------------------------------------
         # Wire checked index access as required.
 
-        item = kwargs[:item]
-        if nodes
-            check = sparse ? :check_index_sparse_nodes : :check_index_dense_nodes
-            label = indexed ? :check_label_nodes : :no_labels_nodes
-        else
-            check = sparse ? :check_index_sparse_edges : :check_index_dense_edges
-            label = indexed ? :check_label_edges : :no_labels_edges
-        end
+        check = sparse ? :check_sparse_index : :check_dense_index
+        label = indexed ? :to_index : :no_labels
         (check, label) = (:(GraphViews.$check), :(GraphViews.$label))
-        if nodes
-            push_res!(
-                quote
-                    GraphViews.check_index(i, v::$View; kwargs...) =
-                        $check(i, v, $item; kwargs...)
-                    GraphViews.check_label(s, v::$View) = $label(s, v, $item)
-                    # Always dense-check to make error messages consistent.
-                    function Base.getindex(v::$View, i::Int)
-                        i = GraphViews.check_index_dense_nodes(i, v, $item)
-                        getindex(v._ref, i)
-                    end
-                end,
-            )
-        else
-            push_res!(
-                quote
-                    GraphViews.check_index(i, j, v::$View; kwargs...) =
-                        $check(i, j, v, $item; kwargs...)
-                    GraphViews.check_label(s, t, v::$View) = $label(s, t, v, $item)
-                    function Base.getindex(v::$View, i::Int, j::Int)
-                        i, j = GraphViews.check_index_dense_edges(i, j, v, $item)
-                        getindex(v._ref, i, j)
-                    end
-                end,
-            )
-        end
+        push_res!(quote
+            GraphViews.check_index(v::ViewType, args...) = $check(v, args...)
+            GraphViews.check_label(v::ViewType, args...) = $label(v, args...)
+        end)
 
         #-----------------------------------------------------------------------------------
         # Generate the write! method.
 
         if write
             w = esc(take!(:write!))
-            if nodes
-                push_res!(
-                    quote
-                        GraphViews.write!(model::Internal, ::Type{$View}, rhs, i) =
-                            $w(model, rhs, i)
-                    end,
-                )
-            else
-                push_res!(
-                    quote
-                        GraphViews.write!(model::Internal, ::Type{$View}, rhs, i, j) =
-                            $w(model, rhs, i, j)
-                    end,
-                )
-            end
+            push_res!(
+                quote
+                    GraphViews.write!(model::Internal, ::Type{ViewType}, rhs, i) =
+                        $w(model, rhs, i...)
+                end,
+            )
         end
 
     else
@@ -604,7 +570,7 @@ macro expose_data(
 
     if generate_view
         push_res!(quote
-            $get_prop(model::Internal) = $View(model)
+            $get_prop(model::Internal) = ViewType(model)
         end)
     else
         push_res!(quote
@@ -675,8 +641,9 @@ function get_cached(model, key, ref)
 end
 
 # ==========================================================================================
-# Exceptions inspired from framework macro exceptions.
+# Exceptions.
 
+# Inspired from framework macro exceptions.
 struct ExposeDataMacroError <: Exception
     name::Union{Symbol,Expr} # (property path)
     src::LineNumberNode

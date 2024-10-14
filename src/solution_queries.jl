@@ -48,7 +48,7 @@ from the solution returned by `simulate()`.
 If a simulation date is provided,
 restrict to the list of species extinct in the simulation at this date.
 """
-function get_extinctions(sol::Solution; date::Option{Number} = nothing)
+function get_extinctions(sol::Solution; date::Option{Real} = nothing)
     if isnothing(date)
         date = Inf
     else

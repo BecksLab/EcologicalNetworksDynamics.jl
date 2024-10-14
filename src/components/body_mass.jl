@@ -22,6 +22,16 @@ F.implied_blueprint_for(bp::Raw, ::_Species) = Species(length(bp.M))
 @blueprint Raw "masses values"
 export Raw
 
+F.early_check(bp::Raw) =
+    for (i, m) in enumerate(bp.M)
+        try
+            check(m)
+        catch e
+            checkrefails("Invalid M[$i]: $(e.message)")
+        end
+    end
+check(m) = checkfails("Only positive values allowed, received $m.")
+
 function F.late_check(raw, bp::Raw)
     (; M) = bp
     S = @get raw.S
@@ -40,6 +50,7 @@ end
 @blueprint Flat "homogeneous mass value" depends(Species)
 export Flat
 
+F.early_check(bp::Flat) = check(bp.M)
 F.expand!(raw, bp::Flat) = expand!(raw, to_size(bp.M, @get raw.S))
 
 #-------------------------------------------------------------------------------------------
@@ -59,6 +70,13 @@ function F.late_check(raw, bp::Map)
     (; M) = bp
     index = @ref raw.species.index
     @check_list_refs M :species index dense
+    for (sp, m) in M
+        try
+            check(m)
+        catch e
+            checkrefails("Invalid M[$(repr(sp))]: $(e.message)")
+        end
+    end
 end
 
 function F.expand!(raw, bp::Map)
@@ -96,7 +114,7 @@ end
 @component BodyMass{Internal} requires(Species) blueprints(BodyMassBlueprints)
 export BodyMass
 
-(::_BodyMass)(M::Number) = BodyMass.Flat(M)
+(::_BodyMass)(M::Real) = BodyMass.Flat(M)
 
 function (::_BodyMass)(; Z = nothing)
     isnothing(Z) && argerr("Either 'M' or 'Z' must be provided to define body masses.")
@@ -115,10 +133,19 @@ end
 # Basic query.
 @expose_data nodes begin
     property(body_masses, M)
-    get(BodyMasses{Float64}, "species")
-    ref(raw -> raw._foodweb.M)
-    @species_index
     depends(BodyMass)
+    @species_index
+    ref(raw -> raw._foodweb.M)
+    get(BodyMasses{Float64}, "species")
+    write!(
+        (raw, rhs, i) -> begin
+            M = @ref raw.M
+            rhs isa Real || #  HERE: this check should be a common thing to feature.
+                writerr("not a real number: $(repr(rhs)) ::$(typeof(rhs)).")
+            rhs >= 0 || writerr("not a positive value: $rhs.") # HERE: express with @expose_data.
+            M[i] = rhs
+        end,
+    )
 end
 
 # Display.
