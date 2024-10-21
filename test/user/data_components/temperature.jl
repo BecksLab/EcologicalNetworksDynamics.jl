@@ -10,9 +10,9 @@
     m.temperature = 250
     @test m.temperature == m.T == 250.0
 
-    mess = "Not a positive (Kelvin) value"
-    @sysfails(Model(Temperature(-4)), Check(early, [Temperature.Raw], "$mess: -4.0."))
+    mess = "Not a positive (Kelvin) value: T ="
+    @sysfails(Model(Temperature(-4)), Check(early, [Temperature.Raw], "$mess -4.0."))
 
-    @failswith((m.T = -1), WriteError("$mess: -1.", :temperature, nothing, -1))
+    @failswith((m.T = -1), WriteError("$mess -1.", :temperature, nothing, -1))
 
 end

@@ -9,6 +9,7 @@
 
 module T
 include("blueprint_modules.jl")
+
 #-------------------------------------------------------------------------------------------
 # From raw value.
 
@@ -19,7 +20,7 @@ end
 export Raw
 
 F.early_check(bp::Raw) = check_value(bp.T)
-check_value(T) = T >= 0.0 || checkfails("Not a positive (Kelvin) value: $T.")
+check_value(T) = T >= 0.0 || checkfails("Not a positive (Kelvin) value: T = $T.")
 
 F.expand!(raw, bp::Raw) = raw.environment = Internals.Environment(bp.T)
 

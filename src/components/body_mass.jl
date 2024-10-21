@@ -26,9 +26,8 @@ F.early_check(bp::Raw) =
     for (i, m) in enumerate(bp.M)
         check(m, i)
     end
-check(m) = m >= 0 || checkfails("Only positive values allowed, received $m.")
-check(m, ref) =
-    m >= 0 || checkfails("Only positive values allowed, received M[$(repr(ref))] = $m.")
+check(m) = m >= 0 || checkfails("Not a positive value: M = $m.")
+check(m, ref) = m >= 0 || checkfails("Not a positive value: M[$(repr(ref))] = $m.")
 
 function F.late_check(raw, bp::Raw)
     (; M) = bp
@@ -132,7 +131,7 @@ end
     ref(raw -> raw._foodweb.M)
     get(BodyMasses{Float64}, "species")
     write!((raw, rhs::Real, i) -> begin
-        rhs >= 0 || checkfails("not a positive value")
+        BM.check(rhs, i)
         rhs
     end)
 end

@@ -69,7 +69,7 @@
     @failswith(BodyMass([1, 2], Z = 3.4), MethodError)
     @sysfails(
         Model(BodyMass([1, -2])),
-        Check(early, [BodyMass.Raw], "Only positive values allowed, received M[2] = -2.0.")
+        Check(early, [BodyMass.Raw], "Not a positive value: M[2] = -2.0.")
     )
     @failswith(
         (m.M[1] = 'a'),
@@ -77,7 +77,7 @@
     )
     @failswith(
         (m.M[2:3] *= -10),
-        WriteError("not a positive value", :body_masses, (2,), -28.0)
+        WriteError("Not a positive value: M[2] = -28.0.", :body_masses, (2,), -28.0)
     )
 
 end

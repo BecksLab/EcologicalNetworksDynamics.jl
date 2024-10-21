@@ -85,7 +85,7 @@ import .EN: WriteError
     )
     @failswith(
         (bm[2:3] *= -10),
-        WriteError("not a positive value", :body_masses, (2,), -50)
+        WriteError("Not a positive value: M[2] = -50.0.", :body_masses, (2,), -50)
     )
 
 end

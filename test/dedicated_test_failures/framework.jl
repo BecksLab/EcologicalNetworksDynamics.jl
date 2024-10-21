@@ -184,7 +184,7 @@ function sysfails(__source__, __module__, xp, input)
 
         keywords = [:early, :late]
         late_check in keywords ||
-            throw("Expected keyword in $keyword, got instead: $late_check.")
+            throw("Expected keyword in $keywords, got instead: $late_check.")
         push!(fields, late_check == keywords[2] ? :true : :false)
 
         yield(:HookCheckFailure, fields)

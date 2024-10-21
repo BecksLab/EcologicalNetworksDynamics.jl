@@ -228,7 +228,7 @@ macro expose_data(
             else
                 # Two arguments given. Assume the first is rhs type.
                 length(args) == 2 && perr("Two expressions required for section '$key' \
-                                               received instead: $args.")
+                                           received instead: $args.")
                 kwargs[:set!], kwargs[:set!_rhs_type] = args
             end
         end
@@ -675,10 +675,11 @@ end
 rethrow(e::CheckError, path, _, index, rhs) =
     Base.rethrow(WriteError(e.message, path, index, rhs))
 function Base.showerror(io::IO, e::WriteError)
+    it, reset = crayon"italics", crayon"reset"
     (; mess, path, index, rhs) = e
     print(
         io,
-        "Cannot set property '.$path$(display_index(index))': $mess.\n\
+        "Cannot set property '.$path$(display_index(index))':\n$it  $mess$reset\n\
          Received value: $(repr(rhs)) ::$(typeof(rhs))",
     )
 end

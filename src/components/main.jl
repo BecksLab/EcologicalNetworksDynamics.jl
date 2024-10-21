@@ -107,12 +107,12 @@ include("./metabolic_class.jl")
 # Useful global values to calculate other biorates.
 include("./temperature.jl")
 
-#  # Models (with comments etc.)
-#  include("./hill_exponent.jl") # Example graph-level data.
+# Typical graph/node/edge data (documented framework use).
+include("./hill_exponent.jl") # Example graph-level data.
 #  include("./growth_rate.jl") # Example nodes-level data.
 #  include("./efficiency.jl") # Example edges-level data.
 
-#  # Replicated/adapted from the above.
+#  # Replicated/adapted from the above, with only few comments.
 #  include("./carrying_capacity.jl")
 #  include("./mortality.jl")
 #  include("./metabolism.jl")
