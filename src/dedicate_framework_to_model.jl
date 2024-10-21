@@ -3,7 +3,18 @@
 # Fine-grained namespace control.
 import .Framework
 const F = Framework # Convenience alias for the whole components library.
-import .F: add!, blueprints, components, has_component, @method, @component, System, Brought
+import .F:
+    @component,
+    @method,
+    Brought,
+    CheckError,
+    System,
+    add!,
+    blueprints,
+    checkfails,
+    checkrefails,
+    components,
+    has_component
 
 # Direct re-exports from the framework module.
 export add!, properties, blueprints, components, has_component

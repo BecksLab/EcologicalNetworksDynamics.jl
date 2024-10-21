@@ -86,7 +86,7 @@ macro expose_data(
     #     and the `._graph` field to `raw`.
     #     Then generate a `get_<prop>(raw) = View(raw)` method.
     #
-    #   write!(function) or write!((raw, rhs, i<, j>) -> <body>)
+    #   write!(function) or write!((raw, rhs::<rhs_type>, i<, j>) -> <body>)
     #     Enable setindex! method for the generated view.
     #     Fail with `writefails` in case the rhs value is found to be invalid.
     #
@@ -305,7 +305,7 @@ macro expose_data(
                     fn.head == :-> &&
                     length(fn.args[1].args) != 3 &&
                     perr("The :nodes closure in section `write!` \
-                          needs to take exactly 3 arguments (model, rhs, i).")
+                          needs to take exactly 3 arguments (raw, rhs, i).")
             end
 
         elseif edges
@@ -316,7 +316,7 @@ macro expose_data(
                     fn.head == :-> &&
                     length(fn.args[1].args) != 4 &&
                     perr("The :edges closure in section `write!` \
-                          needs to take exactly 4 arguments (model, rhs, i, j).")
+                          needs to take exactly 4 arguments (raw, rhs, i, j).")
             end
 
         else
@@ -348,14 +348,12 @@ macro expose_data(
         ref_prop = esc(ref_prop_path)
 
         if cached
-            push_res!(
-                quote
-                    $ref_prop(model::Internal) = get_cached(model, $sfirst_path, $ref_fn)
-                end,
-            )
+            push_res!(quote
+                $ref_prop(raw::Internal) = get_cached(raw, $sfirst_path, $ref_fn)
+            end)
         else
             push_res!(quote
-                $ref_prop(model::Internal) = $ref_fn(model)
+                $ref_prop(raw::Internal) = $ref_fn(raw)
             end)
         end
 
@@ -466,9 +464,9 @@ macro expose_data(
 
         View = esc(View)
         constructor = quote
-            function $View(model::Internal)
-                ref = $ref_prop(model)
-                new(ref, model)
+            function $View(raw::Internal)
+                ref = $ref_prop(raw)
+                new(ref, raw)
             end
         end
         lines = constructor.args[2].args[2].args
@@ -484,7 +482,7 @@ macro expose_data(
 
             template_fn = esc(take!(:template))
             add_lines!(quote
-                template = $template_fn(model)
+                template = $template_fn(raw)
             end)
             add_args!(:template)
 
@@ -495,7 +493,7 @@ macro expose_data(
 
                 index_fn = esc(take!(:index))
                 add_lines!(quote
-                    index = $index_fn(model)
+                    index = $index_fn(raw)
                 end)
                 add_args!(:index)
 
@@ -505,15 +503,15 @@ macro expose_data(
                 if given(:index)
                     rows_fn = esc(take!(:index))
                     add_lines!(quote
-                        rows = $rows_fn(model)
+                        rows = $rows_fn(raw)
                         cols = rows
                     end)
                 else
                     rows_fn = esc(take!(:row_index))
                     cols_fn = esc(take!(:col_index))
                     add_lines!(quote
-                        rows = $rows_fn(model)
-                        cols = $cols_fn(model)
+                        rows = $rows_fn(raw)
+                        cols = $cols_fn(raw)
                     end)
                 end
                 add_args!(:rows, :cols)
@@ -553,11 +551,12 @@ macro expose_data(
             w = esc(take!(:write!))
             push_res!(
                 quote
-                    GraphViews.write!(model::Internal, ::Type{ViewType}, rhs, i) =
+                    w = $w
+                    GraphViews.write!(raw::Internal, ::Type{ViewType}, rhs, i) =
                         try
-                            $w(model, rhs, i...)
+                            w(raw, rhs, i...)
                         catch e
-                            rethrow(e, $sfirst_path, i, rhs)
+                            rethrow(e, $sfirst_path, w, i, rhs)
                         end
                 end,
             )
@@ -576,11 +575,11 @@ macro expose_data(
 
     if generate_view
         push_res!(quote
-            $get_prop(model::Internal) = ViewType(model)
+            $get_prop(raw::Internal) = ViewType(raw)
         end)
     else
         push_res!(quote
-            $get_prop(model::Internal) = $get_fn(model)
+            $get_prop(raw::Internal) = $get_fn(raw)
         end)
     end
 
@@ -601,7 +600,8 @@ macro expose_data(
         set_prop! = esc(set_prop!_name)
         push_res!(
             quote
-                function $set_prop!(model, rhs)
+                set!_fn = $set!_fn
+                function $set_prop!(raw::Internal, rhs)
                     # Guard against invalid typed rhs if provided,
                     # because a type error triggered further down
                     # could corrupt internal state.
@@ -610,15 +610,15 @@ macro expose_data(
                         rhs = convert($rhs_type, rhs)
                     catch
                         Framework.properr(
-                            typeof(model),
+                            typeof(raw),
                             $sfirst_path,
                             "Cannot set with a value of type $(typeof(rhs)): $(repr(rhs)).",
                         )
                     end
                     try
-                        $set!_fn(model, rhs)
+                        set!_fn(raw, rhs)
                     catch e
-                        rethrow(e, $sfirst_path, nothing, rhs)
+                        rethrow(e, $sfirst_path, set!_fn, nothing, rhs)
                     end
                 end
             end,
@@ -640,11 +640,11 @@ end
 export @expose_data
 
 # Cache-memoization wrapper around the 'ref' function if needed.
-function get_cached(model, key, ref)
-    cache = model._cache
+function get_cached(raw, key, ref)
+    cache = raw._cache
     # Calculate if not already done.
     if !haskey(cache, key)
-        cache[key] = ref(model)
+        cache[key] = ref(raw)
     end
     # Lend a reference to the cached value.
     cache[key]
@@ -665,25 +665,15 @@ function Base.showerror(io::IO, e::ExposeDataMacroError)
     println(io, e.message)
 end
 
-# To be thrown from either `set!` or `write!` by framework user.
-struct BaseWriteError <: Exception
-    mess::String
-end
-# Aliases for now, but possibly not in the future..?
-setfails(m) = throw(BaseWriteError(m))
-setrefails(m) = rethrow(BaseWriteError(m))
-writefails(m) = setfails(m)
-writerefails(m) = setrefails(m)
-
-# Upgrade when received from the framework user.
-rethrow(e::BaseWriteError, path, index, rhs) =
-    Base.rethrow(WriteError(e.mess, path, index, rhs))
+# Upgrade check error when received from the framework user.
 struct WriteError <: Exception
     mess::String
     path::Union{Expr,Symbol} # Property trying to be written to.
     index::Option{Tuple{Vararg{Int}}} # None for `set!`, some for `write!`.
     rhs::Any
 end
+rethrow(e::CheckError, path, _, index, rhs) =
+    Base.rethrow(WriteError(e.message, path, index, rhs))
 function Base.showerror(io::IO, e::WriteError)
     (; mess, path, index, rhs) = e
     print(
@@ -695,13 +685,35 @@ end
 display_index(::Nothing) = ""
 display_index((i,)::Tuple) = "[$(join(repr.(i), ", "))]"
 
+# Promote when the error is a method error:
+function rethrow(e::MethodError, path, fn, index, rhs)
+    # The error is a framework bug if the function is not the one meant to be called.
+    e.f === fn || rethrow(nothing, path, fn, index, rhs)
+    # Best-effort attempt to figure the expected rhs type from the failing methods.
+    rhs_pos = 3
+    expected = Set()
+    for m in methods(fn)
+        (; sig) = m
+        while sig isa UnionAll
+            sig = sig.body
+        end
+        p = sig.parameters
+        length(p) >= rhs_pos && push!(expected, p[rhs_pos])
+    end
+    e = collect(expected)
+    sort!(e)
+    Base.rethrow(
+        WriteError("not a value of type $(join(e, ", ", " or "))", path, index, rhs),
+    )
+end
+
 # To be throw in case of unexpected exception.
 struct UnexpectedException <: Exception
     path::Union{Expr,Symbol}
     index::Option{Tuple{Vararg{Int}}}
     rhs::Any
 end
-rethrow(_, path, index, rhs) = throw(UnexpectedException(path, index, rhs))
+rethrow(_, path, _, index, rhs) = throw(UnexpectedException(path, index, rhs))
 function Base.showerror(io::IO, e::UnexpectedException)
     (; path, index, rhs) = e
     index = display_index(index)
@@ -709,8 +721,7 @@ function Base.showerror(io::IO, e::UnexpectedException)
     print(
         io,
         "Error while setting property '$path$index' \
-         (see error further down the stacktrace). \n\
-         Received value: $(repr(rhs)) ::$(typeof(rhs))\n\
+         (see error further down the stacktrace).\n\
          $(red)This is a bug in the components library.$reset \
          Please report if you can reproduce with a minimal example.",
     )

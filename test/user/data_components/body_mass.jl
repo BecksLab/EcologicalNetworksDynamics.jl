@@ -67,7 +67,14 @@
 
     @argfails(BodyMass(), "Either 'M' or 'Z' must be provided to define body masses.")
     @failswith(BodyMass([1, 2], Z = 3.4), MethodError)
-    @failswith((m.M[1] = 'a'), WriteError("not a real number", :body_masses, (1,), 'a'))
+    @sysfails(
+        Model(BodyMass([1, -2])),
+        Check(early, [BodyMass.Raw], "Only positive values allowed, received M[2] = -2.0.")
+    )
+    @failswith(
+        (m.M[1] = 'a'),
+        WriteError("not a value of type Real", :body_masses, (1,), 'a')
+    )
     @failswith(
         (m.M[2:3] *= -10),
         WriteError("not a positive value", :body_masses, (2,), -28.0)

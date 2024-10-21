@@ -6,7 +6,7 @@
 # ==========================================================================================
 # Blueprints.
 
-module BodyMassBlueprints
+module BM
 include("blueprint_modules.jl")
 import .EcologicalNetworksDynamics: _Species, Species, _Foodweb, Foodweb
 
@@ -105,7 +105,7 @@ end
 # ==========================================================================================
 # Component and generic constructors.
 
-@component BodyMass{Internal} requires(Species) blueprints(BodyMassBlueprints)
+@component BodyMass{Internal} requires(Species) blueprints(BM)
 export BodyMass
 
 (::_BodyMass)(M::Real) = BodyMass.Flat(M)
@@ -131,9 +131,8 @@ end
     @species_index
     ref(raw -> raw._foodweb.M)
     get(BodyMasses{Float64}, "species")
-    write!((raw, rhs, i) -> begin
-        rhs isa Real || writefails("not a real number")
-        rhs >= 0 || writefails("not a positive value")
+    write!((raw, rhs::Real, i) -> begin
+        rhs >= 0 || checkfails("not a positive value")
         rhs
     end)
 end

@@ -18,6 +18,7 @@ if (false)
         ref_cached,
         requires,
         requires,
+        set!,
         write!,
 
         var""

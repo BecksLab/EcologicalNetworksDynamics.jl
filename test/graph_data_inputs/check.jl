@@ -20,13 +20,13 @@
     # Exposed failures.
     @failswith(
         (@check_symbol input (x, y, z)),
-        BlueprintCheckFailure("Invalid symbol received for 'input': :a. \
-                               Expected either :x, :y or :z instead."),
+        CheckError("Invalid symbol received for 'input': :a. \
+                    Expected either :x, :y or :z instead."),
     )
     @failswith(
         (@check_symbol input x),
-        BlueprintCheckFailure("Invalid symbol received for 'input': :a. \
-                               Expected :x instead.")
+        CheckError("Invalid symbol received for 'input': :a. \
+                    Expected :x instead.")
     )
 
     # Incorrect use.
@@ -79,16 +79,13 @@
 
     # Exposed failures.
     input = [1, 2]
-    @failswith(
-        (@check_size input 3),
-        BlueprintCheckFailure("Invalid size for parameter 'input': \
-                               expected (3,), got (2,)."),
-    )
+    @failswith((@check_size input 3), CheckError("Invalid size for parameter 'input': \
+                                                  expected (3,), got (2,)."),)
     input = [1 1; 2 2]
     @failswith(
         (@check_size input (Any, 3)),
-        BlueprintCheckFailure("Invalid size for parameter 'input': \
-                               expected (Any, 3), got (2, 2)."),
+        CheckError("Invalid size for parameter 'input': \
+                    expected (Any, 3), got (2, 2)."),
     )
 
     # Invalid uses.
@@ -96,14 +93,14 @@
     @failswith((@check_size input nope), UndefVarError => (:nope, TestGraphDataInputs))
     @failswith(
         (@check_size input "nope"), # TODO: not a super-satifsying error, but good enough.
-        BlueprintCheckFailure("Invalid size for parameter 'input': \
-                               expected (\"nope\",), got (2, 2)."),
+        CheckError("Invalid size for parameter 'input': \
+                    expected (\"nope\",), got (2, 2)."),
     )
     input = 5
     @failswith(
         (@check_size input (2, 3)),
-        BlueprintCheckFailure("Invalid size for parameter 'input': \
-                               expected (2, 3), got ().")
+        CheckError("Invalid size for parameter 'input': \
+                    expected (2, 3), got ().")
     )
     input = :a
     @failswith((@check_size input (2, 3)), MethodError) # (size(::Symbol))
@@ -136,16 +133,16 @@
     a[4] = 5 # 'N' on '·': 🗙
     @failswith(
         (@check_template a template :item),
-        BlueprintCheckFailure("Non-missing value found for 'a' at node index [4] (5), \
-                               but the template for 'item' only allows values \
-                               at the following indices:\n  [3, 5, 7]")
+        CheckError("Non-missing value found for 'a' at node index [4] (5), \
+                    but the template for 'item' only allows values \
+                    at the following indices:\n  [3, 5, 7]")
     )
     a[4] -= 5 # '0' on '·': 🗙
     @failswith(
         (@check_template a template :item),
-        BlueprintCheckFailure("Non-missing value found for 'a' at node index [4] (0), \
-                               but the template for 'item' only allows values \
-                               at the following indices:\n  [3, 5, 7]")
+        CheckError("Non-missing value found for 'a' at node index [4] (0), \
+                    but the template for 'item' only allows values \
+                    at the following indices:\n  [3, 5, 7]")
     )
 
     #---------------------------------------------------------------------------------------
@@ -180,18 +177,18 @@
     a[2, 2] = 6 # 'N' on '·': 🗙
     @failswith(
         (@check_template a template :item),
-        BlueprintCheckFailure("Non-missing value found for 'a' at edge index [2, 2] (6), \
-                               but the template for 'item' only allows values \
-                               at the following indices:\n  \
-                               [(2, 1), (1, 2), (3, 2), (1, 3)]"),
+        CheckError("Non-missing value found for 'a' at edge index [2, 2] (6), \
+                    but the template for 'item' only allows values \
+                    at the following indices:\n  \
+                    [(2, 1), (1, 2), (3, 2), (1, 3)]"),
     )
     a[2, 2] -= 6 # '0' on '·': 🗙
     @failswith(
         (@check_template a template :item),
-        BlueprintCheckFailure("Non-missing value found for 'a' at edge index [2, 2] (0), \
-                               but the template for 'item' only allows values \
-                               at the following indices:\n  \
-                               [(2, 1), (1, 2), (3, 2), (1, 3)]"),
+        CheckError("Non-missing value found for 'a' at edge index [2, 2] (0), \
+                    but the template for 'item' only allows values \
+                    at the following indices:\n  \
+                    [(2, 1), (1, 2), (3, 2), (1, 3)]"),
     )
 
     #---------------------------------------------------------------------------------------
@@ -211,7 +208,7 @@
     a = 5
     @failswith(
         (@check_template a template :item),
-        BlueprintCheckFailure("Invalid size for parameter 'a': expected (3, 3), got ()."),
+        CheckError("Invalid size for parameter 'a': expected (3, 3), got ()."),
     )
     a = :a
     @failswith((@check_template a template :item), MethodError)
@@ -237,15 +234,15 @@
         @test @check_list_refs v :item 5
         @failswith(
             (@check_list_refs v :item 3),
-            BlueprintCheckFailure("Invalid 'item' node index in 'v'. \
-                                   Index '5' does not fall within the valid range 1:3.")
+            CheckError("Invalid 'item' node index in 'v'. \
+                        Index '5' does not fall within the valid range 1:3.")
         )
         # Check against a template.
         @test @check_list_refs v :item template(partial)
         @failswith(
             (@check_list_refs v :item 5 template(neg)),
-            BlueprintCheckFailure("Invalid 'item' node index in 'v': 1. \
-                                   Valid nodes indices for this template are:\n  [2, 4]")
+            CheckError("Invalid 'item' node index in 'v': 1. \
+                        Valid nodes indices for this template are:\n  [2, 4]")
         )
     end
 
@@ -254,8 +251,8 @@
     @test @check_list_refs v :item template(full) dense
     @failswith(
         (@check_list_refs v :item template(partial) dense),
-        BlueprintCheckFailure("Missing 'item' node index in 'v': \
-                               no value specified for 3.")
+        CheckError("Missing 'item' node index in 'v': \
+                    no value specified for 3.")
     )
 
     # Check densely against bare reference space.
@@ -263,15 +260,15 @@
     @test @check_list_refs v :item 2 dense
     @failswith(
         (@check_list_refs v :item 5 dense),
-        BlueprintCheckFailure("Missing 'item' node index in 'v': \
-                               no value specified for 3.")
+        CheckError("Missing 'item' node index in 'v': \
+                    no value specified for 3.")
     )
 
     # Empty space.
     @failswith(
         (@check_list_refs v :item 0),
-        BlueprintCheckFailure("No possible valid node index in 'v' like 1: \
-                               the reference space for 'item' is empty.")
+        CheckError("No possible valid node index in 'v' like 1: \
+                    the reference space for 'item' is empty.")
     )
 
     # With labels.
@@ -285,15 +282,15 @@
         @test @check_list_refs v :item full_index
         @failswith(
             (@check_list_refs v :item part_index),
-            BlueprintCheckFailure("Invalid 'item' node label in 'v'. \
-                                   Expected either :a, :b or :c, got instead: :e.")
+            CheckError("Invalid 'item' node label in 'v'. \
+                        Expected either :a, :b or :c, got instead: :e.")
         )
         # Check against a template.
         @test @check_list_refs v :item full_index template(partial)
         @failswith(
             (@check_list_refs v :item full_index template(neg)),
-            BlueprintCheckFailure("Invalid 'item' node label in 'v': :a. \
-                                   Valid nodes labels for this template are:\n  [:b, :d]")
+            CheckError("Invalid 'item' node label in 'v': :a. \
+                        Valid nodes labels for this template are:\n  [:b, :d]")
         )
     end
 
@@ -302,8 +299,8 @@
     @test @check_list_refs v :item full_index template(full) dense
     @failswith(
         (@check_list_refs v :item full_index template(partial) dense),
-        BlueprintCheckFailure("Missing 'item' node label in 'v': \
-                               no value specified for :c.")
+        CheckError("Missing 'item' node label in 'v': \
+                    no value specified for :c.")
     )
 
     # Check densely against bare reference space.
@@ -311,15 +308,15 @@
     @test @check_list_refs v :item part_index dense
     @failswith(
         (@check_list_refs v :item full_index dense),
-        BlueprintCheckFailure("Missing 'item' node label in 'v': \
-                               no value specified for :d.")
+        CheckError("Missing 'item' node label in 'v': \
+                    no value specified for :d.")
     )
 
     # Empty space.
     @failswith(
         (@check_list_refs v :item Dict{Symbol,Int64}()),
-        BlueprintCheckFailure("No possible valid node label in 'v' like :a: \
-                               the reference space for 'item' is empty.")
+        CheckError("No possible valid node label in 'v' like :a: \
+                    the reference space for 'item' is empty.")
     )
 
     # Indices space automatically inferred from labels index.
@@ -354,16 +351,16 @@
         @test @check_list_refs v :item (3, 5)
         @failswith(
             (@check_list_refs v :item (2, 5)),
-            BlueprintCheckFailure("Invalid 'item' edge index in 'v'. \
-                                   Index '3' does not fall within the valid range 1:2.")
+            CheckError("Invalid 'item' edge index in 'v'. \
+                        Index '3' does not fall within the valid range 1:2.")
         )
         # Check against a template.
         @test @check_list_refs v :item template(partial)
         @failswith(
             (@check_list_refs v :item template(neg)),
-            BlueprintCheckFailure("Invalid 'item' edge index in 'v': (1, 5). \
-                                   Valid edges target indices \
-                                   for source 1 in this template are:\n  [3, 4]")
+            CheckError("Invalid 'item' edge index in 'v': (1, 5). \
+                        Valid edges target indices \
+                        for source 1 in this template are:\n  [3, 4]")
         )
     end
 
@@ -371,9 +368,9 @@
     v = gc((@GraphData A{Float64}), [3 => [5 => 100]])
     @failswith(
         (@check_list_refs v :item template(neg)),
-        BlueprintCheckFailure("Invalid 'item' edge index in 'v': (3, 5). \
-                               This template allows no valid edge targets indices \
-                               for source 3.")
+        CheckError("Invalid 'item' edge index in 'v': (3, 5). \
+                    This template allows no valid edge targets indices \
+                    for source 3.")
     )
 
     # Cannot check densely against a 2D template.
@@ -385,8 +382,8 @@
     # Empty space.
     @failswith(
         (@check_list_refs v :item 0),
-        BlueprintCheckFailure("No possible valid edge index in 'v' like (3, 5): \
-                               the reference space for 'item' is empty.")
+        CheckError("No possible valid edge index in 'v' like (3, 5): \
+                    the reference space for 'item' is empty.")
     )
 
     # With labels.
@@ -398,8 +395,8 @@
         @test @check_list_refs v :item (part_index, full_index)
         @failswith(
             (@check_list_refs v :item (full_index, part_index)),
-            BlueprintCheckFailure("Invalid 'item' edge label in 'v'. \
-                                   Expected either :a, :b or :c, got instead: :e.")
+            CheckError("Invalid 'item' edge label in 'v'. \
+                        Expected either :a, :b or :c, got instead: :e.")
         )
         # Check against a template.
         @test @check_list_refs v :item (part_index, full_index) template(partial)
@@ -407,9 +404,9 @@
         @test @check_list_refs v :item full_index template(partial)
         @failswith(
             (@check_list_refs v :item full_index template(neg)),
-            BlueprintCheckFailure("Invalid 'item' edge label in 'v': (:a, :e). \
-                                   Valid edges target labels for source :a \
-                                   in this template are:\n  [:c, :d]")
+            CheckError("Invalid 'item' edge label in 'v': (:a, :e). \
+                        Valid edges target labels for source :a \
+                        in this template are:\n  [:c, :d]")
         )
     end
 
@@ -417,9 +414,9 @@
     v = gc((@GraphData A{Float64}), [:c => [:e => 100]])
     @failswith(
         (@check_list_refs v :item full_index template(neg)),
-        BlueprintCheckFailure("Invalid 'item' edge label in 'v': (:c, :e). \
-                               This template allows no valid edge targets labels \
-                               for source :c.")
+        CheckError("Invalid 'item' edge label in 'v': (:c, :e). \
+                    This template allows no valid edge targets labels \
+                    for source :c.")
     )
 
     # Cannot check densely against a 2D template.
@@ -431,8 +428,8 @@
     # Empty space.
     @failswith(
         (@check_list_refs v :item Dict{Symbol,Int64}()),
-        BlueprintCheckFailure("No possible valid edge label in 'v' like (:c, :e): \
-                               the reference space for 'item' is empty.")
+        CheckError("No possible valid edge label in 'v' like (:c, :e): \
+                    the reference space for 'item' is empty.")
     )
 
     # Indices space automatically inferred from labels index.
@@ -452,7 +449,7 @@
     @test @check_if_symbol input (a,)
     @test @check_if_symbol input (a, b)
     @test @check_if_symbol input (:a, :b)
-    @failswith((@check_if_symbol input (:x, :y)), BlueprintCheckFailure)
+    @failswith((@check_if_symbol input (:x, :y)), CheckError)
 
     # Dont' check if not a symbol.
     input = 5
@@ -469,7 +466,7 @@
     @test @check_size_if_vector input (3,)
     @test @check_size_if_vector input (n,)
     @test @check_size_if_vector input (Any,)
-    @failswith((@check_size_if_vector input 4), BlueprintCheckFailure)
+    @failswith((@check_size_if_vector input 4), CheckError)
 
     # Don't check 1D size if not a vector.
     input = 5
@@ -487,7 +484,7 @@
     @test @check_size_if_matrix input (Any, n)
     @test @check_size_if_matrix input (n, Any)
     @test @check_size_if_matrix input mn
-    @failswith((@check_size_if_matrix input (3, 3)), BlueprintCheckFailure)
+    @failswith((@check_size_if_matrix input (3, 3)), CheckError)
 
     # Don't check 2D size if not a matrix.
     input = 5
@@ -502,7 +499,7 @@
     input = sparse([0, 0, 4, 0, 5, 0, 6])
     @test @check_template_if_sparse input template :item
     input[1] = 7
-    @failswith((@check_template_if_sparse input template :item), BlueprintCheckFailure)
+    @failswith((@check_template_if_sparse input template :item), CheckError)
 
     # Don't check if not sparse.
     input = 5
@@ -521,7 +518,7 @@
     ])
     @test @check_template_if_sparse input template :item
     input[1, 1] = 8
-    @failswith((@check_template_if_sparse input template :item), BlueprintCheckFailure)
+    @failswith((@check_template_if_sparse input template :item), CheckError)
     input = 5
     @test !@check_template_if_sparse input template :item
     input = [0 0; 0 0]
@@ -532,15 +529,15 @@
 
     input = gc((@GraphData K{Float64}), [1 => 5, 3 => 8])
     @test @check_refs_if_list input :item 5
-    @failswith((@check_refs_if_list input :item 2), BlueprintCheckFailure)
+    @failswith((@check_refs_if_list input :item 2), CheckError)
 
     input = gc((@GraphData K{Float64}), [1 => 5, 2 => 8])
     @test @check_refs_if_list input :item 2 dense
-    @failswith((@check_refs_if_list input :item 3 dense), BlueprintCheckFailure)
+    @failswith((@check_refs_if_list input :item 3 dense), CheckError)
 
     input = gc((@GraphData K{:bin}), [1, 3])
     @test @check_refs_if_list input :item 5
-    @failswith((@check_refs_if_list input :item 2), BlueprintCheckFailure)
+    @failswith((@check_refs_if_list input :item 2), CheckError)
 
     input = gc((@GraphData K{:bin}), [1, 2])
     @test @check_refs_if_list input :item 2
@@ -557,11 +554,11 @@
 
     input = gc((@GraphData A{Float64}), [1 => [3 => 8]])
     @test @check_refs_if_list input :item (5, 5)
-    @failswith((@check_refs_if_list input :item (2, 2)), BlueprintCheckFailure)
+    @failswith((@check_refs_if_list input :item (2, 2)), CheckError)
 
     input = gc((@GraphData A{:bin}), [1 => [3]])
     @test @check_refs_if_list input :item (5, 5)
-    @failswith((@check_refs_if_list input :item (2, 2)), BlueprintCheckFailure)
+    @failswith((@check_refs_if_list input :item (2, 2)), CheckError)
 
     # Don't check if not an adjacency list.
     input = 5

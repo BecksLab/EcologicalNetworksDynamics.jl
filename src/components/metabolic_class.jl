@@ -13,7 +13,7 @@
 # ==========================================================================================
 # Blueprints.
 
-module MetabolicClassBlueprints
+module MC
 include("blueprint_modules.jl")
 import .EcologicalNetworksDynamics: Species, _Species, Foodweb, _Foodweb
 
@@ -29,18 +29,20 @@ F.implied_blueprint_for(bp::Raw, ::_Species) = Species(length(bp.classes))
 @blueprint Raw "metabolic classes" depends(Foodweb)
 export Raw
 
-F.early_check(bp::Raw) = early_check(bp.classes)
-early_check(classes) =
+F.early_check(bp::Raw) = check_values(bp.classes)
+check_values(classes) =
     for (i, c) in enumerate(classes)
-        try
-            AliasingDicts.standardize(c, MetabolicClassDict)
-        catch e
-            if e isa AliasingError
-                mess = sprint(showerror, e)
-                checkrefails("Failed check on class input $i: $mess")
-            end
-            rethrow(e)
+        check_value(c, i)
+    end
+check_value(class, i = nothing) =
+    try
+        AliasingDicts.standardize(class, MetabolicClassDict)
+    catch e
+        e isa AliasingError && checkrefails(e) do e
+            i = isnothing(i) ? "" : " $i"
+            "Metabolic class input$i: $e"
         end
+        rethrow(e)
     end
 
 F.late_check(raw, bp::Raw) = late_check(raw, bp.classes)
@@ -51,15 +53,18 @@ function late_check(raw, classes)
 
     @check_size classes S
 
-    for (cls, prod_sp, sp) in zip(classes, prods, names)
-        prod_class = AliasingDicts.is(cls, :producer, MetabolicClassDict)
-        if prod_sp && !prod_class
-            checkfails("Metabolic class for species $(repr(sp)) \
-                        cannot be '$cls' since it is a producer.")
-        elseif prod_class && !prod_sp
-            checkfails("Metabolic class for species $(repr(sp)) \
-                        cannot be '$cls' since it is a consumer.")
-        end
+    for (class, is_producer, sp) in zip(classes, prods, names)
+        check_against_status(class, is_producer, sp)
+    end
+end
+function check_against_status(class, is_producer, sp)
+    prod_class = AliasingDicts.is(class, :producer, MetabolicClassDict)
+    if prod_class && !is_producer
+        checkfails("Metabolic class for species $(repr(sp)) \
+                    cannot be '$class' since it is a consumer.")
+    elseif !prod_class && is_producer
+        checkfails("Metabolic class for species $(repr(sp)) \
+                    cannot be '$class' since it is a producer.")
     end
 end
 
@@ -84,7 +89,7 @@ F.implied_blueprint_for(bp::Map, ::_Species) = Species(refs(bp.classes))
 @blueprint Map "{species ↦ class} map" depends(Foodweb)
 export Map
 
-F.early_check(bp::Map) = early_check(values(bp.classes))
+F.early_check(bp::Map) = check_value(values(bp.classes))
 
 function F.late_check(raw, bp::Map)
     (; classes) = bp
@@ -129,7 +134,7 @@ end
 # ==========================================================================================
 # Component and generic constructors.
 
-@component MetabolicClass{Internal} requires(Foodweb) blueprints(MetabolicClassBlueprints)
+@component MetabolicClass{Internal} requires(Foodweb) blueprints(MC)
 export MetabolicClass
 
 (::_MetabolicClass)(favourite::Symbol) = MetabolicClass.Favor(favourite)
@@ -150,21 +155,13 @@ end
     @species_index
     ref_cached(raw -> Symbol.(raw._foodweb.metabolic_class)) # Legacy reverse conversion.
     get(MetabolicClasses{Symbol}, "species")
-    write!(
-        (raw, rhs, i) -> begin
-            rhs = try
-                AliasingDicts.standardize(rhs, MetabolicClassDict)
-            catch e
-                e isa AliasingError && writerefails(sprint(showerror, e))
-                rethrow(e)
-            end
-            is_prod = is_producer(raw, i)
-            rhs == :producer && !is_prod && writefails("consumers cannot be $(repr(rhs))")
-            rhs != :producers && is_prod && writefails("producers cannot be $(repr(rhs))")
-            raw._foodweb.metabolic_class[i...] = String(rhs)
-            rhs
-        end,
-    )
+    write!((raw, rhs, i) -> begin
+        rhs = MC.check_value(rhs, i)
+        is_prod = is_producer(raw, i)
+        MC.check_against_status(rhs, is_prod, i)
+        raw._foodweb.metabolic_class[i...] = String(rhs)
+        rhs
+    end)
 end
 
 # Display.

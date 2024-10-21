@@ -139,6 +139,7 @@ late_check(_, ::Blueprint) = nothing # No particular constraint to enforce by de
 # and that all required components are met,
 # but, as it cannot be assumed that required components have already been expanded,
 # the check should not depend on the system value.
+# Issue `CheckError` on failure.
 # TODO: add formal test for this.
 early_check(::Blueprint) = nothing # No particular constraint to enforce by default.
 
@@ -169,20 +170,9 @@ expand!(_, ::Blueprint) = nothing # Expanding does nothing by default.
 # and can be queried for eg. `has_component(system, component)`.
 # This third argument is ignored by default,
 # unless in overriden methods.
+# Issue `CheckError` on failure.
 late_check(v, b::Blueprint, _) = late_check(v, b)
 expand!(v, b::Blueprint, _) = expand!(v, b)
-
-# This exception error is thrown by the system guards
-# before expansion of a blueprint, reporting a failure to meet the requirements.
-# In particular, this is the exception expected to be thrown from the `*_check` methods.
-# Not parametrized over blueprint type because the exception is only thrown and caught
-# within a controlled context where this type is known.
-struct BlueprintCheckFailure <: Exception
-    message::String
-end
-checkfails(m) = throw(BlueprintCheckFailure(m))
-checkrefails(m) = rethrow(BlueprintCheckFailure(m))
-export BlueprintCheckFailure, checkfails, checkrefails
 
 # ==========================================================================================
 # Explicit terminal display.

@@ -2,6 +2,7 @@
 
     base = Model(Foodweb([:a => :b, :b => :c]))
     m = base + MetabolicClass([:i, :e, :p])
+    m.producers
 
     @test m.metabolic_classes == [:invertebrate, :ectotherm, :producer]
 
@@ -33,7 +34,7 @@
         Check(
             early,
             [MetabolicClass.Raw],
-            "Failed check on class input 2: \
+            "Metabolic class input 2: \
              In aliasing system for \"metabolic class\": \
              Invalid reference: 'x'.",
         )
@@ -67,11 +68,21 @@
     # Edition guards.
     @failswith(
         (m.metabolic_classes[2] = :p),
-        WriteError("consumers cannot be :producer", :metabolic_classes, (2,), :p),
+        WriteError(
+            "Metabolic class for species 2 cannot be 'producer' since it is a consumer.",
+            :metabolic_classes,
+            (2,),
+            :p,
+        ),
     )
     @failswith(
-        (m.metabolic_classes[3] = :i),
-        WriteError("producers cannot be :invertebrate", :metabolic_classes, (3,), :i),
+        (m.metabolic_classes[:c] = :i),
+        WriteError(
+            "Metabolic class for species 3 cannot be 'invertebrate' since it is a producer.",
+            :metabolic_classes,
+            (3,),
+            :i,
+        ),
     )
 
 end

@@ -79,7 +79,10 @@ import .EN: WriteError
     @viewfails(bm[:a, :b] = 1, BM, m)
 
     # Guard rhs.
-    @failswith((bm[1] = 'a'), WriteError("not a real number", :body_masses, (1,), 'a'))
+    @failswith(
+        (bm[1] = 'a'),
+        WriteError("not a value of type Real", :body_masses, (1,), 'a')
+    )
     @failswith(
         (bm[2:3] *= -10),
         WriteError("not a positive value", :body_masses, (2,), -50)

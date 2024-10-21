@@ -2,7 +2,6 @@
 
 import EcologicalNetworksDynamics.Framework:
     AddError,
-    BlueprintCheckFailure,
     BroughtAlreadyInValue,
     CompType,
     Component,

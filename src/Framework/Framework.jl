@@ -112,6 +112,19 @@ const CompType{V} = Type{<:Component{V}}
 # Abstract over either for exposed inputs.
 const CompRef{V} = Union{Component{V},CompType{V}}
 
+# Exception to be thrown by framework user from various extension points.
+# This should not bubble up to toplevel scope, but be caught
+# and upgraded differently depending on the context.
+struct CheckError <: Exception
+    message::String
+end
+checkfails(m::String; throw = Base.throw) = throw(CheckError(m))
+checkfails(to_string::Function, e::Exception; throw = Base.throw) =
+    checkfails(to_string(sprint(showerror, e)); throw)
+checkfails(e::Exception; throw = Base.throw) = checkfails(identity, e; throw)
+checkrefails(args...) = checkfails(args...; throw = Base.rethrow)
+export checkfails, checkrefails
+
 # ==========================================================================================
 
 # Base structure.

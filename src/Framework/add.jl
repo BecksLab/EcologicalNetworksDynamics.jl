@@ -172,7 +172,7 @@ function check(
         try
             early_check(blueprint)
         catch e
-            if e isa BlueprintCheckFailure
+            if e isa CheckError
                 rethrow(HookCheckFailure(node, e.message, false))
             else
                 throw(UnexpectedHookFailure(node, false))
@@ -274,7 +274,7 @@ function add!(system::System{V}, blueprints::Blueprint{V}...) where {V}
             try
                 late_check(system._value, blueprint, system)
             catch e
-                if e isa BlueprintCheckFailure
+                if e isa CheckError
                     rethrow(HookCheckFailure(node, e.message, true))
                 else
                     throw(UnexpectedHookFailure(node, true))

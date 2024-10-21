@@ -8,7 +8,7 @@ using ..TestFailures
 using Test
 
 import EcologicalNetworksDynamics: SparseMatrix, Framework
-import .Framework: BlueprintCheckFailure
+import .Framework: CheckError
 
 include("./types.jl")
 include("./convert.jl")
