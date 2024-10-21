@@ -13,7 +13,8 @@
 
 module FoodwebBlueprints
 include("blueprint_modules.jl")
-import .EcologicalNetworksDynamics: _Species, Species
+include("blueprint_modules_identifiers.jl")
+import .EN: _Species, Species
 
 #-------------------------------------------------------------------------------------------
 # From matrix.

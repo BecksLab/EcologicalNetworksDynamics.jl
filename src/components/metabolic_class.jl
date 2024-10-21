@@ -15,7 +15,9 @@
 
 module MC
 include("blueprint_modules.jl")
+include("./blueprint_modules_identifiers.jl")
 import .EcologicalNetworksDynamics: Species, _Species, Foodweb, _Foodweb
+include("./allometry_identifiers.jl")
 
 #-------------------------------------------------------------------------------------------
 # From raw values.

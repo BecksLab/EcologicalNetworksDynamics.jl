@@ -8,6 +8,7 @@
 
 module BM
 include("blueprint_modules.jl")
+include("blueprint_modules_identifiers.jl")
 import .EcologicalNetworksDynamics: _Species, Species, _Foodweb, Foodweb
 
 #-------------------------------------------------------------------------------------------

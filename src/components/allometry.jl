@@ -8,9 +8,8 @@
 # This file just provides utils to deal with allometric parameters..
 # ..based on the following allometry API.
 include("./allometry_api.jl")
+include("./allometry_identifiers.jl")
 using .AllometryApi
-# (reassure JuliaLS)
-(false) && (local MetabolicClassDict, AliasingError, Allometry, parse_allometry_arguments)
 
 # Check the given parameters against a template (typically a default value)
 # so as to reject missing or unexpected values.

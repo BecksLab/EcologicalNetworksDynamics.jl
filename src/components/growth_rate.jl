@@ -11,11 +11,14 @@
 # (reassure JuliaLS)
 (false) && (local GrowthRate, _GrowthRate)
 
+# HERE: test after fixing JuliaLS.
+
 # ==========================================================================================
 # Blueprints.
 
 module GR
 include("blueprint_modules.jl")
+include("blueprint_modules_identifiers.jl")
 import .EcologicalNetworksDynamics:
     Species, _Species, BodyMass, MetabolicClass, _Temperature
 
@@ -111,12 +114,10 @@ end
 @blueprint Allometric "allometric rates" depends(BodyMass, MetabolicClass)
 export Allometric
 
-F.early_check(bp::Allometric) = check_template(
-    :allometry,
-    bp.allometry,
-    miele2019_growth_allometry_rates(),
-    "growth rates",
-)
+function F.early_check(bp::Allometric)
+    (; allometry) = bp
+    @check_template allometry miele2019_growth_allometry_rates() "growth rates"
+end
 
 function F.expand!(raw, bp::Allometric)
     M = @ref raw.M
@@ -149,12 +150,15 @@ end
 )
 export Temperature
 
-F.early_check(bp::Temperature) = check_template(
-    :allometry,
-    bp.allometry,
-    binzer2016_growth_allometry_rates(),
-    "growth rates (from temperature)",
-)
+function F.early_check(bp::Temperature)
+    (; allometry) = bp
+    @check_template(
+        allometry,
+        binzer2016_growth_allometry_rates(),
+        "growth rates (from temperature)",
+    )
+end
+
 function F.expand!(raw, bp::Temperature)
     (; E_a) = bp
     T = @get raw.T

@@ -281,6 +281,7 @@ end
 function Base.showerror(io::IO, e::AliasingError)
     print(io, "In aliasing system for $(repr(e.name)): $(e.message)")
 end
+export AliasingError
 
 # Useful APIs can be crafted out of nesting two aliased dicts together.
 include("./nested_2D_api.jl")
