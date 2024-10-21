@@ -18,8 +18,10 @@ if (false)
 end
 #! format: on
 
+# TODO: These are mostly useless, except for JuliaLS.. ? :(
 import EcologicalNetworksDynamics:
     AliasingDicts,
+    Allometry,
     BinAdjacency,
     Blueprint,
     Brought,
@@ -29,17 +31,24 @@ import EcologicalNetworksDynamics:
     Internals,
     MetabolicClassDict,
     SparseMatrix,
+    SparseVector,
     Topologies,
+    check_template,
     imap,
+    parse_allometry_arguments,
     refs,
     refspace,
+    sparse_nodes_allometry,
     to_dense_vector,
     to_size,
     to_sparse_matrix,
+    to_sparse_vector,
+    to_template,
     @GraphData,
     @check_list_refs,
     @check_size,
     @check_symbol,
+    @check_template,
     @expand_symbol,
     @get,
     @ref,

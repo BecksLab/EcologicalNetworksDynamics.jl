@@ -28,7 +28,7 @@ F.implied_blueprint_for(bp::Matrix, ::_Species) = Species(size(bp.A, 1))
 @blueprint Matrix "boolean matrix of trophic links"
 export Matrix
 
-function F.early_check(_, bp::Matrix)
+function F.early_check(bp::Matrix)
     (; A) = bp
     n, m = size(A)
     n == m || checkfails("The adjacency matrix of size $((m, n)) is not squared.")
@@ -36,10 +36,9 @@ end
 
 function F.late_check(raw, bp::Matrix)
     (; A) = bp
-    (; S) = raw
+    S = @get raw.S
     @check_size A (S, S)
 end
-
 
 F.expand!(raw, bp::Matrix) = expand_from_matrix!(raw, bp.A)
 function expand_from_matrix!(raw, A)

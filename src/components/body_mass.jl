@@ -137,6 +137,5 @@ end
 end
 
 # Display.
-function F.shortline(io::IO, model::Model, ::_BodyMass)
+F.shortline(io::IO, model::Model, ::_BodyMass) =
     print(io, "BodyMass: [$(join_elided(model.body_masses, ", "))]")
-end

@@ -9,7 +9,7 @@
   to transfer input to correct blueprint constructors
 - Blueprints typically have different types based on their inputs.
 
-  ```jl
+  ```julia
   julia> Species
   Species (component for <internals>, expandable from:
     Names: raw species names,
@@ -32,13 +32,13 @@
 - Equivalent `get_*` and `set_*!` methods may still exist
   but they are no longer exposed or recommended:
   use direct property accesses instead.
-```jl
-julia> m = Model(Species(3))
-julia> m.species.number # (no more `.n_species` or `get_n_species(m)`)
-3
-julia> m.species.names == [:s1, :s2, :s3]
-true
-```
+  ```julia
+  julia> m = Model(Species(3))
+  julia> m.species.number # (no more `.n_species` or `get_n_species(m)`)
+  3
+  julia> m.species.names == [:s1, :s2, :s3]
+  true
+  ```
 
 - Some property names have changed. The following list is not exhaustive,
   but new names can easily be discovered using REPL autocompletion
@@ -55,28 +55,34 @@ true
 
 - Every blueprint *brought* by another is available as a brought field
   to be either *embedded*, *implied* or *unbrought*:
-```jl
-julia> fw = Foodweb.Matrix([0 0; 1 0]) # Implied (brought if missing).
-blueprint for <Foodweb>: Matrix {
-  A: 1 trophic link,
-  species: <implied blueprint for <Species>>,
-}
-julia> fw.species = [:a, :b]; # Embedded (brought, erroring if already present).
-       fw
-blueprint for <Foodweb>: Matrix {
-  A: 1 trophic link,
-  species: <embedded blueprint for <Species>: Names {
-    names: [:a, :b],
-  }>,
-}
-julia> fw.species = nothing; # Unbrought (error if missing).
-       fw
-blueprint for <Foodweb>: Matrix {
-  A: 1 trophic link,
-  species: <no blueprint brought>,
-}
-```
+  ```julia
+  julia> fw = Foodweb.Matrix([0 0; 1 0]) # Implied (brought if missing).
+  blueprint for <Foodweb>: Matrix {
+    A: 1 trophic link,
+    species: <implied blueprint for <Species>>,
+  }
+  julia> fw.species = [:a, :b]; # Embedded (brought, erroring if already present).
+         fw
+  blueprint for <Foodweb>: Matrix {
+    A: 1 trophic link,
+    species: <embedded blueprint for <Species>: Names {
+      names: [:a, :b],
+    }>,
+  }
+  julia> fw.species = nothing; # Unbrought (error if missing).
+         fw
+  blueprint for <Foodweb>: Matrix {
+    A: 1 trophic link,
+    species: <no blueprint brought>,
+  }
+  ```
 
 - Every "leaf" "geometrical" model property *i.e.* a property whose futher
   model topology does not depend on or is not planned to depend on
   is now writeable.
+  ```julia
+  julia> m = Model(fw, BodyMass(2));
+         m.M[1] *= 10;
+         m.M == [20, 2]
+  true
+  ```

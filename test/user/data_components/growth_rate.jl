@@ -1,7 +1,3 @@
-FR = GrowthRateFromRawValues
-FA = GrowthRateFromAllometry
-FT = GrowthRateFromTemperature
-
 @testset "GrowthRate component." begin
 
     base = Model(Foodweb([:a => [:b, :c], :b => :c]))

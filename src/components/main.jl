@@ -98,21 +98,24 @@ include("./args_to_fields.jl")
 include("./species.jl")
 
 # Trophic links, structuring the whole network.
+# (typical example 'edge' data)
 include("./foodweb.jl")
 
 # Biorates and other values parametrizing the ODE.
+# (typical example 'nodes' data)
 include("./body_mass.jl")
 include("./metabolic_class.jl")
 
 # Useful global values to calculate other biorates.
+# (typical example 'graph' data)
 include("./temperature.jl")
 
-# Typical graph/node/edge data (documented framework use).
-include("./hill_exponent.jl") # Example graph-level data.
-#  include("./growth_rate.jl") # Example nodes-level data.
-#  include("./efficiency.jl") # Example edges-level data.
-
-#  # Replicated/adapted from the above, with only few comments.
+# Replicated/adapted from the above.
+# TODO: factorize subsequent repetitions there.
+# Easier once the Internals become more consistent?
+include("./hill_exponent.jl")
+include("./growth_rate.jl")
+#  include("./efficiency.jl")
 #  include("./carrying_capacity.jl")
 #  include("./mortality.jl")
 #  include("./metabolism.jl")

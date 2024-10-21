@@ -382,6 +382,7 @@ function parse_check_list_refs_input(input)
             kw[:dense] = true
             continue
         end
+        (false) && (local tp) # (reassure JuliaLS)
         @capture(i, template(tp_))
         if !isnothing(tp)
             haskey(kw, :template) &&

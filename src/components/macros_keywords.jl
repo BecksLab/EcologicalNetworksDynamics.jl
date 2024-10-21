@@ -19,6 +19,7 @@ if (false)
         requires,
         requires,
         set!,
+        template,
         write!,
 
         var""
