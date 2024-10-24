@@ -5,6 +5,7 @@ if (false)
     (
     local
         E,
+        Scalar,
         V,
         Y,
         dense,

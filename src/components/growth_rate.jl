@@ -32,12 +32,8 @@ F.implied_blueprint_for(bp::Raw, ::_Species) = Species(length(bp.r))
 @blueprint Raw "growth rate values"
 export Raw
 
-F.early_check(bp::Raw) =
-    for (i, r) in zip(findnz(bp.r)...)
-        check(r, i)
-    end
-check(r) = r >= 0 || checkfails("Not a positive value: r = $r.")
-check(r, ref) = r >= 0 || checkfails("Not a positive value: r[$(repr(ref))] = $r.")
+F.early_check(bp::Raw) = check_nodes(check, bp.r)
+check(r, ref = nothing) = check_value(>=(0), r, ref, :r, "Not a positive value")
 
 function F.late_check(raw, bp::Raw)
     (; r) = bp
@@ -54,7 +50,7 @@ function expand!(raw, r)
 end
 
 #-------------------------------------------------------------------------------------------
-# From a scalar broadcasted to all species.
+# From a scalar broadcasted to all producers.
 
 mutable struct Flat <: Blueprint
     r::Float64
@@ -63,7 +59,7 @@ end
 export Flat
 
 F.early_check(bp::Flat) = check(bp.r)
-F.expand!(raw, bp::Flat) = expand!(raw, to_template(bp.r, @get raw.producers.mask))
+F.expand!(raw, bp::Flat) = expand!(raw, to_template(bp.r, @ref raw.producers.mask))
 
 #-------------------------------------------------------------------------------------------
 # From a species-indexed map.
@@ -74,17 +70,15 @@ mutable struct Map <: Blueprint
     Map(r, sp = _Species) = new(@tographdata(r, Map{Float64}), sp)
 end
 F.implied_blueprint_for(bp::Map, ::_Species) = Species(refs(bp.r))
-@blueprint Map "{species ↦ growth rate} map"
+@blueprint Map "[species => growth rate] map"
 export Map
 
+F.early_check(bp::Map) = check_nodes(check, bp.r)
 function F.late_check(raw, bp::Map)
     (; r) = bp
     index = @ref raw.species.index
     prods = @ref raw.producers.mask
     @check_list_refs r :producer index template(prods)
-    for (sp, m) in r
-        check(m, sp)
-    end
 end
 
 function F.expand!(raw, bp::Map)
@@ -183,13 +177,15 @@ export GrowthRate
 # Better stop them with an error then than keep going wit non-temperature-dependent values.
 function (::_GrowthRate)(r)
 
-    r = @tographdata r {Symbol, Vector, Map}{Float64}
+    r = @tographdata r {Symbol, Scalar, Vector, Map}{Float64}
     @check_if_symbol r (:Miele2019, :Binzer2016)
 
     if r == :Miele2019
         GrowthRate.Allometric(r)
     elseif r == :Binzer2016
         GrowthRate.Temperature(r)
+    elseif r isa Real
+        GrowthRate.Flat(r)
     elseif r isa Vector
         GrowthRate.Raw(r)
     else

@@ -5,12 +5,14 @@
     #---------------------------------------------------------------------------------------
     # Construct from raw values.
 
+    # Vector.
     bm = BodyMass([1, 2, 3])
     m = base + bm
     # Implies species compartment.
     @test m.richness == 3
     @test m.species.names == [:s1, :s2, :s3]
     @test m.body_masses == [1, 2, 3] == m.M
+    @test typeof(bm) == BodyMass.Raw
 
     # Mapped input.
     bm = BodyMass([:a => 1, :b => 2, :c => 3])
@@ -18,16 +20,18 @@
     @test m.richness == 3
     @test m.species.names == [:a, :b, :c]
     @test m.body_masses == [1, 2, 3] == m.M
+    @test typeof(bm) == BodyMass.Map
 
     # Editable property.
     m.body_masses[1] = 2
     m.body_masses[2:3] *= 10
     @test m.body_masses == [2, 20, 30] == m.M
 
-    # All the same mass.
-    @test (Model(Species(3)) + BodyMass(2)).body_masses == [2, 2, 2]
-
-    # But the richness needs to be known.
+    # Scalar (requires species to expand).
+    bm = BodyMass(2)
+    m = base + Species(3) + bm
+    @test m.body_masses == [2, 2, 2] == m.M
+    @test typeof(bm) == BodyMass.Flat
     @sysfails(Model(BodyMass(5)), Missing(Species, BodyMass, [BodyMass.Flat], nothing))
 
     # Checked.

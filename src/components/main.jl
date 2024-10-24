@@ -89,6 +89,7 @@
 # Helpers.
 include("./macros_keywords.jl")
 include("./allometry.jl")
+include("./values_check.jl")
 # Behaviour blueprints typically "optionally bring" other blueprints.
 # This utils factorizes how args/kwargs are passed from its inner constructor
 # to each of its fields.
@@ -115,7 +116,7 @@ include("./temperature.jl")
 # Easier once the Internals become more consistent?
 include("./hill_exponent.jl")
 include("./growth_rate.jl")
-#  include("./efficiency.jl")
+include("./efficiency.jl")
 #  include("./carrying_capacity.jl")
 #  include("./mortality.jl")
 #  include("./metabolism.jl")

@@ -1,16 +1,27 @@
 @testset "Metabolic class component." begin
 
     base = Model(Foodweb([:a => :b, :b => :c]))
-    m = base + MetabolicClass([:i, :e, :p])
-    m.producers
 
+    # From aliased values.
+    mc = MetabolicClass([:i, :e, :p])
+    m = base + mc
     @test m.metabolic_classes == [:invertebrate, :ectotherm, :producer]
+    @test typeof(mc) == MetabolicClass.Raw
+
+    # With an explicit map.
+    mc = MetabolicClass([:a => :inv, :b => :ect, :c => :prod])
+    m = base + mc
+    @test m.metabolic_classes == [:invertebrate, :ectotherm, :producer]
+    @test typeof(mc) == MetabolicClass.Map
 
     # Default to homogeneous classes.
-    m = base + MetabolicClass(:all_ectotherms)
+    mc = MetabolicClass(:all_ectotherms)
+    m = base + mc
     @test m.metabolic_classes == [:ectotherm, :ectotherm, :producer]
-    m = base + MetabolicClass(:all_invertebrates)
+    mc = MetabolicClass(:all_invertebrates)
+    m = base + mc
     @test m.metabolic_classes == [:invertebrate, :invertebrate, :producer]
+    @test typeof(mc) == MetabolicClass.Favor
 
     # Editable property.
     m.metabolic_classes[2] = "e" # Conversion on.
@@ -20,16 +31,6 @@
 
     # Consistency checks.
     @sysfails(
-        base + MetabolicClass(:invalid_favor),
-        Check(
-            early,
-            [MetabolicClass.Favor],
-            "Invalid symbol received for 'favourite': :invalid_favor. \
-             Expected either :all_invertebrates or :all_ectotherms instead.",
-        )
-    )
-
-    @sysfails(
         base + MetabolicClass([:i, :x]),
         Check(
             early,
@@ -37,6 +38,27 @@
             "Metabolic class input 2: \
              In aliasing system for \"metabolic class\": \
              Invalid reference: 'x'.",
+        )
+    )
+
+    @sysfails(
+        base + MetabolicClass([:a => :i, :b => :x]),
+        Check(
+            early,
+            [MetabolicClass.Map],
+            "Metabolic class input :b: \
+             In aliasing system for \"metabolic class\": \
+             Invalid reference: 'x'.",
+        )
+    )
+
+    @sysfails(
+        base + MetabolicClass(:invalid_favor),
+        Check(
+            early,
+            [MetabolicClass.Favor],
+            "Invalid symbol received for 'favourite': :invalid_favor. \
+             Expected either :all_invertebrates or :all_ectotherms instead.",
         )
     )
 

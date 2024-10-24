@@ -19,8 +19,8 @@ end
 @blueprint Raw "value (Kelvin)"
 export Raw
 
-F.early_check(bp::Raw) = check_value(bp.T)
-check_value(T) = T >= 0.0 || checkfails("Not a positive (Kelvin) value: T = $T.")
+F.early_check(bp::Raw) = check(bp.T)
+check(T) = check_value(>=(0), T, nothing, :T, "Not a positive (Kelvin) value")
 
 F.expand!(raw, bp::Raw) = raw.environment = Internals.Environment(bp.T)
 
@@ -40,7 +40,7 @@ export Temperature
     depends(Temperature)
     get(raw -> raw.environment.T)
     set!((raw, rhs::Real) -> begin
-        Temperature_.check_value(rhs)
+        Temperature_.check(rhs)
         raw.environment.T = rhs
     end)
 end

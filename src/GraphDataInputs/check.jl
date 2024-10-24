@@ -1,6 +1,17 @@
 # Checking utils: verify input against an actual model value.
 
 # ==========================================================================================
+# Check every value as a scalar, providing a Function(value, index) callback
+# throwing on invalid values.
+check_values(check, values; items = items) =
+    for (ref, value) in items(values)
+        check(value, ref)
+    end
+check_nodes(c, n) = check_values(c, n; items = node_items)
+check_edges(c, n) = check_values(c, n; items = edge_items)
+export check_nodes, check_edges, check_values
+
+# ==========================================================================================
 # Assuming the input is a symbol,
 # check that it is one of the expected symbols,
 # emitting a useful error message on invalid symbol

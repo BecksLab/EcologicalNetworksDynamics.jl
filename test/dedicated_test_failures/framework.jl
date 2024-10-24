@@ -296,8 +296,11 @@ end
 
 function check_path(node::F.Node, expected)
     actual = F.path(node)
-    actual == expected || error("Node does not match the expected path:\
-                                 \n  $expected\nactual path:\n  $actual")
+    if actual != expected
+        s(v) = sprint(show, MIME("text/plain"), v)
+        a, e = s.((actual, expected))
+        error("Node does not match the expected path:\n  $e\nactual path:\n  $a")
+    end
 end
 
 #-------------------------------------------------------------------------------------------

@@ -18,8 +18,8 @@ end
 @blueprint Raw "power value"
 export Raw
 
-F.early_check(bp::Raw) = check_value(bp.h)
-check_value(h) = h >= 0.0 || checkfails("Not a positive (power) value: h = $h.")
+F.early_check(bp::Raw) = check(bp.h)
+check(h) = check_value(>=(0), h, nothing, :h, "Not a positive (power) value")
 
 F.expand!(raw, bp::Raw) = raw._scratch[:hill_exponent] = bp.h
 
@@ -38,7 +38,7 @@ export HillExponent
     depends(HillExponent)
     get(raw -> raw._scratch[:hill_exponent])
     set!((raw, rhs::Real) -> begin
-        HillExponent_.check_value(rhs)
+        HillExponent_.check(rhs)
         h = Float64(rhs)
         raw._scratch[:hill_exponent] = h
         # Legacy updates, required because scalars don't alias.

@@ -86,3 +86,20 @@
          m.M == [20, 2]
   true
   ```
+
+- Values are checked prior to expansion:
+  ```julia
+  julia> m = Model(fw, Efficiency(1.5))
+  TODO
+  ```
+
+- Efficiency from a matrix implies a Foodweb.
+  ```julia
+  julia> e = 0.5;
+         m = Model(fw, Efficiency([
+            0 e e
+            0 0 e
+            e 0 0
+         ]))
+  TODO
+  ```

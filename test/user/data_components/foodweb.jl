@@ -1,13 +1,30 @@
 @testset "Foodweb component." begin
     # Very structuring, the foodweb does provide a lot of properties.
 
-    # Can be used as a first component.
-    fw = Foodweb([:a => [:b, :c], :b => :c])
-    m = Model(fw)
+    base = Model()
 
+    #---------------------------------------------------------------------------------------
+    # From a matrix
+
+    fw = Foodweb([
+        0 1 1
+        0 0 1
+        0 0 0
+    ])
+    m = base + fw
     # Species component is automatically brought.
     @test m.S == 3
+    @test m.species.names == [:s1, :s2, :s3]
+    @test typeof(fw) == Foodweb.Matrix
+
+    #---------------------------------------------------------------------------------------
+    # From an adjacency list.
+
+    fw = Foodweb([:a => [:b, :c], :b => :c])
+    m = base + fw
+    @test m.S == 3
     @test m.species.names == [:a, :b, :c]
+    @test typeof(fw) == Foodweb.Adjacency
 
     #---------------------------------------------------------------------------------------
     # Properties brought by the foodweb.
@@ -94,5 +111,44 @@
         0 0 0 0
         0 1 0 0
     ]
+
+    #---------------------------------------------------------------------------------------]
+    # Input guards.
+
+    @sysfails(
+        Model(Foodweb([
+            0 1 0
+            0 0 1
+        ])),
+        Check(
+            early,
+            [Foodweb.Matrix],
+            "The adjacency matrix of size (3, 2) is not squared.",
+        )
+    )
+
+    @sysfails(
+        Model(Species(2), Foodweb([
+            0 1 1
+            0 0 1
+            0 0 0
+        ])),
+        Check(
+            late,
+            [Foodweb.Matrix],
+            "Invalid size for parameter 'A': expected (2, 2), got (3, 3).",
+        )
+    )
+
+    @sysfails(
+        Model(Species(2), Foodweb(:a => :b)), # HERE: was that and/or [:a, :b] => :c not allowed?
+        Check(
+            late,
+            [Foodweb.Matrix],
+            "Invalid size for parameter 'A': expected (2, 2), got (3, 3).",
+        )
+    )
+
+    # Input tests on the `Foodweb` constructor itself live in "../01-input.jl".
 
 end

@@ -23,12 +23,8 @@ F.implied_blueprint_for(bp::Raw, ::_Species) = Species(length(bp.M))
 @blueprint Raw "masses values"
 export Raw
 
-F.early_check(bp::Raw) =
-    for (i, m) in enumerate(bp.M)
-        check(m, i)
-    end
-check(m) = m >= 0 || checkfails("Not a positive value: M = $m.")
-check(m, ref) = m >= 0 || checkfails("Not a positive value: M[$(repr(ref))] = $m.")
+F.early_check(bp::Raw) = check_nodes(check, bp.M)
+check(M, ref = nothing) = check_value(>=(0), M, ref, :M, "Not a positive value")
 
 function F.late_check(raw, bp::Raw)
     (; M) = bp
@@ -60,17 +56,14 @@ mutable struct Map <: Blueprint
     Map(M, sp = _Species) = new(@tographdata(M, Map{Float64}), sp)
 end
 F.implied_blueprint_for(bp::Map, ::_Species) = Species(refs(bp.M))
-@blueprint Map "{species ↦ mass} map"
+@blueprint Map "[species => mass] map"
 export Map
 
-
+F.early_check(bp::Map) = check_nodes(check, bp.M)
 function F.late_check(raw, bp::Map)
     (; M) = bp
     index = @ref raw.species.index
     @check_list_refs M :species index dense
-    for (sp, m) in M
-        check(m, sp)
-    end
 end
 
 function F.expand!(raw, bp::Map)

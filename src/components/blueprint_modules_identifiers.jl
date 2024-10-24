@@ -16,4 +16,9 @@ end
     using .AliasingDicts
 end
 
+@static if (false)
+    include("../kwargs_helpers.jl")
+    using .KwargsHelpers
+end
+
 include("./allometry_identifiers.jl")

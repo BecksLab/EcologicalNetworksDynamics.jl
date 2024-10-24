@@ -30,7 +30,7 @@ end
 export Names
 
 # Forbid duplicates (triangular check).
-function F.late_check(_, bp::Names)
+function F.early_check(bp::Names)
     (; names) = bp
     for (i, a) in enumerate(names)
         for j in (i+1):length(names)

@@ -518,3 +518,226 @@ end
     end
 
 end
+
+@testset "Iteration over graph data input types." begin
+
+    check(a, e) = @test collect(items(a)) == e
+    check_nodes(a, e) = @test collect(node_items(a)) == e
+    check_edges(a, e) = @test collect(edge_items(a)) == e
+
+    #---------------------------------------------------------------------------------------
+    # Vectors.
+    check_nodes([], [])
+    check([], [])
+    #! format: off
+    check_nodes([:a, :b, :c], [
+        ((1,), :a),
+        ((2,), :b),
+        ((3,), :c)
+    ])
+    # Default.
+    check([:a, :b, :c], [
+        ((1,), :a),
+        ((2,), :b),
+        ((3,), :c)
+    ])
+    #! format: on
+
+    #---------------------------------------------------------------------------------------
+    # Matrices.
+    check([;;], [])
+    check_edges([;;], [])
+    #! format: off
+    check_edges([
+       :a :b
+       :c :d
+     ], [
+       ((1, 1), :a),
+       ((1, 2), :b),
+       ((2, 1), :c),
+       ((2, 2), :d),
+    ])
+    # Default.
+    check([
+       :a :b
+       :c :d
+     ], [
+       ((1, 1), :a),
+       ((1, 2), :b),
+       ((2, 1), :c),
+       ((2, 2), :d),
+    ])
+    @failswith(node_items([;;]), "Cannot read node data from a 2D matrix.")
+    #! format: on
+
+    #---------------------------------------------------------------------------------------
+    # 2D Nested collections.
+    # Different interpretation of the same input.
+    check_edges([], [])
+    check_nodes([], [])
+    #! format: off
+    check_edges([
+       [:a, :b],
+       [:c, :d],
+     ], [
+       ((1, 1), :a),
+       ((1, 2), :b),
+       ((2, 1), :c),
+       ((2, 2), :d),
+    ])
+    check_nodes([
+       [:a, :b],
+       [:c, :d],
+     ], [
+       ((1,), [:a, :b]),
+       ((2,), [:c, :d]),
+    ])
+    # Default.
+    check([
+       [:a, :b],
+       [:c, :d],
+     ], [
+       ((1,), [:a, :b]),
+       ((2,), [:c, :d]),
+    ])
+    #! format: on
+
+    #---------------------------------------------------------------------------------------
+    # Sparse vectors.
+    check(sparse([]), [])
+    check_nodes(sparse([]), [])
+    #! format: off
+    check_nodes(sparse([0, 1, 0, 0, 2, 0, 3,  0]), [
+       ((2,), 1),
+       ((5,), 2),
+       ((7,), 3),
+    ])
+    # Default.
+    check(sparse([0, 1, 0, 0, 2, 0, 3,  0]), [
+       ((2,), 1),
+       ((5,), 2),
+       ((7,), 3),
+    ])
+    #! format: on
+
+    #---------------------------------------------------------------------------------------
+    # Sparse matrices.
+    check(sparse([;;]), [])
+    check(sparse(zeros(3, 3)), [])
+    check_edges(sparse([;;]), [])
+    check_edges(sparse(zeros(3, 3)), [])
+    #! format: off
+    check_edges(sparse([
+       0 2 0
+       1 0 4
+       0 3 0
+    ]), [
+       ((2, 1), 1),
+       ((1, 2), 2),
+       ((3, 2), 3),
+       ((2, 3), 4),
+    ])
+    # Default.
+    check(sparse([
+       0 2 0
+       1 0 4
+       0 3 0
+    ]), [
+       ((2, 1), 1),
+       ((1, 2), 2),
+       ((3, 2), 3),
+       ((2, 3), 4),
+    ])
+    #! format: on
+    @failswith(node_items(sparse([;;])), "Cannot read node data from a 2D matrix.")
+
+    #---------------------------------------------------------------------------------------
+    # Maps.
+    check(Dict(), [])
+    check(OrderedDict(), [])
+    check_nodes(Dict(), [])
+    check_nodes(OrderedDict(), [])
+    #! format: off
+    check_nodes(Dict([
+       :a => 1,
+       :b => 2,
+       :c => 3,
+    ]), [
+       ((:a,), 1),
+       ((:b,), 2),
+       ((:c,), 3),
+    ])
+    # Default.
+    check(Dict([
+       :a => 1,
+       :b => 2,
+       :c => 3,
+    ]), [
+       ((:a,), 1),
+       ((:b,), 2),
+       ((:c,), 3),
+    ])
+    #! format: on
+
+    #---------------------------------------------------------------------------------------
+    # Adjacency lists.
+    e = Dict{Symbol,Dict}()
+    oe = OrderedDict{Symbol,Dict}()
+    check(e, [])
+    check(oe, [])
+    check_edges(e, [])
+    check_edges(oe, [])
+    check_nodes(e, [])
+    check_nodes(oe, [])
+    # With actual values.
+    check_edges(OrderedDict([
+       :a => Dict([:b => 5, :c => 8]),
+       :b => Dict([:a => 2]),
+       :c => Dict([:c => 0]),
+    ]), [
+       ((:a, :b), 5),
+       ((:a, :c), 8),
+       ((:b, :a), 2),
+       ((:c, :c), 0),
+    ])
+    check_nodes(OrderedDict([
+       :a => Dict([:b => 5, :c => 8]),
+       :b => Dict([:a => 2]),
+       :c => Dict([:c => 0]),
+    ]), [
+       ((:a,), Dict([:b => 5, :c => 8])),
+       ((:b,), Dict([:a => 2])),
+       ((:c,), Dict([:c => 0])),
+    ])
+    check_edges(OrderedDict([
+       :a => e,
+       :b => e,
+       :c => e,
+    ]), [])
+    check_nodes(OrderedDict([
+       :a => e,
+       :b => e,
+       :c => e,
+    ]), [
+         ((:a,), e),
+         ((:b,), e),
+         ((:c,), e),
+    ])
+    # Default to edges if common subtype is a dict.
+    check(OrderedDict([
+       :a => e,
+       :b => e,
+       :c => e,
+    ]), [])
+    # Or else default to nodes.
+    check(OrderedDict([
+       :a => e,
+       :b => e,
+       :c => 0,
+    ]), [
+         ((:a,), e),
+         ((:b,), e),
+         ((:c,), 0),
+    ])
+
+end

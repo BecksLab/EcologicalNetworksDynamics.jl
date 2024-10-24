@@ -146,7 +146,7 @@ function (::_Foodweb)(model::Union{Symbol,AbstractString}; kwargs...)
     model = @tographdata model Y{}
     @kwargs_helpers kwargs
 
-    given(:S) || argerr("Random foodweb models requires a number of species 'S'.")
+    given(:S) || argerr("Random foodweb models require a number of species 'S'.")
     S = take!(:S)
 
     # Default values.

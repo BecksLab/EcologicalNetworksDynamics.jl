@@ -31,18 +31,19 @@ F.implied_blueprint_for(bp::Raw, ::_Species) = Species(length(bp.classes))
 @blueprint Raw "metabolic classes" depends(Foodweb)
 export Raw
 
-F.early_check(bp::Raw) = check_values(bp.classes)
-check_values(classes) =
-    for (i, c) in enumerate(classes)
-        check_value(c, i)
-    end
-check_value(class, i = nothing) =
+F.early_check(bp::Raw) = check_nodes(check, bp.classes)
+check(class, ref = nothing) =
     try
         AliasingDicts.standardize(class, MetabolicClassDict)
     catch e
         e isa AliasingError && checkrefails(e) do e
-            i = isnothing(i) ? "" : " $i"
-            "Metabolic class input$i: $e"
+            index = if isnothing(ref)
+                ""
+            else
+                (i,) = ref
+                " $(repr(i))"
+            end
+            "Metabolic class input$index: $e"
         end
         rethrow(e)
     end
@@ -88,21 +89,22 @@ mutable struct Map <: Blueprint
     Map(M, sp = _Species) = new(@tographdata(M, Map{Symbol}), sp)
 end
 F.implied_blueprint_for(bp::Map, ::_Species) = Species(refs(bp.classes))
-@blueprint Map "{species ↦ class} map" depends(Foodweb)
+@blueprint Map "[species => class] map" depends(Foodweb)
 export Map
 
-F.early_check(bp::Map) = check_value(values(bp.classes))
-
+F.early_check(bp::Map) = check_nodes(check, bp.classes)
 function F.late_check(raw, bp::Map)
     (; classes) = bp
     index = @ref raw.species.index
     @check_list_refs classes :species index dense
-    late_check(raw, values(classes))
+    late_check(raw, collect(values(classes)))
 end
 
 function F.expand!(raw, bp::Map)
     index = @ref raw.species.index
-    c = to_dense_vector(bp.classes, index)
+    std(c) = AliasingDicts.standardize(c, MetabolicClassDict)
+    c = Dict(sp => std(c) for (sp, c) in bp.classes)
+    c = to_dense_vector(c, index)
     expand!(raw, c)
 end
 
@@ -158,7 +160,7 @@ end
     ref_cached(raw -> Symbol.(raw._foodweb.metabolic_class)) # Legacy reverse conversion.
     get(MetabolicClasses{Symbol}, "species")
     write!((raw, rhs, i) -> begin
-        rhs = MetabolicClass_.check_value(rhs, i)
+        rhs = MetabolicClass_.check(rhs, i)
         is_prod = is_producer(raw, i)
         MetabolicClass_.check_against_status(rhs, is_prod, i)
         raw._foodweb.metabolic_class[i...] = String(rhs)

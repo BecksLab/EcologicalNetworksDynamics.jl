@@ -12,6 +12,7 @@ import .EN:
     SparseMatrix,
     Topologies,
     check_template,
+    check_value,
     imap,
     sparse_nodes_allometry,
     sparse_nodes_allometry,
@@ -21,3 +22,4 @@ import .F: @blueprint, checkfails, Brought, checkrefails
 using .EN.AliasingDicts
 using .EN.AllometryApi
 using .EN.GraphDataInputs
+using .EN.KwargsHelpers
