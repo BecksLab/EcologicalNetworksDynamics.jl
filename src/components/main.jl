@@ -1,6 +1,7 @@
 # Since we haven't refactored the internals yet,
-# the components described here are just a raw embedding of the former interface.
-# Take this opportunity to pick stable names and encapsulate the whole Internal module,
+# the components described here are just a raw embedding of the former 'Internal' interface,
+# nicknamed 'raw' in components code.
+# Take this opportunity to pick stable names and encapsulate the whole 'Internals' module,
 # so we can refactor it later, *deeply*,
 # hopefully without needing to change any exposed component/method.
 
@@ -56,6 +57,39 @@
 #   - Sparse (templated) edges data.
 #   - Behaviour (graph data that actually represents *code* to run the model).
 
+# HERE: Now that the framework has been refactored,
+# change all the following components with the following design:
+#
+#   module OmegaBlueprints
+#      # /!\ many redundant imports to factorize here.
+#      struct Raw <: Blueprint ... end
+#      struct Random <: Blueprint ... end
+#      @blueprint Raw
+#      @blueprint Random
+#      ...
+#   end
+#
+#   @component Omega blueprints(Raw::OmegaBlueprints.Raw, Random::OmegaBlueprints.Random, ..)
+#
+#   function (C::_Omega)(args...; kwargs...)
+#      if ..
+#          C.Raw(...)
+#      elseif ...
+#          C.Random(...)
+#      else ...
+#      end
+#   end
+#
+#   # Use as a blueprint constructor, but also as a blueprint namespace.
+#   Omega(...)
+#   Omega.Random(...)
+#   Omega.Raw(...)
+#
+
+# Helpers.
+include("./macros_keywords.jl")
+include("./allometry.jl")
+include("./values_check.jl")
 # Behaviour blueprints typically "optionally bring" other blueprints.
 # This utils factorizes how args/kwargs are passed from its inner constructor
 # to each of its fields.
@@ -65,51 +99,52 @@ include("./args_to_fields.jl")
 include("./species.jl")
 
 # Trophic links, structuring the whole network.
+# (typical example 'edge' data)
 include("./foodweb.jl")
 
-# Biorates and other values parametring the ODE.
+# Biorates and other values parametrizing the ODE.
+# (typical example 'nodes' data)
 include("./body_mass.jl")
 include("./metabolic_class.jl")
 
-# Useful temporary values to calculate other biorates.
+# Useful global values to calculate other biorates.
+# (typical example 'graph' data)
 include("./temperature.jl")
 
-include("./allometry.jl")
-
-# Models (with comments etc.)
-include("./hill_exponent.jl") # Example graph-level data.
-include("./growth_rate.jl") # Example nodes-level data.
-include("./efficiency.jl") # Example edges-level data.
-
 # Replicated/adapted from the above.
-include("./carrying_capacity.jl")
-include("./mortality.jl")
-include("./metabolism.jl")
-include("./maximum_consumption.jl")
-include("./producers_competition.jl")
-include("./consumers_preferences.jl")
-include("./handling_time.jl")
-include("./attack_rate.jl")
-include("./half_saturation_density.jl")
-include("./intraspecific_interference.jl")
-include("./consumption_rate.jl")
+# TODO: factorize subsequent repetitions there.
+# Easier once the Internals become more consistent?
+include("./hill_exponent.jl")
+include("./growth_rate.jl")
+include("./efficiency.jl")
+#  include("./carrying_capacity.jl")
+#  include("./mortality.jl")
+#  include("./metabolism.jl")
+#  include("./maximum_consumption.jl")
+#  include("./producers_competition.jl")
+#  include("./consumers_preferences.jl")
+#  include("./handling_time.jl")
+#  include("./attack_rate.jl")
+#  include("./half_saturation_density.jl")
+#  include("./intraspecific_interference.jl")
+#  include("./consumption_rate.jl")
 
-# Namespace nutrients data.
-include("./nutrients/main.jl")
-export Nutrients
+#  # Namespace nutrients data.
+#  include("./nutrients/main.jl")
+#  export Nutrients
 
-include("./nontrophic_layers/main.jl")
-using .NontrophicInteractions
-export NontrophicInteractions
-export CompetitionLayer
-export FacilitationLayer
-export RefugeLayer
-export InterferenceLayer
+#  include("./nontrophic_layers/main.jl")
+#  using .NontrophicInteractions
+#  export NontrophicInteractions
+#  export CompetitionLayer
+#  export FacilitationLayer
+#  export RefugeLayer
+#  export InterferenceLayer
 
-# The above components mostly setup *data* within the model.
-# In the nex they mostly specify the *code* needed to simulate it.
-include("./producer_growth.jl")
-include("./functional_responses.jl")
-# Metabolism and Mortality are also code components,
-# but they are not reified yet and only reduce
-# to the single data component they each bring.
+#  # The above components mostly setup *data* within the model.
+#  # In the nex they mostly specify the *code* needed to simulate it.
+#  include("./producer_growth.jl")
+#  include("./functional_responses.jl")
+#  # Metabolism and Mortality are also code components,
+#  # but they are not reified yet and only reduce
+#  # to the single data component they each bring.

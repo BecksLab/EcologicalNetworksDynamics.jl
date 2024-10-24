@@ -35,6 +35,11 @@ const BinMap{I} = OrderedSet{I}
 const BinAdjacency{I} = OrderedDict{I,OrderedSet{I}}
 export Map, Adjacency, BinMap, BinAdjacency
 
+const AbstractMap{I,T} = AbstractDict{I,T}
+const AbstractAdjacency{I,T} = AbstractDict{I,<:AbstractDict{I,T}}
+const AbstractBinMap{T} = AbstractSet{T}
+const AbstractBinAdjacency{I} = AbstractDict{I,<:AbstractSet{I}}
+
 aliases = OrderedDict(
     # Special cases.
     Symbol => [:Symbol, :Sym, :Y], # (non-parametric: "Symbol{T} = Symbol")
@@ -59,9 +64,14 @@ als = repr(MIME("text/plain"), aliases) # (to include in error messages)
 #   @macro ... {Symbol, Scal} # (shortened names)
 #   @macro ... YSN            # (single letters)
 #   @macro ... {YSN}          # (convenience twist)
+#   @macro ... Symbol         # (convenience twist if it matches a full name)
 function parse_types(loc, input)
     if input isa Symbol
-        specs = Symbol.(collect(String(input)))
+        if haskey(rev_aliases, input)
+            specs = [input]
+        else
+            specs = Symbol.(collect(String(input)))
+        end
     elseif input.head == :braces
         specs = Symbol.(input.args)
     else
@@ -212,6 +222,31 @@ empty_space((a, b)) = empty_space(a) || empty_space(b)
 inspace(i::Int64, n::Int64) = 0 < i <= n
 inspace(s::Symbol, x::Index) = s in keys(x)
 inspace((a, b), (x, y)) = inspace(a, x) && inspace(b, y)
+
+# ==========================================================================================
+# Single entrypoint to iterate over either nodes/edges collections
+# and always yield (ref, value) pairs.
+# `ref` is either (i,), (i, j),  (:ref,) or (:ref1, :ref2) depending on the input.
+
+# Base methods work with any iterable type (or nested).
+node_items(pairs) = (((i,), v) for (i, v) in pairs)
+edge_items(sup) = (((i, j), v) for (i, sub) in sup for ((j,), v) in node_items(sub))
+
+# Specialize with further types semantics.
+node_items(v::Vector) = node_items(enumerate(v))
+edge_items(v::Vector) = edge_items(enumerate(v))
+node_items(::AbstractMatrix) = throw("Cannot read node data from a 2D matrix.")
+edge_items(m::AbstractMatrix) =
+    (((i, j), v) for (i, row) in enumerate(eachrow(m)) for (j, v) in enumerate(row))
+node_items(v::SparseVector) = (((i,), v) for (i, v) in zip(findnz(v)...))
+edge_items(m::SparseMatrixCSC) = (((i, j), v) for (i, j, v) in zip(findnz(m)...))
+
+# Automatic dispatch.
+items(v::AbstractVector) = node_items(v)
+items(m::AbstractMatrix) = edge_items(m)
+items(d::AbstractDict) = node_items(d)
+items(a::AbstractDict{<:Any,<:AbstractDict}) = edge_items(a)
+export node_items, edge_items, items
 
 # ==========================================================================================
 # Pretty display for maps and adjacency lists.

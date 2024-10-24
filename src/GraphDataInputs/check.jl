@@ -1,6 +1,17 @@
 # Checking utils: verify input against an actual model value.
 
 # ==========================================================================================
+# Check every value as a scalar, providing a Function(value, index) callback
+# throwing on invalid values.
+check_values(check, values; items = items) =
+    for (ref, value) in items(values)
+        check(value, ref)
+    end
+check_nodes(c, n) = check_values(c, n; items = node_items)
+check_edges(c, n) = check_values(c, n; items = edge_items)
+export check_nodes, check_edges, check_values
+
+# ==========================================================================================
 # Assuming the input is a symbol,
 # check that it is one of the expected symbols,
 # emitting a useful error message on invalid symbol
@@ -11,7 +22,7 @@ macro check_symbol(var::Symbol, list)
 end
 function _check_symbol(loc, var, list)
     symbols = []
-    inputerr() = argerr("Invalid @build_from_symbol macro use at $loc.\n\
+    inputerr() = argerr("Invalid @check_symbol macro use at $loc.\n\
                          Expected a list of symbols. \
                          Got $(repr(list)).")
     list isa Expr || (list = :(($list,)))
@@ -382,6 +393,7 @@ function parse_check_list_refs_input(input)
             kw[:dense] = true
             continue
         end
+        (false) && (local tp) # (reassure JuliaLS)
         @capture(i, template(tp_))
         if !isnothing(tp)
             haskey(kw, :template) &&

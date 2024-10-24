@@ -161,7 +161,7 @@ end
     ])
 
     # Guard against missing information.
-    @argfails(Foodweb(:niche), "Random foodweb models requires a number of species 'S'.")
+    @argfails(Foodweb(:niche), "Random foodweb models require a number of species 'S'.")
 
     # More specific guards.
     @argfails(
