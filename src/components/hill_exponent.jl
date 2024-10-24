@@ -6,7 +6,7 @@
 # ==========================================================================================
 # Blueprints.
 
-module HE
+module HillExponent_
 include("blueprint_modules.jl")
 
 #-------------------------------------------------------------------------------------------
@@ -28,7 +28,7 @@ end
 # ==========================================================================================
 # Component and generic constructors.
 
-@component HillExponent{Internal} blueprints(HE)
+@component HillExponent{Internal} blueprints(HillExponent_)
 export HillExponent
 
 (::_HillExponent)(h) = HillExponent.Raw(h)
@@ -38,7 +38,7 @@ export HillExponent
     depends(HillExponent)
     get(raw -> raw._scratch[:hill_exponent])
     set!((raw, rhs::Real) -> begin
-        HE.check_value(rhs)
+        HillExponent_.check_value(rhs)
         h = Float64(rhs)
         raw._scratch[:hill_exponent] = h
         # Legacy updates, required because scalars don't alias.

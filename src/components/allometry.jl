@@ -10,6 +10,7 @@
 include("./allometry_api.jl")
 include("./allometry_identifiers.jl")
 using .AllometryApi
+export Allometry
 
 # Check the given parameters against a template (typically a default value)
 # so as to reject missing or unexpected values.

@@ -7,7 +7,7 @@
 # ==========================================================================================
 # Blueprints.
 
-module T
+module Temperature_
 include("blueprint_modules.jl")
 
 #-------------------------------------------------------------------------------------------
@@ -29,7 +29,7 @@ end
 # ==========================================================================================
 # Component and generic constructors.
 
-@component Temperature{Internal} blueprints(T)
+@component Temperature{Internal} blueprints(Temperature_)
 export Temperature
 
 (::_Temperature)(T = 293.15) = Temperature.Raw(T)
@@ -40,7 +40,7 @@ export Temperature
     depends(Temperature)
     get(raw -> raw.environment.T)
     set!((raw, rhs::Real) -> begin
-        T.check_value(rhs)
+        Temperature_.check_value(rhs)
         raw.environment.T = rhs
     end)
 end

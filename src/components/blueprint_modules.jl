@@ -5,13 +5,15 @@ using SparseArrays
 using EcologicalNetworksDynamics
 const EN = EcologicalNetworksDynamics
 const F = EcologicalNetworksDynamics.Framework
-import EcologicalNetworksDynamics:
+import .EN:
     AliasingDicts,
     Blueprint,
     Internals,
     SparseMatrix,
     Topologies,
+    check_template,
     imap,
+    sparse_nodes_allometry,
     sparse_nodes_allometry,
     @get,
     @ref

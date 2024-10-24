@@ -11,7 +11,7 @@
 # ==========================================================================================
 # Blueprints.
 
-module FoodwebBlueprints
+module Foodweb_
 include("blueprint_modules.jl")
 include("blueprint_modules_identifiers.jl")
 import .EN: _Species, Species
@@ -126,7 +126,7 @@ end
 # ==========================================================================================
 # Component and generic constructors.
 
-@component Foodweb{Internal} requires(Species) blueprints(FoodwebBlueprints)
+@component Foodweb{Internal} requires(Species) blueprints(Foodweb_)
 # Consistency alias.
 const (TrophicLayer, _TrophicLayer) = (Foodweb, _Foodweb)
 export Foodweb, TrophicLayer

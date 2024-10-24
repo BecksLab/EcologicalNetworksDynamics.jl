@@ -9,7 +9,8 @@
 # ==========================================================================================
 # Blueprints.
 
-module SpeciesBlueprints
+# Name + '_'-suffix is the module defining blueprints for this component.
+module Species_
 include("blueprint_modules.jl")
 
 #-------------------------------------------------------------------------------------------
@@ -67,7 +68,7 @@ end
 # ==========================================================================================
 # Component and generic constructors.
 
-@component Species{Internal} blueprints(SpeciesBlueprints)
+@component Species{Internal} blueprints(Species_)
 export Species
 
 # Build from a number or default to names.

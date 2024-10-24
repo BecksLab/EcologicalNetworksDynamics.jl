@@ -11,16 +11,13 @@
 # (reassure JuliaLS)
 (false) && (local GrowthRate, _GrowthRate)
 
-# HERE: test after fixing JuliaLS.
-
 # ==========================================================================================
 # Blueprints.
 
-module GR
+module GrowthRate_
 include("blueprint_modules.jl")
 include("blueprint_modules_identifiers.jl")
-import .EcologicalNetworksDynamics:
-    Species, _Species, BodyMass, MetabolicClass, _Temperature
+import .EN: Species, _Species, BodyMass, MetabolicClass, _Temperature
 
 #-------------------------------------------------------------------------------------------
 # From raw values.
@@ -84,7 +81,7 @@ function F.late_check(raw, bp::Map)
     (; r) = bp
     index = @ref raw.species.index
     prods = @ref raw.producers.mask
-    @check_list_refs r :species index template(prods)
+    @check_list_refs r :producer index template(prods)
     for (sp, m) in r
         check(m, sp)
     end
@@ -116,7 +113,7 @@ export Allometric
 
 function F.early_check(bp::Allometric)
     (; allometry) = bp
-    @check_template allometry miele2019_growth_allometry_rates() "growth rates"
+    check_template(allometry, miele2019_growth_allometry_rates(), "growth rates")
 end
 
 function F.expand!(raw, bp::Allometric)
@@ -152,9 +149,9 @@ export Temperature
 
 function F.early_check(bp::Temperature)
     (; allometry) = bp
-    @check_template(
+    check_template(
         allometry,
-        binzer2016_growth_allometry_rates(),
+        binzer2016_growth_allometry_rates()[2],
         "growth rates (from temperature)",
     )
 end
@@ -165,7 +162,7 @@ function F.expand!(raw, bp::Temperature)
     M = @ref raw.M
     mc = @ref raw.metabolic_classes
     prods = @ref raw.producers.mask
-    r = sparse_nodes_allometry(bp.allometry, prods, M, mc, E_a, T)
+    r = sparse_nodes_allometry(bp.allometry, prods, M, mc; E_a, T)
     expand!(raw, r)
 end
 
@@ -174,7 +171,7 @@ end
 # ==========================================================================================
 # Component and generic constructors.
 
-@component GrowthRate{Internal} requires(Foodweb) blueprints(GR)
+@component GrowthRate{Internal} requires(Foodweb) blueprints(GrowthRate_)
 export GrowthRate
 
 # Construct either variant based on user input,
@@ -210,7 +207,7 @@ end
     get(GrowthRates{Float64}, sparse, "producer")
     template(raw -> @ref raw.producers.mask)
     write!((raw, rhs::Real, i) -> begin
-        GR.check(rhs)
+        GrowthRate_.check(rhs)
         rhs = Float64(rhs)
         raw.biorates.r[i] = rhs
         rhs

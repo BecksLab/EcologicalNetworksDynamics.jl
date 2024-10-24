@@ -13,7 +13,7 @@
 # ==========================================================================================
 # Blueprints.
 
-module MC
+module MetabolicClass_
 include("blueprint_modules.jl")
 include("./blueprint_modules_identifiers.jl")
 import .EcologicalNetworksDynamics: Species, _Species, Foodweb, _Foodweb
@@ -136,7 +136,7 @@ end
 # ==========================================================================================
 # Component and generic constructors.
 
-@component MetabolicClass{Internal} requires(Foodweb) blueprints(MC)
+@component MetabolicClass{Internal} requires(Foodweb) blueprints(MetabolicClass_)
 export MetabolicClass
 
 (::_MetabolicClass)(favourite::Symbol) = MetabolicClass.Favor(favourite)
@@ -158,9 +158,9 @@ end
     ref_cached(raw -> Symbol.(raw._foodweb.metabolic_class)) # Legacy reverse conversion.
     get(MetabolicClasses{Symbol}, "species")
     write!((raw, rhs, i) -> begin
-        rhs = MC.check_value(rhs, i)
+        rhs = MetabolicClass_.check_value(rhs, i)
         is_prod = is_producer(raw, i)
-        MC.check_against_status(rhs, is_prod, i)
+        MetabolicClass_.check_against_status(rhs, is_prod, i)
         raw._foodweb.metabolic_class[i...] = String(rhs)
         rhs
     end)
